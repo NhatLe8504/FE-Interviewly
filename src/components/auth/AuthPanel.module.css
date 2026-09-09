@@ -1,0 +1,669 @@
+.pageShell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 24px 64px;
+  background: linear-gradient(180deg, #f8f4ee 0%, #f7efe6 30%, #f7eadc 65%, #f5e7d7 100%);
+  color: #211914;
+}
+
+.modalShell {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.topBar {
+  width: min(1020px, 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  animation: authRise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #211914;
+}
+
+.brandMark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: #211914;
+  color: #f7eadc;
+  font-size: 15px;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(45, 31, 23, 0.72);
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(106, 72, 49, 0.13);
+  background: rgba(255, 255, 255, 0.55);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.backLink:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateX(-2px);
+}
+
+.authCard {
+  width: min(1020px, 100%);
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  overflow: hidden;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: 0 18px 45px rgba(84, 50, 27, 0.06), 0 40px 90px -30px rgba(84, 50, 27, 0.22);
+  animation: authRise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes authRise {
+  from {
+    opacity: 0;
+    transform: translateY(26px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.formSide {
+  padding: 46px 46px 40px;
+}
+
+.modalShell .formSide {
+  padding: 38px 36px 32px;
+}
+
+.modalShell .authCard {
+  width: min(960px, 100%);
+  animation: authPop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes authPop {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #211914;
+}
+
+.eyebrow span {
+  width: 24px;
+  height: 1px;
+  background: rgba(45, 31, 23, 0.82);
+}
+
+.formSide h1 {
+  margin: 0;
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  font-weight: 550;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.sub {
+  margin: 12px 0 0;
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: rgba(45, 31, 23, 0.72);
+}
+
+.segmented {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 26px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(106, 72, 49, 0.13);
+  background: rgba(255, 248, 238, 0.7);
+}
+
+.segmentThumb {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: 999px;
+  background: #211914;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.authCard[data-mode="register"] .segmentThumb {
+  transform: translateX(100%);
+}
+
+.segmented button {
+  position: relative;
+  z-index: 1;
+  border: 0;
+  background: transparent;
+  padding: 11px 0;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(45, 31, 23, 0.6);
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.segmentActive {
+  color: #fffaf4 !important;
+}
+
+.formStack {
+  display: grid;
+  margin-top: 24px;
+}
+
+.formPane {
+  grid-area: 1 / 1;
+  display: grid;
+  gap: 15px;
+  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.45s;
+}
+
+.authCard[data-mode="login"] .paneRegister {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(34px);
+  pointer-events: none;
+}
+
+.authCard[data-mode="register"] .paneLogin {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-34px);
+  pointer-events: none;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #211914;
+}
+
+.field input {
+  width: 100%;
+  padding: 13px 15px;
+  border-radius: 14px;
+  border: 1px solid rgba(106, 72, 49, 0.18);
+  background: rgba(255, 255, 255, 0.85);
+  color: #211914;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field input::placeholder {
+  color: rgba(84, 58, 42, 0.45);
+}
+
+.field input:focus {
+  border-color: #d98236;
+  box-shadow: 0 0 0 3px rgba(217, 130, 54, 0.18);
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.passwordWrap {
+  position: relative;
+  display: block;
+}
+
+.passwordWrap input {
+  padding-right: 44px;
+}
+
+.eyeButton {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: rgba(84, 58, 42, 0.6);
+  cursor: pointer;
+}
+
+.eyeButton:hover {
+  background: rgba(217, 130, 54, 0.14);
+  color: #8b4513;
+}
+
+.formRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+
+.remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(45, 31, 23, 0.72);
+  cursor: pointer;
+}
+
+.remember input {
+  accent-color: #8b4513;
+  width: 15px;
+  height: 15px;
+}
+
+.forgot {
+  font-weight: 600;
+  color: #8b4513;
+  cursor: pointer;
+}
+
+.forgot:hover {
+  text-decoration: underline;
+}
+
+.error {
+  margin: 0;
+  padding: 11px 14px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #9c2b1a;
+  background: rgba(220, 70, 40, 0.09);
+  border: 1px solid rgba(220, 70, 40, 0.22);
+}
+
+.success {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 11px 14px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #2e6b34;
+  background: rgba(52, 168, 83, 0.1);
+  border: 1px solid rgba(52, 168, 83, 0.25);
+}
+
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 4px;
+  padding: 15px 24px;
+  border: 0;
+  border-radius: 999px;
+  background: #211914;
+  color: #fffaf4;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.primaryButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px -10px rgba(33, 25, 20, 0.5);
+}
+
+.primaryButton:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+
+.spin {
+  animation: authSpin 0.9s linear infinite;
+}
+
+@keyframes authSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 16px;
+  font-size: 0.75rem;
+  color: rgba(84, 58, 42, 0.5);
+}
+
+.divider span {
+  flex: 1;
+  height: 1px;
+  background: rgba(106, 72, 49, 0.13);
+}
+
+.googleButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(106, 72, 49, 0.18);
+  background: rgba(255, 255, 255, 0.8);
+  color: #211914;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.googleButton:hover {
+  background: #ffffff;
+  transform: translateY(-1px);
+}
+
+.switchLine {
+  margin: 20px 0 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: rgba(45, 31, 23, 0.72);
+}
+
+.switchLine button {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-weight: 700;
+  color: #8b4513;
+  cursor: pointer;
+  font-size: inherit;
+}
+
+.switchLine button:hover {
+  text-decoration: underline;
+}
+
+.showcase {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  min-height: 100%;
+  padding: 44px 40px;
+  border-radius: 0 28px 28px 0;
+  background: linear-gradient(135deg, #1c140f 0%, #261912 60%, #301f16 100%);
+  color: #f4edde;
+}
+
+.showcase::before {
+  content: "";
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(217, 90, 43, 0.28), transparent 65%);
+  top: -160px;
+  right: -100px;
+  filter: blur(45px);
+  pointer-events: none;
+}
+
+.showcaseLogin,
+.showcaseRegister {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 16px;
+  align-content: end;
+  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.45s;
+}
+
+.showcaseRegister {
+  position: absolute;
+  inset: 44px 40px;
+  align-content: end;
+}
+
+.authCard[data-mode="login"] .showcaseRegister {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(22px);
+}
+
+.authCard[data-mode="register"] .showcaseLogin {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-22px);
+  position: absolute;
+  inset: 44px 40px;
+}
+
+.authCard[data-mode="register"] .showcaseRegister {
+  position: relative;
+  inset: auto;
+}
+
+.showEyebrow {
+  margin: 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #f7ca9f;
+}
+
+.showQuote {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  font-weight: 550;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  color: #fffaf4;
+}
+
+.showStats {
+  display: flex;
+  gap: 26px;
+  margin-top: 8px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.showStats div {
+  display: grid;
+  gap: 3px;
+}
+
+.showStats strong {
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+
+.showStats span {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(244, 237, 222, 0.6);
+}
+
+.showSteps {
+  margin: 8px 0 0;
+  padding: 18px 0 0;
+  list-style: none;
+  display: grid;
+  gap: 13px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 0.9rem;
+  color: #f4edde;
+}
+
+.showSteps strong {
+  margin-right: 10px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #f7ca9f;
+}
+
+.showGlow {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(253, 198, 138, 0.16), transparent 65%);
+  bottom: -120px;
+  left: 20%;
+  filter: blur(35px);
+  pointer-events: none;
+}
+
+.showMark {
+  position: absolute;
+  top: 26px;
+  right: 30px;
+  font-size: 26px;
+  color: rgba(247, 202, 159, 0.55);
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  background: rgba(33, 25, 20, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: authFade 0.3s ease both;
+  overflow-y: auto;
+}
+
+@keyframes authFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modalBox {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin: auto;
+}
+
+.modalClose {
+  position: absolute;
+  top: -46px;
+  right: 2px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fffaf4;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.modalClose:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+@media (max-width: 920px) {
+  .authCard {
+    grid-template-columns: 1fr;
+  }
+
+  .showcase {
+    display: none;
+  }
+
+  .formSide {
+    padding: 36px 26px 30px;
+  }
+
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .authCard,
+  .topBar,
+  .modalBackdrop,
+  .formPane,
+  .segmentThumb,
+  .showcaseLogin,
+  .showcaseRegister {
+    animation: none;
+    transition: none;
+  }
+
+  .authCard[data-mode="login"] .paneRegister,
+  .authCard[data-mode="register"] .paneLogin,
+  .authCard[data-mode="login"] .showcaseRegister,
+  .authCard[data-mode="register"] .showcaseLogin {
+    transform: none;
+  }
+}
