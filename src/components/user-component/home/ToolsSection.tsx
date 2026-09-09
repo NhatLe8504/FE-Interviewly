@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { FileText, Languages, Mic2, Sparkles } from "lucide-react";
-import styles from "../../../app/page.module.css";
+import styles from "../../../app/(user)/page.module.css";
 
 const coachTools = [
   { icon: Mic2, title: "Voice practice", copy: "Turn a spoken answer into useful coaching on pace and hesitation." },
@@ -65,3 +65,4 @@ export default function ToolsSection() {
     </section>
   );
 }
+
