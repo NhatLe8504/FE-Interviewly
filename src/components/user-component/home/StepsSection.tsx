@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import styles from "../../../app/page.module.css";
+import styles from "../../../app/(user)/page.module.css";
 
 const steps = [
   ["01", "Set your interview", "Select the role, field, experience level, and language you want to practice."],
@@ -57,3 +57,4 @@ export default function StepsSection() {
     </section>
   );
 }
+
