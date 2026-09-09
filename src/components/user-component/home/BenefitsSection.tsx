@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { BarChart3, MessageSquareText, Target } from "lucide-react";
-import styles from "../../../app/page.module.css";
+import styles from "../../../app/(user)/page.module.css";
 
 const practiceBenefits = [
   {
@@ -80,3 +80,4 @@ export default function BenefitsSection() {
     </section>
   );
 }
+

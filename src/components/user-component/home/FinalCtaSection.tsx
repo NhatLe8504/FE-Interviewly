@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
-import styles from "../../../app/page.module.css";
+import styles from "../../../app/(user)/page.module.css";
 
 export default function FinalCtaSection() {
   const sectionRef = useRef<HTMLElement | null>(null);
@@ -42,3 +42,4 @@ export default function FinalCtaSection() {
     </section>
   );
 }
+
