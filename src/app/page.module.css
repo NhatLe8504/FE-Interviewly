@@ -214,6 +214,32 @@
   transition: transform 260ms ease, box-shadow 260ms ease;
 }
 
+/* Benefits reveal on scroll (both directions, JS-armed) */
+.revealArmed .sectionHeading,
+.revealArmed .benefitCard {
+  opacity: 0;
+  transform: translateY(28px);
+}
+.revealArmed .sectionHeading {
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.revealArmed .benefitCard {
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 260ms ease;
+  will-change: opacity, transform;
+}
+.revealArmed .benefitCard:nth-child(2) {
+  transition-delay: 0.1s, 0.1s, 0s;
+}
+.revealArmed .benefitCard:nth-child(3) {
+  transition-delay: 0.2s, 0.2s, 0s;
+}
+.sectionHeading.isVisible,
+.benefitCard.isVisible {
+  opacity: 1;
+  transform: none;
+}
+
 .benefitCard:hover {
   transform: translateY(-6px);
   box-shadow: 0 24px 50px rgba(84, 50, 27, 0.11);
@@ -352,6 +378,43 @@
   transition: background 0.2s ease;
 }
 
+/* Reveal on scroll (both directions, JS-armed) */
+.revealArmed .toolsHeader,
+.revealArmed .toolCard {
+  opacity: 0;
+  transform: translateY(28px);
+}
+.revealArmed .toolsHeader {
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.revealArmed .toolCard {
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1), background 0.2s ease;
+  will-change: opacity, transform;
+}
+.revealArmed .toolCard:nth-child(2) {
+  transition-delay: 0.08s, 0.08s, 0s;
+}
+.revealArmed .toolCard:nth-child(3) {
+  transition-delay: 0.16s, 0.16s, 0s;
+}
+.revealArmed .toolCard:nth-child(4) {
+  transition-delay: 0.24s, 0.24s, 0s;
+}
+.toolsHeader.isVisible,
+.toolCard.isVisible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .revealArmed .toolsHeader,
+  .revealArmed .toolCard {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
 .toolCard:hover {
   background: rgba(255, 255, 255, 0.75);
 }
@@ -414,6 +477,26 @@
   border-top: 1px solid var(--line);
 }
 
+/* Steps reveal on scroll (both directions, JS-armed) */
+.revealArmed .stepsIntro,
+.revealArmed .steps li {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.revealArmed .steps li:nth-child(2) {
+  transition-delay: 0.1s;
+}
+.revealArmed .steps li:nth-child(3) {
+  transition-delay: 0.2s;
+}
+.stepsIntro.isVisible,
+.steps li.isVisible {
+  opacity: 1;
+  transform: none;
+}
+
 .steps li {
   display: grid;
   grid-template-columns: 80px 1fr;
@@ -457,6 +540,27 @@
   border-top: 1px solid var(--line);
   color: var(--ink);
   text-align: center;
+}
+
+/* Final CTA reveal on scroll (both directions, JS-armed) */
+.revealArmed.finalCta > * {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.revealArmed.finalCta > *:nth-child(2) {
+  transition-delay: 0.08s;
+}
+.revealArmed.finalCta > *:nth-child(3) {
+  transition-delay: 0.16s;
+}
+.revealArmed.finalCta > *:nth-child(4) {
+  transition-delay: 0.24s;
+}
+.finalCta > *.isVisible {
+  opacity: 1;
+  transform: none;
 }
 
 .finalCta > svg {

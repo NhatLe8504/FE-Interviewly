@@ -1,0 +1,44 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
+import styles from "../../../app/page.module.css";
+
+export default function FinalCtaSection() {
+  const sectionRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const targets = Array.from(section.children);
+    if (targets.length === 0) return;
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    section.classList.add(styles.revealArmed);
+    if (reduced) {
+      targets.forEach((t) => t.classList.add(styles.isVisible));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) entry.target.classList.add(styles.isVisible);
+          else entry.target.classList.remove(styles.isVisible);
+        });
+      },
+      { threshold: 0.2, rootMargin: "0px 0px -8% 0px" }
+    );
+    targets.forEach((t) => observer.observe(t));
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <section className={styles.finalCta} ref={sectionRef}>
+      <ShieldCheck size={28} strokeWidth={1.8} aria-hidden="true" />
+      <p className={styles.eyebrow}><span /> A more prepared you</p>
+      <h2>Your next interview deserves more than a guess.</h2>
+      <a className={styles.primaryButton} href="#practice">Begin your practice <ArrowRight size={18} aria-hidden="true" /></a>
+    </section>
+  );
+}
