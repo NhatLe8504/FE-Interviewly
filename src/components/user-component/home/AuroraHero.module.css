@@ -1,0 +1,549 @@
+/* =========================================================
+   HERO
+========================================================= */
+
+.hero {
+	--padding: clamp(28px, 3vw, 64px);
+
+	position: relative;
+	width: 100%;
+	min-height: 100svh;
+	overflow: hidden;
+	padding: 0;
+	margin: 0;
+	isolation: isolate;
+	color: #211914;
+	font-family: inherit;
+
+	background: radial-gradient(
+			ellipse 28% 32% at 68% 35%,
+			rgba(255, 251, 221, 0.92) 0%,
+			rgba(255, 239, 190, 0.58) 23%,
+			rgba(255, 219, 165, 0.25) 48%,
+			rgba(255, 199, 139, 0) 74%
+		),
+		radial-gradient(
+			ellipse 51% 62% at 73% 48%,
+			rgba(255, 224, 175, 0.46) 0%,
+			rgba(255, 210, 158, 0.28) 31%,
+			rgba(248, 186, 128, 0.12) 59%,
+			transparent 79%
+		),
+		radial-gradient(
+			ellipse 42% 62% at 102% 40%,
+			rgba(238, 163, 109, 0.18) 0%,
+			rgba(237, 174, 121, 0.1) 46%,
+			transparent 80%
+		),
+		radial-gradient(
+			ellipse 42% 28% at 69% 78%,
+			rgba(255, 207, 146, 0.14) 0%,
+			transparent 73%
+		),
+		linear-gradient(
+			116deg,
+			#f8f4ee 0%,
+			#f7efe6 37%,
+			#f7eadc 59%,
+			#f6dfca 78%,
+			#f0cfae 100%
+		);
+}
+
+/*
+ * Large page-level warm haze.
+ */
+.hero::before {
+	content: "";
+	position: absolute;
+	z-index: -2;
+	width: 60vw;
+	height: 60vw;
+	min-width: 800px;
+	min-height: 800px;
+	top: 10%;
+	right: -5%;
+	border-radius: 50%;
+	background: radial-gradient(
+		circle,
+		rgba(255, 213, 159, 0.32),
+		rgba(245, 180, 124, 0.16) 45%,
+		transparent 75%
+	);
+	filter: blur(60px);
+	transform: translate3d(0, 0, 0);
+	pointer-events: none;
+}
+
+/*
+ * Tiny warm veil over the entire layout.
+ */
+.hero::after {
+	content: "";
+	position: absolute;
+	z-index: -1;
+	inset: 0;
+	background: linear-gradient(
+		100deg,
+		rgba(255, 255, 255, 0.12),
+		transparent 42%,
+		rgba(255, 214, 174, 0.04)
+	);
+	pointer-events: none;
+}
+
+/* =========================================================
+   HERO BODY
+========================================================= */
+
+.heroBody {
+	position: relative;
+	display: flex;
+	align-items: center;
+	min-height: 100svh;
+	padding: 120px var(--padding) 50px;
+	box-sizing: border-box;
+	width: 100%;
+}
+
+/* =========================================================
+   CONTENT
+========================================================= */
+
+.content {
+	position: relative;
+	z-index: 50;
+	width: min(46vw, 720px);
+}
+
+.eyebrow {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: clamp(30px, 5vh, 55px);
+	font-size: 9px;
+	font-weight: 700;
+	letter-spacing: 0.055em;
+	color: #211914;
+}
+
+.eyebrow span {
+	width: 24px;
+	height: 1px;
+	background: rgba(45, 31, 23, 0.82);
+}
+
+.content h1 {
+	margin: 0;
+	color: #211914;
+	font-size: clamp(64px, 6vw, 120px);
+	font-weight: 500;
+	line-height: 0.88;
+	letter-spacing: -0.07em;
+}
+
+.content h1 em {
+	font-style: italic;
+	color: #8c4e20;
+}
+
+.intro {
+	max-width: 390px;
+	margin: clamp(36px, 6vh, 70px) 0 0;
+	color: rgba(35, 26, 20, 0.94);
+	font-size: clamp(14px, 1vw, 18px);
+	line-height: 1.48;
+	white-space: pre-line;
+}
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+.actions {
+	display: flex;
+	align-items: center;
+	gap: 30px;
+	margin-top: 34px;
+}
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 30px;
+	font-size: 9px;
+	font-weight: 700;
+	text-decoration: none;
+	cursor: pointer;
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn:hover {
+	transform: translateY(-2px);
+}
+
+.btnPrimary {
+	min-width: 176px;
+	padding: 16px 20px;
+	border-radius: 999px;
+	background: linear-gradient(135deg, #211813 0%, #302019 55%, #3a281e 100%);
+	color: #fffaf4;
+	box-shadow: 0 2px 2px rgba(255, 255, 255, 0.08) inset,
+		0 9px 25px rgba(84, 50, 27, 0.11);
+}
+
+.btnSecondary {
+	position: relative;
+	padding: 15px 0;
+	color: #211914;
+}
+
+.btnSecondary::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 30px;
+	bottom: 9px;
+	height: 1px;
+	background: rgba(46, 32, 24, 0.62);
+}
+
+/* =========================================================
+   META
+========================================================= */
+
+.meta {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	width: min(620px, 100%);
+	margin-top: clamp(35px, 7vh, 90px);
+	border-top: 1px solid rgba(106, 72, 49, 0.13);
+}
+
+.metaItem {
+	position: relative;
+	min-height: 80px;
+	padding: 20px 24px 0 0;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.metaItem:not(:last-child)::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	right: 15px;
+	width: 1px;
+	height: 100%;
+	background: rgba(106, 72, 49, 0.12);
+}
+
+.meta small {
+	font-size: 8px;
+	color: rgba(84, 58, 42, 0.44);
+}
+
+.meta strong {
+	font-size: 9px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	color: #211914;
+}
+
+.scrollDot {
+	position: relative;
+	width: 17px;
+	height: 17px;
+	border: 1px solid rgba(99, 65, 45, 0.18);
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.2);
+}
+
+.scrollDot i {
+	position: absolute;
+	inset: 0;
+	width: 4px;
+	height: 4px;
+	margin: auto;
+	border-radius: 50%;
+	background: #2b1e17;
+}
+
+/* =========================================================
+   VISUAL (GPU Layer Accelerated)
+========================================================= */
+
+.visual {
+	position: absolute;
+	z-index: 10;
+	top: 50%;
+	right: 0;
+	width: min(65vw, 1200px);
+	aspect-ratio: 1.29;
+	transform: translate3d(0, -50%, 0);
+	pointer-events: none;
+	isolation: isolate;
+	will-change: transform;
+}
+
+/* =========================================================
+   LIGHTING SYSTEM
+========================================================= */
+
+.visualLighting {
+	position: absolute;
+	z-index: -10;
+	inset: -20% -30% -20% -20%;
+	overflow: visible;
+	pointer-events: none;
+	transform: translate3d(0, 0, 0);
+}
+
+.visualGlow {
+	position: absolute;
+	display: block;
+	border-radius: 50%;
+	pointer-events: none;
+	transform: translate3d(0, 0, 0);
+	will-change: transform;
+}
+
+/* envelope general */
+.visualGlowAmbient {
+	left: 17%;
+	top: -1%;
+	width: 78%;
+	height: 82%;
+	background: radial-gradient(
+		ellipse at 58% 44%,
+		rgba(255, 255, 247, 0.52) 0%,
+		rgba(255, 249, 235, 0.34) 24%,
+		rgba(255, 241, 221, 0.18) 44%,
+		rgba(255, 232, 214, 0.08) 60%,
+		transparent 80%
+	);
+	filter: blur(45px);
+	transform: scale(1.13) translate3d(0, 0, 0);
+}
+
+/* glow principal detrás de la grande */
+.visualGlowCore {
+	left: 33%;
+	top: 4%;
+	width: 54%;
+	height: 58%;
+	background: radial-gradient(
+		ellipse at 51% 42%,
+		rgba(255, 255, 250, 0.98) 0%,
+		rgba(255, 255, 244, 0.88) 15%,
+		rgba(255, 248, 232, 0.6) 34%,
+		rgba(255, 239, 222, 0.3) 54%,
+		rgba(255, 231, 220, 0.1) 70%,
+		transparent 84%
+	);
+	filter: blur(32px);
+	transform: scale(1.18) translate3d(0, 0, 0);
+}
+
+/* hotspot blanco */
+.visualGlowSun {
+	left: 45%;
+	top: 5%;
+	width: 31%;
+	height: 34%;
+	background: radial-gradient(
+		ellipse at center,
+		rgba(255, 255, 255, 1) 0%,
+		rgba(255, 255, 249, 0.92) 18%,
+		rgba(255, 250, 237, 0.56) 44%,
+		rgba(255, 241, 228, 0.18) 66%,
+		transparent 84%
+	);
+	filter: blur(20px);
+	transform: scale(1.14) translate3d(0, 0, 0);
+}
+
+/* rebote inferior más neutro */
+.visualGlowBottom {
+	left: 38%;
+	top: 55%;
+	width: 47%;
+	height: 31%;
+	background: radial-gradient(
+		ellipse at 52% 34%,
+		rgba(255, 246, 236, 0.3) 0%,
+		rgba(255, 237, 226, 0.16) 34%,
+		rgba(255, 226, 215, 0.08) 58%,
+		transparent 80%
+	);
+	filter: blur(36px);
+	transform: scale(1.18) translate3d(0, 0, 0);
+}
+
+/* halo de secundaria */
+.visualGlowSecondary {
+	left: 12%;
+	top: 50%;
+	width: 38%;
+	height: 40%;
+	background: radial-gradient(
+		circle at center,
+		rgba(255, 255, 248, 0.26),
+		rgba(255, 240, 230, 0.12) 48%,
+		transparent 76%
+	);
+	filter: blur(26px);
+	transform: scale(1.08) translate3d(0, 0, 0);
+}
+
+/* halo de la pequeña */
+.visualGlowDrop {
+	left: 59%;
+	top: 70%;
+	width: 24%;
+	height: 23%;
+	background: radial-gradient(
+		circle,
+		rgba(255, 255, 248, 0.24),
+		rgba(255, 241, 231, 0.1) 50%,
+		transparent 76%
+	);
+	filter: blur(22px);
+	transform: scale(1.16) translate3d(0, 0, 0);
+}
+
+/* =========================================================
+   SVG
+========================================================= */
+
+.liquidScene {
+	position: relative;
+	z-index: 10;
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+	transform: translate3d(0, 0, 0);
+	will-change: transform;
+}
+
+/* =========================================================
+   BUBBLES
+========================================================= */
+
+.bubbleWarmOverlay {
+	mix-blend-mode: soft-light;
+}
+
+.bubbleEdge {
+	fill: rgba(255, 255, 255, 0.02);
+	stroke: url(#glassStroke);
+	stroke-width: 4;
+	vector-effect: non-scaling-stroke;
+	filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.9))
+		drop-shadow(0 10px 20px rgba(86, 70, 63, 0.1));
+}
+
+.bubbleEdgeMain {
+	stroke-width: 4.7;
+	filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.95))
+		drop-shadow(0 12px 24px rgba(86, 70, 63, 0.11));
+}
+
+/* =========================================================
+   MARQUEE
+========================================================= */
+
+.marquee {
+	pointer-events: none;
+	will-change: transform;
+}
+
+.marqueeText {
+	fill: #2b1c14;
+	font-family: inherit;
+	font-size: 18px;
+	font-weight: 500;
+	letter-spacing: 6px;
+	text-transform: uppercase;
+	filter: none;
+	paint-order: stroke fill;
+	stroke: rgba(255, 247, 235, 0.2);
+	stroke-width: 0.32px;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1200px) {
+	.content h1 {
+		font-size: clamp(56px, 7vw, 95px);
+	}
+
+	.visual {
+		width: 67vw;
+		right: -10vw;
+	}
+
+	.visualGlowCore {
+		opacity: 0.9;
+	}
+}
+
+@media (max-width: 900px) {
+	.heroBody {
+		align-items: flex-start;
+	}
+
+	.content {
+		width: 100%;
+		padding-top: 10vh;
+	}
+
+	.content h1 {
+		font-size: clamp(50px, 11vw, 84px);
+	}
+
+	.visual {
+		width: 110vw;
+		right: -55vw;
+		top: 50%;
+		opacity: 0.82;
+	}
+
+	.visualLighting {
+		opacity: 0.8;
+	}
+}
+
+@media (max-width: 650px) {
+	.hero {
+		--padding: 20px;
+	}
+
+	.content h1 {
+		font-size: clamp(42px, 13vw, 64px);
+	}
+
+	.intro {
+		max-width: 300px;
+	}
+
+	.actions {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 8px;
+	}
+
+	.meta {
+		display: none;
+	}
+
+	.visual {
+		width: 145vw;
+		right: -91vw;
+	}
+}
