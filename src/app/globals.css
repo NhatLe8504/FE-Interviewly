@@ -47,3 +47,33 @@ button {
   background: #f3cfb0;
   color: #211914;
 }
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(234 176 120 / 55%) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: transparent;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(234 176 120 / 55%);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(221 149 80 / 80%);
+}
+
+
