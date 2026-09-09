@@ -167,7 +167,7 @@
 ========================================================= */
 
 .benefits {
-  padding: 130px 0;
+  padding: 100px 0 40px;
 }
 
 .sectionHeading {
@@ -452,7 +452,7 @@
 .finalCta {
   display: grid;
   justify-items: center;
-  padding: 110px 24px;
+  padding: 110px 24px 90px;
   background: radial-gradient(circle at 50% 12%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 243, 226, 0.6) 35%, rgba(246, 223, 202, 0.4) 100%);
   border-top: 1px solid var(--line);
   color: var(--ink);

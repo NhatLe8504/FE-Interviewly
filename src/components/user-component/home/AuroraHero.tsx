@@ -1,18 +1,30 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { preload } from "react-dom";
 import styles from "./AuroraHero.module.css";
 
+const HERO_IMAGE =
+  "https://images.openai.com/static-rsc-4/5DUTD8WqNzpiVRqaN5pE1Byk4T6UMrJ0CL_sDdIlNkcC5vEGwyCxPo0-7CKoo5vrX4dWE9fb38sl1z0zZchYerFsaIC604rIhXDS1BXnQrgA36MEPJZOKgBlop1o-OZYE1bhFdg_m4k2VNpIfnEOyeGWdEgdcSdjrRqgM6mfo6w?purpose=inline";
+
 export default function AuroraHero() {
+  // Preload hero image immediately – injects <link rel="preload" as="image"> in <head>
+  preload(HERO_IMAGE, { as: "image", fetchPriority: "high" });
+
+  const heroRef = useRef<HTMLDivElement | null>(null);
   const mainBubbleRef = useRef<SVGGElement | null>(null);
   const secondaryBubbleRef = useRef<SVGGElement | null>(null);
   const dropBubbleRef = useRef<SVGGElement | null>(null);
   const animFrameRef = useRef<number | null>(null);
   const targetPos = useRef({ x: 0, y: 0 });
   const currentPos = useRef({ x: 0, y: 0 });
+  const heroVisible = useRef(true);
 
   useEffect(() => {
-    // Parallax logic
+    // Respect reduced motion preference
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reducedMotion) return;
+
     const PARALLAX_INTENSITY = 0.5;
     const PARALLAX_SMOOTHNESS = 0.04;
 
@@ -29,11 +41,9 @@ export default function AuroraHero() {
       if (mainBubbleRef.current) {
         mainBubbleRef.current.style.transform = `translate3d(${x}px, ${y}px, 0)`;
       }
-
       if (secondaryBubbleRef.current) {
         secondaryBubbleRef.current.style.transform = `translate3d(${(x * 1.55).toFixed(2)}px, ${(y * 1.55).toFixed(2)}px, 0)`;
       }
-
       if (dropBubbleRef.current) {
         dropBubbleRef.current.style.transform = `translate3d(${(x * 2.15).toFixed(2)}px, ${(y * 2.15).toFixed(2)}px, 0)`;
       }
@@ -49,12 +59,15 @@ export default function AuroraHero() {
     };
 
     const startParallaxLoop = () => {
+      // Only run when hero is in viewport
+      if (!heroVisible.current) return;
       if (animFrameRef.current === null) {
         animFrameRef.current = requestAnimationFrame(updateParallax);
       }
     };
 
     const handlePointerMove = (event: PointerEvent) => {
+      if (!heroVisible.current) return;
       const normalizedX = event.clientX / window.innerWidth - 0.5;
       const normalizedY = event.clientY / window.innerHeight - 0.5;
       targetPos.current.x = normalizedX * 180 * PARALLAX_INTENSITY;
@@ -68,6 +81,21 @@ export default function AuroraHero() {
       startParallaxLoop();
     };
 
+    // Stop parallax entirely when hero scrolls out of view
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          heroVisible.current = entry.isIntersecting;
+          if (!entry.isIntersecting && animFrameRef.current !== null) {
+            cancelAnimationFrame(animFrameRef.current);
+            animFrameRef.current = null;
+          }
+        });
+      },
+      { threshold: 0 }
+    );
+    if (heroRef.current) io.observe(heroRef.current);
+
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
     document.documentElement.addEventListener("mouseleave", handleMouseLeave);
 
@@ -75,13 +103,14 @@ export default function AuroraHero() {
       if (animFrameRef.current !== null) {
         cancelAnimationFrame(animFrameRef.current);
       }
+      io.disconnect();
       window.removeEventListener("pointermove", handlePointerMove);
       document.documentElement.removeEventListener("mouseleave", handleMouseLeave);
     };
   }, []);
 
   return (
-    <div className={styles.hero} id="top">
+    <div ref={heroRef} className={styles.hero} id="top">
       {/* =====================================================
           HERO BODY
       ====================================================== */}
@@ -550,7 +579,7 @@ export default function AuroraHero() {
                 {/* Base image */}
                 <g clipPath="url(#mainBubbleClip)">
                   <image
-                    href="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1800&q=90"
+                    href={HERO_IMAGE}
                     x="125"
                     y="40"
                     width="930"
@@ -582,7 +611,7 @@ export default function AuroraHero() {
                   opacity=".90"
                 >
                   <image
-                    href="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1800&q=90"
+                    href={HERO_IMAGE}
                     x="125"
                     y="40"
                     width="930"
@@ -629,7 +658,7 @@ export default function AuroraHero() {
 
                 <g filter="url(#secondaryLiquidFilter)" clipPath="url(#secondaryBubbleClip)">
                   <image
-                    href="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1800&q=90"
+                    href={HERO_IMAGE}
                     x="60"
                     y="230"
                     width="720"
@@ -662,7 +691,7 @@ export default function AuroraHero() {
 
                 <g filter="url(#dropLiquidFilter)" clipPath="url(#dropBubbleClip)">
                   <image
-                    href="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1800&q=90"
+                    href={HERO_IMAGE}
                     x="450"
                     y="470"
                     width="520"
