@@ -10,8 +10,8 @@ import {
   Target,
 } from "lucide-react";
 import AuroraHero from "@/components/user-component/home/AuroraHero";
+import CoachShowcaseSection from "@/components/user-component/home/CoachShowcaseSection";
 import Header from "@/components/user-component/layout/Header";
-import LiquidInterviewScene from "@/components/user-component/home/LiquidInterviewScene";
 import styles from "./page.module.css";
 
 const practiceBenefits = [
@@ -95,17 +95,9 @@ export default function HomePage() {
       </section>
 
       {/* =====================================================
-          SECTION 4: THE COACHING LOOP
+          SECTION 4: THE COACHING PANEL & DOMAIN INTELLIGENCE
       ====================================================== */}
-      <section className={styles.coachSection} id="how-it-works">
-        <div className={styles.coachCopy}>
-          <p className={styles.eyebrow}><span /> The coaching loop</p>
-          <h2>A thoughtful coach,<br /><em>right when you need one.</em></h2>
-          <p>Practice out loud or by text. Keep your answer in your own voice while the coach gives you structure, evidence, and a clear next step.</p>
-          <a className={styles.outlineButton} href="#tools">See what the coach can do <ArrowRight size={17} aria-hidden="true" /></a>
-        </div>
-        <LiquidInterviewScene />
-      </section>
+      <CoachShowcaseSection />
 
       {/* =====================================================
           SECTION 5: TOOLS

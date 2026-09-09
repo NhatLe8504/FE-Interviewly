@@ -1,0 +1,701 @@
+/* =========================================================
+   COACH SHOWCASE / THE COACHING LOOP
+   Palette: Warm Champagne & Rich Espresso
+========================================================= */
+
+.sectionContainer {
+	--bg-warm: #f8f4ee;
+	--bg-warm-secondary: #f4ece0;
+	--ink: #211914;
+	--ink-soft: rgba(45, 31, 23, 0.76);
+	--mute: rgba(84, 58, 42, 0.58);
+	--line: rgba(106, 72, 49, 0.14);
+	--ghost: rgba(186, 168, 148, 0.38);
+	--accent-copper: #c85a2b;
+	--accent-amber: #d98236;
+	--accent-deep: #8c4e20;
+	--glass-card-border: rgba(255, 255, 255, 0.7);
+	--glass-shadow: 0 20px 45px rgba(84, 50, 27, 0.08);
+
+	position: relative;
+	width: 100%;
+	padding: 0 0 70px;
+	color: var(--ink);
+	overflow: hidden;
+}
+
+/* =========================================================
+   PART 1: HERO STAGE WITH FANNING CARDS
+========================================================= */
+
+.heroStage {
+	position: relative;
+	min-height: 700px;
+	padding: 20px 24px 40px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-start;
+	z-index: 5;
+}
+
+.topHeader {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 20px;
+	z-index: 6;
+	position: relative;
+}
+
+.stageEyebrow {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 10px;
+	letter-spacing: 0.24em;
+	text-transform: uppercase;
+	color: var(--accent-deep);
+	font-weight: 700;
+	margin-bottom: 0;
+	padding: 6px 16px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.55);
+	border: 1px solid rgba(255, 255, 255, 0.85);
+	backdrop-filter: blur(14px);
+}
+
+.eyebrowDot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--accent-copper);
+	box-shadow: 0 0 0 3px rgba(200, 90, 43, 0.22);
+}
+
+.arrowPill {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	background: linear-gradient(135deg, #211813 0%, #302019 55%, #3a281e 100%);
+	color: #fffaf4;
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	padding: 8px 18px;
+	border-radius: 999px;
+	font-size: 10.5px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	cursor: pointer;
+	text-decoration: none;
+	box-shadow: 0 10px 22px -6px rgba(50, 28, 14, 0.35),
+		0 4px 8px -2px rgba(50, 28, 14, 0.18),
+		inset 0 1px 0 rgba(255, 255, 255, 0.16),
+		inset 0 -2px 4px rgba(0, 0, 0, 0.4);
+	transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.arrowPill:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 14px 28px -6px rgba(50, 28, 14, 0.45);
+}
+
+.ar {
+	width: 22px;
+	height: 22px;
+	border-radius: 50%;
+	background: linear-gradient(135deg, var(--accent-copper), var(--accent-amber));
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #fff;
+	transition: transform 0.35s cubic-bezier(0.6, 0, 0.2, 1);
+}
+
+.arrowPill:hover .ar {
+	transform: translateY(2px);
+}
+
+.smallTeam {
+	font-size: clamp(38px, 6vw, 84px);
+	font-weight: 600;
+	letter-spacing: -0.04em;
+	line-height: 1;
+	color: var(--ink);
+	text-align: center;
+	margin: 0;
+	z-index: 4;
+	position: relative;
+}
+
+.word {
+	display: inline-block;
+	overflow: hidden;
+	vertical-align: top;
+}
+
+.wordSpan {
+	display: inline-block;
+	transform: translateY(105%);
+}
+
+/* Big Atmospheric Back Text */
+.bigResultsWrap {
+	position: relative;
+	width: 100%;
+	margin-top: -15px;
+	display: flex;
+	justify-content: center;
+	z-index: 1;
+	cursor: default;
+}
+
+.bigResults {
+	font-style: italic;
+	font-weight: 800;
+	font-size: clamp(80px, 18vw, 240px);
+	letter-spacing: -0.045em;
+	line-height: 0.85;
+	color: var(--ghost);
+	text-align: center;
+	white-space: nowrap;
+	user-select: none;
+	text-shadow: 0 4px 18px rgba(120, 90, 50, 0.05);
+}
+
+.letter {
+	display: inline-block;
+	transform-origin: bottom;
+	transition: color 0.3s ease;
+}
+
+.bigResultsWrap:hover .letter {
+	color: rgba(180, 150, 120, 0.5);
+}
+
+/* Fanned Cards Row - positioned nicely below 'real results' */
+.cardsRow {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 340px;
+	height: 330px;
+	z-index: 3;
+	pointer-events: none;
+}
+
+.cardsRow > * {
+	pointer-events: auto;
+}
+
+.card {
+	position: absolute;
+	border-radius: 20px;
+	overflow: hidden;
+	background: linear-gradient(
+		145deg,
+		#342217 0%,
+		#4e3020 40%,
+		#784524 80%,
+		#9b592b 100%
+	);
+	box-shadow: 0 28px 48px -14px rgba(84, 50, 27, 0.35),
+		0 12px 24px -6px rgba(60, 32, 16, 0.22),
+		0 4px 8px -2px rgba(40, 20, 10, 0.15),
+		inset 0 1.5px 0 rgba(255, 230, 200, 0.6),
+		inset 0 -3px 6px rgba(30, 15, 8, 0.5);
+	cursor: pointer;
+	will-change: transform;
+	transition: box-shadow 0.4s cubic-bezier(0.6, 0, 0.2, 1);
+}
+
+.card::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		155deg,
+		rgba(255, 255, 255, 0.3) 0%,
+		transparent 30%,
+		transparent 65%,
+		rgba(217, 130, 54, 0.3) 100%
+	);
+	pointer-events: none;
+	border-radius: inherit;
+	z-index: 2;
+}
+
+.card img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: center top;
+	display: block;
+	filter: saturate(105%) contrast(102%);
+}
+
+.card:hover {
+	box-shadow: 0 40px 65px -16px rgba(84, 50, 27, 0.48),
+		0 20px 34px -8px rgba(60, 32, 16, 0.3),
+		0 8px 14px -3px rgba(40, 20, 10, 0.2),
+		inset 0 2px 0 rgba(255, 240, 210, 0.8),
+		inset 0 -3px 6px rgba(30, 15, 8, 0.5);
+}
+
+/* Card positions and sizes across the row */
+.card1 {
+	width: 135px;
+	height: 185px;
+	left: 4%;
+	top: 30px;
+	z-index: 1;
+}
+
+.card2 {
+	width: 165px;
+	height: 225px;
+	left: 13%;
+	top: 52px;
+	z-index: 2;
+}
+
+.card3 {
+	width: 205px;
+	height: 275px;
+	left: 23%;
+	top: 18px;
+	z-index: 4;
+}
+
+.card4 {
+	width: 155px;
+	height: 205px;
+	left: 37%;
+	top: 72px;
+	z-index: 3;
+}
+
+.card5 {
+	width: 235px;
+	height: 315px;
+	left: 45%;
+	top: 0px;
+	z-index: 5;
+}
+
+.card6 {
+	width: 165px;
+	height: 220px;
+	left: 60%;
+	top: 56px;
+	z-index: 3;
+}
+
+.card7 {
+	width: 180px;
+	height: 245px;
+	left: 71%;
+	top: 28px;
+	z-index: 4;
+}
+
+.card8 {
+	width: 135px;
+	height: 180px;
+	left: 84%;
+	top: 48px;
+	z-index: 2;
+}
+
+/* =========================================================
+   PART 2: TEAM GRID & INTERVIEWER EXPERTISE
+========================================================= */
+
+.teamSection {
+	padding: 80px 24px 60px;
+	max-width: 1200px;
+	margin: 0 auto;
+	position: relative;
+	z-index: 5;
+}
+
+.teamHead {
+	margin-bottom: 50px;
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+	gap: 40px;
+	flex-wrap: wrap;
+}
+
+.eyebrow {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 9px;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--ink-soft);
+	font-weight: 700;
+	margin-bottom: 14px;
+}
+
+.teamHead h2 {
+	margin: 0;
+	font-size: clamp(32px, 4vw, 56px);
+	font-weight: 550;
+	line-height: 1.05;
+	letter-spacing: -0.04em;
+	color: var(--ink);
+	max-width: 620px;
+}
+
+.teamHead h2 em {
+	font-style: italic;
+	color: var(--accent-deep);
+}
+
+.teamHead p {
+	font-size: 0.94rem;
+	line-height: 1.65;
+	color: var(--ink-soft);
+	max-width: 380px;
+	margin: 0;
+}
+
+.teamGrid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 20px;
+	align-items: start;
+	max-width: 980px;
+	margin: 0 auto;
+}
+
+.tCard {
+	aspect-ratio: 3 / 4;
+	border-radius: 22px;
+	overflow: hidden;
+	position: relative;
+	background: #2a1a11;
+	border: 1px solid var(--glass-card-border);
+	box-shadow: 0 18px 36px -12px rgba(84, 50, 27, 0.2),
+		inset 0 1.5px 0 rgba(255, 255, 255, 0.4);
+	cursor: pointer;
+	transition: transform 0.45s cubic-bezier(0.6, 0, 0.2, 1), box-shadow 0.45s ease;
+}
+
+/* Staggered vertical offsets per card — recreates the irregular organic look */
+.tCard:nth-child(1) { transform: translateY(0px);   }
+.tCard:nth-child(2) { transform: translateY(40px);  }
+.tCard:nth-child(3) { transform: translateY(16px);  }
+.tCard:nth-child(4) { transform: translateY(56px);  }
+.tCard:nth-child(5) { transform: translateY(8px);   }
+.tCard:nth-child(6) { transform: translateY(48px);  }
+.tCard:nth-child(7) { transform: translateY(24px);  }
+.tCard:nth-child(8) { transform: translateY(64px);  }
+
+.tCard::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		160deg,
+		rgba(255, 255, 255, 0.2) 0%,
+		transparent 35%,
+		transparent 65%,
+		rgba(20, 10, 6, 0.6) 100%
+	);
+	pointer-events: none;
+	z-index: 2;
+}
+
+.tCard:nth-child(1):hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 28px 50px -14px rgba(84, 50, 27, 0.32); }
+.tCard:nth-child(2):hover { transform: translateY(32px) scale(1.02); box-shadow: 0 28px 50px -14px rgba(84, 50, 27, 0.32); }
+.tCard:nth-child(3):hover { transform: translateY(8px) scale(1.02); box-shadow: 0 28px 50px -14px rgba(84, 50, 27, 0.32); }
+.tCard:nth-child(4):hover { transform: translateY(48px) scale(1.02); box-shadow: 0 28px 50px -14px rgba(84, 50, 27, 0.32); }
+.tCard:nth-child(5):hover { transform: translateY(0px) scale(1.02); box-shadow: 0 28px 50px -14px rgba(84, 50, 27, 0.32); }
+.tCard:nth-child(6):hover { transform: translateY(40px) scale(1.02); box-shadow: 0 28px 50px -14px rgba(84, 50, 27, 0.32); }
+.tCard:nth-child(7):hover { transform: translateY(16px) scale(1.02); box-shadow: 0 28px 50px -14px rgba(84, 50, 27, 0.32); }
+.tCard:nth-child(8):hover { transform: translateY(56px) scale(1.02); box-shadow: 0 28px 50px -14px rgba(84, 50, 27, 0.32); }
+
+.tCard img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: center top;
+	display: block;
+	transition: transform 0.6s ease;
+}
+
+.tCard:hover img {
+	transform: scale(1.06);
+}
+
+/* Hover info overlay */
+.tMeta {
+	position: absolute;
+	left: 12px;
+	right: 12px;
+	bottom: 12px;
+	background: rgba(22, 14, 10, 0.82);
+	backdrop-filter: blur(14px);
+	-webkit-backdrop-filter: blur(14px);
+	color: #fafaf7;
+	padding: 12px 14px;
+	border-radius: 14px;
+	z-index: 3;
+	transform: translateY(6px);
+	opacity: 0;
+	transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.6, 0, 0.2, 1);
+	border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.tCard:hover .tMeta {
+	transform: translateY(0);
+	opacity: 1;
+}
+
+.nm {
+	font-weight: 700;
+	font-size: 13px;
+	letter-spacing: -0.01em;
+	color: #fffaf4;
+}
+
+.rl {
+	font-size: 10px;
+	font-weight: 600;
+	color: #f7ca9f;
+	margin-top: 2px;
+	letter-spacing: 0.03em;
+}
+
+/* =========================================================
+   PART 3: COACHING INTELLIGENCE STATS
+========================================================= */
+
+.statsSection {
+	padding: 30px 24px 50px;
+	max-width: 1200px;
+	margin: 0 auto;
+	position: relative;
+	z-index: 5;
+}
+
+.statsInner {
+	background: linear-gradient(135deg, #1c140f 0%, #261912 60%, #301f16 100%);
+	border-radius: 32px;
+	padding: 60px 50px;
+	color: #f4edde;
+	display: grid;
+	grid-template-columns: 1.4fr 1fr 1fr 1fr;
+	gap: 36px;
+	align-items: end;
+	box-shadow: 0 35px 70px -25px rgba(20, 8, 0, 0.45),
+		inset 0 1px 0 rgba(255, 255, 255, 0.1),
+		inset 0 -3px 8px rgba(0, 0, 0, 0.5);
+	position: relative;
+	overflow: hidden;
+}
+
+.statsInner::before {
+	content: "";
+	position: absolute;
+	width: 450px;
+	height: 450px;
+	border-radius: 50%;
+	background: radial-gradient(circle, rgba(217, 90, 43, 0.28), transparent 65%);
+	top: -180px;
+	right: -80px;
+	filter: blur(45px);
+	pointer-events: none;
+}
+
+.statsInner::after {
+	content: "";
+	position: absolute;
+	width: 320px;
+	height: 320px;
+	border-radius: 50%;
+	background: radial-gradient(circle, rgba(253, 198, 138, 0.16), transparent 65%);
+	bottom: -130px;
+	left: 18%;
+	filter: blur(35px);
+	pointer-events: none;
+}
+
+.statsIntro {
+	position: relative;
+	z-index: 1;
+}
+
+.statsTag {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 9px;
+	font-weight: 700;
+	letter-spacing: 0.16em;
+	color: #f7ca9f;
+	margin-bottom: 12px;
+	text-transform: uppercase;
+}
+
+.statsIntro h3 {
+	margin: 0;
+	font-size: clamp(26px, 2.8vw, 38px);
+	font-weight: 550;
+	line-height: 1.08;
+	letter-spacing: -0.03em;
+	color: #fffaf4;
+}
+
+.statsIntro h3 em {
+	font-style: italic;
+	color: #f7ad69;
+}
+
+.statBlock {
+	position: relative;
+	z-index: 1;
+}
+
+.num {
+	font-size: clamp(40px, 4vw, 58px);
+	font-weight: 600;
+	line-height: 1;
+	letter-spacing: -0.04em;
+	display: flex;
+	align-items: baseline;
+	gap: 2px;
+	color: #ffffff;
+}
+
+.num small {
+	font-size: 0.46em;
+	color: #f7ca9f;
+	font-weight: 500;
+}
+
+.lbl {
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.14em;
+	color: rgba(244, 237, 222, 0.6);
+	margin-top: 12px;
+	padding-top: 12px;
+	border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1100px) {
+	.teamGrid {
+		grid-template-columns: repeat(3, 1fr);
+	}
+
+	.statsInner {
+		grid-template-columns: 1fr 1fr;
+		padding: 45px 35px;
+	}
+}
+
+@media (max-width: 750px) {
+	.heroStage {
+		padding: 24px 16px 20px;
+		min-height: 440px;
+	}
+
+	.smallTeam {
+		font-size: clamp(28px, 8vw, 44px);
+	}
+
+	.bigResults {
+		font-size: clamp(45px, 14vw, 90px);
+	}
+
+	.cardsRow {
+		height: 200px;
+		top: 210px;
+	}
+
+	.card1 {
+		width: 80px;
+		height: 110px;
+		left: 0%;
+		top: 15px;
+	}
+
+	.card2 {
+		width: 90px;
+		height: 125px;
+		left: 10%;
+		top: 30px;
+	}
+
+	.card3 {
+		width: 110px;
+		height: 150px;
+		left: 22%;
+		top: 10px;
+	}
+
+	.card4 {
+		width: 90px;
+		height: 120px;
+		left: 36%;
+		top: 45px;
+	}
+
+	.card5 {
+		width: 130px;
+		height: 175px;
+		left: 46%;
+		top: 0;
+	}
+
+	.card6 {
+		width: 95px;
+		height: 130px;
+		left: 62%;
+		top: 35px;
+	}
+
+	.card7 {
+		width: 100px;
+		height: 135px;
+		left: 74%;
+		top: 15px;
+	}
+
+	.card8 {
+		width: 80px;
+		height: 110px;
+		left: 87%;
+		top: 30px;
+	}
+
+	.teamSection {
+		padding: 60px 16px 40px;
+	}
+
+	.teamGrid {
+		grid-template-columns: repeat(2, 1fr);
+		gap: 14px;
+	}
+
+	.statsSection {
+		padding: 20px 16px 40px;
+	}
+
+	.statsInner {
+		grid-template-columns: 1fr;
+		padding: 35px 22px;
+		gap: 24px;
+	}
+}
