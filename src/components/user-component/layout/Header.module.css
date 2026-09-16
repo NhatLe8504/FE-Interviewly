@@ -150,3 +150,259 @@
 
 
 
+
+/* =========================================================
+   USER MENU (Liquid Glass Dropdown)
+========================================================= */
+
+.dropdownContainer {
+  position: relative;
+  justify-self: end;
+}
+
+.userMenuTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 6px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.08) 100%);
+  backdrop-filter: blur(28px) saturate(200%) brightness(1.05);
+  -webkit-backdrop-filter: blur(28px) saturate(200%) brightness(1.05);
+  color: #211914;
+  cursor: pointer;
+  box-shadow: 0 6px 20px -6px rgba(106, 72, 49, 0.12),
+              inset 0 1px 2px rgba(255, 255, 255, 0.9),
+              inset 0 -1px 2px rgba(217, 130, 54, 0.15);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.userMenuTrigger:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.18) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px -8px rgba(106, 72, 49, 0.18),
+              inset 0 1px 2px rgba(255, 255, 255, 1);
+}
+
+.userMenuTrigger[aria-expanded="true"] {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 224, 190, 0.25) 100%);
+  box-shadow: 0 8px 24px -4px rgba(139, 69, 19, 0.2),
+              inset 0 1px 2px rgba(255, 255, 255, 1);
+}
+
+.userAvatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d98236 0%, #8b4513 100%);
+  color: #fffaf4;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(139, 69, 19, 0.35);
+  flex-shrink: 0;
+}
+
+.userName {
+  max-width: 115px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.menuIconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(33, 25, 20, 0.7);
+  transition: transform 0.25s ease, color 0.2s ease;
+}
+
+.userMenuTrigger:hover .menuIconBtn {
+  color: #211914;
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 270px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(36px) saturate(220%) brightness(1.04);
+  -webkit-backdrop-filter: blur(36px) saturate(220%) brightness(1.04);
+  box-shadow: 0 22px 50px -10px rgba(84, 50, 27, 0.18),
+              inset 0 1px 2px rgba(255, 255, 255, 0.95),
+              inset 0 -1px 2px rgba(217, 130, 54, 0.12);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 10000;
+  animation: dropdownPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  color: #211914;
+}
+
+@keyframes dropdownPop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dropdownHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid rgba(106, 72, 49, 0.1);
+  margin-bottom: 4px;
+}
+
+.dropdownHeaderAvatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d98236 0%, #8b4513 100%);
+  color: #fffaf4;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 800;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(139, 69, 19, 0.28);
+}
+
+.dropdownHeaderInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dropdownHeaderName {
+  font-size: 13px;
+  font-weight: 700;
+  color: #211914;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdownHeaderEmail {
+  font-size: 11px;
+  color: rgba(33, 25, 20, 0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdownRoleBadge {
+  align-self: flex-start;
+  margin-top: 3px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(217, 130, 54, 0.16);
+  color: #8b4513;
+}
+
+.dropdownDivider {
+  height: 1px;
+  background: rgba(106, 72, 49, 0.08);
+  margin: 4px 0;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #211914;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dropdownItem:hover {
+  background: rgba(255, 255, 255, 0.7);
+  transform: translateX(2px);
+}
+
+.dropdownItemLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dropdownItemIcon {
+  color: rgba(33, 25, 20, 0.65);
+  transition: color 0.18s ease;
+}
+
+.dropdownItem:hover .dropdownItemIcon {
+  color: #8b4513;
+}
+
+.dropdownItemTag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(106, 72, 49, 0.08);
+  color: #8b4513;
+}
+
+.dropdownLogout {
+  color: #b91c1c;
+}
+
+.dropdownLogout:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+.dropdownLogout .dropdownItemIcon {
+  color: #b91c1c;
+}
+
+.guestActions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  justify-self: end;
+}
+
+.signInLink {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(33, 25, 20, 0.78);
+  transition: color 0.2s ease;
+}
+
+.signInLink:hover {
+  color: #211914;
+}

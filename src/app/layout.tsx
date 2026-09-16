@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import "./globals.css";
+import Script from "next/script";
+import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata: Metadata = {
   title: "AI Interview Coach | Practice with clarity",
@@ -10,7 +11,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="afterInteractive"
+        />
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }

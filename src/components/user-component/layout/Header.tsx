@@ -2,12 +2,25 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/context/AuthContext";
+import {
+  MoreVertical,
+  User,
+  Settings,
+  Shield,
+  Sparkles,
+  Sun,
+  Moon,
+  Globe,
+  LogOut,
+  ChevronDown,
+} from "lucide-react";
 import styles from "./Header.module.css";
 
 const NAV_ITEMS = [
   { href: "/", label: "HOME" },
-  { href: "/interview/setup", label: "PRACTICE" },
+  { href: "/practice", label: "PRACTICE" },
   { href: "/questions", label: "QUESTIONS" },
   { href: "/pricing", label: "PRICING" },
 ];
@@ -19,11 +32,89 @@ function isActive(pathname: string, href: string) {
 
 export default function Header() {
   const pathname = usePathname();
+  const { user, isAuthenticated, logout } = useAuth();
+
   const navRef = useRef<HTMLElement>(null);
   const dropletRef = useRef<HTMLSpanElement>(null);
   const firstRender = useRef(true);
   const linkRefs = useRef(new Map<string, HTMLAnchorElement>());
   const [droplet, setDroplet] = useState({ left: 0, width: 0, ready: false });
+
+  // Dropdown states
+  const [menuOpen, setMenuOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Theme state
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  // Language state
+  const [lang, setLang] = useState<"vi" | "en">("vi");
+
+  useEffect(() => {
+    // Load stored theme & language
+    const storedTheme = (localStorage.getItem("interviewly_theme") as "light" | "dark") || "light";
+    const storedLang = (localStorage.getItem("interviewly_lang") as "vi" | "en") || "vi";
+    setTheme(storedTheme);
+    setLang(storedLang);
+
+    if (storedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const next = theme === "light" ? "dark" : "light";
+    setTheme(next);
+    localStorage.setItem("interviewly_theme", next);
+    if (next === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
+
+  const toggleLang = () => {
+    const next = lang === "vi" ? "en" : "vi";
+    setLang(next);
+    localStorage.setItem("interviewly_lang", next);
+  };
+
+  // Close dropdown on outside click or escape
+  const handleCloseMenu = useCallback(() => {
+    setMenuOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        handleCloseMenu();
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        handleCloseMenu();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [menuOpen, handleCloseMenu]);
+
+  // Close menu on navigation
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
 
   useLayoutEffect(() => {
     const measure = () => {
@@ -57,6 +148,15 @@ export default function Header() {
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, [pathname]);
+
+  const initials = user?.full_name
+    ? user.full_name
+        .split(" ")
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "U";
 
   return (
     <header className={styles.headerWrapper} aria-label="Site header">
@@ -96,12 +196,160 @@ export default function Header() {
           })}
         </nav>
 
-        <Link href="/interview/setup" className={styles.menu}>
-          <span className={styles.menuDot} />
-          START COACH
-        </Link>
+        {/* Right side action slot */}
+        {isAuthenticated && user ? (
+          <div className={styles.dropdownContainer} ref={dropdownRef}>
+            <button
+              type="button"
+              className={styles.userMenuTrigger}
+              onClick={() => setMenuOpen((prev) => !prev)}
+              aria-expanded={menuOpen}
+              aria-haspopup="true"
+              aria-label="User navigation menu"
+            >
+              <span className={styles.userAvatar}>{initials}</span>
+              <span className={styles.userName}>{user.full_name}</span>
+              <span className={styles.menuIconBtn}>
+                <MoreVertical size={14} />
+              </span>
+            </button>
+
+            {menuOpen && (
+              <div className={styles.dropdownMenu} role="menu">
+                {/* User Info Header */}
+                <div className={styles.dropdownHeader}>
+                  <div className={styles.dropdownHeaderAvatar}>{initials}</div>
+                  <div className={styles.dropdownHeaderInfo}>
+                    <span className={styles.dropdownHeaderName}>{user.full_name}</span>
+                    <span className={styles.dropdownHeaderEmail}>{user.email}</span>
+                    <span className={styles.dropdownRoleBadge}>
+                      {user.role === "admin" ? "Administrator" : "Candidate Pro"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Primary Navigation */}
+                <Link
+                  href="/profile"
+                  className={styles.dropdownItem}
+                  role="menuitem"
+                  onClick={handleCloseMenu}
+                >
+                  <span className={styles.dropdownItemLeft}>
+                    <User size={14} className={styles.dropdownItemIcon} />
+                    {lang === "vi" ? "Hồ sơ cá nhân" : "My Profile"}
+                  </span>
+                </Link>
+
+                <Link
+                  href="/settings"
+                  className={styles.dropdownItem}
+                  role="menuitem"
+                  onClick={handleCloseMenu}
+                >
+                  <span className={styles.dropdownItemLeft}>
+                    <Settings size={14} className={styles.dropdownItemIcon} />
+                    {lang === "vi" ? "Cài đặt tài khoản" : "Account Settings"}
+                  </span>
+                </Link>
+
+                {user.role === "admin" && (
+                  <Link
+                    href="/admin"
+                    className={styles.dropdownItem}
+                    role="menuitem"
+                    onClick={handleCloseMenu}
+                  >
+                    <span className={styles.dropdownItemLeft}>
+                      <Shield size={14} className="text-amber-500" />
+                      {lang === "vi" ? "Trang quản trị" : "Admin Portal"}
+                    </span>
+                    <span className={styles.dropdownItemTag}>Admin</span>
+                  </Link>
+                )}
+
+                <Link
+                  href="/practice"
+                  className={styles.dropdownItem}
+                  role="menuitem"
+                  onClick={handleCloseMenu}
+                >
+                  <span className={styles.dropdownItemLeft}>
+                    <Sparkles size={14} className="text-[#d98236]" />
+                    {lang === "vi" ? "Luyện phỏng vấn ngay" : "Start Coaching"}
+                  </span>
+                </Link>
+
+                <div className={styles.dropdownDivider} />
+
+                {/* Theme Switch */}
+                <button
+                  type="button"
+                  className={styles.dropdownItem}
+                  role="menuitem"
+                  onClick={toggleTheme}
+                >
+                  <span className={styles.dropdownItemLeft}>
+                    {theme === "light" ? (
+                      <Sun size={14} className={styles.dropdownItemIcon} />
+                    ) : (
+                      <Moon size={14} className={styles.dropdownItemIcon} />
+                    )}
+                    {lang === "vi" ? "Giao diện" : "Appearance"}
+                  </span>
+                  <span className={styles.dropdownItemTag}>
+                    {theme === "light" ? (lang === "vi" ? "Sáng" : "Light") : (lang === "vi" ? "Tối" : "Dark")}
+                  </span>
+                </button>
+
+                {/* Language Switch */}
+                <button
+                  type="button"
+                  className={styles.dropdownItem}
+                  role="menuitem"
+                  onClick={toggleLang}
+                >
+                  <span className={styles.dropdownItemLeft}>
+                    <Globe size={14} className={styles.dropdownItemIcon} />
+                    {lang === "vi" ? "Ngôn ngữ" : "Language"}
+                  </span>
+                  <span className={styles.dropdownItemTag}>
+                    {lang === "vi" ? "Tiếng Việt (VI)" : "English (EN)"}
+                  </span>
+                </button>
+
+                <div className={styles.dropdownDivider} />
+
+                {/* Logout Button */}
+                <button
+                  type="button"
+                  className={`${styles.dropdownItem} ${styles.dropdownLogout}`}
+                  role="menuitem"
+                  onClick={() => {
+                    handleCloseMenu();
+                    logout();
+                  }}
+                >
+                  <span className={styles.dropdownItemLeft}>
+                    <LogOut size={14} className={styles.dropdownItemIcon} />
+                    {lang === "vi" ? "Đăng xuất" : "Sign out"}
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className={styles.guestActions}>
+            <Link href="/login" className={styles.signInLink}>
+              SIGN IN
+            </Link>
+            <Link href="/practice" className={styles.menu}>
+              <span className={styles.menuDot} />
+              START COACH
+            </Link>
+          </div>
+        )}
       </div>
     </header>
   );
 }
-
