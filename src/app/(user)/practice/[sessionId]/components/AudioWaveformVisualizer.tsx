@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef } from "react";
 
@@ -27,6 +27,32 @@ export function AudioWaveformVisualizer({
     if (!ctx) return;
 
     let animationId: number;
+
+    // Cross-browser helper for rounded rects (safari / older browsers fallback)
+    const drawRoundRect = (
+      context: CanvasRenderingContext2D,
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      r: number
+    ) => {
+      if (typeof context.roundRect === "function") {
+        context.roundRect(x, y, w, h, r);
+      } else {
+        context.beginPath();
+        context.moveTo(x + r, y);
+        context.lineTo(x + w - r, y);
+        context.quadraticCurveTo(x + w, y, x + w, y + r);
+        context.lineTo(x + w, y + h - r);
+        context.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        context.lineTo(x + r, y + h);
+        context.quadraticCurveTo(x, y + h, x, y + h - r);
+        context.lineTo(x, y + r);
+        context.quadraticCurveTo(x, y, x + r, y);
+        context.closePath();
+      }
+    };
 
     const render = () => {
       phaseRef.current += isRecording ? 0.12 : 0.03;
@@ -78,7 +104,7 @@ export function AudioWaveformVisualizer({
         ctx.fillStyle = gradient;
         ctx.beginPath();
         const radius = Math.min(totalBarWidth / 2, 2);
-        ctx.roundRect(x, y, totalBarWidth, currentH, radius);
+        drawRoundRect(ctx, x, y, totalBarWidth, currentH, radius);
         ctx.fill();
       }
 
