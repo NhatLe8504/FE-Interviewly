@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
+import SettingsClient from "./SettingsClient";
 
 export const metadata: Metadata = {
-  title: "Settings | Interviewly",
-  description: "Account, language, security, and subscription settings.",
+  title: "Cài đặt tài khoản | Interviewly",
+  description:
+    "Tùy chỉnh giao diện hiển thị, ngôn ngữ mặc định, cấu hình phòng phỏng vấn AI và kiểm soát bảo mật.",
 };
 
 export default function SettingsPage() {
-  return (
-    <main>
-      <h1>Settings</h1>
-      <p>Account, language, security, and subscription settings.</p>
-    </main>
-  );
+  return <SettingsClient />;
 }
