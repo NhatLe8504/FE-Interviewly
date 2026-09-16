@@ -1,21 +1,14 @@
 "use client";
 
-import { use } from "react";
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowRight, Mic, Send, Square } from "lucide-react";
-import { MOCK_SCRIPT, MOCK_TRANSCRIPT_SEED, mockSessionMeta } from "@/mock/practice";
-import type { TranscriptTurn } from "@/types/practice";
+import { ArrowRight, Bot, User, CheckCircle2, AlertCircle } from "lucide-react";
+import { useInterviewSession } from "@/hooks/useInterviewSession";
+import { InterviewHeader } from "./components/InterviewHeader";
+import { AiStageAvatar } from "./components/AiStageAvatar";
+import { ResponseInputArea } from "./components/ResponseInputArea";
+import { StarGuidanceDrawer } from "./components/StarGuidanceDrawer";
 import shared from "../shared.module.css";
-
-const MOCK_TRANSCRIPTION =
-  "So in that project I owned the checkout flow end to end. The situation was a failing payment step, my task was to cut drop-offs, I split the form and added retries, and conversions rose twelve percent.";
-
-let turnCounter = 0;
-function nextId(prefix: string) {
-  turnCounter += 1;
-  return `${prefix}-${Date.now().toString(36)}-${turnCounter}`;
-}
 
 export default function InterviewRoomPage({
   params,
@@ -23,156 +16,253 @@ export default function InterviewRoomPage({
   params: Promise<{ sessionId: string }>;
 }) {
   const { sessionId } = use(params);
-  const meta = mockSessionMeta(sessionId);
-  const [step, setStep] = useState(0);
-  const [turns, setTurns] = useState<TranscriptTurn[]>(() => [...MOCK_TRANSCRIPT_SEED, { id: "seed-q1", speaker: "ai", text: MOCK_SCRIPT[0].text }]);
-  const [answer, setAnswer] = useState("");
-  const [finished, setFinished] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [seconds, setSeconds] = useState(0);
+
+  const {
+    metadata,
+    turns,
+    turnNumber,
+    totalEstimatedTurns,
+    currentQuestion,
+    currentStarTip,
+    aiState,
+    isStreaming,
+    isSubmitting,
+    isCompleted,
+    sessionDurationSeconds,
+    error,
+    submitTurn,
+    endSessionEarly,
+  } = useInterviewSession(sessionId);
+
   const historyRef = useRef<HTMLDivElement>(null);
 
-  const question = MOCK_SCRIPT[Math.min(step, MOCK_SCRIPT.length - 1)];
-
+  // Auto-scroll transcript on new turn or streaming update
   useEffect(() => {
-    historyRef.current?.scrollTo({ top: historyRef.current.scrollHeight });
-  }, [turns]);
-
-  useEffect(() => {
-    if (!recording) return;
-    const timer = window.setInterval(() => setSeconds((value) => value + 1), 1000);
-    return () => window.clearInterval(timer);
-  }, [recording]);
-
-  const stopRecording = () => {
-    setRecording(false);
-    setAnswer((prev) => (prev ? `${prev} ${MOCK_TRANSCRIPTION}` : MOCK_TRANSCRIPTION));
-  };
-
-  const sendAnswer = () => {
-    const text = answer.trim();
-    if (!text || finished) return;
-    const current = MOCK_SCRIPT[Math.min(step, MOCK_SCRIPT.length - 1)];
-    const userTurn: TranscriptTurn = { id: nextId("user"), speaker: "user", text };
-    const followTurn: TranscriptTurn = { id: nextId("ai"), speaker: "ai", text: current.followUp };
-    if (step >= MOCK_SCRIPT.length - 1) {
-      setTurns((prev) => [
-        ...prev,
-        userTurn,
-        followTurn,
-        {
-          id: nextId("ai"),
-          speaker: "ai",
-          text: "That wraps our scored rounds. I am preparing your result now.",
-        },
-      ]);
-      setFinished(true);
-    } else {
-      const next = MOCK_SCRIPT[step + 1];
-      setTurns((prev) => [
-        ...prev,
-        userTurn,
-        followTurn,
-        { id: nextId("ai"), speaker: "ai", text: next.text },
-      ]);
-      setStep(step + 1);
+    if (historyRef.current) {
+      historyRef.current.scrollTo({
+        top: historyRef.current.scrollHeight,
+        behavior: "smooth",
+      });
     }
-    setAnswer("");
-    setSeconds(0);
-  };
+  }, [turns, currentQuestion, isStreaming]);
 
-  const clock = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+  const handleSubmitAnswer = async (
+    answerText: string,
+    audioBlob?: Blob | null,
+    durationSeconds?: number
+  ): Promise<boolean> => {
+    return await submitTurn(answerText, audioBlob, durationSeconds);
+  };
 
   return (
     <div className={shared.shell}>
-      <p className={shared.eyebrow}>Interview room</p>
-      <h1 className={shared.title}>{meta.roleLabel} mock</h1>
-      <p className={shared.sub}>
-        Answer each question, then the coach follows up based on what you said.
-      </p>
+      {/* STAR Guidance Slide-out Panel */}
+      <StarGuidanceDrawer starTip={currentStarTip} />
 
-      <div className={shared.sessionMeta}>
-        <span className={shared.tag}>{meta.domainLabel}</span>
-        <span className={shared.tag}>{meta.levelLabel}</span>
-        <span className={shared.tag}>{meta.languageLabel}</span>
-        <span className={`${shared.tag} ${shared.tagStrong}`}>
-          Question {Math.min(step + 1, MOCK_SCRIPT.length)} of {MOCK_SCRIPT.length}
-        </span>
+      {/* Header with timer, progress, metadata */}
+      <InterviewHeader
+        sessionId={sessionId}
+        metadata={metadata}
+        turnNumber={turnNumber}
+        totalEstimatedTurns={totalEstimatedTurns}
+        sessionDurationSeconds={sessionDurationSeconds}
+        isCompleted={isCompleted}
+        onEndEarly={endSessionEarly}
+      />
+
+      {/* AI Coach Stage & Status Indicator */}
+      <div style={{ marginBottom: "18px" }}>
+        <AiStageAvatar state={aiState} roleName={`${metadata.roleLabel} Coach`} />
       </div>
 
-      <div className={shared.card}>
-        <p className={shared.questionLead}>Current question</p>
-        <p className={shared.questionText}>{question.text}</p>
-        <span className={shared.questionCat}>{question.category}</span>
+      {/* Error notice if any */}
+      {error && (
+        <div
+          style={{
+            marginBottom: "16px",
+            padding: "12px 16px",
+            borderRadius: "12px",
+            backgroundColor: "#fef2f2",
+            border: "1px solid #fee2e2",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            color: "#dc2626",
+            fontSize: "13px",
+          }}
+        >
+          <AlertCircle size={18} style={{ flexShrink: 0 }} />
+          <span>{error}</span>
+        </div>
+      )}
 
-        {question.behavioral && question.starTip && (
-          <div className={shared.starBox}>
-            <p className={shared.starTitle}>STAR guidance</p>
-            <p className={shared.starText}>{question.starTip}</p>
+      {/* Current Active Question Card */}
+      <div className={shared.card} style={{ position: "relative", overflow: "hidden" }}>
+        {/* Subtle accent indicator */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: "3px",
+            background:
+              aiState === "speaking"
+                ? "linear-gradient(90deg, #ff7a45, #ff4d4f)"
+                : aiState === "thinking"
+                ? "linear-gradient(90deg, #8b5cf6, #ec4899)"
+                : "linear-gradient(90deg, #10b981, #06b6d4)",
+          }}
+        />
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+          <p className={shared.questionLead} style={{ margin: 0 }}>
+            {isCompleted ? "Tổng kết phiên" : `Câu hỏi số ${turnNumber} / ${totalEstimatedTurns}`}
+          </p>
+          {isStreaming && (
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: "700",
+                color: "#ff7a45",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              <span
+                style={{
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "50%",
+                  backgroundColor: "#ff7a45",
+                  display: "inline-block",
+                  animation: "ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite",
+                }}
+              />
+              Đang stream câu hỏi…
+            </span>
+          )}
+        </div>
+
+        <p
+          className={shared.questionText}
+          style={{
+            minHeight: "44px",
+            fontSize: "18px",
+            fontWeight: "600",
+            lineHeight: "1.6",
+            color: "#111827",
+          }}
+        >
+          {currentQuestion || (
+            <span style={{ color: "#9ca3af", fontStyle: "italic" }}>
+              Đang chuẩn bị câu hỏi phỏng vấn…
+            </span>
+          )}
+        </p>
+
+        {/* Quick STAR Hint Banner below question */}
+        {!isCompleted && currentStarTip && (
+          <div className={shared.starBox} style={{ marginTop: "12px" }}>
+            <p className={shared.starTitle}>Gợi ý phản xạ nhanh</p>
+            <p className={shared.starText}>{currentStarTip}</p>
           </div>
         )}
 
-        <div className={shared.composer}>
-          <textarea
-            className={shared.textarea}
-            value={answer}
-            onChange={(event) => setAnswer(event.target.value)}
-            placeholder="Type your answer here, or record your voice…"
-            disabled={finished}
+        {/* Response Input Area (Text / Voice STT / Waveform) */}
+        {!isCompleted ? (
+          <ResponseInputArea
+            sessionId={sessionId}
+            defaultMode={metadata.mode}
+            language={metadata.languageLabel === "English" ? "en-US" : "vi-VN"}
+            isCompleted={isCompleted}
+            isSubmitting={isSubmitting}
+            onSubmit={handleSubmitAnswer}
           />
-          <div className={shared.composerRow}>
-            <button
-              type="button"
-              disabled={finished}
-              onClick={() => (recording ? stopRecording() : (setSeconds(0), setRecording(true)))}
-              className={`${shared.recBtn} ${recording ? shared.recOn : ""}`}
+        ) : (
+          <div
+            style={{
+              marginTop: "24px",
+              padding: "24px",
+              borderRadius: "16px",
+              backgroundColor: "#f0fdf4",
+              border: "1px solid #bbf7d0",
+              textAlign: "center",
+            }}
+          >
+            <CheckCircle2 size={36} color="#16a34a" style={{ margin: "0 auto 12px" }} />
+            <h3 style={{ margin: "0 0 6px", fontSize: "18px", fontWeight: "800", color: "#166534" }}>
+              Phiên phỏng vấn đã hoàn tất thành công!
+            </h3>
+            <p style={{ margin: "0 0 18px", fontSize: "13px", color: "#15803d" }}>
+              Toàn bộ dữ liệu âm thanh, văn bản và tốc độ phản xạ của bạn đã được ghi nhận. Hệ thống đã tính toán xong điểm Rubric và gợi ý cải thiện.
+            </p>
+            <Link
+              href={`/practice/${sessionId}/result`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "12px 28px",
+                borderRadius: "12px",
+                background: "linear-gradient(135deg, #ff7a45 0%, #ff4d4f 100%)",
+                color: "#ffffff",
+                fontSize: "14px",
+                fontWeight: "700",
+                textDecoration: "none",
+                boxShadow: "0 4px 16px rgba(255, 77, 79, 0.35)",
+              }}
             >
-              <span className={shared.recDot} />
-              {recording ? "Stop" : "Record"}
-            </button>
-            {recording && <span className={shared.timer}>{clock} recording…</span>}
-            {!finished ? (
-              <button type="button" onClick={sendAnswer} className={shared.primaryBtn}>
-                Send answer
-                <Send size={15} />
-              </button>
-            ) : (
-              <Link href={`/practice/${sessionId}/result`} className={shared.primaryBtn}>
-                Finish and view result
-                <ArrowRight size={15} />
-              </Link>
-            )}
+              <span>Xem bảng điểm & Phân tích chi tiết</span>
+              <ArrowRight size={16} />
+            </Link>
           </div>
-        </div>
+        )}
       </div>
 
-      <div className={shared.card}>
-        <h2 className={shared.cardTitle}>Conversation</h2>
-        <p className={shared.cardHint}>Full transcript of this session so far.</p>
-        <div ref={historyRef} className={shared.history}>
-          {turns.map((turn) => (
-            <div
-              key={turn.id}
-              className={`${shared.turn} ${turn.speaker === "ai" ? shared.turnAi : shared.turnUser}`}
-            >
-              <span className={shared.who}>{turn.speaker === "ai" ? "AI coach" : "You"}</span>
-              <div className={shared.bubble}>{turn.text}</div>
+      {/* Conversation Transcript History */}
+      <div className={shared.card} style={{ marginTop: "20px" }}>
+        <h2 className={shared.cardTitle}>Nhật ký hội thoại (Conversation Transcript)</h2>
+        <p className={shared.cardHint}>
+          Toàn bộ lịch sử các lượt hỏi - đáp được lưu vết thời gian thực.
+        </p>
+
+        <div ref={historyRef} className={shared.history} style={{ maxHeight: "380px", overflowY: "auto" }}>
+          {turns.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "32px", color: "#9ca3af", fontSize: "13px" }}>
+              Lịch sử hội thoại sẽ xuất hiện tại đây khi bắt đầu lượt hỏi đầu tiên…
             </div>
-          ))}
+          ) : (
+            turns.map((turn) => (
+              <div
+                key={turn.id}
+                className={`${shared.turn} ${turn.speaker === "ai" ? shared.turnAi : shared.turnUser}`}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                  <span className={shared.who} style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    {turn.speaker === "ai" ? (
+                      <>
+                        <Bot size={13} color="#ff7a45" /> AI Coach
+                      </>
+                    ) : (
+                      <>
+                        <User size={13} color="#3b82f6" /> Ứng viên (Bạn)
+                      </>
+                    )}
+                  </span>
+                  {turn.durationSeconds !== undefined && turn.durationSeconds > 0 && (
+                    <span style={{ fontSize: "11px", color: "#9ca3af" }}>
+                      ({turn.durationSeconds}s)
+                    </span>
+                  )}
+                </div>
+                <div className={shared.bubble}>{turn.text}</div>
+              </div>
+            ))
+          )}
         </div>
-      </div>
-
-      <div className={shared.actions}>
-        <Link href={`/practice/${sessionId}/result`} className={shared.ghostBtn}>
-          <Square size={14} />
-          End interview
-        </Link>
-        <span className={shared.tag}>
-          <Mic size={12} /> Voice-to-text ready
-        </span>
       </div>
     </div>
   );
 }
-
-
