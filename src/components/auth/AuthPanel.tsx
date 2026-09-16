@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { authApi } from "@/services/authApi";
 import styles from "./AuthPanel.module.css";
 
 export type AuthMode = "login" | "register";
@@ -25,11 +28,32 @@ export default function AuthPanel({
   syncUrl = false,
   onModeChange,
 }: AuthPanelProps) {
+  const router = useRouter();
+  const { login, register, googleLogin } = useAuth();
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Form states
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+
+  // OTP states for registration
+  const [otp, setOtp] = useState("");
+  const [showOtpField, setShowOtpField] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpCountdown, setOtpCountdown] = useState(0);
+
+  // Google GSI loaded flag
+  const [googleReady, setGoogleReady] = useState(false);
 
   useEffect(() => {
     if (!syncUrl) return;
@@ -37,16 +61,89 @@ export default function AuthPanel({
       setMode(window.location.pathname.endsWith("/register") ? "register" : "login");
       setDone(false);
       setError(null);
+      setSuccessMsg(null);
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, [syncUrl]);
+
+  useEffect(() => {
+    if (otpCountdown > 0) {
+      const timer = setTimeout(() => setOtpCountdown((c) => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCountdown]);
+
+  // Initialize Google Identity Services (GSI)
+  useEffect(() => {
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (!clientId) return;
+
+    const initGsi = () => {
+      if (typeof window === "undefined" || !window.google?.accounts?.id) {
+        return false;
+      }
+
+      try {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: async (response: { credential?: string }) => {
+            if (response.credential) {
+              try {
+                setLoading(true);
+                setError(null);
+                await googleLogin(response.credential);
+                setDone(true);
+                setSuccessMsg("Đăng nhập Google thành công! Đang chuyển hướng…");
+                setTimeout(() => {
+                  router.push("/practice");
+                }, 800);
+              } catch (err: any) {
+                setError(err.message || "Đăng nhập Google thất bại.");
+              } finally {
+                setLoading(false);
+              }
+            }
+          },
+          cancel_on_tap_outside: true,
+        });
+
+        if (googleBtnRef.current) {
+          googleBtnRef.current.innerHTML = "";
+          window.google.accounts.id.renderButton(googleBtnRef.current, {
+            type: "standard",
+            theme: "outline",
+            size: "large",
+            text: "continue_with",
+            shape: "pill",
+            width: 360,
+            logo_alignment: "left",
+          });
+        }
+
+        setGoogleReady(true);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    if (!initGsi()) {
+      const interval = setInterval(() => {
+        if (initGsi()) {
+          clearInterval(interval);
+        }
+      }, 300);
+      return () => clearInterval(interval);
+    }
+  }, [googleLogin, router]);
 
   const switchMode = (next: AuthMode) => {
     if (next === mode || loading) return;
     setMode(next);
     setDone(false);
     setError(null);
+    setSuccessMsg(null);
     setShowPassword(false);
     if (onModeChange) {
       onModeChange(next);
@@ -55,39 +152,123 @@ export default function AuthPanel({
     }
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSendOtp = async () => {
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setError("Vui lòng nhập địa chỉ email hợp lệ để nhận mã OTP.");
+      return;
+    }
+    try {
+      setOtpLoading(true);
+      setError(null);
+      const res = await authApi.sendOtp({ email, purpose: "verify_email" });
+      setShowOtpField(true);
+      setOtpCountdown(60);
+      setSuccessMsg(res.message || "Mã OTP 6 chữ số đã được gửi tới email của bạn.");
+    } catch (err: any) {
+      setError(err.message || "Không thể gửi mã OTP. Vui lòng thử lại sau.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp.trim()) {
+      setError("Vui lòng nhập mã OTP đã nhận.");
+      return;
+    }
+    try {
+      setOtpLoading(true);
+      setError(null);
+      const res = await authApi.verifyOtp({ email, otp: otp.trim(), purpose: "verify_email" });
+      setOtpVerified(true);
+      setSuccessMsg(res.message || "Xác thực OTP thành công!");
+    } catch (err: any) {
+      setError(err.message || "Mã OTP không hợp lệ hoặc đã hết hạn.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleFallbackGoogleClick = () => {
+    if (typeof window !== "undefined" && window.google?.accounts?.id) {
+      window.google.accounts.id.prompt();
+    } else {
+      setError("Google Identity SDK đang tải. Vui lòng thử lại sau giây lát.");
+    }
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const email = String(data.get("email") || "");
-    const password = String(data.get("password") || "");
+    setError(null);
+    setSuccessMsg(null);
 
     if (!/^\S+@\S+\.\S+$/.test(email)) {
-      setError("Please enter a valid email address.");
+      setError("Vui lòng nhập đúng định dạng email.");
       return;
-    }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
-      return;
-    }
-    if (mode === "register") {
-      const name = String(data.get("name") || "").trim();
-      const confirm = String(data.get("confirm") || "");
-      if (!name) {
-        setError("Please tell us your name.");
-        return;
-      }
-      if (confirm !== password) {
-        setError("Passwords do not match.");
-        return;
-      }
     }
 
-    setError(null);
-    setLoading(true);
-    window.setTimeout(() => {
-      setLoading(false);
-      setDone(true);
-    }, 1200);
+    if (mode === "login") {
+      if (!password) {
+        setError("Vui lòng nhập mật khẩu.");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        await login({ email, password });
+        setDone(true);
+        setSuccessMsg("Đăng nhập thành công! Đang chuyển hướng tới trang luyện tập…");
+        setTimeout(() => {
+          router.push("/practice");
+        }, 1000);
+      } catch (err: any) {
+        setError(err.message || "Tài khoản hoặc mật khẩu không chính xác.");
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Register
+      if (!fullName.trim()) {
+        setError("Vui lòng nhập họ và tên.");
+        return;
+      }
+      if (password.length < 8) {
+        setError("Mật khẩu phải có tối thiểu 8 ký tự.");
+        return;
+      }
+      if (confirmPassword !== password) {
+        setError("Mật khẩu xác nhận không khớp.");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        await register({
+          full_name: fullName.trim(),
+          email,
+          password,
+          otp: otp.trim() || null,
+        });
+
+        setDone(true);
+        setSuccessMsg("Tạo tài khoản thành công! Đang tự động đăng nhập…");
+
+        try {
+          await login({ email, password });
+          setTimeout(() => {
+            router.push("/practice");
+          }, 1200);
+        } catch {
+          setTimeout(() => {
+            switchMode("login");
+          }, 1500);
+        }
+      } catch (err: any) {
+        setError(err.message || "Đăng ký không thành công. Vui lòng kiểm tra lại thông tin.");
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   return (
@@ -100,7 +281,7 @@ export default function AuthPanel({
           </Link>
           <Link href="/" className={styles.backLink}>
             <ArrowLeft size={15} aria-hidden="true" />
-            Back to home
+            Về trang chủ
           </Link>
         </header>
       )}
@@ -109,16 +290,16 @@ export default function AuthPanel({
         <div className={styles.formSide}>
           <p className={styles.eyebrow}>
             <span />
-            {mode === "login" ? "Welcome back" : "Join interviewly"}
+            {mode === "login" ? "Chào mừng trở lại" : "Tham gia cùng interviewly"}
           </p>
-          <h1>{mode === "login" ? "Sign in to keep practicing." : "Create your account."}</h1>
+          <h1>{mode === "login" ? "Đăng nhập tài khoản" : "Tạo tài khoản luyện tập"}</h1>
           <p className={styles.sub}>
             {mode === "login"
-              ? "Pick up right where you left off — your sessions and feedback are waiting."
-              : "Start your first adaptive session in under a minute. Free to begin."}
+              ? "Tiếp tục các phiên luyện tập phỏng vấn và xem nhận xét chi tiết từ AI."
+              : "Khởi tạo tài khoản chỉ trong 1 phút và bắt đầu phiên phỏng vấn thông minh."}
           </p>
 
-          <div className={styles.segmented} role="tablist" aria-label="Choose sign in or create account">
+          <div className={styles.segmented} role="tablist" aria-label="Lựa chọn đăng nhập hoặc tạo tài khoản">
             <span className={styles.segmentThumb} aria-hidden="true" />
             <button
               type="button"
@@ -127,7 +308,7 @@ export default function AuthPanel({
               className={mode === "login" ? styles.segmentActive : undefined}
               onClick={() => switchMode("login")}
             >
-              Sign in
+              Đăng nhập
             </button>
             <button
               type="button"
@@ -136,164 +317,255 @@ export default function AuthPanel({
               className={mode === "register" ? styles.segmentActive : undefined}
               onClick={() => switchMode("register")}
             >
-              Register
+              Đăng ký
             </button>
           </div>
 
           <div className={styles.formStack}>
-            <form
-              key={"login-form-" + mode}
-              className={styles.formPane + " " + styles.paneLogin}
-              onSubmit={handleSubmit}
-              noValidate
-            >
-              <label className={styles.field}>
-                <span>Email</span>
-                <input type="email" name="email" placeholder="you@example.com" autoComplete="email" required />
-              </label>
-              <label className={styles.field}>
-                <span>Password</span>
-                <span className={styles.passwordWrap}>
+            {mode === "login" ? (
+              <form
+                key="login-form"
+                className={styles.formPane + " " + styles.paneLogin}
+                onSubmit={handleSubmit}
+                noValidate
+              >
+                <label className={styles.field}>
+                  <span>Email</span>
                   <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    placeholder={"\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"}
-                    autoComplete="current-password"
+                    type="email"
+                    name="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="ban@example.com"
+                    autoComplete="email"
                     required
                   />
-                  <button
-                    type="button"
-                    className={styles.eyeButton}
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-                  </button>
-                </span>
-              </label>
-              <div className={styles.formRow}>
-                <label className={styles.remember}>
-                  <input type="checkbox" name="remember" defaultChecked />
-                  Remember me
                 </label>
-                <span className={styles.forgot}>Forgot password?</span>
-              </div>
-              {error && mode === "login" && <p className={styles.error} role="alert">{error}</p>}
-              {done && mode === "login" && (
-                <p className={styles.success} role="status">
-                  <Check size={15} /> Signed in — redirecting to your practice…
-                </p>
-              )}
-              <button type="submit" className={styles.primaryButton} disabled={loading}>
-                {loading && mode === "login" ? (
-                  <Loader2 size={18} className={styles.spin} aria-hidden="true" />
-                ) : (
-                  <>Sign in <ArrowRight size={18} aria-hidden="true" /></>
-                )}
-              </button>
-            </form>
-
-            <form
-              key={"register-form-" + mode}
-              className={styles.formPane + " " + styles.paneRegister}
-              onSubmit={handleSubmit}
-              noValidate
-            >
-              <label className={styles.field}>
-                <span>Full name</span>
-                <input type="text" name="name" placeholder="Ada Lovelace" autoComplete="name" required />
-              </label>
-              <label className={styles.field}>
-                <span>Email</span>
-                <input type="email" name="email" placeholder="you@example.com" autoComplete="email" required />
-              </label>
-              <div className={styles.twoCol}>
                 <label className={styles.field}>
-                  <span>Password</span>
+                  <span>Mật khẩu</span>
                   <span className={styles.passwordWrap}>
                     <input
                       type={showPassword ? "text" : "password"}
                       name="password"
-                      placeholder="Min. 6 characters"
-                      autoComplete="new-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={"\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"}
+                      autoComplete="current-password"
                       required
                     />
                     <button
                       type="button"
                       className={styles.eyeButton}
                       onClick={() => setShowPassword((v) => !v)}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                     >
                       {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                     </button>
                   </span>
                 </label>
+                <div className={styles.formRow}>
+                  <label className={styles.remember}>
+                    <input type="checkbox" name="remember" defaultChecked />
+                    Ghi nhớ đăng nhập
+                  </label>
+                  <Link href="/forgot-password" className={styles.forgot}>
+                    Quên mật khẩu?
+                  </Link>
+                </div>
+
+                {error && <p className={styles.error} role="alert">{error}</p>}
+                {(done || successMsg) && (
+                  <p className={styles.success} role="status">
+                    <Check size={15} /> {successMsg || "Đăng nhập thành công!"}
+                  </p>
+                )}
+
+                <button type="submit" className={styles.primaryButton} disabled={loading}>
+                  {loading ? (
+                    <Loader2 size={18} className={styles.spin} aria-hidden="true" />
+                  ) : (
+                    <>Đăng nhập <ArrowRight size={18} aria-hidden="true" /></>
+                  )}
+                </button>
+              </form>
+            ) : (
+              <form
+                key="register-form"
+                className={styles.formPane + " " + styles.paneRegister}
+                onSubmit={handleSubmit}
+                noValidate
+              >
                 <label className={styles.field}>
-                  <span>Confirm</span>
+                  <span>Họ và tên</span>
                   <input
-                    type={showPassword ? "text" : "password"}
-                    name="confirm"
-                    placeholder="Repeat it"
-                    autoComplete="new-password"
+                    type="text"
+                    name="name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Nguyễn Văn A"
+                    autoComplete="name"
                     required
                   />
                 </label>
-              </div>
-              {error && mode === "register" && <p className={styles.error} role="alert">{error}</p>}
-              {done && mode === "register" && (
-                <p className={styles.success} role="status">
-                  <Check size={15} /> Account created — welcome aboard!
-                </p>
-              )}
-              <button type="submit" className={styles.primaryButton} disabled={loading}>
-                {loading && mode === "register" ? (
-                  <Loader2 size={18} className={styles.spin} aria-hidden="true" />
-                ) : (
-                  <>Create account <ArrowRight size={18} aria-hidden="true" /></>
+                <label className={styles.field}>
+                  <span>Email</span>
+                  <input
+                    type="email"
+                    name="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="ban@example.com"
+                    autoComplete="email"
+                    required
+                  />
+                </label>
+                <div className={styles.twoCol}>
+                  <label className={styles.field}>
+                    <span>Mật khẩu (tối thiểu 8 ký tự)</span>
+                    <span className={styles.passwordWrap}>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        name="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Tối thiểu 8 ký tự"
+                        autoComplete="new-password"
+                        required
+                      />
+                      <button
+                        type="button"
+                        className={styles.eyeButton}
+                        onClick={() => setShowPassword((v) => !v)}
+                        aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                      >
+                        {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                      </button>
+                    </span>
+                  </label>
+                  <label className={styles.field}>
+                    <span>Xác nhận mật khẩu</span>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="confirm"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Nhập lại mật khẩu"
+                      autoComplete="new-password"
+                      required
+                    />
+                  </label>
+                </div>
+
+                {/* Optional OTP Verification Section */}
+                <div className={styles.otpSection}>
+                  <div className="flex items-center justify-between text-xs text-stone-600">
+                    <span className="font-semibold">Mã OTP xác thực email (Tùy chọn)</span>
+                    {otpVerified ? (
+                      <span className={styles.otpSuccessBadge}>
+                        <ShieldCheck size={14} /> Đã xác thực OTP
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="text-[#8b4513] hover:underline font-medium"
+                        onClick={handleSendOtp}
+                        disabled={otpLoading || otpCountdown > 0}
+                      >
+                        {otpLoading ? "Đang gửi..." : otpCountdown > 0 ? `Gửi lại (${otpCountdown}s)` : "Gửi mã OTP qua email"}
+                      </button>
+                    )}
+                  </div>
+
+                  {showOtpField && !otpVerified && (
+                    <div className={styles.otpRow}>
+                      <input
+                        type="text"
+                        placeholder="Nhập mã OTP 6 số"
+                        maxLength={10}
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className={styles.otpActionBtn}
+                        onClick={handleVerifyOtp}
+                        disabled={otpLoading || !otp}
+                      >
+                        Xác nhận OTP
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {error && <p className={styles.error} role="alert">{error}</p>}
+                {(done || successMsg) && (
+                  <p className={styles.success} role="status">
+                    <Check size={15} /> {successMsg || "Tạo tài khoản thành công!"}
+                  </p>
                 )}
-              </button>
-            </form>
+
+                <button type="submit" className={styles.primaryButton} disabled={loading}>
+                  {loading ? (
+                    <Loader2 size={18} className={styles.spin} aria-hidden="true" />
+                  ) : (
+                    <>Tạo tài khoản <ArrowRight size={18} aria-hidden="true" /></>
+                  )}
+                </button>
+              </form>
+            )}
           </div>
 
           <div className={styles.divider}>
-            <span /> or <span />
+            <span /> hoặc <span />
           </div>
-          <button type="button" className={styles.googleButton}>
-            <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.3H12v4.5h6.5c-.1 1.1-.8 2.7-2.4 3.8l-.1.1 3.5 2.7.2.1c2.2-2 3.8-5 3.8-8.9z" />
-              <path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.8-2.9c-1 .7-2.4 1.2-4.1 1.2-3.2 0-5.9-2.1-6.8-5l-.1.1-3.6 2.8v.1C3.5 21.4 7.5 24 12 24z" />
-              <path fill="#FBBC05" d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4l-.1-.1-3.6-2.8-.1.1C.5 8.6 0 10.2 0 12s.5 3.4 1.4 4.9l3.8-2.5z" />
-              <path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.5 0 3.5 2.6 1.4 6.8l3.8 2.9c.9-2.9 3.6-5 6.8-5z" />
-            </svg>
-            Continue with Google
-          </button>
+
+          {/* Official Google Identity Services Button Container */}
+          <div className={styles.googleContainer}>
+            <div ref={googleBtnRef} />
+            {!googleReady && (
+              <button
+                type="button"
+                className={styles.googleButton}
+                onClick={handleFallbackGoogleClick}
+                disabled={loading}
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.3H12v4.5h6.5c-.1 1.1-.8 2.7-2.4 3.8l-.1.1 3.5 2.7.2.1c2.2-2 3.8-5 3.8-8.9z" />
+                  <path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.8-2.9c-1 .7-2.4 1.2-4.1 1.2-3.2 0-5.9-2.1-6.8-5l-.1.1-3.6 2.8v.1C3.5 21.4 7.5 24 12 24z" />
+                  <path fill="#FBBC05" d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4l-.1-.1-3.6-2.8-.1.1C.5 8.6 0 10.2 0 12s.5 3.4 1.4 4.9l3.8-2.5z" />
+                  <path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.5 0 3.5 2.6 1.4 6.8l3.8 2.9c.9-2.9 3.6-5 6.8-5z" />
+                </svg>
+                Tiếp tục với Google
+              </button>
+            )}
+          </div>
 
           <p className={styles.switchLine}>
             {mode === "login" ? (
-              <>New to Interviewly? <button type="button" onClick={() => switchMode("register")}>Create an account</button></>
+              <>Bạn mới biết đến Interviewly? <button type="button" onClick={() => switchMode("register")}>Đăng ký ngay</button></>
             ) : (
-              <>Already have an account? <button type="button" onClick={() => switchMode("login")}>Sign in</button></>
+              <>Đã có tài khoản? <button type="button" onClick={() => switchMode("login")}>Đăng nhập</button></>
             )}
           </p>
         </div>
 
         <aside className={styles.showcase} aria-hidden="true">
           <div className={styles.showcaseLogin}>
-            <p className={styles.showEyebrow}>Pick up the momentum</p>
-            <p className={styles.showQuote}>“Less second-guessing. More deliberate practice.”</p>
+            <p className={styles.showEyebrow}>Duy trì sự tiến bộ</p>
+            <p className={styles.showQuote}>“Luyện tập có chủ đích. Phản xạ tự tin trước mọi phỏng vấn.”</p>
             <div className={styles.showStats}>
-              <div><strong>12.8k+</strong><span>sessions</span></div>
-              <div><strong>94%</strong><span>pass rate</span></div>
-              <div><strong>4.9/5</strong><span>rubric score</span></div>
+              <div><strong>12.8k+</strong><span>phiên luyện tập</span></div>
+              <div><strong>94%</strong><span>đỗ phỏng vấn</span></div>
+              <div><strong>4.9/5</strong><span>điểm rubric AI</span></div>
             </div>
           </div>
           <div className={styles.showcaseRegister}>
-            <p className={styles.showEyebrow}>Your first session</p>
-            <p className={styles.showQuote}>“Your next interview deserves more than a guess.”</p>
+            <p className={styles.showEyebrow}>Phiên phỏng vấn đầu tiên</p>
+            <p className={styles.showQuote}>“Cuộc phỏng vấn tiếp theo xứng đáng với sự chuẩn bị tốt nhất.”</p>
             <ol className={styles.showSteps}>
-              <li><strong>01</strong> Set your interview</li>
-              <li><strong>02</strong> Have the conversation</li>
-              <li><strong>03</strong> Use the feedback</li>
+              <li><strong>01</strong> Chọn vai trò và kỹ năng</li>
+              <li><strong>02</strong> Trả lời câu hỏi phỏng vấn</li>
+              <li><strong>03</strong> Nhận nhận xét điểm số Rubric</li>
             </ol>
           </div>
           <span className={styles.showGlow} />

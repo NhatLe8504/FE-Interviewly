@@ -667,3 +667,70 @@
     transform: none;
   }
 }
+
+.otpSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.otpRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.otpRow input {
+  flex: 1;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(106, 72, 49, 0.18);
+  background: rgba(255, 255, 255, 0.9);
+  color: #211914;
+  font-size: 0.88rem;
+}
+
+.otpRow input:focus {
+  outline: none;
+  border-color: #d98236;
+  box-shadow: 0 0 0 3px rgba(217, 130, 54, 0.2);
+}
+
+.otpActionBtn {
+  padding: 11px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(106, 72, 49, 0.2);
+  background: #fffaf4;
+  color: #8b4513;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.otpActionBtn:hover:not(:disabled) {
+  background: #f7eadc;
+}
+
+.otpActionBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.otpSuccessBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #2e6b34;
+}
+.googleContainer {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 44px;
+}
