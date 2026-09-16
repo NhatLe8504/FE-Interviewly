@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
-import { use, useEffect, useRef } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Bot, User, CheckCircle2, AlertCircle } from "lucide-react";
+import { ArrowRight, Bot, User, CheckCircle2, AlertCircle, Volume2, Square } from "lucide-react";
 import { useInterviewSession } from "@/hooks/useInterviewSession";
+import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 import { InterviewHeader } from "./components/InterviewHeader";
 import { AiStageAvatar } from "./components/AiStageAvatar";
 import { ResponseInputArea } from "./components/ResponseInputArea";
@@ -34,7 +35,39 @@ export default function InterviewRoomPage({
     endSessionEarly,
   } = useInterviewSession(sessionId);
 
+  // AI Voice Text-To-Speech
+  const tts = useTextToSpeech();
+  const [insertedStarter, setInsertedStarter] = useState<string | null>(null);
+
   const historyRef = useRef<HTMLDivElement>(null);
+  const lastSpokenQuestionRef = useRef<string>("");
+
+  // Automatically speak question when AI finishes streaming a new question
+  useEffect(() => {
+    if (
+      !isStreaming &&
+      currentQuestion &&
+      !isCompleted &&
+      tts.isAutoSpeak &&
+      currentQuestion !== lastSpokenQuestionRef.current
+    ) {
+      lastSpokenQuestionRef.current = currentQuestion;
+      const lang = metadata.languageLabel === "English" ? "en" : "vi";
+      // Small timeout for natural speech initiation
+      const timer = setTimeout(() => {
+        tts.speak(currentQuestion, lang);
+      }, 350);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentQuestion, isCompleted, isStreaming, metadata.languageLabel, tts]);
+
+  // Stop TTS when session is completed or submission is in progress
+  useEffect(() => {
+    if (isCompleted || isSubmitting) {
+      tts.stop();
+    }
+  }, [isCompleted, isSubmitting, tts]);
 
   // Auto-scroll transcript on new turn or streaming update
   useEffect(() => {
@@ -51,13 +84,23 @@ export default function InterviewRoomPage({
     audioBlob?: Blob | null,
     durationSeconds?: number
   ): Promise<boolean> => {
+    tts.stop();
     return await submitTurn(answerText, audioBlob, durationSeconds);
+  };
+
+  const handleManualPlayQuestion = () => {
+    if (!currentQuestion) return;
+    const lang = metadata.languageLabel === "English" ? "en" : "vi";
+    tts.speak(currentQuestion, lang);
   };
 
   return (
     <div className={shared.shell}>
       {/* STAR Guidance Slide-out Panel */}
-      <StarGuidanceDrawer starTip={currentStarTip} />
+      <StarGuidanceDrawer
+        starTip={currentStarTip}
+        onInsertStarter={(text) => setInsertedStarter(text)}
+      />
 
       {/* Header with timer, progress, metadata */}
       <InterviewHeader
@@ -67,12 +110,24 @@ export default function InterviewRoomPage({
         totalEstimatedTurns={totalEstimatedTurns}
         sessionDurationSeconds={sessionDurationSeconds}
         isCompleted={isCompleted}
-        onEndEarly={endSessionEarly}
+        onEndEarly={() => {
+          tts.stop();
+          endSessionEarly();
+        }}
       />
 
       {/* AI Coach Stage & Status Indicator */}
       <div style={{ marginBottom: "18px" }}>
-        <AiStageAvatar state={aiState} roleName={`${metadata.roleLabel} Coach`} />
+        <AiStageAvatar
+          state={aiState}
+          roleName={`${metadata.roleLabel} Coach`}
+          isSpeakingAudio={tts.isSpeaking}
+          isAutoSpeak={tts.isAutoSpeak}
+          isAudioSupported={tts.isSupported}
+          onPlayAudio={handleManualPlayQuestion}
+          onStopAudio={tts.stop}
+          onToggleAutoSpeak={tts.toggleAutoSpeak}
+        />
       </div>
 
       {/* Error notice if any */}
@@ -107,7 +162,7 @@ export default function InterviewRoomPage({
             right: 0,
             height: "3px",
             background:
-              aiState === "speaking"
+              aiState === "speaking" || tts.isSpeaking
                 ? "linear-gradient(90deg, #ff7a45, #ff4d4f)"
                 : aiState === "thinking"
                 ? "linear-gradient(90deg, #8b5cf6, #ec4899)"
@@ -119,30 +174,67 @@ export default function InterviewRoomPage({
           <p className={shared.questionLead} style={{ margin: 0 }}>
             {isCompleted ? "Tổng kết phiên" : `Câu hỏi số ${turnNumber} / ${totalEstimatedTurns}`}
           </p>
-          {isStreaming && (
-            <span
-              style={{
-                fontSize: "11px",
-                fontWeight: "700",
-                color: "#ff7a45",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
-            >
+
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {/* Play/Stop audio icon right on the question */}
+            {tts.isSupported && currentQuestion && !isCompleted && !isStreaming && (
+              <button
+                type="button"
+                onClick={tts.isSpeaking ? tts.stop : handleManualPlayQuestion}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "4px 8px",
+                  borderRadius: "6px",
+                  border: "1px solid #fed7aa",
+                  backgroundColor: tts.isSpeaking ? "#fff7ed" : "#fefce8",
+                  color: tts.isSpeaking ? "#ea580c" : "#ca8a04",
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                }}
+                title={tts.isSpeaking ? "Dừng giọng nói" : "Nghe lại câu hỏi này"}
+              >
+                {tts.isSpeaking ? (
+                  <>
+                    <Square size={11} fill="#ea580c" />
+                    <span>Dừng</span>
+                  </>
+                ) : (
+                  <>
+                    <Volume2 size={12} />
+                    <span>Nghe</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {isStreaming && (
               <span
                 style={{
-                  width: "6px",
-                  height: "6px",
-                  borderRadius: "50%",
-                  backgroundColor: "#ff7a45",
-                  display: "inline-block",
-                  animation: "ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite",
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  color: "#ff7a45",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
                 }}
-              />
-              Đang stream câu hỏi…
-            </span>
-          )}
+              >
+                <span
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    borderRadius: "50%",
+                    backgroundColor: "#ff7a45",
+                    display: "inline-block",
+                    animation: "ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite",
+                  }}
+                />
+                Đang stream câu hỏi…
+              </span>
+            )}
+          </div>
         </div>
 
         <p
@@ -178,6 +270,8 @@ export default function InterviewRoomPage({
             language={metadata.languageLabel === "English" ? "en-US" : "vi-VN"}
             isCompleted={isCompleted}
             isSubmitting={isSubmitting}
+            insertedStarter={insertedStarter}
+            onVoiceStart={tts.stop}
             onSubmit={handleSubmitAnswer}
           />
         ) : (
