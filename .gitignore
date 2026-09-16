@@ -24,6 +24,5 @@ pnpm-debug.log*
 .vscode
 
 /RULE.md
-*.log
-
 /TASK.md
+*.log

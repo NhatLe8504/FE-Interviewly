@@ -1,8 +1,13 @@
-import { request } from "@/services/apiClient";
+import { request, getStoredToken } from "./apiClient";
 import {
-  MOCK_DOMAINS,
-  MOCK_ROLES,
-} from "@/mock/practice";
+  StartSessionIn,
+  SessionOut,
+  TurnSubmitIn,
+  TurnOut,
+  RubricEvaluationOut,
+  SessionResultOut,
+} from "@/types/interview";
+import { MOCK_DOMAINS, MOCK_ROLES } from "@/mock/practice";
 
 export interface CatalogDomain {
   id: number;
@@ -103,7 +108,7 @@ export const interviewApi = {
         }));
       }
     } catch {
-      // Fallback to mock domains when backend catalog is not yet seeded
+      // Fallback
     }
 
     return MOCK_DOMAINS.map((d, idx) => ({
@@ -138,7 +143,6 @@ export const interviewApi = {
       // Fallback
     }
 
-    // Map mock roles
     const domainObj = MOCK_DOMAINS[typeof domainId === "number" ? domainId - 1 : 0] || MOCK_DOMAINS[0];
     const filtered = MOCK_ROLES.filter((r) => r.domainId === domainObj.id);
     return (filtered.length > 0 ? filtered : MOCK_ROLES).map((r, idx) => ({
@@ -167,13 +171,13 @@ export const interviewApi = {
           plan,
           used_interviews: used,
           limit_interviews: limit,
-          is_active: sub.is_active ?? true,
+          is_active: sub.status === "active",
           remaining,
-          can_start: plan === "pro" || remaining > 0,
+          can_start: remaining > 0 || plan === "pro",
         };
       }
     } catch {
-      // Default to allowed fallback for client-side demo
+      // Fallback
     }
 
     return {
@@ -187,94 +191,85 @@ export const interviewApi = {
   },
 
   /**
-   * Initialize a new interview session
+   * Khởi tạo phiên phỏng vấn mới với AI
    */
-  async startSession(payload: StartSessionPayload): Promise<SessionResponse> {
+  async startSession(payload: StartSessionIn | StartSessionPayload): Promise<SessionOut | SessionResponse> {
     try {
-      const session = await request<SessionResponse>("/api/v1/interviews/sessions", {
+      return await request<SessionOut>("/api/v1/interviews/sessions", {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      return session;
     } catch {
-      // Fallback graceful local session if backend interview service is unavailable
-      const localId = `sess-${Date.now().toString(36)}`;
+      // Fallback local simulation session
+      const sid = `sess-${Date.now().toString(36)}`;
       return {
-        session_id: localId,
+        session_id: sid,
+        user_id: 1,
+        domain_id: payload.domain_id,
+        role_id: payload.role_id,
         level: payload.level,
         language: payload.language,
-        mode: payload.mode,
+        mode: (payload as any).mode || "text",
         status: "in_progress",
-        role_name: payload.role_name || "Software Engineer",
-        current_turn: {
-          turn_id: `t1-${Date.now()}`,
-          session_id: localId,
-          turn_number: 1,
-          question_text:
-            payload.language === "vi"
-              ? "Hãy giới thiệu về bản thân và một dự án tiêu biểu mà bạn tự hào nhất."
-              : "Tell me about yourself and a notable project you are most proud of.",
-          speaker: "ai",
-          duration_seconds: 0,
-          star_tip:
-            "Nêu rõ bối cảnh dự án (Situation), mục tiêu của bạn (Task), các bước bạn đã giải quyết (Action) và kết quả định lượng đạt được (Result).",
-        },
+        current_turn: 1 as any,
+        max_turns: 5,
+        created_at: new Date().toISOString(),
       };
     }
   },
 
   /**
-   * Get session details
+   * Lấy thông tin trạng thái phiên hiện tại
    */
-  async getSession(sessionId: number | string): Promise<SessionResponse | null> {
-    try {
-      return await request<SessionResponse>(`/api/v1/interviews/sessions/${sessionId}`, {
-        method: "GET",
-      });
-    } catch {
-      return null;
-    }
+  async getSession(sessionId: string): Promise<SessionOut> {
+    return request<SessionOut>(`/api/v1/interviews/sessions/${sessionId}`, {
+      method: "GET",
+    });
   },
 
   /**
-   * Submit an answer turn
+   * Gửi câu trả lời của ứng viên cho lượt hiện tại
    */
   async submitTurn(
-    sessionId: number | string,
-    turnNumber: number,
-    payload: SubmitTurnPayload
-  ): Promise<SubmitTurnResponse> {
+    sessionId: string,
+    payload: TurnSubmitIn | SubmitTurnPayload,
+    turnNumber: number = 1
+  ): Promise<any> {
+    if (payload.audio_blob) {
+      const formData = new FormData();
+      formData.append("answer_text", payload.answer_text);
+      formData.append("duration_seconds", String(payload.duration_seconds));
+      formData.append("audio_file", payload.audio_blob, "answer.webm");
+
+      const token = getStoredToken();
+      const headers: HeadersInit = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${API_BASE_URL}/api/v1/interviews/sessions/${sessionId}/turns`, {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error(`Nộp câu trả lời thất bại (HTTP ${res.status})`);
+      }
+      return res.json();
+    }
+
     try {
-      const response = await request<SubmitTurnResponse>(
-        `/api/v1/interviews/sessions/${sessionId}/turns?turn_number=${turnNumber}`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            answer_text: payload.answer_text,
-            duration_seconds: payload.duration_seconds,
-            pause_duration_seconds: payload.pause_duration_seconds || 0,
-            audio_url: payload.audio_url || null,
-          }),
-        }
-      );
-      return response;
+      return await request<TurnOut>(`/api/v1/interviews/sessions/${sessionId}/turns`, {
+        method: "POST",
+        body: JSON.stringify({
+          answer_text: payload.answer_text,
+          duration_seconds: payload.duration_seconds,
+        }),
+      });
     } catch {
-      // Fallback for simulation
+      // Fallback
       const isLast = turnNumber >= 4;
-      const followUpQuestionsVi = [
-        "Trong thử thách lớn nhất của dự án đó, bạn đã giải quyết sự cố kỹ thuật bất ngờ như thế nào?",
-        "Nếu được làm lại từ đầu với công nghệ hoặc kiến trúc khác, bạn sẽ cải tiến điều gì?",
-        "Bạn đã phối hợp với các thành viên khác hoặc giải quyết bất đồng quan điểm ra sao?",
-      ];
-      const followUpQuestionsEn = [
-        "What was the most difficult technical bottleneck you encountered and how did you resolve it?",
-        "If you could redesign the system architecture today, what would you do differently?",
-        "How did you collaborate with your teammates and align on conflicting engineering priorities?",
-      ];
-
-      const questionList = followUpQuestionsVi;
-      const nextQuestion = questionList[(turnNumber - 1) % questionList.length];
-
       return {
         turn_id: `t-${turnNumber + 1}-${Date.now()}`,
         session_id: sessionId,
@@ -287,19 +282,47 @@ export const interviewApi = {
               turn_id: `t-${turnNumber + 1}-${Date.now()}`,
               session_id: sessionId,
               turn_number: turnNumber + 1,
-              question_text: nextQuestion,
+              question_text: "Bạn có thể chia sẻ cụ thể hơn về bài học rút ra từ dự án này?",
               speaker: "ai",
-              star_tip:
-                "Tập trung nhấn mạnh hành động trực tiếp của bạn và số liệu định lượng (Action & Result).",
+              star_tip: "Tập trung vào Action và Result.",
             },
       };
     }
   },
 
   /**
-   * Get SSE streaming URL for an interview session
+   * Lấy kết quả chấm điểm Rubric cho 1 turn cụ thể
+   */
+  async getTurnEvaluation(sessionId: string, turnId: string): Promise<RubricEvaluationOut> {
+    return request<RubricEvaluationOut>(
+      `/api/v1/interviews/sessions/${sessionId}/turns/${turnId}/evaluation`,
+      { method: "GET" }
+    );
+  },
+
+  /**
+   * Hoàn thành phiên và lấy bảng điểm tổng kết toàn phiên
+   */
+  async getSessionResult(sessionId: string): Promise<SessionResultOut> {
+    return request<SessionResultOut>(
+      `/api/v1/interviews/sessions/${sessionId}/result`,
+      { method: "GET" }
+    );
+  },
+
+  /**
+   * Lấy URL SSE endpoint kèm query token phục vụ EventSource
+   */
+  getStreamUrl(sessionId: string | number): string {
+    const token = getStoredToken();
+    const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : "";
+    return `${API_BASE_URL}/api/v1/interviews/sessions/${sessionId}/stream${tokenQuery}`;
+  },
+
+  /**
+   * Get SSE streaming URL for an interview session (alias)
    */
   getSessionStreamUrl(sessionId: number | string): string {
-    return `${API_BASE_URL}/api/v1/interviews/sessions/${sessionId}/stream`;
+    return this.getStreamUrl(sessionId);
   },
 };

@@ -1,12 +1,23 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getStoredToken } from "@/services/apiClient";
+import { interviewApi } from "@/services/interviewApi";
+import { SSEQuestionDonePayload } from "@/types/interview";
+
+export interface UseSseStreamingOptions {
+  onToken?: (token: string) => void;
+  onQuestionDone?: (payload: SSEQuestionDonePayload) => void;
+  onError?: (error: string) => void;
+  autoConnect?: boolean;
+  sessionId?: string;
+}
 
 export interface UseSseStreamingReturn {
   streamedText: string;
   isStreaming: boolean;
   isDone: boolean;
+  isCompleted: boolean;
   error: string | null;
   startStream: (
     url: string,
@@ -15,15 +26,20 @@ export interface UseSseStreamingReturn {
   ) => Promise<string>;
   cancelStream: () => void;
   setStreamedText: (text: string | ((prev: string) => string)) => void;
+  connect: (sessionId: string) => void;
+  disconnect: () => void;
+  resetStream: () => void;
 }
 
-export function useSseStreaming(): UseSseStreamingReturn {
+export function useSseStreaming(options: UseSseStreamingOptions = {}): UseSseStreamingReturn {
   const [streamedText, setStreamedText] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [isDone, setIsDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const textBufferRef = useRef("");
 
   // Typewriter ticker simulation for fallback or local simulation
   const simulateTypewriter = useCallback(
@@ -37,11 +53,11 @@ export function useSseStreaming(): UseSseStreamingReturn {
 
         const timer = setInterval(() => {
           if (index < text.length) {
-            // Stream in natural clusters of 1-3 characters
             const step = Math.min(text.length - index, Math.floor(Math.random() * 2) + 1);
             current += text.slice(index, index + step);
             index += step;
             setStreamedText(current);
+            options.onToken?.(current);
           } else {
             clearInterval(timer);
             setIsStreaming(false);
@@ -52,7 +68,7 @@ export function useSseStreaming(): UseSseStreamingReturn {
         }, 25);
       });
     },
-    []
+    [options]
   );
 
   const startStream = useCallback(
@@ -89,7 +105,6 @@ export function useSseStreaming(): UseSseStreamingReturn {
         });
 
         if (!response.ok || !response.body) {
-          // If SSE fails or 404, fallback to typewriter effect of provided question text
           return await simulateTypewriter(fallbackText, onComplete);
         }
 
@@ -118,15 +133,16 @@ export function useSseStreaming(): UseSseStreamingReturn {
                 if (parsed.token) {
                   accumulated += parsed.token;
                   setStreamedText(accumulated);
+                  options.onToken?.(parsed.token);
                 }
                 if (parsed.done) {
                   break;
                 }
               } catch {
-                // If it's plain text token
                 if (rawData) {
                   accumulated += rawData;
                   setStreamedText(accumulated);
+                  options.onToken?.(rawData);
                 }
               }
             }
@@ -141,11 +157,10 @@ export function useSseStreaming(): UseSseStreamingReturn {
         if (err.name === "AbortError") {
           return "";
         }
-        // Graceful fallback to typewriter simulation of fallback text
         return await simulateTypewriter(fallbackText, onComplete);
       }
     },
-    [simulateTypewriter]
+    [options, simulateTypewriter]
   );
 
   const cancelStream = useCallback(() => {
@@ -153,16 +168,131 @@ export function useSseStreaming(): UseSseStreamingReturn {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
     setIsStreaming(false);
   }, []);
+
+  const connect = useCallback(
+    (sessionId: string) => {
+      cancelStream();
+
+      setStreamedText("");
+      setIsDone(false);
+      setError(null);
+      setIsStreaming(true);
+      textBufferRef.current = "";
+
+      const streamUrl = interviewApi.getStreamUrl(sessionId);
+
+      try {
+        const es = new EventSource(streamUrl);
+        eventSourceRef.current = es;
+
+        es.onopen = () => {
+          setIsStreaming(true);
+          setError(null);
+        };
+
+        es.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.token) {
+              textBufferRef.current += data.token;
+              setStreamedText(textBufferRef.current);
+              options.onToken?.(data.token);
+            }
+          } catch {
+            if (event.data) {
+              textBufferRef.current += event.data;
+              setStreamedText(textBufferRef.current);
+              options.onToken?.(event.data);
+            }
+          }
+        };
+
+        es.addEventListener("token", (event: MessageEvent) => {
+          try {
+            const data = JSON.parse(event.data);
+            const token = data.token || "";
+            textBufferRef.current += token;
+            setStreamedText(textBufferRef.current);
+            options.onToken?.(token);
+          } catch {
+            textBufferRef.current += event.data;
+            setStreamedText(textBufferRef.current);
+            options.onToken?.(event.data);
+          }
+        });
+
+        es.addEventListener("question_done", (event: MessageEvent) => {
+          setIsStreaming(false);
+          setIsDone(true);
+          try {
+            const payload = JSON.parse(event.data) as SSEQuestionDonePayload;
+            options.onQuestionDone?.(payload);
+          } catch {
+            options.onQuestionDone?.({
+              turn_id: "done",
+              turn_number: 1,
+              question_text: textBufferRef.current,
+              is_last_question: false,
+            });
+          }
+        });
+
+        es.addEventListener("error", () => {
+          const errMsg = "Mất kết nối luồng AI streaming.";
+          setError(errMsg);
+          setIsStreaming(false);
+          options.onError?.(errMsg);
+          cancelStream();
+        });
+
+        es.onerror = () => {
+          setIsStreaming(false);
+          cancelStream();
+        };
+      } catch (err: any) {
+        const msg = err.message || "Không thể khởi tạo EventSource.";
+        setError(msg);
+        setIsStreaming(false);
+        options.onError?.(msg);
+      }
+    },
+    [cancelStream, options]
+  );
+
+  useEffect(() => {
+    if (options.autoConnect && options.sessionId) {
+      connect(options.sessionId);
+    }
+    return () => {
+      cancelStream();
+    };
+  }, [options.autoConnect, options.sessionId, connect, cancelStream]);
+
+  const resetStream = useCallback(() => {
+    cancelStream();
+    setStreamedText("");
+    setIsDone(false);
+    setError(null);
+    textBufferRef.current = "";
+  }, [cancelStream]);
 
   return {
     streamedText,
     isStreaming,
     isDone,
+    isCompleted: isDone,
     error,
     startStream,
     cancelStream,
     setStreamedText,
+    connect,
+    disconnect: cancelStream,
+    resetStream,
   };
 }
