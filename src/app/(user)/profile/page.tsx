@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
+import ProfileClient from "./ProfileClient";
 
 export const metadata: Metadata = {
-  title: "Profile | Interviewly",
-  description: "Personal information, experience, target domain, and avatar.",
+  title: "Hồ sơ ứng viên | Interviewly",
+  description:
+    "Quản lý thông tin cá nhân, định hướng chuyên môn, bảo mật tài khoản và kiểm tra microphone.",
 };
 
 export default function ProfilePage() {
-  return (
-    <main>
-      <h1>Profile</h1>
-      <p>Personal information, experience, target domain, and avatar.</p>
-    </main>
-  );
+  return <ProfileClient />;
 }
