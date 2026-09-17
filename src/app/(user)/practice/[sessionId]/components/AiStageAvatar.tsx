@@ -2,6 +2,7 @@
 
 import { Bot, Volume2, VolumeX, Mic, BrainCircuit, Check, Play, Square } from "lucide-react";
 import type { AiStageState } from "@/hooks/useInterviewSession";
+import { UserTooltip } from "@/components/user-component/common";
 
 interface AiStageAvatarProps {
   state: AiStageState;
@@ -171,74 +172,77 @@ export function AiStageAvatar({
       {isAudioSupported && state !== "idle" && (
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           {isSpeakingAudio ? (
-            <button
-              type="button"
-              onClick={onStopAudio}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "6px 12px",
-                borderRadius: "10px",
-                border: "1px solid #fed7aa",
-                backgroundColor: "#fff7ed",
-                color: "#ea580c",
-                fontSize: "12px",
-                fontWeight: "700",
-                cursor: "pointer",
-                boxShadow: "0 2px 8px rgba(234, 88, 12, 0.15)",
-              }}
-              title="Dừng phát âm câu hỏi"
-            >
-              <Square size={13} fill="#ea580c" />
-              <span>Dừng đọc</span>
-            </button>
+            <UserTooltip content="Dừng phát âm câu hỏi">
+              <button
+                type="button"
+                onClick={onStopAudio}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 12px",
+                  borderRadius: "10px",
+                  border: "1px solid #fed7aa",
+                  backgroundColor: "#fff7ed",
+                  color: "#ea580c",
+                  fontSize: "12px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 8px rgba(234, 88, 12, 0.15)",
+                }}
+              >
+                <Square size={13} fill="#ea580c" />
+                <span>Dừng đọc</span>
+              </button>
+            </UserTooltip>
           ) : (
-            <button
-              type="button"
-              onClick={onPlayAudio}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "6px 12px",
-                borderRadius: "10px",
-                border: "1px solid #e5e7eb",
-                backgroundColor: "#ffffff",
-                color: "#374151",
-                fontSize: "12px",
-                fontWeight: "600",
-                cursor: "pointer",
-                boxShadow: "0 1px 4px rgba(0, 0, 0, 0.05)",
-                transition: "all 0.15s ease",
-              }}
-              title="Nghe AI đọc to câu hỏi"
-            >
-              <Volume2 size={14} color="#ff7a45" />
-              <span>Nghe câu hỏi</span>
-            </button>
+            <UserTooltip content="Nghe AI đọc to câu hỏi">
+              <button
+                type="button"
+                onClick={onPlayAudio}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 12px",
+                  borderRadius: "10px",
+                  border: "1px solid #e5e7eb",
+                  backgroundColor: "#ffffff",
+                  color: "#374151",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  boxShadow: "0 1px 4px rgba(0, 0, 0, 0.05)",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <Volume2 size={14} color="#ff7a45" />
+                <span>Nghe câu hỏi</span>
+              </button>
+            </UserTooltip>
           )}
 
           {onToggleAutoSpeak && (
-            <button
-              type="button"
-              onClick={onToggleAutoSpeak}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "32px",
-                height: "32px",
-                borderRadius: "10px",
-                border: "1px solid #e5e7eb",
-                backgroundColor: isAutoSpeak ? "#f0fdf4" : "#f9fafb",
-                color: isAutoSpeak ? "#16a34a" : "#9ca3af",
-                cursor: "pointer",
-              }}
-              title={isAutoSpeak ? "Tắt tự động đọc câu hỏi" : "Bật tự động đọc câu hỏi"}
-            >
-              {isAutoSpeak ? <Volume2 size={16} /> : <VolumeX size={16} />}
-            </button>
+            <UserTooltip content={isAutoSpeak ? "Tắt tự động đọc câu hỏi" : "Bật tự động đọc câu hỏi"}>
+              <button
+                type="button"
+                onClick={onToggleAutoSpeak}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "10px",
+                  border: "1px solid #e5e7eb",
+                  backgroundColor: isAutoSpeak ? "#f0fdf4" : "#f9fafb",
+                  color: isAutoSpeak ? "#16a34a" : "#9ca3af",
+                  cursor: "pointer",
+                }}
+              >
+                {isAutoSpeak ? <Volume2 size={16} /> : <VolumeX size={16} />}
+              </button>
+            </UserTooltip>
           )}
         </div>
       )}

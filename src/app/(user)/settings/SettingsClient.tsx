@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
@@ -26,6 +26,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
 import { profileApi } from "@/services/profileApi";
 import { ApiError } from "@/services/apiClient";
+import { UserTooltip } from "@/components/user-component/common";
 import type { ChangePasswordIn } from "@/types/profile";
 import styles from "./settings.module.css";
 
@@ -627,14 +628,15 @@ export default function SettingsClient() {
                         placeholder="••••••••"
                         required
                       />
-                      <button
-                        type="button"
-                        className={styles.inputIconRight}
-                        onClick={() => setShowCurrentPassword((prev) => !prev)}
-                        title={showCurrentPassword ? "Ẩn" : "Hiện"}
-                      >
-                        {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
+                      <UserTooltip content={showCurrentPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}>
+                        <button
+                          type="button"
+                          className={styles.inputIconRight}
+                          onClick={() => setShowCurrentPassword((prev) => !prev)}
+                        >
+                          {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </UserTooltip>
                     </div>
                   </div>
 
@@ -653,14 +655,15 @@ export default function SettingsClient() {
                         minLength={8}
                         required
                       />
-                      <button
-                        type="button"
-                        className={styles.inputIconRight}
-                        onClick={() => setShowNewPassword((prev) => !prev)}
-                        title={showNewPassword ? "Ẩn" : "Hiện"}
-                      >
-                        {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
+                      <UserTooltip content={showNewPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}>
+                        <button
+                          type="button"
+                          className={styles.inputIconRight}
+                          onClick={() => setShowNewPassword((prev) => !prev)}
+                        >
+                          {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </UserTooltip>
                     </div>
 
                     {newPassword && (
@@ -688,14 +691,15 @@ export default function SettingsClient() {
                         minLength={8}
                         required
                       />
-                      <button
-                        type="button"
-                        className={styles.inputIconRight}
-                        onClick={() => setShowConfirmPassword((prev) => !prev)}
-                        title={showConfirmPassword ? "Ẩn" : "Hiện"}
-                      >
-                        {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
+                      <UserTooltip content={showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}>
+                        <button
+                          type="button"
+                          className={styles.inputIconRight}
+                          onClick={() => setShowConfirmPassword((prev) => !prev)}
+                        >
+                          {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </UserTooltip>
                     </div>
                   </div>
                 </div>
