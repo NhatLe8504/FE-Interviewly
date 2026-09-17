@@ -212,6 +212,37 @@ export interface Translations {
       logoutBtn: string;
     };
   };
+  pricing: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    monthly: string;
+    yearly: string;
+    discountBadge: string;
+    billedAnnually: string;
+    billedMonthly: string;
+    perMonth: string;
+    freePlanTitle: string;
+    freePlanDesc: string;
+    proPlanTitle: string;
+    proPlanDesc: string;
+    currentPlanBtn: string;
+    startFreeBtn: string;
+    upgradeProBtn: string;
+    popularBadge: string;
+    comparisonTitle: string;
+    comparisonSubtitle: string;
+    featureColumn: string;
+    freeColumn: string;
+    proColumn: string;
+    faqTitle: string;
+    faqSubtitle: string;
+    trustTitle: string;
+    trustDesc: string;
+    trustVnpay: string;
+    trustInstant: string;
+    trustRefund: string;
+  };
   questions: {
     eyebrow: string;
     title: string;
