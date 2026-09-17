@@ -151,7 +151,7 @@ export default function PracticeOverviewPage() {
           <span>PHÒNG LUYỆN TẬP PHỎNG VẤN THỰC CHIẾN AI</span>
         </div>
         <h1 className={styles.title}>
-          Chinh Phục Phỏng Vấn <span className={styles.titleGradient}>Big Tech & JD Tùy Biến</span>
+          Chinh phục phỏng vấn <em>Big Tech</em> &amp; JD thực chiến
         </h1>
         <p className={styles.sub}>
           Lựa chọn các buổi phỏng vấn mô phỏng chuẩn hóa từ các tập đoàn công nghệ hàng đầu thế giới,

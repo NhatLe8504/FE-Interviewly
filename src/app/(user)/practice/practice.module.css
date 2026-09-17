@@ -19,8 +19,8 @@
   gap: 10px;
   margin: 0 0 12px;
   font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.2em;
+  font-weight: 700;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--accent-deep);
 }
@@ -36,10 +36,15 @@
 .title {
   margin: 0 0 12px;
   font-size: clamp(30px, 4.2vw, 48px);
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  color: var(--ink);
-  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  color: var(--ink, #211914);
+}
+
+.title em {
+  font-style: italic;
+  color: #8c4e20;
 }
 
 .titleGradient {
@@ -296,7 +301,7 @@
   background: rgba(217, 130, 54, 0.15);
   border: 1px solid rgba(217, 130, 54, 0.3);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #8b4513;
@@ -305,7 +310,8 @@
 .customJdTitle {
   margin: 0;
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
+  letter-spacing: -0.03em;
   color: #211914;
   line-height: 1.35;
   letter-spacing: -0.015em;
@@ -353,7 +359,7 @@
   background: linear-gradient(135deg, #211914 0%, #3a2215 100%);
   color: #fffaf4;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.03em;
   cursor: pointer;
   transition: all 0.25s ease;
@@ -409,7 +415,7 @@
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(12px);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   color: #211914;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
@@ -462,7 +468,7 @@
   padding: 3px 8px;
   border-radius: 999px;
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -500,8 +506,8 @@
 .cardTitle {
   margin: 0;
   font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.015em;
+  font-weight: 700;
+  letter-spacing: -0.03em;
   color: #211914;
   line-height: 1.35;
 }
@@ -588,7 +594,7 @@
   background: #211914;
   color: #fffaf4;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
   cursor: pointer;
@@ -677,7 +683,8 @@
 .modalTitle {
   margin: 0;
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 700;
+  letter-spacing: -0.03em;
   color: #211914;
   letter-spacing: -0.015em;
 }
@@ -728,7 +735,7 @@
 
 .modalFieldLabel {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   color: #211914;
   display: flex;
   align-items: center;
@@ -814,7 +821,7 @@
   background: linear-gradient(135deg, #d98236 0%, #8b4513 100%);
   color: #fffaf4;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.02em;
   cursor: pointer;
   transition: all 0.22s ease;
