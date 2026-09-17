@@ -1,5 +1,8 @@
-import { request, setStoredToken, removeStoredToken, getStoredToken } from "./apiClient";
-import {
+import { store } from "@/redux/store";
+import { authApiSlice } from "@/redux/api/authApi";
+import { logOut } from "@/redux/slices/authSlice";
+import { getStoredToken } from "./apiClient";
+import type {
   RegisterIn,
   LoginIn,
   SendOtpIn,
@@ -12,72 +15,41 @@ import {
 
 export const authApi = {
   async register(payload: RegisterIn): Promise<UserOut> {
-    return request<UserOut>("/api/v1/auth/register", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    return store.dispatch(authApiSlice.endpoints.register.initiate(payload)).unwrap();
   },
 
   async login(payload: LoginIn): Promise<TokenOut> {
-    const res = await request<TokenOut>("/api/v1/auth/login", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-    if (res.access_token) {
-      setStoredToken(res.access_token);
-    }
-    return res;
+    return store.dispatch(authApiSlice.endpoints.login.initiate(payload)).unwrap();
   },
 
   async sendOtp(payload: SendOtpIn): Promise<MessageOut> {
-    return request<MessageOut>("/api/v1/auth/send-otp", {
-      method: "POST",
-      body: JSON.stringify({
-        email: payload.email,
-        purpose: payload.purpose || "verify_email",
-      }),
-    });
+    return store.dispatch(authApiSlice.endpoints.sendOtp.initiate(payload)).unwrap();
   },
 
   async verifyOtp(payload: VerifyOtpIn): Promise<MessageOut> {
-    return request<MessageOut>("/api/v1/auth/verify-otp", {
-      method: "POST",
-      body: JSON.stringify({
-        email: payload.email,
-        otp: payload.otp,
-        purpose: payload.purpose || "verify_email",
-      }),
-    });
+    return store.dispatch(authApiSlice.endpoints.verifyOtp.initiate(payload)).unwrap();
   },
 
   async googleAuth(payload: GoogleAuthIn): Promise<TokenOut> {
-    const res = await request<TokenOut>("/api/v1/auth/google", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-    if (res.access_token) {
-      setStoredToken(res.access_token);
-    }
-    return res;
+    return store.dispatch(authApiSlice.endpoints.googleAuth.initiate(payload)).unwrap();
   },
 
   async getMe(): Promise<UserOut> {
-    return request<UserOut>("/api/v1/auth/me", {
-      method: "GET",
-    });
+    return store.dispatch(authApiSlice.endpoints.getMe.initiate()).unwrap();
   },
 
   async checkHealth(): Promise<{ status: string; database?: string }> {
-    return request<{ status: string; database?: string }>("/health", {
-      method: "GET",
-    });
+    return store.dispatch(authApiSlice.endpoints.checkHealth.initiate()).unwrap();
   },
 
   logout(): void {
-    removeStoredToken();
+    store.dispatch(logOut());
   },
 
   getToken(): string | null {
     return getStoredToken();
   },
 };
+
+// Re-export RTK Query hooks for direct component usage
+export * from "@/redux/api/authApi";

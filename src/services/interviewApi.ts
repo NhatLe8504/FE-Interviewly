@@ -1,5 +1,7 @@
-import { request, getStoredToken } from "./apiClient";
-import {
+import { store } from "@/redux/store";
+import { interviewApiSlice } from "@/redux/api/interviewApi";
+import { getStoredToken } from "./apiClient";
+import type {
   StartSessionIn,
   SessionOut,
   TurnSubmitIn,
@@ -92,23 +94,18 @@ const API_BASE_URL =
 
 export const interviewApi = {
   /**
-   * Fetch active domains from catalog with fallback to mock data
+   * Fetch active domains from catalog via RTK Query
    */
   async getDomains(): Promise<CatalogDomain[]> {
     try {
-      const domains = await request<any[]>("/api/v1/catalog/domains", {
-        method: "GET",
-      });
+      const domains = await store
+        .dispatch(interviewApiSlice.endpoints.getDomains.initiate())
+        .unwrap();
       if (Array.isArray(domains) && domains.length > 0) {
-        return domains.map((d, index) => ({
-          id: d.id ?? d.domain_id ?? index + 1,
-          name: d.name || d.label || `Domain ${index + 1}`,
-          code: d.code || "",
-          description: d.description || "",
-        }));
+        return domains;
       }
     } catch {
-      // Fallback
+      // Fallback to mock data
     }
 
     return MOCK_DOMAINS.map((d, idx) => ({
@@ -120,30 +117,22 @@ export const interviewApi = {
   },
 
   /**
-   * Fetch roles for a specific domain with fallback to mock data
+   * Fetch roles for a specific domain via RTK Query
    */
   async getRoles(domainId?: number | string): Promise<CatalogRole[]> {
     try {
-      const endpoint = domainId
-        ? `/api/v1/catalog/roles?domain_id=${domainId}`
-        : "/api/v1/catalog/roles";
-      const roles = await request<any[]>(endpoint, {
-        method: "GET",
-      });
+      const roles = await store
+        .dispatch(interviewApiSlice.endpoints.getRoles.initiate(domainId))
+        .unwrap();
       if (Array.isArray(roles) && roles.length > 0) {
-        return roles.map((r, index) => ({
-          id: r.id ?? r.role_id ?? index + 1,
-          domain_id: Number(r.domain_id || domainId || 1),
-          name: r.name || r.label || `Role ${index + 1}`,
-          code: r.code || "",
-          description: r.description || "",
-        }));
+        return roles;
       }
     } catch {
       // Fallback
     }
 
-    const domainObj = MOCK_DOMAINS[typeof domainId === "number" ? domainId - 1 : 0] || MOCK_DOMAINS[0];
+    const domainObj =
+      MOCK_DOMAINS[typeof domainId === "number" ? domainId - 1 : 0] || MOCK_DOMAINS[0];
     const filtered = MOCK_ROLES.filter((r) => r.domainId === domainObj.id);
     return (filtered.length > 0 ? filtered : MOCK_ROLES).map((r, idx) => ({
       id: idx + 1,
@@ -155,50 +144,35 @@ export const interviewApi = {
   },
 
   /**
-   * Check current user quota
+   * Check current user quota via RTK Query
    */
   async checkSubscriptionQuota(): Promise<SubscriptionQuota> {
     try {
-      const sub = await request<any>("/api/v1/subscriptions/me", {
-        method: "GET",
-      });
-      if (sub && typeof sub === "object") {
-        const plan = sub.plan || "free";
-        const used = sub.used_interviews ?? 0;
-        const limit = sub.limit_interviews ?? (plan === "pro" ? 9999 : 3);
-        const remaining = Math.max(0, limit - used);
-        return {
-          plan,
-          used_interviews: used,
-          limit_interviews: limit,
-          is_active: sub.status === "active",
-          remaining,
-          can_start: remaining > 0 || plan === "pro",
-        };
-      }
+      return await store
+        .dispatch(interviewApiSlice.endpoints.checkSubscriptionQuota.initiate())
+        .unwrap();
     } catch {
-      // Fallback
+      return {
+        plan: "free",
+        used_interviews: 1,
+        limit_interviews: 3,
+        is_active: true,
+        remaining: 2,
+        can_start: true,
+      };
     }
-
-    return {
-      plan: "free",
-      used_interviews: 1,
-      limit_interviews: 3,
-      is_active: true,
-      remaining: 2,
-      can_start: true,
-    };
   },
 
   /**
-   * Khởi tạo phiên phỏng vấn mới với AI
+   * Khởi tạo phiên phỏng vấn mới với AI via RTK Query
    */
-  async startSession(payload: StartSessionIn | StartSessionPayload): Promise<SessionOut | SessionResponse | any> {
+  async startSession(
+    payload: StartSessionIn | StartSessionPayload
+  ): Promise<SessionOut | SessionResponse | any> {
     try {
-      return await request<SessionOut>("/api/v1/interviews/sessions", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      return await store
+        .dispatch(interviewApiSlice.endpoints.startSession.initiate(payload))
+        .unwrap();
     } catch {
       const sid = `sess-${Date.now().toString(36)}`;
       return {
@@ -218,13 +192,13 @@ export const interviewApi = {
   },
 
   /**
-   * Lấy thông tin trạng thái phiên hiện tại
+   * Lấy thông tin trạng thái phiên hiện tại via RTK Query
    */
   async getSession(sessionId: string | number): Promise<SessionResponse & SessionOut & any> {
     try {
-      return await request<SessionOut>(`/api/v1/interviews/sessions/${sessionId}`, {
-        method: "GET",
-      });
+      return await store
+        .dispatch(interviewApiSlice.endpoints.getSession.initiate(sessionId))
+        .unwrap();
     } catch {
       return {
         session_id: sessionId,
@@ -238,7 +212,7 @@ export const interviewApi = {
   },
 
   /**
-   * Gửi câu trả lời của ứng viên cho lượt hiện tại (hỗ trợ 2 hoặc 3 arguments)
+   * Gửi câu trả lời của ứng viên cho lượt hiện tại via RTK Query
    */
   async submitTurn(
     sessionId: string | number,
@@ -246,54 +220,27 @@ export const interviewApi = {
     param3?: TurnSubmitIn | SubmitTurnPayload
   ): Promise<any> {
     const turnNumber = typeof param2 === "number" ? param2 : 1;
-    const payload = ((typeof param2 === "object" ? param2 : param3) || {
+    const data = ((typeof param2 === "object" ? param2 : param3) || {
       answer_text: "",
       duration_seconds: 0,
     }) as (TurnSubmitIn & SubmitTurnPayload);
 
-    if (payload.audio_blob) {
-      const formData = new FormData();
-      formData.append("answer_text", payload.answer_text);
-      formData.append("duration_seconds", String(payload.duration_seconds));
-      formData.append("audio_file", payload.audio_blob, "answer.webm");
-
-      const token = getStoredToken();
-      const headers: HeadersInit = {};
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/interviews/sessions/${sessionId}/turns`, {
-          method: "POST",
-          headers,
-          body: formData,
-        });
-
-        if (res.ok) {
-          return await res.json();
-        }
-      } catch {
-        // Fall through to simulation fallback
-      }
-    }
-
     try {
-      return await request<TurnOut>(`/api/v1/interviews/sessions/${sessionId}/turns`, {
-        method: "POST",
-        body: JSON.stringify({
-          answer_text: payload.answer_text,
-          duration_seconds: payload.duration_seconds,
-        }),
-      });
+      return await store
+        .dispatch(
+          interviewApiSlice.endpoints.submitTurn.initiate({
+            sessionId,
+            data,
+          })
+        )
+        .unwrap();
     } catch {
-      // Fallback
       const isLast = turnNumber >= 4;
       return {
         turn_id: `t-${turnNumber + 1}-${Date.now()}`,
         session_id: sessionId,
         turn_number: turnNumber,
-        answer_text: payload.answer_text,
+        answer_text: data.answer_text,
         is_completed: isLast,
         next_turn: isLast
           ? null
@@ -310,23 +257,29 @@ export const interviewApi = {
   },
 
   /**
-   * Lấy kết quả chấm điểm Rubric cho 1 turn cụ thể
+   * Lấy kết quả chấm điểm Rubric cho 1 turn cụ thể via RTK Query
    */
-  async getTurnEvaluation(sessionId: string | number, turnId: string): Promise<RubricEvaluationOut> {
-    return request<RubricEvaluationOut>(
-      `/api/v1/interviews/sessions/${sessionId}/turns/${turnId}/evaluation`,
-      { method: "GET" }
-    );
+  async getTurnEvaluation(
+    sessionId: string | number,
+    turnId: string
+  ): Promise<RubricEvaluationOut> {
+    return store
+      .dispatch(
+        interviewApiSlice.endpoints.getTurnEvaluation.initiate({
+          sessionId,
+          turnId,
+        })
+      )
+      .unwrap();
   },
 
   /**
-   * Hoàn thành phiên và lấy bảng điểm tổng kết toàn phiên
+   * Hoàn thành phiên và lấy bảng điểm tổng kết toàn phiên via RTK Query
    */
   async getSessionResult(sessionId: string | number): Promise<SessionResultOut> {
-    return request<SessionResultOut>(
-      `/api/v1/interviews/sessions/${sessionId}/result`,
-      { method: "GET" }
-    );
+    return store
+      .dispatch(interviewApiSlice.endpoints.getSessionResult.initiate(sessionId))
+      .unwrap();
   },
 
   /**
@@ -345,3 +298,6 @@ export const interviewApi = {
     return this.getStreamUrl(sessionId);
   },
 };
+
+// Re-export RTK Query hooks for direct component usage
+export * from "@/redux/api/interviewApi";
