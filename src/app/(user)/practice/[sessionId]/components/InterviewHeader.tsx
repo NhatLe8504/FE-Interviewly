@@ -82,8 +82,8 @@ export function InterviewHeader({
             style={{
               margin: 0,
               fontSize: "clamp(22px, 3vw, 28px)",
-              fontWeight: "800",
-              letterSpacing: "-0.02em",
+              fontWeight: "550",
+              letterSpacing: "-0.045em",
               color: "#111827",
             }}
           >

@@ -365,6 +365,10 @@ export interface Translations {
     perMonth: string;
     freePlanTitle: string;
     freePlanDesc: string;
+    sprintPlanTitle: string;
+    sprintPlanDesc: string;
+    sprintColumn: string;
+    upgradeSprintBtn: string;
     proPlanTitle: string;
     proPlanDesc: string;
     currentPlanBtn: string;

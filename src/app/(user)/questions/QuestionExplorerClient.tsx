@@ -407,7 +407,13 @@ export default function QuestionExplorerClient() {
       {/* Main Header */}
       <div className={styles.headerRow}>
         <div>
-          <h1 className={styles.title}>{t.questions.title}</h1>
+          <h1 className={styles.title}>
+              {locale === "vi" ? (
+                <>Ngân hàng <em>câu hỏi tuyển dụng</em></>
+              ) : (
+                <>Interview <em>Question Bank</em></>
+              )}
+            </h1>
           <p className={styles.sub}>{t.questions.subtitle}</p>
         </div>
       </div>
