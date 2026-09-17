@@ -339,15 +339,10 @@ export default function Header() {
             )}
           </div>
         ) : (
-          <div className={styles.guestActions}>
-            <Link href="/login" className={styles.signInLink}>
-              SIGN IN
-            </Link>
-            <Link href="/practice" className={styles.menu}>
-              <span className={styles.menuDot} />
-              START COACH
-            </Link>
-          </div>
+          <Link href="/login" className={styles.menu}>
+            <span className={styles.menuDot} />
+            SIGN IN
+          </Link>
         )}
       </div>
     </header>
