@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import StoreProvider from "@/redux/StoreProvider";
 import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata: Metadata = {
@@ -16,7 +17,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           src="https://accounts.google.com/gsi/client"
           strategy="afterInteractive"
         />
-        <AuthProvider>{children}</AuthProvider>
+        <StoreProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </StoreProvider>
       </body>
     </html>
   );
