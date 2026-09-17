@@ -21,6 +21,7 @@ import {
   Compass,
 } from "lucide-react";
 import { catalogApi } from "@/services/catalogApi";
+import { useI18n } from "@/context/I18nContext";
 import { interviewApi } from "@/services/interviewApi";
 import type {
   DomainOut,
@@ -28,34 +29,47 @@ import type {
   QuestionOut,
   QuestionFilterParams,
 } from "@/types/catalog";
-import { getDomainTheme } from "@/constants/domainThemes";
+import { getDomainTheme, getLocalizedDomainName, getLocalizedRoleName } from "@/constants/domainThemes";
 import { UserPagination, SimpleUserSelect } from "@/components/user-component/common";
 import styles from "./questions.module.css";
 
-const LEVEL_OPTIONS = [
-  { id: "all", label: "Tất cả cấp độ" },
-  { id: "intern", label: "Intern" },
-  { id: "fresher", label: "Fresher" },
-  { id: "junior", label: "Junior" },
-  { id: "mid", label: "Middle" },
-  { id: "senior", label: "Senior" },
-];
 
-const TYPE_OPTIONS = [
-  { id: "all", label: "Tất cả dạng đề" },
-  { id: "behavioral", label: "Hành vi (Behavioral)" },
-  { id: "technical", label: "Kỹ thuật (Technical)" },
-  { id: "situational", label: "Tình huống (Situational)" },
-];
-
-const LANG_OPTIONS = [
-  { id: "all", label: "Tất cả ngôn ngữ" },
-  { id: "vi", label: "🇻🇳 Tiếng Việt" },
-  { id: "en", label: "🇺🇸 English" },
-];
 
 export default function QuestionExplorerClient() {
   const router = useRouter();
+  const { locale, t } = useI18n();
+
+  // Dynamic filter options based on language
+  const levelOptions = useMemo(
+    () => [
+      { id: "all", label: t.questions.allLevels },
+      { id: "intern", label: "Intern" },
+      { id: "fresher", label: "Fresher" },
+      { id: "junior", label: "Junior" },
+      { id: "mid", label: "Middle" },
+      { id: "senior", label: "Senior" },
+    ],
+    [t]
+  );
+
+  const typeOptions = useMemo(
+    () => [
+      { id: "all", label: t.questions.allTypes },
+      { id: "behavioral", label: t.questions.types.behavioral },
+      { id: "technical", label: t.questions.types.technical },
+      { id: "situational", label: t.questions.types.situational },
+    ],
+    [t]
+  );
+
+  const langOptions = useMemo(
+    () => [
+      { id: "all", label: t.questions.allLanguages },
+      { id: "vi", label: "🇻🇳 Tiếng Việt" },
+      { id: "en", label: "🇺🇸 English" },
+    ],
+    [t]
+  );
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState("");
@@ -260,24 +274,22 @@ export default function QuestionExplorerClient() {
   };
 
   const getTypeName = (type: string) => {
-    if (type === "behavioral") return "Hành vi (STAR)";
-    if (type === "technical") return "Kỹ thuật";
-    if (type === "situational") return "Tình huống";
+    if (type === "behavioral") return t.questions.types.behavioral;
+    if (type === "technical") return t.questions.types.technical;
+    if (type === "situational") return t.questions.types.situational;
     return type;
   };
 
   return (
     <div className={styles.shell}>
       {/* Header Eyebrow */}
-      <div className={styles.eyebrow}>Public Question Explorer</div>
+      <div className={styles.eyebrow}>{t.questions.eyebrow}</div>
 
       {/* Main Header */}
       <div className={styles.headerRow}>
         <div>
-          <h1 className={styles.title}>Ngân hàng câu hỏi tuyển dụng</h1>
-          <p className={styles.sub}>
-            Thư viện đề phỏng vấn thực chiến chọn lọc theo Ngành nghề và Cấp độ. Chuẩn bị câu trả lời hoàn hảo theo phương pháp STAR và thang điểm Rubric trước khi bước vào phòng phỏng vấn AI.
-          </p>
+          <h1 className={styles.title}>{t.questions.title}</h1>
+          <p className={styles.sub}>{t.questions.subtitle}</p>
         </div>
       </div>
 
@@ -288,8 +300,8 @@ export default function QuestionExplorerClient() {
             <Compass size={22} />
           </div>
           <div>
-            <div className={styles.statNumber}>100% Thực chiến</div>
-            <div className={styles.statLabel}>Đề bài phỏng vấn các tập đoàn lớn</div>
+            <div className={styles.statNumber}>{t.questions.stats.practical}</div>
+            <div className={styles.statLabel}>{t.questions.stats.practicalSub}</div>
           </div>
         </div>
 
@@ -298,8 +310,8 @@ export default function QuestionExplorerClient() {
             <Award size={22} />
           </div>
           <div>
-            <div className={styles.statNumber}>Khung STAR & Rubric</div>
-            <div className={styles.statLabel}>Gợi ý cấu trúc & Tiêu chuẩn chấm điểm</div>
+            <div className={styles.statNumber}>{t.questions.stats.starRubric}</div>
+            <div className={styles.statLabel}>{t.questions.stats.starRubricSub}</div>
           </div>
         </div>
 
@@ -308,8 +320,8 @@ export default function QuestionExplorerClient() {
             <Sparkles size={22} />
           </div>
           <div>
-            <div className={styles.statNumber}>AI Mock Coach</div>
-            <div className={styles.statLabel}>Luyện tập 1-1 tức thì cùng AI</div>
+            <div className={styles.statNumber}>{t.questions.stats.aiCoach}</div>
+            <div className={styles.statLabel}>{t.questions.stats.aiCoachSub}</div>
           </div>
         </div>
 
@@ -318,8 +330,8 @@ export default function QuestionExplorerClient() {
             <Flame size={22} />
           </div>
           <div>
-            <div className={styles.statNumber}>Song ngữ VI / EN</div>
-            <div className={styles.statLabel}>Tự tin ứng tuyển công ty đa quốc gia</div>
+            <div className={styles.statNumber}>{t.questions.stats.bilingual}</div>
+            <div className={styles.statLabel}>{t.questions.stats.bilingualSub}</div>
           </div>
         </div>
       </div>
@@ -337,7 +349,7 @@ export default function QuestionExplorerClient() {
               setSearchQuery(e.target.value);
               setCurrentPage(1);
             }}
-            placeholder="Tìm kiếm theo từ khóa câu hỏi (ví dụ: production bug, slow query, deadline, PM bất đồng, CPA...)"
+            placeholder={t.questions.searchPlaceholder}
           />
           {searchQuery && (
             <button
@@ -359,7 +371,7 @@ export default function QuestionExplorerClient() {
           <div className={styles.filterField}>
             <label className={styles.filterLabel} htmlFor="domain-select">
               <Briefcase size={13} />
-              <span>Ngành nghề (Domain)</span>
+              <span>{t.questions.domainLabel}</span>
             </label>
             <SimpleUserSelect
               id="domain-select"
@@ -369,10 +381,10 @@ export default function QuestionExplorerClient() {
                 setCurrentPage(1);
               }}
               options={[
-                { value: "all", label: "Tất cả ngành nghề" },
+                { value: "all", label: t.questions.allDomains },
                 ...domains.map((d) => ({
                   value: String(d.domain_id),
-                  label: d.domain_name,
+                  label: getLocalizedDomainName(d, locale),
                 })),
               ]}
               aria-label="Chọn ngành nghề"
@@ -382,7 +394,7 @@ export default function QuestionExplorerClient() {
           <div className={styles.filterField}>
             <label className={styles.filterLabel} htmlFor="role-select">
               <Filter size={13} />
-              <span>Vị trí ứng tuyển (Role)</span>
+              <span>{t.questions.roleLabel}</span>
             </label>
             <SimpleUserSelect
               id="role-select"
@@ -392,10 +404,10 @@ export default function QuestionExplorerClient() {
                 setCurrentPage(1);
               }}
               options={[
-                { value: "all", label: "Tất cả vị trí" },
+                { value: "all", label: t.questions.allRoles },
                 ...roles.map((r) => ({
                   value: String(r.role_id),
-                  label: r.role_name,
+                  label: getLocalizedRoleName(r, locale),
                 })),
               ]}
               aria-label="Chọn vị trí ứng tuyển"
@@ -405,7 +417,7 @@ export default function QuestionExplorerClient() {
           <div className={styles.filterField}>
             <label className={styles.filterLabel} htmlFor="type-select">
               <HelpCircle size={13} />
-              <span>Dạng câu hỏi</span>
+              <span>{t.questions.typeLabel}</span>
             </label>
             <SimpleUserSelect
               id="type-select"
@@ -414,7 +426,7 @@ export default function QuestionExplorerClient() {
                 setSelectedType(val);
                 setCurrentPage(1);
               }}
-              options={TYPE_OPTIONS.map((opt) => ({
+              options={typeOptions.map((opt) => ({
                 value: opt.id,
                 label: opt.label,
               }))}
@@ -424,7 +436,7 @@ export default function QuestionExplorerClient() {
 
           <div className={styles.filterField}>
             <label className={styles.filterLabel} htmlFor="lang-select">
-              <span>Ngôn ngữ</span>
+              <span>{t.questions.langLabel}</span>
             </label>
             <SimpleUserSelect
               id="lang-select"
@@ -433,7 +445,7 @@ export default function QuestionExplorerClient() {
                 setSelectedLanguage(val);
                 setCurrentPage(1);
               }}
-              options={LANG_OPTIONS.map((opt) => ({
+              options={langOptions.map((opt) => ({
                 value: opt.id,
                 label: opt.label,
               }))}
@@ -444,8 +456,8 @@ export default function QuestionExplorerClient() {
 
         {/* Level Chips Row */}
         <div className={styles.chipsRow}>
-          <span className={styles.chipsLabel}>Cấp bậc:</span>
-          {LEVEL_OPTIONS.map((opt) => {
+          <span className={styles.chipsLabel}>{t.questions.levelLabel}</span>
+          {levelOptions.map((opt) => {
             const isActive = selectedLevel === opt.id;
             return (
               <button
@@ -469,7 +481,7 @@ export default function QuestionExplorerClient() {
               onClick={handleResetFilters}
             >
               <RotateCcw size={13} />
-              Xóa bộ lọc
+              {t.questions.clearFilter}
             </button>
           )}
         </div>
@@ -478,8 +490,8 @@ export default function QuestionExplorerClient() {
       {/* Results Header */}
       <div className={styles.resultsBar}>
         <div className={styles.resultsCount}>
-          <span>Danh sách câu hỏi tuyển chọn</span>
-          <span className={styles.resultsBadge}>{filteredQuestions.length} câu</span>
+          <span>{t.questions.resultsTitle}</span>
+          <span className={styles.resultsBadge}>{filteredQuestions.length} {t.questions.resultsSuffix}</span>
         </div>
       </div>
 
@@ -508,14 +520,14 @@ export default function QuestionExplorerClient() {
                       <div className={styles.cardBannerTop}>
                         <span className={styles.bannerPill}>
                           <Briefcase size={11} />
-                          {theme.shortName}
+                          {locale === "vi" ? theme.shortName : theme.shortNameEn}
                         </span>
                         <span className={styles.bannerPill}>
                           {q.language === "vi" ? "🇻🇳 VI" : "🇺🇸 EN"}
                         </span>
                       </div>
                       <div className={styles.cardBannerBottom}>
-                        <span className={styles.bannerRole}>{q.role_name || theme.name}</span>
+                        <span className={styles.bannerRole}>{q.role_name ? getLocalizedRoleName({ role_name: q.role_name }, locale) : (locale === "vi" ? theme.name : theme.nameEn)}</span>
                         <span className={getLevelBadgeClass(q.experience_level)}>
                           {q.experience_level ? q.experience_level.toUpperCase() : "GENERAL"}
                         </span>
@@ -536,7 +548,7 @@ export default function QuestionExplorerClient() {
                     </span>
                     <span className={styles.starIndicator}>
                       <Sparkles size={13} />
-                      <span>Khung STAR & Rubric</span>
+                      <span>{t.questions.hasStarTip}</span>
                     </span>
                   </div>
                 </div>
@@ -548,7 +560,7 @@ export default function QuestionExplorerClient() {
                     className={styles.btnDetail}
                   >
                     <BookOpen size={14} />
-                    <span>Xem hướng dẫn STAR</span>
+                    <span>{t.questions.viewStarBtn}</span>
                   </Link>
 
                   <button
@@ -557,7 +569,7 @@ export default function QuestionExplorerClient() {
                     onClick={() => setPracticeModalQuestion(q)}
                   >
                     <Sparkles size={14} />
-                    <span>Luyện câu này</span>
+                    <span>{t.questions.practiceBtn}</span>
                     <ArrowRight size={13} />
                   </button>
                 </div>
@@ -574,6 +586,8 @@ export default function QuestionExplorerClient() {
           pageSize={pageSize}
           onPageChange={handlePageChange}
           showInfo={true}
+          prevLabel={t.common.previous}
+          nextLabel={t.common.next}
         />
         </>
       ) : (
@@ -581,10 +595,8 @@ export default function QuestionExplorerClient() {
           <div className={styles.emptyIcon}>
             <HelpCircle size={30} />
           </div>
-          <h3 className={styles.emptyTitle}>Không tìm thấy câu hỏi phù hợp</h3>
-          <p className={styles.emptyDesc}>
-            Không có câu hỏi nào khớp với các tiêu chí tìm kiếm hoặc bộ lọc hiện tại của bạn. Hãy thử thay đổi từ khóa hoặc đặt lại bộ lọc.
-          </p>
+          <h3 className={styles.emptyTitle}>{t.questions.emptyTitle}</h3>
+          <p className={styles.emptyDesc}>{t.questions.emptyDesc}</p>
           <button
             type="button"
             className={styles.btnPractice}
@@ -592,7 +604,7 @@ export default function QuestionExplorerClient() {
             style={{ marginTop: 6 }}
           >
             <RotateCcw size={14} />
-            <span>Đặt lại toàn bộ bộ lọc</span>
+            <span>{t.questions.resetFiltersBtn}</span>
           </button>
         </div>
       )}
@@ -610,7 +622,7 @@ export default function QuestionExplorerClient() {
             <div className={styles.modalHeader}>
               <h3 className={styles.modalTitle}>
                 <Sparkles size={20} style={{ color: "var(--accent-warm)" }} />
-                <span>Luyện tập câu hỏi này ngay</span>
+                <span>{t.questions.modal.title}</span>
               </h3>
               <button
                 type="button"
@@ -628,19 +640,19 @@ export default function QuestionExplorerClient() {
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <span className={`${styles.badge} ${styles.badgeRole}`}>
-                {practiceModalQuestion.role_name || "Software Engineer"}
+                {practiceModalQuestion.role_name ? getLocalizedRoleName({ role_name: practiceModalQuestion.role_name }, locale) : "Software Engineer"}
               </span>
               <span className={getLevelBadgeClass(practiceModalQuestion.experience_level)}>
-                Cấp độ: {practiceModalQuestion.experience_level || "Junior"}
+                {locale === "vi" ? "Cấp độ:" : "Level:"} {practiceModalQuestion.experience_level || "Junior"}
               </span>
               <span className={styles.badge}>
-                Ngôn ngữ: {practiceModalQuestion.language === "vi" ? "Tiếng Việt" : "English"}
+                {locale === "vi" ? "Ngôn ngữ:" : "Language:"} {practiceModalQuestion.language === "vi" ? "Tiếng Việt" : "English"}
               </span>
             </div>
 
             <div>
               <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 800, color: "var(--ink)" }}>
-                Chọn phương thức phỏng vấn:
+                {t.questions.modal.selectModeTitle}
               </p>
               <div className={styles.modeSelectGrid}>
                 <button
@@ -650,10 +662,10 @@ export default function QuestionExplorerClient() {
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13, color: "var(--ink)" }}>
                     <Keyboard size={16} />
-                    <span>Nhập văn bản (Text)</span>
+                    <span>{t.common.textMode}</span>
                   </div>
                   <span style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.5 }}>
-                    Rèn luyện tư duy cấu trúc logic và trình bày câu chữ.
+                    {t.questions.modal.textModeDesc}
                   </span>
                 </button>
 
@@ -664,10 +676,10 @@ export default function QuestionExplorerClient() {
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13, color: "var(--ink)" }}>
                     <Mic size={16} />
-                    <span>Nói trực tiếp (Voice)</span>
+                    <span>{t.common.voiceMode}</span>
                   </div>
                   <span style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.5 }}>
-                    Luyện phát âm, phản xạ giọng nói và đo tốc độ nói WPM.
+                    {t.questions.modal.voiceModeDesc}
                   </span>
                 </button>
               </div>
@@ -679,7 +691,7 @@ export default function QuestionExplorerClient() {
                 className={styles.btnDetail}
                 onClick={() => setPracticeModalQuestion(null)}
               >
-                Để sau
+                {t.questions.modal.laterBtn}
               </button>
               <button
                 type="button"
@@ -688,11 +700,11 @@ export default function QuestionExplorerClient() {
                 disabled={isStartingPractice}
               >
                 {isStartingPractice ? (
-                  <span>Đang kết nối AI...</span>
+                  <span>{t.questions.modal.startingBtn}</span>
                 ) : (
                   <>
                     <CheckCircle2 size={14} />
-                    <span>Vào phòng phỏng vấn ngay</span>
+                    <span>{t.questions.modal.startBtn}</span>
                   </>
                 )}
               </button>

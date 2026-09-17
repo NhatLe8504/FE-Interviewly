@@ -1,16 +1,21 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
+import { useI18n } from "@/context/I18nContext";
 import styles from "../../../app/(user)/page.module.css";
-
-const steps = [
-  ["01", "Set your interview", "Select the role, field, experience level, and language you want to practice."],
-  ["02", "Have the conversation", "Respond naturally while the interviewer adapts its next question to you."],
-  ["03", "Use the feedback", "Review your rubric, practical suggestions, and a plan for the next session."],
-];
 
 export default function StepsSection() {
   const sectionRef = useRef<HTMLElement | null>(null);
+  const { t, locale } = useI18n();
+
+  const steps = useMemo(
+    () => [
+      ["01", t.home.steps.step1Title, t.home.steps.step1Desc],
+      ["02", t.home.steps.step2Title, t.home.steps.step2Desc],
+      ["03", t.home.steps.step3Title, t.home.steps.step3Desc],
+    ],
+    [t]
+  );
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -45,9 +50,13 @@ export default function StepsSection() {
   return (
     <section ref={sectionRef} className={styles.stepsSection} id="steps">
       <div className={styles.stepsIntro}>
-        <p className={styles.eyebrow}><span /> Your next practice</p>
-        <h2>Ready when you are.</h2>
-        <p>No performance pressure. Just a repeatable routine that makes the real conversation feel more familiar.</p>
+        <p className={styles.eyebrow}><span /> {t.home.steps.badge}</p>
+        <h2>{locale === "vi" ? "Sẵn sàng bất cứ khi nào bạn muốn." : "Ready when you are."}</h2>
+        <p>
+          {locale === "vi"
+            ? "Không áp lực phán xét. Một thói quen luyện tập lặp lại giúp bạn làm quen hoàn toàn với không khí phỏng vấn thật."
+            : "No performance pressure. Just a repeatable routine that makes the real conversation feel more familiar."}
+        </p>
       </div>
       <ol className={styles.steps}>
         {steps.map(([number, title, copy]) => (
@@ -57,4 +66,3 @@ export default function StepsSection() {
     </section>
   );
 }
-

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Clock, Square, AlertTriangle, ChevronLeft } from "lucide-react";
 import type { SessionMetadata } from "@/hooks/useInterviewSession";
+import { useI18n } from "@/context/I18nContext";
 
 interface InterviewHeaderProps {
   sessionId: string;
@@ -24,6 +25,7 @@ export function InterviewHeader({
   isCompleted,
   onEndEarly,
 }: InterviewHeaderProps) {
+  const { locale } = useI18n();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const formatTimer = (totalSec: number) => {
@@ -60,7 +62,7 @@ export function InterviewHeader({
                 textDecoration: "none",
               }}
             >
-              <ChevronLeft size={14} /> Thiết lập lại
+              <ChevronLeft size={14} /> {locale === "vi" ? "Thiết lập lại" : "Back to setup"}
             </Link>
             <span style={{ color: "#d1d5db" }}>•</span>
             <span

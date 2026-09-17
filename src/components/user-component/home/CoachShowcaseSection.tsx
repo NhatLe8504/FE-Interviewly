@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { ArrowDown, Sparkles } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useI18n } from "@/context/I18nContext";
 import styles from "./CoachShowcaseSection.module.css";
 
 const coaches = [
@@ -90,6 +91,7 @@ const coaches = [
 ];
 
 export default function CoachShowcaseSection() {
+  const { t, locale } = useI18n();
   const sectionRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<HTMLElement | null>(null);
   const bigResultsWrapRef = useRef<HTMLDivElement | null>(null);
@@ -413,7 +415,7 @@ export default function CoachShowcaseSection() {
 
         <div ref={bigResultsWrapRef} className={styles.bigResultsWrap}>
           <div className={styles.bigResults} id="bigResults">
-            {"real results".split("").map((char, index) => (
+            {"real results".split("").map((char: string, index: number) => (
               <span key={index} className={styles.letter}>
                 {char === " " ? "\u00A0" : char}
               </span>
@@ -444,15 +446,26 @@ export default function CoachShowcaseSection() {
           <div>
             <div className={styles.eyebrow}>
               <span className={styles.eyebrowDot} />
-              DOMAIN-SPECIFIC INTERVIEW EXPERTISE
+              {locale === "vi" ? "CHUYÊN MÔN PHỎNG VẤN THEO NGÀNH NGHỀ" : "DOMAIN-SPECIFIC INTERVIEW EXPERTISE"}
             </div>
             <h2>
-              Adaptive interviews for<br />
-              <em>your exact role</em> and <em>seniority</em>.
+              {locale === "vi" ? (
+                <>
+                  Phỏng vấn thích ứng cho<br />
+                  <em>chính xác vị trí</em> và <em>cấp bậc</em> của bạn.
+                </>
+              ) : (
+                <>
+                  Adaptive interviews for<br />
+                  <em>your exact role</em> and <em>seniority</em>.
+                </>
+              )}
             </h2>
           </div>
           <p>
-            Choose the interviewer persona aligned with your target position. Each AI coach delivers realistic follow-ups, targeted rubrics, and industry-calibrated feedback.
+            {locale === "vi"
+              ? "Lựa chọn chân dung người phỏng vấn phù hợp với vị trí mục tiêu của bạn. Mỗi AI Coach đều mang lại phản hồi sâu sắc, tiêu chí Rubric chuẩn hóa và đánh giá sát sườn thực tế."
+              : "Choose the interviewer persona aligned with your target position. Each AI coach delivers realistic follow-ups, targeted rubrics, and industry-calibrated feedback."}
           </p>
         </div>
 
@@ -477,7 +490,7 @@ export default function CoachShowcaseSection() {
           <div className={styles.statsIntro}>
             <div className={styles.statsTag}>
               <Sparkles size={14} />
-              <span>MEASURABLE INTELLIGENCE</span>
+              <span>{locale === "vi" ? "KẾT QUẢ ĐO LƯỜNG ĐƯỢC" : "MEASURABLE INTELLIGENCE"}</span>
             </div>
             <h3>
               Calibrated for<br />
@@ -490,7 +503,7 @@ export default function CoachShowcaseSection() {
               <span className={styles.numVal} data-count="94">0</span>
               <small>%</small>
             </div>
-            <div className={styles.lbl}>Interview Pass Rate</div>
+            <div className={styles.lbl}>{t.home.showcase.passRate}</div>
           </div>
 
           <div className={styles.statBlock}>
@@ -498,7 +511,7 @@ export default function CoachShowcaseSection() {
               <span className={styles.numVal} data-count="12800">0</span>
               <small>+</small>
             </div>
-            <div className={styles.lbl}>Simulated Sessions</div>
+            <div className={styles.lbl}>{t.home.showcase.sessionsCount}</div>
           </div>
 
           <div className={styles.statBlock}>
@@ -506,7 +519,7 @@ export default function CoachShowcaseSection() {
               <span className={styles.numVal} data-count="4.9">0</span>
               <small>/5</small>
             </div>
-            <div className={styles.lbl}>Rubric Precision Score</div>
+            <div className={styles.lbl}>{t.home.showcase.rubricPrecision}</div>
           </div>
         </div>
       </section>

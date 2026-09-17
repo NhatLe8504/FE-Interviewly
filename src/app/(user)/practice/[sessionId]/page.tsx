@@ -9,6 +9,7 @@ import { InterviewHeader } from "./components/InterviewHeader";
 import { AiStageAvatar } from "./components/AiStageAvatar";
 import { ResponseInputArea } from "./components/ResponseInputArea";
 import { StarGuidanceDrawer } from "./components/StarGuidanceDrawer";
+import { useI18n } from "@/context/I18nContext";
 import shared from "../shared.module.css";
 
 export default function InterviewRoomPage({
@@ -17,6 +18,7 @@ export default function InterviewRoomPage({
   params: Promise<{ sessionId: string }>;
 }) {
   const { sessionId } = use(params);
+  const { t, locale } = useI18n();
 
   const {
     metadata,
@@ -172,7 +174,7 @@ export default function InterviewRoomPage({
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
           <p className={shared.questionLead} style={{ margin: 0 }}>
-            {isCompleted ? "Tổng kết phiên" : `Câu hỏi số ${turnNumber} / ${totalEstimatedTurns}`}
+            {isCompleted ? (locale === "vi" ? "Tổng kết phiên" : "Session Summary") : (locale === "vi" ? `Câu hỏi số ${turnNumber} / ${totalEstimatedTurns}` : `Question ${turnNumber} of ${totalEstimatedTurns}`)}
           </p>
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -194,17 +196,17 @@ export default function InterviewRoomPage({
                   fontWeight: "700",
                   cursor: "pointer",
                 }}
-                title={tts.isSpeaking ? "Dừng giọng nói" : "Nghe lại câu hỏi này"}
+                title={tts.isSpeaking ? (locale === "vi" ? "Dừng giọng nói" : "Stop voice") : (locale === "vi" ? "Nghe lại câu hỏi này" : "Listen to question")}
               >
                 {tts.isSpeaking ? (
                   <>
                     <Square size={11} fill="#ea580c" />
-                    <span>Dừng</span>
+                    <span>{locale === "vi" ? "Dừng" : "Stop"}</span>
                   </>
                 ) : (
                   <>
                     <Volume2 size={12} />
-                    <span>Nghe</span>
+                    <span>{locale === "vi" ? "Nghe" : "Listen"}</span>
                   </>
                 )}
               </button>
@@ -231,7 +233,7 @@ export default function InterviewRoomPage({
                     animation: "ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite",
                   }}
                 />
-                Đang stream câu hỏi…
+                {locale === "vi" ? "Đang stream câu hỏi…" : "Streaming question…"}
               </span>
             )}
           </div>
@@ -249,7 +251,7 @@ export default function InterviewRoomPage({
         >
           {currentQuestion || (
             <span style={{ color: "#9ca3af", fontStyle: "italic" }}>
-              Đang chuẩn bị câu hỏi phỏng vấn…
+              {locale === "vi" ? "Đang chuẩn bị câu hỏi phỏng vấn…" : "Preparing interview question…"}
             </span>
           )}
         </p>
@@ -257,7 +259,7 @@ export default function InterviewRoomPage({
         {/* Quick STAR Hint Banner below question */}
         {!isCompleted && currentStarTip && (
           <div className={shared.starBox} style={{ marginTop: "12px" }}>
-            <p className={shared.starTitle}>Gợi ý phản xạ nhanh</p>
+            <p className={shared.starTitle}>{locale === "vi" ? "Gợi ý phản xạ nhanh (STAR)" : "Quick STAR Tip"}</p>
             <p className={shared.starText}>{currentStarTip}</p>
           </div>
         )}
@@ -287,7 +289,7 @@ export default function InterviewRoomPage({
           >
             <CheckCircle2 size={36} color="#16a34a" style={{ margin: "0 auto 12px" }} />
             <h3 style={{ margin: "0 0 6px", fontSize: "18px", fontWeight: "800", color: "#166534" }}>
-              Phiên phỏng vấn đã hoàn tất thành công!
+              {locale === "vi" ? "Phiên phỏng vấn đã hoàn tất thành công!" : "Interview Session Completed!"}
             </h3>
             <p style={{ margin: "0 0 18px", fontSize: "13px", color: "#15803d" }}>
               Toàn bộ dữ liệu âm thanh, văn bản và tốc độ phản xạ của bạn đã được ghi nhận. Hệ thống đã tính toán xong điểm Rubric và gợi ý cải thiện.
@@ -308,7 +310,7 @@ export default function InterviewRoomPage({
                 boxShadow: "0 4px 16px rgba(255, 77, 79, 0.35)",
               }}
             >
-              <span>Xem bảng điểm & Phân tích chi tiết</span>
+              <span>{locale === "vi" ? "Xem bảng điểm & Phân tích chi tiết" : "View Detailed Score & Rubric Report"}</span>
               <ArrowRight size={16} />
             </Link>
           </div>
@@ -325,7 +327,7 @@ export default function InterviewRoomPage({
         <div ref={historyRef} className={shared.history} style={{ maxHeight: "380px", overflowY: "auto" }}>
           {turns.length === 0 ? (
             <div style={{ textAlign: "center", padding: "32px", color: "#9ca3af", fontSize: "13px" }}>
-              Lịch sử hội thoại sẽ xuất hiện tại đây khi bắt đầu lượt hỏi đầu tiên…
+              {locale === "vi" ? "Lịch sử hội thoại sẽ xuất hiện tại đây khi bắt đầu lượt hỏi đầu tiên…" : "Conversation history will appear here once the first turn begins…"}
             </div>
           ) : (
             turns.map((turn) => (
@@ -341,7 +343,7 @@ export default function InterviewRoomPage({
                       </>
                     ) : (
                       <>
-                        <User size={13} color="#3b82f6" /> Ứng viên (Bạn)
+                        <User size={13} color="#3b82f6" /> {locale === "vi" ? "Ứng viên (Bạn)" : "Candidate (You)"}
                       </>
                     )}
                   </span>

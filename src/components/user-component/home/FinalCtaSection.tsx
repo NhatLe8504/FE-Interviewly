@@ -2,10 +2,12 @@
 
 import { useEffect, useRef } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
+import { useI18n } from "@/context/I18nContext";
 import styles from "../../../app/(user)/page.module.css";
 
 export default function FinalCtaSection() {
   const sectionRef = useRef<HTMLElement | null>(null);
+  const { t } = useI18n();
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -36,10 +38,13 @@ export default function FinalCtaSection() {
   return (
     <section className={styles.finalCta} ref={sectionRef}>
       <ShieldCheck size={28} strokeWidth={1.8} aria-hidden="true" />
-      <p className={styles.eyebrow}><span /> A more prepared you</p>
-      <h2>Your next interview deserves more than a guess.</h2>
-      <a className={styles.primaryButton} href="#practice">Begin your practice <ArrowRight size={18} aria-hidden="true" /></a>
+      <p className={styles.eyebrow}>
+        <span /> {t.home.finalCta.eyebrow}
+      </p>
+      <h2>{t.home.finalCta.title}</h2>
+      <a className={styles.primaryButton} href="#practice">
+        {t.home.finalCta.button} <ArrowRight size={18} aria-hidden="true" />
+      </a>
     </section>
   );
 }
-
