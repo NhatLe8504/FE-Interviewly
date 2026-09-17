@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import StoreProvider from "@/redux/StoreProvider";
 import { AuthProvider } from "@/context/AuthContext";
+import { I18nProvider } from "@/context/I18nContext";
 
 export const metadata: Metadata = {
   title: "AI Interview Coach | Practice with clarity",
@@ -18,7 +19,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           strategy="afterInteractive"
         />
         <StoreProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+          <I18nProvider>{children}</I18nProvider>
+        </AuthProvider>
         </StoreProvider>
       </body>
     </html>

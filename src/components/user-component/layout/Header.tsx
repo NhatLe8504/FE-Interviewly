@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useLayoutEffect, useRef, useState, useEffect, useCallback } from "react";
+import { useLayoutEffect, useRef, useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
 import {
   MoreVertical,
   User,
@@ -33,12 +34,23 @@ function isActive(pathname: string, href: string) {
 export default function Header() {
   const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuth();
+  const { locale: lang, toggleLocale: toggleLang } = useI18n();
 
   const navRef = useRef<HTMLElement>(null);
   const dropletRef = useRef<HTMLSpanElement>(null);
   const firstRender = useRef(true);
   const linkRefs = useRef(new Map<string, HTMLAnchorElement>());
   const [droplet, setDroplet] = useState({ left: 0, width: 0, ready: false });
+
+  const navItems = useMemo(
+    () => [
+      { href: "/", label: lang === "vi" ? "TRANG CHỦ" : "HOME" },
+      { href: "/practice", label: lang === "vi" ? "LUYỆN TẬP" : "PRACTICE" },
+      { href: "/questions", label: lang === "vi" ? "CÂU HỎI" : "QUESTIONS" },
+      { href: "/pricing", label: lang === "vi" ? "BẢNG GIÁ" : "PRICING" },
+    ],
+    [lang]
+  );
 
   // Dropdown states
   const [menuOpen, setMenuOpen] = useState(false);
@@ -47,14 +59,11 @@ export default function Header() {
   // Theme state
   const [theme, setTheme] = useState<"light" | "dark">("light");
   // Language state
-  const [lang, setLang] = useState<"vi" | "en">("vi");
 
   useEffect(() => {
     // Load stored theme & language
     const storedTheme = (localStorage.getItem("interviewly_theme") as "light" | "dark") || "light";
-    const storedLang = (localStorage.getItem("interviewly_lang") as "vi" | "en") || "vi";
     setTheme(storedTheme);
-    setLang(storedLang);
 
     if (storedTheme === "dark") {
       document.documentElement.classList.add("dark");
@@ -74,11 +83,6 @@ export default function Header() {
     }
   };
 
-  const toggleLang = () => {
-    const next = lang === "vi" ? "en" : "vi";
-    setLang(next);
-    localStorage.setItem("interviewly_lang", next);
-  };
 
   // Close dropdown on outside click or escape
   const handleCloseMenu = useCallback(() => {
@@ -119,7 +123,7 @@ export default function Header() {
   useLayoutEffect(() => {
     const measure = () => {
       const nav = navRef.current;
-      const activeHref = NAV_ITEMS.find((item) => isActive(pathname, item.href))?.href;
+      const activeHref = navItems.find((item: { href: string; label: string }) => isActive(pathname, item.href))?.href;
       const link = activeHref ? linkRefs.current.get(activeHref) : undefined;
       if (!nav || !link) return;
       const navBox = nav.getBoundingClientRect();
@@ -177,7 +181,7 @@ export default function Header() {
                 : { opacity: 0 }
             }
           />
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item: { href: string; label: string }) => {
             const active = isActive(pathname, item.href);
             return (
               <Link
