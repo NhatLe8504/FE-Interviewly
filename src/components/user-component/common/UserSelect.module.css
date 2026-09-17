@@ -188,3 +188,17 @@
     transform: scale(0.97) translateY(-4px);
   }
 }
+
+
+:global(html body[data-scroll-locked]) {
+  overflow: visible !important;
+  overflow-y: scroll !important;
+  margin-right: 0 !important;
+  padding-right: 0 !important;
+}
+
+:global(html body[data-scroll-locked] header),
+:global(html body[data-scroll-locked] main) {
+  margin-right: 0 !important;
+  right: 0 !important;
+}
