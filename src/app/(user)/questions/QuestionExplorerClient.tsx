@@ -29,7 +29,7 @@ import type {
   QuestionFilterParams,
 } from "@/types/catalog";
 import { getDomainTheme } from "@/constants/domainThemes";
-import { UserPagination } from "@/components/user-component/common/Pagination";
+import { UserPagination, SimpleUserSelect } from "@/components/user-component/common";
 import styles from "./questions.module.css";
 
 const LEVEL_OPTIONS = [
@@ -212,17 +212,7 @@ export default function QuestionExplorerClient() {
     setCurrentPage(1);
   };
 
-  // Reset page to 1 whenever filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [
-    searchQuery,
-    selectedDomain,
-    selectedRole,
-    selectedLevel,
-    selectedType,
-    selectedLanguage,
-  ]);
+
 
   // Launch Practice Handler
   const handleLaunchPractice = async () => {
@@ -343,14 +333,20 @@ export default function QuestionExplorerClient() {
             type="text"
             className={styles.searchInput}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
             placeholder="Tìm kiếm theo từ khóa câu hỏi (ví dụ: production bug, slow query, deadline, PM bất đồng, CPA...)"
           />
           {searchQuery && (
             <button
               type="button"
               className={styles.clearSearchBtn}
-              onClick={() => setSearchQuery("")}
+              onClick={() => {
+                setSearchQuery("");
+                setCurrentPage(1);
+              }}
               title="Xóa tìm kiếm"
             >
               <X size={16} />
@@ -358,28 +354,29 @@ export default function QuestionExplorerClient() {
           )}
         </div>
 
-        {/* Dropdown Filters Grid */}
+        {/* Dropdown Filters Grid with Custom UserSelect */}
         <div className={styles.filterRow}>
           <div className={styles.filterField}>
             <label className={styles.filterLabel} htmlFor="domain-select">
               <Briefcase size={13} />
               <span>Ngành nghề (Domain)</span>
             </label>
-            <select
+            <SimpleUserSelect
               id="domain-select"
-              className={styles.select}
-              value={selectedDomain}
-              onChange={(e) =>
-                setSelectedDomain(e.target.value === "all" ? "all" : Number(e.target.value))
-              }
-            >
-              <option value="all">Tất cả ngành nghề</option>
-              {domains.map((d) => (
-                <option key={d.domain_id} value={d.domain_id}>
-                  {d.domain_name}
-                </option>
-              ))}
-            </select>
+              value={String(selectedDomain)}
+              onChange={(val) => {
+                setSelectedDomain(val === "all" ? "all" : Number(val));
+                setCurrentPage(1);
+              }}
+              options={[
+                { value: "all", label: "Tất cả ngành nghề" },
+                ...domains.map((d) => ({
+                  value: String(d.domain_id),
+                  label: d.domain_name,
+                })),
+              ]}
+              aria-label="Chọn ngành nghề"
+            />
           </div>
 
           <div className={styles.filterField}>
@@ -387,21 +384,22 @@ export default function QuestionExplorerClient() {
               <Filter size={13} />
               <span>Vị trí ứng tuyển (Role)</span>
             </label>
-            <select
+            <SimpleUserSelect
               id="role-select"
-              className={styles.select}
-              value={selectedRole}
-              onChange={(e) =>
-                setSelectedRole(e.target.value === "all" ? "all" : Number(e.target.value))
-              }
-            >
-              <option value="all">Tất cả vị trí</option>
-              {roles.map((r) => (
-                <option key={r.role_id} value={r.role_id}>
-                  {r.role_name}
-                </option>
-              ))}
-            </select>
+              value={String(selectedRole)}
+              onChange={(val) => {
+                setSelectedRole(val === "all" ? "all" : Number(val));
+                setCurrentPage(1);
+              }}
+              options={[
+                { value: "all", label: "Tất cả vị trí" },
+                ...roles.map((r) => ({
+                  value: String(r.role_id),
+                  label: r.role_name,
+                })),
+              ]}
+              aria-label="Chọn vị trí ứng tuyển"
+            />
           </div>
 
           <div className={styles.filterField}>
@@ -409,36 +407,38 @@ export default function QuestionExplorerClient() {
               <HelpCircle size={13} />
               <span>Dạng câu hỏi</span>
             </label>
-            <select
+            <SimpleUserSelect
               id="type-select"
-              className={styles.select}
               value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-            >
-              {TYPE_OPTIONS.map((opt) => (
-                <option key={opt.id} value={opt.id}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => {
+                setSelectedType(val);
+                setCurrentPage(1);
+              }}
+              options={TYPE_OPTIONS.map((opt) => ({
+                value: opt.id,
+                label: opt.label,
+              }))}
+              aria-label="Chọn dạng câu hỏi"
+            />
           </div>
 
           <div className={styles.filterField}>
             <label className={styles.filterLabel} htmlFor="lang-select">
               <span>Ngôn ngữ</span>
             </label>
-            <select
+            <SimpleUserSelect
               id="lang-select"
-              className={styles.select}
               value={selectedLanguage}
-              onChange={(e) => setSelectedLanguage(e.target.value)}
-            >
-              {LANG_OPTIONS.map((opt) => (
-                <option key={opt.id} value={opt.id}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => {
+                setSelectedLanguage(val);
+                setCurrentPage(1);
+              }}
+              options={LANG_OPTIONS.map((opt) => ({
+                value: opt.id,
+                label: opt.label,
+              }))}
+              aria-label="Chọn ngôn ngữ"
+            />
           </div>
         </div>
 
@@ -452,7 +452,10 @@ export default function QuestionExplorerClient() {
                 key={opt.id}
                 type="button"
                 className={`${styles.chipBtn} ${isActive ? styles.chipBtnActive : ""}`}
-                onClick={() => setSelectedLevel(opt.id)}
+                onClick={() => {
+                setSelectedLevel(opt.id);
+                setCurrentPage(1);
+              }}
               >
                 {opt.label}
               </button>
