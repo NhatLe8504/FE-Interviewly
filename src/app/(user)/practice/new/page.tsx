@@ -24,6 +24,7 @@ import {
   Loader2,
   Check,
 } from "lucide-react";
+import { SimpleUserSelect, UserSelectOption } from "@/components/user-component/common";
 import styles from "./newPractice.module.css";
 
 const MAX_FILES = 3;
@@ -46,6 +47,21 @@ Yêu cầu chuyên môn:
 - Kinh nghiệm triển khai kiến trúc Message Queue với Apache Kafka, đảm bảo tính Idempotency và Exactly-Once Processing.
 - Kỹ năng tối ưu hóa truy vấn SQL, phân mảnh dữ liệu (Sharding) và thiết kế hệ thống Microservices đạt chuẩn Zero-Downtime.
 - Văn hóa làm việc: Tư duy sở hữu cao (Extreme Ownership), khả năng phối hợp đa chức năng và giao tiếp tiếng Anh lưu loát.`;
+
+
+const LEVEL_OPTIONS: UserSelectOption[] = [
+  { value: "intern", label: "Intern (Thực tập sinh)" },
+  { value: "fresher", label: "Fresher (< 1 năm)" },
+  { value: "junior", label: "Junior (1 - 3 năm)" },
+  { value: "mid", label: "Middle (3 - 5 năm)" },
+  { value: "senior", label: "Senior (5+ năm)" },
+  { value: "lead", label: "Staff / Lead / Architect" },
+];
+
+const LANGUAGE_OPTIONS: UserSelectOption[] = [
+  { value: "vi", label: "🇻🇳 Tiếng Việt (Thực chiến)" },
+  { value: "en", label: "🇺🇸 English (Quốc tế)" },
+];
 
 export default function NewPracticeSessionPage() {
   const router = useRouter();
@@ -517,32 +533,24 @@ export default function NewPracticeSessionPage() {
                 <label className={styles.fieldLabel}>
                   <span>Cấp độ (Level)</span>
                 </label>
-                <select
-                  className={styles.select}
+                <SimpleUserSelect
                   value={level}
-                  onChange={(e) => setLevel(e.target.value)}
-                >
-                  <option value="intern">Intern (Thực tập sinh)</option>
-                  <option value="fresher">Fresher (&lt; 1 năm)</option>
-                  <option value="junior">Junior (1 - 3 năm)</option>
-                  <option value="mid">Middle (3 - 5 năm)</option>
-                  <option value="senior">Senior (5+ năm)</option>
-                  <option value="lead">Staff / Lead / Architect</option>
-                </select>
+                  onChange={(val) => setLevel(val)}
+                  options={LEVEL_OPTIONS}
+                  aria-label="Chọn cấp độ phỏng vấn"
+                />
               </div>
 
               <div className={styles.field}>
                 <label className={styles.fieldLabel}>
                   <span>Ngôn ngữ phỏng vấn</span>
                 </label>
-                <select
-                  className={styles.select}
+                <SimpleUserSelect
                   value={language}
-                  onChange={(e) => setLanguage(e.target.value as "vi" | "en")}
-                >
-                  <option value="vi">🇻🇳 Tiếng Việt</option>
-                  <option value="en">🇺🇸 English</option>
-                </select>
+                  onChange={(val) => setLanguage(val as "vi" | "en")}
+                  options={LANGUAGE_OPTIONS}
+                  aria-label="Chọn ngôn ngữ phỏng vấn"
+                />
               </div>
             </div>
 
