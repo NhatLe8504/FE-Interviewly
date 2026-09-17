@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="gp" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b0764"/>
+      <stop offset="50%" stop-color="#6b21a8"/>
+      <stop offset="100%" stop-color="#9333ea"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="200" fill="url(#gp)"/>
+  <circle cx="330" cy="50" r="90" fill="#c084fc" opacity="0.4" filter="blur(35px)"/>
+  <rect x="50" y="35" width="300" height="135" rx="14" fill="#1b082e" opacity="0.85" stroke="#7e22ce" stroke-width="1.5"/>
+  <!-- UI Wireframe components -->
+  <rect x="75" y="55" width="75" height="95" rx="8" fill="#3b0764" stroke="#a855f7" stroke-width="1"/>
+  <rect x="85" y="65" width="40" height="5" rx="2.5" fill="#e9d5ff"/>
+  <rect x="85" y="76" width="55" height="28" rx="4" fill="#9333ea" opacity="0.6"/>
+  <rect x="85" y="110" width="55" height="5" rx="2" fill="#c084fc"/>
+  <rect x="85" y="120" width="35" height="5" rx="2" fill="#d8b4fe" opacity="0.7"/>
+  <!-- Phone mockup right -->
+  <rect x="170" y="55" width="150" height="95" rx="8" fill="#2e1065" stroke="#a855f7" stroke-width="1"/>
+  <rect x="185" y="68" width="120" height="22" rx="5" fill="#7e22ce" opacity="0.6"/>
+  <rect x="185" y="98" width="55" height="40" rx="6" fill="#a855f7" opacity="0.4"/>
+  <rect x="250" y="98" width="55" height="40" rx="6" fill="#a855f7" opacity="0.4"/>
+</svg>

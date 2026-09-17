@@ -1,22 +1,24 @@
 import type { Metadata } from "next";
+import QuestionDetailClient from "./QuestionDetailClient";
 
-export const metadata: Metadata = {
-  title: "Question Detail | Interviewly",
-  description: "View a question with its STAR template.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  return {
+    title: `Chi tiết câu hỏi #${id} & Hướng dẫn STAR | Interviewly`,
+    description:
+      "Xem hướng dẫn cấu trúc trả lời mẫu theo khung STAR và tiêu chuẩn chấm điểm Rubric cho câu hỏi phỏng vấn.",
+  };
+}
 
 export default async function QuestionDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await params;
-
-  return (
-    <main>
-      <h1>Question Detail</h1>
-      <p>View a question with its STAR template.</p>
-    </main>
-  );
+  const { id } = await params;
+  return <QuestionDetailClient questionId={id} />;
 }
-
