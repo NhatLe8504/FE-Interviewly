@@ -29,6 +29,7 @@ import type {
   QuestionFilterParams,
 } from "@/types/catalog";
 import { getDomainTheme } from "@/constants/domainThemes";
+import { UserPagination } from "@/components/user-component/common/Pagination";
 import styles from "./questions.module.css";
 
 const LEVEL_OPTIONS = [
@@ -63,6 +64,10 @@ export default function QuestionExplorerClient() {
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("all");
+
+  // Pagination State (6 items per page)
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 6;
 
   // Data State
   const [domains, setDomains] = useState<DomainOut[]>([]);
@@ -175,6 +180,20 @@ export default function QuestionExplorerClient() {
     searchQuery,
   ]);
 
+
+  // Pagination calculations
+  const totalItems = filteredQuestions.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const paginatedQuestions = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredQuestions.slice(start, start + pageSize);
+  }, [filteredQuestions, currentPage, pageSize]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 320, behavior: "smooth" });
+  };
+
   const hasActiveFilters =
     searchQuery.trim() !== "" ||
     selectedDomain !== "all" ||
@@ -190,7 +209,20 @@ export default function QuestionExplorerClient() {
     setSelectedLevel("all");
     setSelectedType("all");
     setSelectedLanguage("all");
+    setCurrentPage(1);
   };
+
+  // Reset page to 1 whenever filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    searchQuery,
+    selectedDomain,
+    selectedRole,
+    selectedLevel,
+    selectedType,
+    selectedLanguage,
+  ]);
 
   // Launch Practice Handler
   const handleLaunchPractice = async () => {
@@ -450,8 +482,9 @@ export default function QuestionExplorerClient() {
 
       {/* Questions Grid */}
       {filteredQuestions.length > 0 ? (
+        <>
         <div className={styles.questionsGrid}>
-          {filteredQuestions.map((q) => {
+          {paginatedQuestions.map((q) => {
             const theme = getDomainTheme(q.domain_id, q.domain_name);
             return (
               <div key={q.question_id} className={styles.card}>
@@ -529,6 +562,17 @@ export default function QuestionExplorerClient() {
             );
           })}
         </div>
+
+        {/* Reusable User Pagination Component */}
+        <UserPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          showInfo={true}
+        />
+        </>
       ) : (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>
