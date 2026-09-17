@@ -285,6 +285,73 @@ export interface Translations {
       logoutBtn: string;
     };
   };
+  practice: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    quotaBanner: {
+      currentPlan: string;
+      used: string;
+      inMonth: string;
+      upgradePro: string;
+    };
+    targetCard: {
+      title: string;
+      hint: string;
+      domainLabel: string;
+      roleLabel: string;
+      loadingRoles: string;
+      levelLabel: string;
+      languageLabel: string;
+      levels: {
+        intern: string;
+        fresher: string;
+        junior: string;
+        mid: string;
+        senior: string;
+      };
+      languages: {
+        vi: string;
+        en: string;
+      };
+    };
+    modeCard: {
+      title: string;
+      hint: string;
+      textTitle: string;
+      textDesc: string;
+      voiceTitle: string;
+      voiceDesc: string;
+      startingBtn: string;
+      startBtn: string;
+    };
+    quotaModal: {
+      title: string;
+      desc: string;
+      upgradeBtn: string;
+      laterBtn: string;
+    };
+    room: {
+      connectingAi: string;
+      listening: string;
+      thinking: string;
+      speaking: string;
+      idle: string;
+      turn: string;
+      of: string;
+      estimatedTurns: string;
+      voiceRecording: string;
+      clickToStop: string;
+      startSpeaking: string;
+      typeAnswerPlaceholder: string;
+      submitAnswer: string;
+      submitting: string;
+      endEarly: string;
+      starTipsTitle: string;
+      aiInterviewerTitle: string;
+      candidateTitle: string;
+    };
+  };
   pricing: {
     eyebrow: string;
     title: string;
