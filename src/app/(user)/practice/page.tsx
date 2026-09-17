@@ -42,17 +42,6 @@ export default function PracticeOverviewPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
 
-  // Custom JD Modal State
-  const [isJdModalOpen, setIsJdModalOpen] = useState(false);
-  const [jdJobTitle, setJdJobTitle] = useState("");
-  const [jdCompany, setJdCompany] = useState("");
-  const [jdSource, setJdSource] = useState("LinkedIn");
-  const [jdContent, setJdContent] = useState("");
-  const [jdLevel, setJdLevel] = useState("senior");
-  const [jdLanguage, setJdLanguage] = useState("vi");
-  const [jdMode, setJdMode] = useState<"text" | "voice">("voice");
-  const [isCreatingJd, setIsCreatingJd] = useState(false);
-
   // Pre-made Interview Quick Launch Modal
   const [selectedInterview, setSelectedInterview] = useState<PreMadeInterview | null>(null);
   const [launchMode, setLaunchMode] = useState<"text" | "voice">("voice");
@@ -131,70 +120,6 @@ export default function PracticeOverviewPage() {
         "active_custom_questions",
         JSON.stringify(selectedInterview.sampleQuestions)
       );
-    } catch {
-      // ignore
-    }
-
-    router.push(`/practice/${sessionId}`);
-  };
-
-  // Handle create interview from custom JD
-  const handleCreateFromJd = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!jdJobTitle.trim()) return;
-    setIsCreatingJd(true);
-
-    const sessionId = `jd-${Date.now().toString(36)}`;
-    const roleTitle = jdJobTitle.trim();
-    const company = jdCompany.trim() || "Doanh nghiệp mục tiêu";
-
-    // Auto generate 4 custom questions tailored to JD
-    const generatedQuestions = [
-      {
-        question_id: 1,
-        question_text: `Dựa trên yêu cầu của vị trí ${roleTitle} tại ${company}, bạn hãy giới thiệu sơ lược về bản thân và dự án tiêu biểu nhất thể hiện rõ năng lực chuyên môn phù hợp với vị trí này.`,
-        star_hint:
-          "Situation: Bối cảnh dự án trước. Task: Nhiệm vụ chính của bạn. Action: Giải pháp kỹ thuật bạn chọn. Result: Hiệu quả định lượng.",
-      },
-      {
-        question_id: 2,
-        question_text: `Trong bản mô tả công việc (JD) có nhấn mạnh về các thách thức kỹ thuật và xử lý sự cố. Bạn hãy kể về một lần giải quyết một bài toán hóc búa nhất mà bạn từng trực tiếp xử lý.`,
-        star_hint:
-          "Đi sâu vào cách bạn phân tích nguyên nhân gốc rễ (Root Cause Analysis) và các phương án đánh đổi (Trade-offs).",
-      },
-      {
-        question_id: 3,
-        question_text: `Khi phải làm việc với các bên liên quan (Product Manager, Designer, Khách hàng) có sự bất đồng về độ ưu tiên của tính năng so với chất lượng mã nguồn, bạn giải quyết như thế nào?`,
-        star_hint:
-          "Thể hiện kỹ năng giao tiếp, khả năng thuyết phục dựa trên dữ liệu đo lường và tinh thần trách nhiệm cao.",
-      },
-      {
-        question_id: 4,
-        question_text: `Nếu được nhận vào vị trí ${roleTitle} tại ${company}, kế hoạch 30-60-90 ngày đầu tiên của bạn để nắm bắt công việc và tạo ra giá trị thiết thực sẽ như thế nào?`,
-        star_hint:
-          "30 ngày: Hòa nhập văn hóa, hiểu codebase. 60 ngày: Độc lập đóng góp tính năng. 90 ngày: Đề xuất cải tiến kiến trúc và mentor.",
-      },
-    ];
-
-    const metadata = {
-      roleLabel: roleTitle,
-      companyName: company,
-      domainLabel: company,
-      levelLabel: jdLevel.toUpperCase(),
-      languageLabel: jdLanguage === "vi" ? "Tiếng Việt" : "English",
-      mode: jdMode,
-      totalQuestions: generatedQuestions.length,
-      jdSnippet: jdContent.slice(0, 300),
-    };
-
-    try {
-      sessionStorage.setItem(`session_metadata_${sessionId}`, JSON.stringify(metadata));
-      sessionStorage.setItem("active_session_metadata", JSON.stringify(metadata));
-      sessionStorage.setItem(
-        `custom_questions_${sessionId}`,
-        JSON.stringify(generatedQuestions)
-      );
-      sessionStorage.setItem("active_custom_questions", JSON.stringify(generatedQuestions));
     } catch {
       // ignore
     }
@@ -285,11 +210,11 @@ export default function PracticeOverviewPage() {
         ========================================================= */}
         <div
           className={`${styles.cardBase} ${styles.customJdCard}`}
-          onClick={() => setIsJdModalOpen(true)}
+          onClick={() => router.push("/practice/new")}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "Enter") setIsJdModalOpen(true);
+            if (e.key === "Enter") router.push("/practice/new");
           }}
           aria-label="Tạo buổi phỏng vấn mới theo JD của bạn"
         >
@@ -339,18 +264,17 @@ export default function PracticeOverviewPage() {
             </div>
 
             {/* Bottom Action */}
-            <button
-              type="button"
+            <Link
+              href="/practice/new"
               className={styles.btnCreateJdAction}
               onClick={(e) => {
                 e.stopPropagation();
-                setIsJdModalOpen(true);
               }}
             >
               <Sparkles size={16} />
               <span>Tạo phỏng vấn theo JD ngay</span>
               <ArrowRight size={15} />
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -451,196 +375,6 @@ export default function PracticeOverviewPage() {
           </div>
         ))}
       </div>
-
-      {/* =========================================================
-          MODAL 1: CREATE CUSTOM INTERVIEW FROM JOB DESCRIPTION (JD)
-      ========================================================= */}
-      {isJdModalOpen && (
-        <div
-          className={styles.modalBackdrop}
-          onClick={() => setIsJdModalOpen(false)}
-        >
-          <div
-            className={styles.modalCard}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className={styles.modalHeader}>
-              <div className={styles.modalTitleWrap}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Sparkles size={18} className="text-[#d98236]" />
-                  <h2 className={styles.modalTitle}>Tạo Buổi Phỏng Vấn Theo JD</h2>
-                </div>
-                <p className={styles.modalSub}>
-                  Dán nội dung bản mô tả công việc (JD) từ LinkedIn, TopCV, VietCV... để AI thiết lập buổi phỏng vấn đo ni đóng giày.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                className={styles.modalCloseBtn}
-                onClick={() => setIsJdModalOpen(false)}
-                aria-label="Đóng cửa sổ"
-              >
-                <X size={17} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateFromJd} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-              <div className={styles.modalFormGrid}>
-                <div className={styles.modalField}>
-                  <label className={styles.modalFieldLabel}>
-                    <span>Vị trí ứng tuyển (Job Title) *</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    className={styles.modalFieldInput}
-                    placeholder="Ví dụ: Senior Frontend Engineer (React/Next.js)"
-                    value={jdJobTitle}
-                    onChange={(e) => setJdJobTitle(e.target.value)}
-                  />
-                </div>
-
-                <div className={styles.modalField}>
-                  <label className={styles.modalFieldLabel}>
-                    <span>Doanh nghiệp mục tiêu (Target Company)</span>
-                  </label>
-                  <input
-                    type="text"
-                    className={styles.modalFieldInput}
-                    placeholder="Ví dụ: Shopee, Techcombank, VNG..."
-                    value={jdCompany}
-                    onChange={(e) => setJdCompany(e.target.value)}
-                  />
-                </div>
-
-                <div className={`${styles.modalField} ${styles.modalFormFull}`}>
-                  <div className={styles.modalFieldLabel}>
-                    <span>Nội dung mô tả công việc (Job Description / Requirements) *</span>
-                    <button
-                      type="button"
-                      className={styles.quickFillBtn}
-                      onClick={() => {
-                        setJdJobTitle("Senior Frontend Engineer");
-                        setJdCompany("Shopee Singapore");
-                        setJdContent(SAMPLE_JD_TEXT);
-                      }}
-                    >
-                      Dán mẫu JD tham khảo
-                    </button>
-                  </div>
-                  <textarea
-                    required
-                    className={styles.modalFieldTextarea}
-                    placeholder="Dán các yêu cầu kỹ năng, trách nhiệm công việc hoặc link JD từ LinkedIn/TopCV/VietCV tại đây..."
-                    value={jdContent}
-                    onChange={(e) => setJdContent(e.target.value)}
-                  />
-                </div>
-
-                <div className={styles.modalField}>
-                  <label className={styles.modalFieldLabel}>
-                    <span>Cấp độ phỏng vấn (Level)</span>
-                  </label>
-                  <select
-                    className={styles.modalFieldSelect}
-                    value={jdLevel}
-                    onChange={(e) => setJdLevel(e.target.value)}
-                  >
-                    <option value="intern">Intern / Thực tập sinh</option>
-                    <option value="fresher">Fresher (Dưới 1 năm)</option>
-                    <option value="junior">Junior (1 - 3 năm)</option>
-                    <option value="mid">Middle (3 - 5 năm)</option>
-                    <option value="senior">Senior (5+ năm kinh nghiệm)</option>
-                    <option value="lead">Lead / Principal Engineer</option>
-                  </select>
-                </div>
-
-                <div className={styles.modalField}>
-                  <label className={styles.modalFieldLabel}>
-                    <span>Ngôn ngữ phỏng vấn</span>
-                  </label>
-                  <select
-                    className={styles.modalFieldSelect}
-                    value={jdLanguage}
-                    onChange={(e) => setJdLanguage(e.target.value)}
-                  >
-                    <option value="vi">🇻🇳 Tiếng Việt (Thực chiến)</option>
-                    <option value="en">🇺🇸 English (Quốc tế)</option>
-                  </select>
-                </div>
-
-                <div className={`${styles.modalField} ${styles.modalFormFull}`}>
-                  <label className={styles.modalFieldLabel}>
-                    <span>Hình thức phản xạ</span>
-                  </label>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                    <button
-                      type="button"
-                      onClick={() => setJdMode("voice")}
-                      style={{
-                        padding: "12px 14px",
-                        borderRadius: "14px",
-                        border: jdMode === "voice" ? "2px solid #d98236" : "1px solid rgba(106, 72, 49, 0.18)",
-                        background: jdMode === "voice" ? "rgba(217, 130, 54, 0.12)" : "rgba(255, 255, 255, 0.8)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        cursor: "pointer",
-                      }}
-                    >
-                      <Mic size={18} className={jdMode === "voice" ? "text-[#d98236]" : "text-stone-500"} />
-                      <div style={{ textAlign: "left" }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: "#211914" }}>Nói trực tiếp (Voice STT)</div>
-                        <div style={{ fontSize: 11, color: "#8b4513" }}>Khuyên dùng: Rèn luyện phong thái và WPM</div>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setJdMode("text")}
-                      style={{
-                        padding: "12px 14px",
-                        borderRadius: "14px",
-                        border: jdMode === "text" ? "2px solid #d98236" : "1px solid rgba(106, 72, 49, 0.18)",
-                        background: jdMode === "text" ? "rgba(217, 130, 54, 0.12)" : "rgba(255, 255, 255, 0.8)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        cursor: "pointer",
-                      }}
-                    >
-                      <Keyboard size={18} className={jdMode === "text" ? "text-[#d98236]" : "text-stone-500"} />
-                      <div style={{ textAlign: "left" }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: "#211914" }}>Nhập phím (Text)</div>
-                        <div style={{ fontSize: 11, color: "rgba(45, 31, 23, 0.6)" }}>Gõ câu trả lời, không cần micro</div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.modalActions}>
-                <button
-                  type="button"
-                  className={styles.modalBtnCancel}
-                  onClick={() => setIsJdModalOpen(false)}
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className={styles.modalBtnSubmit}
-                  disabled={isCreatingJd}
-                >
-                  <Sparkles size={16} />
-                  <span>{isCreatingJd ? "AI đang phân tích JD..." : "Phân tích JD & Bắt đầu"}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* =========================================================
           MODAL 2: QUICK LAUNCH PRE-MADE INTERVIEW
