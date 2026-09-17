@@ -422,7 +422,8 @@ export const catalogApi = {
     try {
       const data = await request<DomainOut[]>("/api/v1/catalog/domains");
       if (Array.isArray(data) && data.length > 0) {
-        return data;
+        const clean = data.filter((d) => !/^Software Dev [a-f0-9]+$/i.test(d.domain_name));
+        if (clean.length > 0) return clean;
       }
       return FALLBACK_DOMAINS;
     } catch {

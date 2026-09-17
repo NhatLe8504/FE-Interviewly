@@ -29,7 +29,7 @@ import type {
   QuestionOut,
   QuestionFilterParams,
 } from "@/types/catalog";
-import { getDomainTheme } from "@/constants/domainThemes";
+import { getDomainTheme, getLocalizedDomainName, getLocalizedRoleName } from "@/constants/domainThemes";
 import { UserPagination, SimpleUserSelect } from "@/components/user-component/common";
 import styles from "./questions.module.css";
 
@@ -384,7 +384,7 @@ export default function QuestionExplorerClient() {
                 { value: "all", label: t.questions.allDomains },
                 ...domains.map((d) => ({
                   value: String(d.domain_id),
-                  label: d.domain_name,
+                  label: getLocalizedDomainName(d, locale),
                 })),
               ]}
               aria-label="Chọn ngành nghề"
@@ -407,7 +407,7 @@ export default function QuestionExplorerClient() {
                 { value: "all", label: t.questions.allRoles },
                 ...roles.map((r) => ({
                   value: String(r.role_id),
-                  label: r.role_name,
+                  label: getLocalizedRoleName(r, locale),
                 })),
               ]}
               aria-label="Chọn vị trí ứng tuyển"
@@ -520,14 +520,14 @@ export default function QuestionExplorerClient() {
                       <div className={styles.cardBannerTop}>
                         <span className={styles.bannerPill}>
                           <Briefcase size={11} />
-                          {theme.shortName}
+                          {locale === "vi" ? theme.shortName : theme.shortNameEn}
                         </span>
                         <span className={styles.bannerPill}>
                           {q.language === "vi" ? "🇻🇳 VI" : "🇺🇸 EN"}
                         </span>
                       </div>
                       <div className={styles.cardBannerBottom}>
-                        <span className={styles.bannerRole}>{q.role_name || theme.name}</span>
+                        <span className={styles.bannerRole}>{q.role_name ? getLocalizedRoleName({ role_name: q.role_name }, locale) : (locale === "vi" ? theme.name : theme.nameEn)}</span>
                         <span className={getLevelBadgeClass(q.experience_level)}>
                           {q.experience_level ? q.experience_level.toUpperCase() : "GENERAL"}
                         </span>
@@ -640,13 +640,13 @@ export default function QuestionExplorerClient() {
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <span className={`${styles.badge} ${styles.badgeRole}`}>
-                {practiceModalQuestion.role_name || "Software Engineer"}
+                {practiceModalQuestion.role_name ? getLocalizedRoleName({ role_name: practiceModalQuestion.role_name }, locale) : "Software Engineer"}
               </span>
               <span className={getLevelBadgeClass(practiceModalQuestion.experience_level)}>
-                Cấp độ: {practiceModalQuestion.experience_level || "Junior"}
+                {locale === "vi" ? "Cấp độ:" : "Level:"} {practiceModalQuestion.experience_level || "Junior"}
               </span>
               <span className={styles.badge}>
-                Ngôn ngữ: {practiceModalQuestion.language === "vi" ? "Tiếng Việt" : "English"}
+                {locale === "vi" ? "Ngôn ngữ:" : "Language:"} {practiceModalQuestion.language === "vi" ? "Tiếng Việt" : "English"}
               </span>
             </div>
 
