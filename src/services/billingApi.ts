@@ -28,6 +28,24 @@ export const DEFAULT_PLANS: SubscriptionPlan[] = [
     description: "Khám phá phỏng vấn AI với các tính năng cơ bản hoàn toàn miễn phí.",
   },
   {
+    plan_id: 4,
+    plan_name: "Sprint 7 Ngày (Cấp Tốc)",
+    price: 49000,
+    billing_cycle: "weekly",
+    feature_limits: {
+      interview_turns: 35,
+      ai_feedback: "detailed",
+      pdf_reports: true,
+      speech_analysis: true,
+      mock_interviews_per_month: "35 lượt / 7 ngày",
+      custom_scenarios: true,
+      priority_support: true,
+    },
+    is_active: true,
+    description: "Rèn luyện phản xạ phỏng vấn cấp tốc trong 7 ngày, tăng tối đa tự tin trước giờ phỏng vấn.",
+  },
+
+  {
     plan_id: 2,
     plan_name: "Pro Monthly",
     price: 99000,

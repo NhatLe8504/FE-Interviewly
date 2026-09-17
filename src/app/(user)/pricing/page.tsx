@@ -12,6 +12,7 @@ import {
   Award,
   Clock,
   Zap,
+  Flame,
 } from "lucide-react";
 import styles from "./pricing.module.css";
 import { billingApi, DEFAULT_PLANS } from "@/services/billingApi";
@@ -25,29 +26,29 @@ interface FaqItem {
 
 const FAQ_LIST: FaqItem[] = [
   {
+    question: "Gói Cấp Tốc 7 Ngày (7-Day Sprint) phù hợp với ai?",
+    answer:
+      "Gói Cấp Tốc 7 Ngày được thiết kế cho ứng viên chuẩn bị phỏng vấn trong 1 tuần tới. Với 30 lượt luyện tập, phân tích WPM, từ đệm và chấm điểm STAR, bạn sẽ nhanh chóng lấy lại phản xạ và tự tin bước vào buổi phỏng vấn.",
+  },
+  {
     question: "Tôi có thể hủy gói đăng ký bất kỳ lúc nào không?",
     answer:
-      "Có. Bạn hoàn toàn có thể chủ động hủy gia hạn gói bất cứ lúc nào trong trang Quản lý gói cước (My Subscription). Sau khi hủy, bạn vẫn được sử dụng toàn bộ đặc quyền của gói Pro cho đến hết chu kỳ bạn đã thanh toán.",
+      "Có. Bạn có thể chủ động hủy gia hạn bất cứ lúc nào trong trang Quản lý gói cước. Sau khi hủy, bạn vẫn được sử dụng toàn bộ tính năng cho đến hết chu kỳ đã thanh toán.",
   },
   {
     question: "Cổng thanh toán VNPay hỗ trợ những hình thức thanh toán nào?",
     answer:
-      "VNPay hỗ trợ quét mã VNPAY-QR trên hơn 30 ứng dụng Mobile Banking và ví điện tử, thẻ ATM/Tài khoản nội địa của 40+ ngân hàng Việt Nam, cùng thẻ thanh toán quốc tế Visa, Mastercard và JCB.",
+      "VNPay hỗ trợ quét mã VNPAY-QR trên hơn 30 ứng dụng ngân hàng và ví điện tử, thẻ ATM nội địa cùng thẻ quốc tế Visa, Mastercard và JCB.",
   },
   {
-    question: "Tài khoản của tôi sẽ được nâng cấp Pro sau bao lâu?",
+    question: "Tài khoản của tôi sẽ được kích hoạt sau bao lâu?",
     answer:
-      "Hệ thống webhook IPN tự động xác thực và kích hoạt trạng thái Pro cho tài khoản của bạn ngay lập tức (dưới 3 giây) sau khi giao dịch trên cổng thanh toán VNPay thành công.",
+      "Hệ thống tự động kích hoạt tài khoản của bạn ngay lập tức sau khi giao dịch thành công.",
   },
   {
-    question: "Chính sách hoàn tiền của Interviewly hoạt động như thế nào?",
+    question: "Chính sách hoàn tiền hoạt động như thế nào?",
     answer:
-      "Chúng tôi cam kết hoàn tiền 100% trong vòng 7 ngày đầu tiên nếu bạn đã trải nghiệm dưới 3 lượt phỏng vấn và cảm thấy dịch vụ chưa đáp ứng được nhu cầu của bạn.",
-  },
-  {
-    question: "Tôi có thể tải biên lai / hóa đơn thanh toán ở đâu?",
-    answer:
-      "Mọi giao dịch thành công đều được lưu trữ minh bạch tại mục Lịch sử thanh toán (/subscription/history). Bạn có thể xem chi tiết và tải hóa đơn điện tử bất kỳ lúc nào.",
+      "Chúng tôi cam kết hoàn tiền 100% trong vòng 7 ngày đầu tiên nếu bạn đã trải nghiệm dưới 3 lượt phỏng vấn và cảm thấy dịch vụ chưa phù hợp.",
   },
 ];
 
@@ -56,93 +57,78 @@ interface FeatureComparisonGroup {
   features: {
     name: string;
     free: string | boolean;
+    sprint: string | boolean;
     pro: string | boolean;
   }[];
 }
 
 const COMPARISON_GROUPS: FeatureComparisonGroup[] = [
   {
-    category: "Phỏng Vấn & Tương Tác AI",
+    category: "Luyện Tập & Phỏng Vấn",
     features: [
       {
-        name: "Số lượt phỏng vấn mỗi tháng",
-        free: "3 lượt",
-        pro: "Không giới hạn (100 lượt/tháng)",
+        name: "Số lượt phỏng vấn",
+        free: "3 lượt / tháng",
+        sprint: "30 lượt / 7 ngày",
+        pro: "100 lượt / tháng (1.500/năm)",
       },
       {
         name: "Thời lượng mỗi buổi phỏng vấn",
         free: "Tối đa 10 phút",
+        sprint: "Không giới hạn",
         pro: "Không giới hạn",
       },
       {
-        name: "Câu hỏi thích ứng theo ngữ cảnh (Adaptive AI)",
-        free: "1 tầng cơ bản",
-        pro: "Đa tầng chuyên sâu theo thời gian thực",
+        name: "Chọn cấp bậc (Fresher, Junior, Mid, Senior)",
+        free: "Fresher & Junior",
+        sprint: "Toàn bộ cấp bậc",
+        pro: "Toàn bộ cấp bậc",
       },
       {
-        name: "Tùy chọn cấp bậc phỏng vấn (Junior / Mid / Senior)",
-        free: "Chỉ Junior",
-        pro: "Toàn bộ cấp bậc (Fresher đến Director)",
-      },
-    ],
-  },
-  {
-    category: "Phân Tích & Chấm Điểm",
-    features: [
-      {
-        name: "Khung chấm điểm STAR & Rubric 3 tiêu chí",
-        free: "Điểm tổng quan",
-        pro: "Chấm chi tiết từng câu trả lời",
-      },
-      {
-        name: "Phân tích tốc độ nói (WPM) & độ lưu loát",
-        free: false,
-        pro: true,
-      },
-      {
-        name: "Phát hiện & đếm từ đệm đa ngữ (ừm, à, basically)",
-        free: false,
-        pro: true,
-      },
-      {
-        name: "Gợi ý câu trả lời mẫu tối ưu hóa",
-        free: false,
-        pro: true,
-      },
-    ],
-  },
-  {
-    category: "Báo Cáo & Chứng Nhận",
-    features: [
-      {
-        name: "Lưu trữ lịch sử các phiên phỏng vấn",
-        free: "3 phiên gần nhất",
-        pro: "Vĩnh viễn",
-      },
-      {
-        name: "Xuất báo cáo kỹ năng PDF A4 có mã QR bảo chứng",
-        free: false,
-        pro: true,
-      },
-      {
-        name: "Đồ thị tiến trình phát triển kỹ năng (Skill Matrix)",
-        free: false,
-        pro: true,
-      },
-    ],
-  },
-  {
-    category: "Hỗ Trợ & Đặc Quyền",
-    features: [
-      {
-        name: "Kho câu hỏi phỏng vấn thực tế từ Big Tech",
+        name: "Phỏng vấn thích ứng theo ngữ cảnh",
         free: "Cơ bản",
-        pro: "Kho độc quyền (Google, Meta, VNG, FPT,...)",
+        sprint: "Đa tầng thời gian thực",
+        pro: "Đa tầng thời gian thực",
+      },
+    ],
+  },
+  {
+    category: "Đánh Giá & Phân Tích",
+    features: [
+      {
+        name: "Chấm điểm Rubric & cấu trúc STAR",
+        free: "Điểm tổng quan",
+        sprint: "Chi tiết từng câu hỏi",
+        pro: "Chi tiết từng câu hỏi",
       },
       {
-        name: "Hỗ trợ khách hàng",
-        free: "Cộng đồng (48h)",
-        pro: "Ưu tiên 24/7 qua Chat & Email",
+        name: "Phân tích tốc độ nói (WPM) & từ đệm",
+        free: false,
+        sprint: true,
+        pro: true,
+      },
+      {
+        name: "Gợi ý câu trả lời mẫu tham khảo",
+        free: false,
+        sprint: true,
+        pro: true,
+      },
+    ],
+  },
+  {
+    category: "Báo Cáo & Lưu Trữ",
+    features: [
+      {
+        name: "Xuất báo cáo kỹ năng PDF A4 (có mã QR)",
+        free: false,
+        sprint: true,
+        pro: true,
+      },
+      {
+        name: "Lưu trữ lịch sử phiên phỏng vấn",
+        free: "3 phiên gần nhất",
+        sprint: "Trong thời gian gói (7 ngày)",
+        pro: "Vĩnh viễn",
       },
     ],
   },
@@ -153,6 +139,7 @@ export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [plans, setPlans] = useState<SubscriptionPlan[]>(DEFAULT_PLANS);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+  const [isTableExpanded, setIsTableExpanded] = useState<boolean>(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -173,14 +160,11 @@ export default function PricingPage() {
   }, []);
 
   const isYearly = billingCycle === "yearly";
-  const proMonthlyPlan = plans.find((p) => p.billing_cycle === "monthly") || DEFAULT_PLANS[1];
-  const proYearlyPlan = plans.find((p) => p.billing_cycle === "yearly") || DEFAULT_PLANS[2];
+  const proMonthlyPlan = plans.find((p) => p.billing_cycle === "monthly") || DEFAULT_PLANS[2] || DEFAULT_PLANS[1];
+  const proYearlyPlan = plans.find((p) => p.billing_cycle === "yearly") || DEFAULT_PLANS[3] || DEFAULT_PLANS[2];
   const activeProPlan = isYearly ? proYearlyPlan : proMonthlyPlan;
 
-  const formattedPrice = isYearly
-    ? new Intl.NumberFormat("vi-VN").format(activeProPlan.price) + " đ"
-    : new Intl.NumberFormat("vi-VN").format(activeProPlan.price) + " đ";
-
+  const formattedPrice = new Intl.NumberFormat("vi-VN").format(activeProPlan.price) + " đ";
   const checkoutPlanKey = isYearly ? "pro_yearly" : "pro_monthly";
 
   const toggleFaq = (index: number) => {
@@ -195,7 +179,7 @@ export default function PricingPage() {
           <Sparkles size={14} /> Gói cước linh hoạt & minh bạch
         </div>
         <h1 className={styles.title}>
-          Đầu tư vào tương lai sự nghiệp với <span className={styles.titleHighlight}>AI Interview Coach</span>
+          Đầu tư vào tương lai sự nghiệp với <em>AI Interview Coach</em>
         </h1>
         <p className={styles.subtitle}>
           Rèn luyện phản xạ phỏng vấn thực chiến, nhận phân tích giọng nói WPM thời gian thực và tự tin trúng tuyển vào các doanh nghiệp hàng đầu.
@@ -228,7 +212,7 @@ export default function PricingPage() {
           <div className={styles.planHeader}>
             <h2 className={styles.planName}>Miễn Phí (Free Starter)</h2>
             <p className={styles.planDesc}>
-              Khám phá và làm quen với hình thức phỏng vấn AI thông minh.
+              Trải nghiệm mô phỏng phỏng vấn AI với các tính năng cơ bản.
             </p>
           </div>
 
@@ -244,32 +228,91 @@ export default function PricingPage() {
           <ul className={styles.featuresList}>
             <li className={styles.featureItem}>
               <Check size={18} className={styles.featureIconCheck} />
-              <span><strong>3 lượt phỏng vấn</strong> miễn phí hàng tháng</span>
+              <span><strong>3 lượt phỏng vấn</strong> miễn phí / tháng</span>
             </li>
             <li className={styles.featureItem}>
               <Check size={18} className={styles.featureIconCheck} />
-              <span>Phỏng vấn tối đa <strong>10 phút / phiên</strong></span>
+              <span>Phỏng vấn tối đa 10 phút / phiên</span>
             </li>
             <li className={styles.featureItem}>
               <Check size={18} className={styles.featureIconCheck} />
-              <span>Đánh giá năng lực tổng quan theo chuẩn STAR</span>
+              <span>Đánh giá năng lực theo chuẩn STAR</span>
             </li>
             <li className={styles.featureItem}>
               <Check size={18} className={styles.featureIconCheck} />
-              <span>Bộ câu hỏi cơ bản cho vị trí Fresher & Junior</span>
+              <span>Câu hỏi cơ bản cho Fresher & Junior</span>
             </li>
             <li className={styles.featureItem}>
               <X size={18} className={styles.featureIconCross} />
-              <span className={styles.featureTextMuted}>Phân tích giọng nói WPM & phát hiện từ đệm</span>
+              <span className={styles.featureTextMuted}>Phân tích giọng nói WPM & từ đệm</span>
             </li>
             <li className={styles.featureItem}>
               <X size={18} className={styles.featureIconCross} />
-              <span className={styles.featureTextMuted}>Báo cáo kỹ năng PDF A4 có mã QR</span>
+              <span className={styles.featureTextMuted}>Xuất báo cáo PDF A4 có mã QR</span>
             </li>
           </ul>
 
           <Link href="/practice" className={`${styles.ctaBtn} ${styles.ctaSecondary}`}>
             Bắt đầu miễn phí ngay
+          </Link>
+        </div>
+
+        {/* 7-Day Sprint Plan */}
+        <div className={`${styles.card} ${styles.cardSprint}`}>
+          <div className={styles.sprintRibbon}>
+            <Flame size={13} /> Cấp tốc 7 ngày
+          </div>
+
+          <div className={styles.planHeader}>
+            <h2 className={styles.planName}>Cấp Tốc (7-Day Sprint)</h2>
+            <p className={styles.planDesc}>
+              Luyện phỏng vấn cấp tốc trong 7 ngày, tăng phản xạ và tự tin trước buổi phỏng vấn.
+            </p>
+          </div>
+
+          <div className={styles.priceRow}>
+            <span className={styles.priceAmount}>49.000 đ</span>
+            <span className={styles.pricePeriod}>/ 7 ngày</span>
+          </div>
+          <div className={styles.priceSubtextSprint}>
+            Chỉ ~7.000 đ/ngày • Không tự động gia hạn
+          </div>
+
+          <div className={styles.divider} />
+
+          <div className={styles.featuresTitle}>Đặc quyền gói Cấp Tốc:</div>
+          <ul className={styles.featuresList}>
+            <li className={styles.featureItem}>
+              <Check size={18} className={styles.featureIconCheck} />
+              <span><strong>30 lượt phỏng vấn AI</strong> trong 7 ngày</span>
+            </li>
+            <li className={styles.featureItem}>
+              <Check size={18} className={styles.featureIconCheck} />
+              <span>Không giới hạn thời lượng mỗi phiên</span>
+            </li>
+            <li className={styles.featureItem}>
+              <Check size={18} className={styles.featureIconCheck} />
+              <span>Phân tích giọng nói WPM & phát hiện từ đệm</span>
+            </li>
+            <li className={styles.featureItem}>
+              <Check size={18} className={styles.featureIconCheck} />
+              <span>Chấm điểm Rubric 3 tiêu chí & gợi ý STAR</span>
+            </li>
+            <li className={styles.featureItem}>
+              <Check size={18} className={styles.featureIconCheck} />
+              <span>Xuất báo cáo PDF A4 có mã QR bảo chứng</span>
+            </li>
+            <li className={styles.featureItem}>
+              <Check size={18} className={styles.featureIconCheck} />
+              <span>Mở khóa toàn bộ cấp bậc & câu hỏi phỏng vấn</span>
+            </li>
+          </ul>
+
+          <Link
+            href="/subscription/checkout?plan=sprint_7days"
+            className={`${styles.ctaBtn} ${styles.ctaSprint}`}
+          >
+            Bắt đầu Cấp Tốc 7 Ngày <ArrowRight size={18} />
           </Link>
         </div>
 
@@ -282,7 +325,7 @@ export default function PricingPage() {
           <div className={styles.planHeader}>
             <h2 className={styles.planName}>Chuyên Nghiệp (Pro Master)</h2>
             <p className={styles.planDesc}>
-              Dành cho ứng viên đang tích cực tìm việc và muốn tự tin phỏng vấn ở bất kỳ doanh nghiệp nào.
+              Rèn luyện chuyên sâu dài hạn, sẵn sàng cho mọi buổi phỏng vấn.
             </p>
           </div>
 
@@ -292,7 +335,7 @@ export default function PricingPage() {
           </div>
           <div className={styles.priceSubtext}>
             {isYearly
-              ? "Tương đương ~74.900 đ/tháng • Tặng thêm 300 lượt"
+              ? "Tương đương ~74.900 đ/tháng • Tiết kiệm 20%"
               : "Thanh toán linh hoạt theo từng tháng"}
           </div>
 
@@ -306,27 +349,23 @@ export default function PricingPage() {
             </li>
             <li className={styles.featureItem}>
               <Check size={18} className={styles.featureIconCheck} />
-              <span>Không giới hạn thời lượng mỗi phiên luyện tập</span>
+              <span>Không giới hạn thời lượng mỗi phiên</span>
             </li>
             <li className={styles.featureItem}>
               <Check size={18} className={styles.featureIconCheck} />
-              <span><strong>Phân tích giọng nói WPM</strong> & phát hiện từ đệm đa ngữ</span>
+              <span>Phân tích giọng nói WPM & phát hiện từ đệm</span>
             </li>
             <li className={styles.featureItem}>
               <Check size={18} className={styles.featureIconCheck} />
-              <span>Chấm điểm chi tiết <strong>Rubric 3 tiêu chí</strong> & câu trả lời mẫu</span>
+              <span>Chấm điểm Rubric 3 tiêu chí & câu trả lời mẫu</span>
             </li>
             <li className={styles.featureItem}>
               <Check size={18} className={styles.featureIconCheck} />
-              <span><strong>Xuất báo cáo PDF A4</strong> có mã QR chứng nhận năng lực</span>
+              <span>Xuất báo cáo PDF A4 có mã QR bảo chứng</span>
             </li>
             <li className={styles.featureItem}>
               <Check size={18} className={styles.featureIconCheck} />
-              <span>Kho câu hỏi phỏng vấn thực tế từ Google, Meta, Shopee, VNG</span>
-            </li>
-            <li className={styles.featureItem}>
-              <Check size={18} className={styles.featureIconCheck} />
-              <span>Hỗ trợ kỹ thuật ưu tiên 24/7 từ chuyên gia</span>
+              <span>Lưu trữ toàn bộ lịch sử phỏng vấn</span>
             </li>
           </ul>
 
@@ -339,66 +378,88 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Feature Comparison Table */}
+      {/* Feature Comparison Table (Collapsible by default) */}
       <section className={styles.tableSection}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>So sánh chi tiết tính năng</h2>
-          <p className={styles.sectionSubtitle}>
-            Xem xét sự khác biệt rõ rệt giữa gói Miễn Phí và gói Chuyên Nghiệp để đưa ra quyết định phù hợp nhất.
-          </p>
+        <div className={styles.toggleBtnWrapper}>
+          <button
+            type="button"
+            className={`${styles.tableToggleBtn} ${isTableExpanded ? styles.tableToggleBtnActive : ""}`}
+            onClick={() => setIsTableExpanded((prev) => !prev)}
+            aria-expanded={isTableExpanded}
+          >
+            <span>{isTableExpanded ? "Thu gọn bảng so sánh chi tiết" : "Xem bảng so sánh chi tiết tính năng"}</span>
+            <ChevronDown
+              size={18}
+              className={`${styles.toggleChevron} ${isTableExpanded ? styles.toggleChevronActive : ""}`}
+            />
+          </button>
         </div>
 
-        <div className={styles.tableWrapper}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Tính Năng</th>
-                <th>Gói Miễn Phí</th>
-                <th>Gói Pro</th>
-              </tr>
-            </thead>
-            <tbody>
-              {COMPARISON_GROUPS.map((group) => (
-                <tr key={group.category} className={styles.tableCategoryRow}>
-                  <td colSpan={3}>{group.category}</td>
+        {isTableExpanded && (
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Tính Năng</th>
+                  <th>Gói Miễn Phí</th>
+                  <th>Gói Cấp Tốc (7 Ngày)</th>
+                  <th>Gói Chuyên Nghiệp (Pro)</th>
                 </tr>
-              )).reduce<React.ReactNode[]>((acc, groupRow, idx) => {
-                const group = COMPARISON_GROUPS[idx];
-                acc.push(groupRow);
-                group.features.forEach((feature) => {
-                  acc.push(
-                    <tr key={feature.name} className={styles.tableRow}>
-                      <td className={styles.tableFeatureName}>{feature.name}</td>
-                      <td className={styles.tableColFree}>
-                        {typeof feature.free === "boolean" ? (
-                          feature.free ? (
-                            <Check size={18} className={styles.featureIconCheck} />
+              </thead>
+              <tbody>
+                {COMPARISON_GROUPS.map((group) => (
+                  <tr key={group.category} className={styles.tableCategoryRow}>
+                    <td colSpan={4}>{group.category}</td>
+                  </tr>
+                )).reduce<React.ReactNode[]>((acc, groupRow, idx) => {
+                  const group = COMPARISON_GROUPS[idx];
+                  acc.push(groupRow);
+                  group.features.forEach((feature) => {
+                    acc.push(
+                      <tr key={feature.name} className={styles.tableRow}>
+                        <td className={styles.tableFeatureName}>{feature.name}</td>
+                        <td className={styles.tableColFree}>
+                          {typeof feature.free === "boolean" ? (
+                            feature.free ? (
+                              <Check size={18} className={styles.featureIconCheck} />
+                            ) : (
+                              <X size={18} className={styles.featureIconCross} />
+                            )
                           ) : (
-                            <X size={18} className={styles.featureIconCross} />
-                          )
-                        ) : (
-                          feature.free
-                        )}
-                      </td>
-                      <td className={styles.tableColPro}>
-                        {typeof feature.pro === "boolean" ? (
-                          feature.pro ? (
-                            <Check size={18} className={styles.featureIconCheck} />
+                            feature.free
+                          )}
+                        </td>
+                        <td className={styles.tableColSprint}>
+                          {typeof feature.sprint === "boolean" ? (
+                            feature.sprint ? (
+                              <Check size={18} className={styles.featureIconCheck} />
+                            ) : (
+                              <X size={18} className={styles.featureIconCross} />
+                            )
                           ) : (
-                            <X size={18} className={styles.featureIconCross} />
-                          )
-                        ) : (
-                          feature.pro
-                        )}
-                      </td>
-                    </tr>
-                  );
-                });
-                return acc;
-              }, [])}
-            </tbody>
-          </table>
-        </div>
+                            feature.sprint
+                          )}
+                        </td>
+                        <td className={styles.tableColPro}>
+                          {typeof feature.pro === "boolean" ? (
+                            feature.pro ? (
+                              <Check size={18} className={styles.featureIconCheck} />
+                            ) : (
+                              <X size={18} className={styles.featureIconCross} />
+                            )
+                          ) : (
+                            feature.pro
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  });
+                  return acc;
+                }, [])}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       {/* FAQ Section */}

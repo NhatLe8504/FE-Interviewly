@@ -149,7 +149,7 @@ export default function PracticeSetupPage() {
   return (
     <div className={shared.shell}>
       <p className={shared.eyebrow}>Practice setup</p>
-      <h1 className={shared.title}>Configure your session</h1>
+      <h1 className={shared.title}>Configure <em>your session</em></h1>
       <p className={shared.sub}>
         Chọn vị trí ứng tuyển, cấp bậc chuyên môn và ngôn ngữ. Động cơ AI Coach sẽ thiết lập phiên phỏng vấn tương tác thực tế dựa trên lựa chọn của bạn.
       </p>

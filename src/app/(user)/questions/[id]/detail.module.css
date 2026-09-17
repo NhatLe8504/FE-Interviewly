@@ -90,16 +90,15 @@
 .badgeRole {
   background: rgba(33, 25, 20, 0.08);
   color: var(--ink);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .questionTitle {
   margin: 0;
   font-size: clamp(22px, 3.2vw, 32px);
-  font-weight: 800;
-  line-height: 1.45;
-  letter-spacing: -0.015em;
-  color: var(--ink);
+  font-weight: 550;
+  line-height: 1.25;
+  letter-spacing: -0.04em;
 }
 
 /* Tab Navigation */
@@ -167,7 +166,7 @@
 .sectionTitle {
   margin: 0 0 6px;
   font-size: 19px;
-  font-weight: 800;
+  font-weight: 600;
   color: var(--ink);
   display: flex;
   align-items: center;
@@ -247,7 +246,7 @@
 
 .starStepTitle {
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--ink);
 }
 
@@ -276,7 +275,7 @@
 
 .sampleAnswerTitle {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--accent-deep);
   display: flex;
   align-items: center;
@@ -336,13 +335,13 @@
 
 .rubricItemTitle {
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--ink);
 }
 
 .rubricItemWeight {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   padding: 3px 10px;
   border-radius: 999px;
   background: rgba(217, 130, 54, 0.14);
@@ -375,7 +374,7 @@
 
 .descriptorScore {
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -415,7 +414,7 @@
 
 .followUpBullet {
   color: var(--accent-warm);
-  font-weight: 800;
+  font-weight: 700;
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -448,7 +447,7 @@
 
 .actionTitle {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--ink);
 }
 
@@ -467,7 +466,7 @@
   background: var(--ink);
   color: #fffaf4;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
