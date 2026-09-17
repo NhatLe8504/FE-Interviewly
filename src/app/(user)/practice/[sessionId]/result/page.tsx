@@ -15,13 +15,13 @@ import {
   CheckCircle2,
   RefreshCw,
   Clock,
-  ArrowRight,
 } from "lucide-react";
 import { historyApi } from "@/services/historyApi";
 import { SessionResultData } from "@/types/analytics";
 import { SpeechQualityCard } from "@/components/analytics/SpeechQualityCard";
 import { StarBreakdownCard } from "@/components/analytics/StarBreakdownCard";
 import { AudioPlayerTurn } from "@/components/analytics/AudioPlayerTurn";
+import styles from "./result.module.css";
 
 export default function InterviewResultPage({
   params,
@@ -41,9 +41,10 @@ export default function InterviewResultPage({
       try {
         const res = await historyApi.getSessionResult(sessionId);
         setData(res);
-        // Expand first turn by default
+        // Expand first candidate turn by default or first turn
         if (res.turns.length > 0) {
-          setExpandedTurns({ [res.turns[0].turn_id]: true });
+          const firstCandidate = res.turns.find((t) => t.speaker === "candidate");
+          setExpandedTurns({ [firstCandidate ? firstCandidate.turn_id : res.turns[0].turn_id]: true });
         }
       } catch {
         // Fallback realistic presentation data if sessionId does not exist in DB yet
@@ -126,9 +127,9 @@ export default function InterviewResultPage({
 
   if (loading && !data) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center">
-        <RefreshCw className="w-8 h-8 animate-spin text-sky-400 mb-3" />
-        <p className="text-slate-400 text-sm">Đang tính toán bảng điểm và nhận xét AI...</p>
+      <div className={styles.loadingShell}>
+        <RefreshCw className={styles.loadingSpinner} />
+        <p className={styles.loadingText}>Đang tính toán bảng điểm và nhận xét AI...</p>
       </div>
     );
   }
@@ -137,28 +138,28 @@ export default function InterviewResultPage({
   const pdfUrl = historyApi.getPdfDownloadUrl(sessionId);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+    <div className={styles.shell}>
       {/* Header Result Bar */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 rounded-3xl bg-slate-900/80 border border-slate-800 backdrop-blur-md">
+      <div className={styles.headerCard}>
         <div>
-          <span className="text-xs font-semibold text-sky-400 uppercase tracking-wider">
+          <span className={styles.eyebrow}>
             Đánh Giá Phiên Phỏng Vấn #{sessionId}
           </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-100 mt-1 tracking-tight">
+          <h1 className={styles.title}>
             Kết Quả & Báo Cáo Kỹ Năng
           </h1>
-          <p className="text-slate-400 text-xs mt-1 flex items-center gap-2">
-            <Clock className="w-3.5 h-3.5" />
-            Trạng thái: Hoàn tất đánh giá đa tiêu chí Rubric
+          <p className={styles.meta}>
+            <Clock className="w-3.5 h-3.5 text-[#d98236]" />
+            <span>Trạng thái: Hoàn tất đánh giá đa tiêu chí Rubric</span>
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className={styles.actions}>
           <a
             href={pdfUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-semibold transition-all shadow-md shadow-sky-500/20"
+            className={styles.primaryBtn}
           >
             <Download className="w-4 h-4" />
             <span>Tải Báo Cáo PDF</span>
@@ -166,88 +167,86 @@ export default function InterviewResultPage({
 
           <Link
             href={`/practice/${sessionId}/report`}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors"
+            className={styles.ghostBtn}
           >
-            <FileText className="w-4 h-4 text-slate-400" />
+            <FileText className="w-4 h-4 text-[#8b4513]" />
             <span>Bản In Chuẩn A4</span>
           </Link>
 
           <Link
             href="/practice"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors"
+            className={styles.ghostBtn}
           >
-            <RotateCcw className="w-4 h-4" />
+            <RotateCcw className="w-4 h-4 text-[#8b4513]" />
             <span>Luyện phiên mới</span>
           </Link>
         </div>
       </div>
 
       {/* Overall Score & Readiness Badge */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className={styles.overviewGrid}>
         {/* Score Card */}
-        <div className="p-6 rounded-3xl bg-gradient-to-br from-sky-950/40 to-slate-900 border border-sky-500/30 flex flex-col items-center justify-center text-center">
-          <span className="text-xs text-slate-400 font-medium mb-2">Điểm Tổng Quát (Overall Score)</span>
-          <div className="text-5xl font-black text-sky-400 tracking-tight">
+        <div className={styles.scoreCard}>
+          <span className={styles.scoreLabel}>Điểm Tổng Quát (Overall Score)</span>
+          <div className={styles.scoreNumber}>
             {result.total_score}
-            <span className="text-lg font-normal text-slate-400 ml-1">/ 100</span>
+            <span className={styles.scoreMax}>/ 100</span>
           </div>
-          <div className="mt-4 px-3 py-1 rounded-full text-xs font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30 flex items-center gap-1.5">
-            <Award className="w-3.5 h-3.5 text-sky-400" />
+          <div className={styles.readinessBadge}>
+            <Award className="w-4 h-4 text-[#d98236]" />
             <span>{result.readiness_badge}</span>
           </div>
         </div>
 
         {/* 3-Criteria Rubric Breakdown */}
-        <div className="md:col-span-2 p-6 rounded-3xl bg-slate-900/80 border border-slate-800 flex flex-col justify-center space-y-4">
-          <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
+        <div className={styles.rubricCard}>
+          <h2 className={styles.rubricTitle}>
             Chi Tiết 3 Tiêu Chí Chấm Điểm Rubric
           </h2>
 
-          <div className="space-y-3">
-            <div>
-              <div className="flex items-center justify-between text-xs mb-1">
-                <span className="font-medium text-slate-300">Độ Rõ Ràng & Mạch Lạc (Clarity)</span>
-                <span className="font-bold text-sky-400">{result.clarity_score} / 100</span>
-              </div>
-              <div className="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-sky-500 transition-all duration-500"
-                  style={{ width: `${result.clarity_score}%` }}
-                />
-              </div>
+          <div className={styles.rubricRow}>
+            <div className={styles.rubricHead}>
+              <span className={styles.rubricName}>Độ Rõ Ràng & Mạch Lạc (Clarity)</span>
+              <span className={styles.rubricScore}>{result.clarity_score} / 100</span>
             </div>
-
-            <div>
-              <div className="flex items-center justify-between text-xs mb-1">
-                <span className="font-medium text-slate-300">Cấu Trúc Logic (Logical Structure)</span>
-                <span className="font-bold text-emerald-400">{result.structure_score} / 100</span>
-              </div>
-              <div className="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                  style={{ width: `${result.structure_score}%` }}
-                />
-              </div>
+            <div className={styles.progressBar}>
+              <div
+                className={styles.progressFill}
+                style={{ width: `${result.clarity_score}%` }}
+              />
             </div>
+          </div>
 
-            <div>
-              <div className="flex items-center justify-between text-xs mb-1">
-                <span className="font-medium text-slate-300">Dẫn Chứng Thực Tế (Concrete Evidence)</span>
-                <span className="font-bold text-amber-400">{result.evidence_score} / 100</span>
-              </div>
-              <div className="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-amber-500 transition-all duration-500"
-                  style={{ width: `${result.evidence_score}%` }}
-                />
-              </div>
+          <div className={styles.rubricRow}>
+            <div className={styles.rubricHead}>
+              <span className={styles.rubricName}>Cấu Trúc Logic (Logical Structure)</span>
+              <span className={styles.rubricScore}>{result.structure_score} / 100</span>
+            </div>
+            <div className={styles.progressBar}>
+              <div
+                className={styles.progressFill}
+                style={{ width: `${result.structure_score}%` }}
+              />
+            </div>
+          </div>
+
+          <div className={styles.rubricRow}>
+            <div className={styles.rubricHead}>
+              <span className={styles.rubricName}>Dẫn Chứng Thực Tế (Concrete Evidence)</span>
+              <span className={styles.rubricScore}>{result.evidence_score} / 100</span>
+            </div>
+            <div className={styles.progressBar}>
+              <div
+                className={styles.progressFill}
+                style={{ width: `${result.evidence_score}%` }}
+              />
             </div>
           </div>
         </div>
       </div>
 
       {/* Speech Quality & STAR Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className={styles.analyticsGrid}>
         <SpeechQualityCard
           wpm={result.speaking_pace_wpm}
           paceRating={result.pace_rating}
@@ -260,68 +259,63 @@ export default function InterviewResultPage({
       </div>
 
       {/* Detailed Turn-by-Turn Accordion Review */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
+      <div className={styles.turnsSection}>
+        <div className={styles.turnsHeader}>
           <div>
-            <h2 className="text-lg font-bold text-slate-100">Chi Tiết Từng Lượt Hỏi - Đáp & Nhận Xét</h2>
-            <p className="text-xs text-slate-400">Xem lại từng câu trả lời, nhận xét của AI và câu trả lời mẫu xuất sắc</p>
+            <h2 className={styles.turnsTitle}>Chi Tiết Từng Lượt Hỏi - Đáp & Nhận Xét</h2>
+            <p className={styles.turnsDesc}>Xem lại từng câu trả lời, nhận xét của AI và câu trả lời mẫu xuất sắc</p>
           </div>
-          <span className="text-xs text-slate-500">{result.turns.length} lượt tương tác</span>
+          <span className={styles.turnsCountBadge}>{result.turns.length} lượt tương tác</span>
         </div>
 
-        <div className="space-y-3">
+        <div className={styles.turnsList}>
           {result.turns.map((turn) => {
             const isExpanded = !!expandedTurns[turn.turn_id];
             const isCandidate = turn.speaker === "candidate";
 
             return (
-              <div
-                key={turn.turn_id}
-                className="rounded-2xl border border-slate-800 bg-slate-900/60 overflow-hidden transition-all"
-              >
+              <div key={turn.turn_id} className={styles.turnItem}>
                 <button
                   type="button"
                   onClick={() => toggleTurn(turn.turn_id)}
-                  className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-800/30 transition-colors"
+                  className={styles.turnHeaderBtn}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                        isCandidate
-                          ? "bg-sky-500/20 text-sky-400 border border-sky-500/30"
-                          : "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
+                      className={`${styles.speakerAvatar} ${
+                        isCandidate ? styles.avatarCandidate : styles.avatarAi
                       }`}
                     >
                       {isCandidate ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-slate-200">
+                    <div className="min-w-0">
+                      <div className={styles.turnMeta}>
+                        <span className={styles.turnSpeakerName}>
                           Lượt #{turn.turn_number} · {isCandidate ? "Ứng viên trả lời" : "AI Người phỏng vấn"}
                         </span>
                         {turn.overall_score !== null && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300">
+                          <span className={styles.turnScoreBadge}>
                             {turn.overall_score} điểm
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
+                      <p className={styles.turnPreview}>
                         {turn.message_text || "Không có nội dung văn bản"}
                       </p>
                     </div>
                   </div>
 
                   {isExpanded ? (
-                    <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" />
+                    <ChevronUp className="w-4 h-4 text-[#543a2a]/60 shrink-0" />
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                    <ChevronDown className="w-4 h-4 text-[#543a2a]/60 shrink-0" />
                   )}
                 </button>
 
                 {isExpanded && (
-                  <div className="p-4 pt-0 space-y-4 border-t border-slate-800/60 mt-1">
+                  <div className={styles.turnBody}>
                     {/* Message / Transcript text */}
-                    <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-xs text-slate-200 leading-relaxed">
+                    <div className={styles.transcriptBubble}>
                       {turn.message_text}
                     </div>
 
@@ -335,32 +329,32 @@ export default function InterviewResultPage({
 
                     {/* Feedback and Rubric Scores if candidate turn */}
                     {isCandidate && turn.feedback_text && (
-                      <div className="p-4 rounded-xl bg-sky-950/20 border border-sky-500/20 space-y-3">
-                        <div className="flex items-center gap-2 text-xs font-semibold text-sky-400">
-                          <Sparkles className="w-4 h-4" />
+                      <div className={styles.feedbackBox}>
+                        <div className={styles.feedbackHeader}>
+                          <Sparkles className="w-4 h-4 text-[#d98236]" />
                           <span>Nhận Xét Chi Tiết Của AI</span>
                         </div>
-                        <p className="text-xs text-slate-300 leading-relaxed">
+                        <p className={styles.feedbackText}>
                           {turn.feedback_text}
                         </p>
 
                         {/* Sub scores */}
-                        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-sky-500/10 text-center">
-                          <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                            <span className="text-[10px] text-slate-400 block">Rõ ràng</span>
-                            <span className="text-xs font-bold text-sky-400">
+                        <div className={styles.subScoreGrid}>
+                          <div className={styles.subScoreCard}>
+                            <span className={styles.subScoreLabel}>Rõ ràng</span>
+                            <span className={styles.subScoreVal}>
                               {turn.clarity_score ?? "-"}
                             </span>
                           </div>
-                          <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                            <span className="text-[10px] text-slate-400 block">Logic</span>
-                            <span className="text-xs font-bold text-emerald-400">
+                          <div className={styles.subScoreCard}>
+                            <span className={styles.subScoreLabel}>Logic</span>
+                            <span className={styles.subScoreVal}>
                               {turn.logic_score ?? "-"}
                             </span>
                           </div>
-                          <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                            <span className="text-[10px] text-slate-400 block">Dẫn chứng</span>
-                            <span className="text-xs font-bold text-amber-400">
+                          <div className={styles.subScoreCard}>
+                            <span className={styles.subScoreLabel}>Dẫn chứng</span>
+                            <span className={styles.subScoreVal}>
                               {turn.example_score ?? "-"}
                             </span>
                           </div>
@@ -370,12 +364,12 @@ export default function InterviewResultPage({
 
                     {/* AI Ideal Answer */}
                     {isCandidate && (turn.ideal_answer || turn.tips_text) && (
-                      <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-500/20 space-y-2">
-                        <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400">
-                          <CheckCircle2 className="w-4 h-4" />
+                      <div className={styles.idealBox}>
+                        <div className={styles.idealHeader}>
+                          <CheckCircle2 className="w-4 h-4 text-[#2e6b34]" />
                           <span>Câu Trả Lời Mẫu Xuất Sắc (AI Ideal Answer)</span>
                         </div>
-                        <p className="text-xs text-emerald-200/90 leading-relaxed">
+                        <p className={styles.idealText}>
                           {turn.ideal_answer || turn.tips_text}
                         </p>
                       </div>

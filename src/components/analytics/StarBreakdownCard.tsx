@@ -52,23 +52,23 @@ export function StarBreakdownCard({ analysis, className }: StarBreakdownCardProp
 
   return (
     <div
-      className={`rounded-2xl border border-slate-800 bg-slate-900/60 p-5 backdrop-blur-sm ${
+      className={`rounded-2xl border border-[rgba(106,72,49,0.14)] bg-white/75 backdrop-blur-md p-5 shadow-sm ${
         className || ""
       }`}
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
+          <div className="p-2 rounded-xl bg-[rgba(217,130,54,0.14)] text-[#8b4513]">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-semibold text-slate-100 text-sm">Cấu Trúc Trả Lời Chuẩn STAR</h3>
-            <p className="text-xs text-slate-400">Độ hoàn thiện 4 yếu tố phương pháp STAR</p>
+            <h3 className="font-bold text-[#211914] text-sm">Cấu Trúc Trả Lời Chuẩn STAR</h3>
+            <p className="text-xs text-[#543a2a]/70">Độ hoàn thiện 4 yếu tố phương pháp STAR</p>
           </div>
         </div>
         <div className="text-right">
-          <span className="text-xs text-slate-400">Mức độ đạt: </span>
-          <span className="text-sm font-bold text-amber-400">{percentage}%</span>
+          <span className="text-xs text-[#543a2a]/70">Mức độ đạt: </span>
+          <span className="text-sm font-extrabold text-[#8b4513]">{percentage}%</span>
         </div>
       </div>
 
@@ -78,31 +78,31 @@ export function StarBreakdownCard({ analysis, className }: StarBreakdownCardProp
             key={step.key}
             className={`p-3 rounded-xl border flex items-start gap-3 transition-colors ${
               step.achieved
-                ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-300"
-                : "bg-slate-950/40 border-slate-800 text-slate-400"
+                ? "bg-[rgba(240,250,242,0.85)] border-[rgba(46,107,52,0.25)]"
+                : "bg-white/60 border-[rgba(106,72,49,0.12)]"
             }`}
           >
             <div
               className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
                 step.achieved
-                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                  : "bg-slate-800 text-slate-400 border border-slate-700"
+                  ? "bg-[rgba(46,107,52,0.16)] text-[#2e6b34] border border-[rgba(46,107,52,0.3)]"
+                  : "bg-[rgba(106,72,49,0.08)] text-[#543a2a]/60 border border-[rgba(106,72,49,0.12)]"
               }`}
             >
               {step.letter}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-xs text-slate-200 truncate">
+                <span className={`font-bold text-xs truncate ${step.achieved ? "text-[#1b4520]" : "text-[#543a2a]/80"}`}>
                   {step.title}
                 </span>
                 {step.achieved ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-[#2e6b34] shrink-0" />
                 ) : (
-                  <XCircle className="w-4 h-4 text-slate-500 shrink-0" />
+                  <XCircle className="w-4 h-4 text-[#543a2a]/40 shrink-0" />
                 )}
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
+              <p className={`text-[11px] mt-0.5 leading-snug ${step.achieved ? "text-[#2e6b34]/80" : "text-[#543a2a]/60"}`}>
                 {step.desc}
               </p>
             </div>
