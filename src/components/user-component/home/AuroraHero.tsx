@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { preload } from "react-dom";
+import { useI18n } from "@/context/I18nContext";
 import styles from "./AuroraHero.module.css";
 
 const HERO_IMAGE =

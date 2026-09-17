@@ -1,32 +1,37 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { BarChart3, MessageSquareText, Target } from "lucide-react";
+import { useI18n } from "@/context/I18nContext";
 import styles from "../../../app/(user)/page.module.css";
-
-const practiceBenefits = [
-  {
-    icon: MessageSquareText,
-    eyebrow: "Adaptive conversations",
-    title: "Questions that follow your answer, not a script.",
-    copy: "Choose a role, field, level, and language. Your AI interviewer asks relevant follow-ups so each practice session feels closer to the real thing.",
-  },
-  {
-    icon: Target,
-    eyebrow: "Clear feedback",
-    title: "Know exactly what to improve next.",
-    copy: "Receive a practical rubric for clarity, structure, and evidence - with guidance to make your next response sharper.",
-  },
-  {
-    icon: BarChart3,
-    eyebrow: "Visible progress",
-    title: "Build confidence session by session.",
-    copy: "Keep your history, revisit feedback, and watch your interview skills improve over time instead of starting from scratch.",
-  },
-];
 
 export default function BenefitsSection() {
   const sectionRef = useRef<HTMLElement | null>(null);
+  const { t, locale } = useI18n();
+
+  const practiceBenefits = useMemo(
+    () => [
+      {
+        icon: MessageSquareText,
+        eyebrow: t.home.benefits.badge1,
+        title: t.home.benefits.title1,
+        copy: t.home.benefits.desc1,
+      },
+      {
+        icon: Target,
+        eyebrow: t.home.benefits.badge2,
+        title: t.home.benefits.title2,
+        copy: t.home.benefits.desc2,
+      },
+      {
+        icon: BarChart3,
+        eyebrow: t.home.benefits.badge3,
+        title: t.home.benefits.title3,
+        copy: t.home.benefits.desc3,
+      },
+    ],
+    [t]
+  );
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -61,9 +66,13 @@ export default function BenefitsSection() {
   return (
     <section className={styles.benefits} id="practice" ref={sectionRef}>
       <div className={styles.sectionHeading}>
-        <p className={styles.eyebrow}><span /> Practice with intention</p>
-        <h2>More than a list of questions.</h2>
-        <p>Interviewly gives you a structured practice loop that feels personal, useful, and easy to return to.</p>
+        <p className={styles.eyebrow}><span /> {locale === "vi" ? "Luyện tập có mục đích" : "Practice with intention"}</p>
+        <h2>{locale === "vi" ? "Hơn cả một danh sách câu hỏi thông thường." : "More than a list of questions."}</h2>
+        <p>
+          {locale === "vi"
+            ? "Interviewly mang đến cho bạn một vòng lặp rèn luyện phỏng vấn cá nhân hóa, thiết thực và dễ dàng duy trì."
+            : "Interviewly gives you a structured practice loop that feels personal, useful, and easy to return to."}
+        </p>
       </div>
       <div className={styles.benefitGrid}>
         {practiceBenefits.map(({ icon: Icon, eyebrow, title, copy }, index) => (
@@ -80,4 +89,3 @@ export default function BenefitsSection() {
     </section>
   );
 }
-

@@ -1,18 +1,39 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { FileText, Languages, Mic2, Sparkles } from "lucide-react";
+import { useI18n } from "@/context/I18nContext";
 import styles from "../../../app/(user)/page.module.css";
-
-const coachTools = [
-  { icon: Mic2, title: "Voice practice", copy: "Turn a spoken answer into useful coaching on pace and hesitation." },
-  { icon: Sparkles, title: "STAR support", copy: "Shape behavioral answers with a clear situation, task, action, and result." },
-  { icon: FileText, title: "Session reports", copy: "Leave each practice with a focused PDF report you can return to." },
-  { icon: Languages, title: "Vietnamese & English", copy: "Practice in the language that helps you prepare with confidence." },
-];
 
 export default function ToolsSection() {
   const sectionRef = useRef<HTMLElement | null>(null);
+  const { t, locale } = useI18n();
+
+  const coachTools = useMemo(
+    () => [
+      {
+        icon: Mic2,
+        title: t.home.tools.voiceTitle,
+        copy: t.home.tools.voiceDesc,
+      },
+      {
+        icon: Sparkles,
+        title: t.home.tools.starTitle,
+        copy: t.home.tools.starDesc,
+      },
+      {
+        icon: FileText,
+        title: t.home.tools.reportsTitle,
+        copy: t.home.tools.reportsDesc,
+      },
+      {
+        icon: Languages,
+        title: t.home.tools.bilingualTitle,
+        copy: t.home.tools.bilingualDesc,
+      },
+    ],
+    [t]
+  );
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -48,10 +69,14 @@ export default function ToolsSection() {
     <section ref={sectionRef} className={styles.toolsSection} id="tools">
       <div className={styles.toolsHeader}>
         <div>
-          <p className={styles.eyebrow}><span /> Designed around your growth</p>
-          <h2>Practice in the way that works for you.</h2>
+          <p className={styles.eyebrow}><span /> {t.home.tools.badge}</p>
+          <h2>{t.home.tools.title}</h2>
         </div>
-        <p>Every tool supports one goal: helping you deliver stronger, clearer answers when it is time to interview.</p>
+        <p>
+          {locale === "vi"
+            ? "Mọi công cụ đều hướng đến một mục tiêu: giúp bạn đưa ra câu trả lời mạnh mẽ, thuyết phục và lưu loát nhất."
+            : "Every tool supports one goal: helping you deliver stronger, clearer answers when it is time to interview."}
+        </p>
       </div>
       <div className={styles.toolGrid}>
         {coachTools.map(({ icon: Icon, title, copy }) => (
@@ -65,4 +90,3 @@ export default function ToolsSection() {
     </section>
   );
 }
-

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
+import { useI18n } from "@/context/I18nContext";
 import styles from "../../../app/(user)/page.module.css";
 
 export default function FinalCtaSection() {

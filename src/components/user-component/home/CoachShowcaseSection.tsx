@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { ArrowDown, Sparkles } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useI18n } from "@/context/I18nContext";
 import styles from "./CoachShowcaseSection.module.css";
 
 const coaches = [
@@ -90,6 +91,7 @@ const coaches = [
 ];
 
 export default function CoachShowcaseSection() {
+  const { t, locale } = useI18n();
   const sectionRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<HTMLElement | null>(null);
   const bigResultsWrapRef = useRef<HTMLDivElement | null>(null);
@@ -396,10 +398,10 @@ export default function CoachShowcaseSection() {
         <div className={styles.topHeader}>
           <div className={styles.stageEyebrow}>
             <span className={styles.eyebrowDot} />
-            ADAPTIVE COACHING PANEL
+            {t.home.showcase.eyebrow}
           </div>
           <a href="#teamGrid" className={styles.arrowPill}>
-            <span>Meet The Interview Crew</span>
+            <span>{t.home.showcase.meetCrew}</span>
             <span className={styles.ar}>
               <ArrowDown size={13} strokeWidth={2.5} />
             </span>
@@ -413,7 +415,7 @@ export default function CoachShowcaseSection() {
 
         <div ref={bigResultsWrapRef} className={styles.bigResultsWrap}>
           <div className={styles.bigResults} id="bigResults">
-            {"real results".split("").map((char, index) => (
+            {t.home.showcase.bigResults.split("").map((char: string, index: number) => (
               <span key={index} className={styles.letter}>
                 {char === " " ? "\u00A0" : char}
               </span>
@@ -444,7 +446,7 @@ export default function CoachShowcaseSection() {
           <div>
             <div className={styles.eyebrow}>
               <span className={styles.eyebrowDot} />
-              DOMAIN-SPECIFIC INTERVIEW EXPERTISE
+              {locale === "vi" ? "CHUYÊN MÔN PHỎNG VẤN THEO NGÀNH NGHỀ" : "DOMAIN-SPECIFIC INTERVIEW EXPERTISE"}
             </div>
             <h2>
               Adaptive interviews for<br />
@@ -477,7 +479,7 @@ export default function CoachShowcaseSection() {
           <div className={styles.statsIntro}>
             <div className={styles.statsTag}>
               <Sparkles size={14} />
-              <span>MEASURABLE INTELLIGENCE</span>
+              <span>{locale === "vi" ? "KẾT QUẢ ĐO LƯỜNG ĐƯỢC" : "MEASURABLE INTELLIGENCE"}</span>
             </div>
             <h3>
               Calibrated for<br />
@@ -490,7 +492,7 @@ export default function CoachShowcaseSection() {
               <span className={styles.numVal} data-count="94">0</span>
               <small>%</small>
             </div>
-            <div className={styles.lbl}>Interview Pass Rate</div>
+            <div className={styles.lbl}>{t.home.showcase.passRate}</div>
           </div>
 
           <div className={styles.statBlock}>
@@ -498,7 +500,7 @@ export default function CoachShowcaseSection() {
               <span className={styles.numVal} data-count="12800">0</span>
               <small>+</small>
             </div>
-            <div className={styles.lbl}>Simulated Sessions</div>
+            <div className={styles.lbl}>{t.home.showcase.sessionsCount}</div>
           </div>
 
           <div className={styles.statBlock}>
@@ -506,7 +508,7 @@ export default function CoachShowcaseSection() {
               <span className={styles.numVal} data-count="4.9">0</span>
               <small>/5</small>
             </div>
-            <div className={styles.lbl}>Rubric Precision Score</div>
+            <div className={styles.lbl}>{t.home.showcase.rubricPrecision}</div>
           </div>
         </div>
       </section>
