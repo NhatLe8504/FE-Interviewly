@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState, use } from "react";
 import Link from "next/link";
@@ -18,6 +18,7 @@ import {
 import { historyApi } from "@/services/historyApi";
 import { SessionDetailData } from "@/types/analytics";
 import { AudioPlayerTurn } from "@/components/analytics/AudioPlayerTurn";
+import { UserTooltip } from "@/components/user-component/common";
 
 export default function SessionDetailPage({
   params,
@@ -171,15 +172,16 @@ export default function SessionDetailPage({
               Xem báo cáo kết quả
             </Link>
 
-            <a
-              href={pdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-              title="Tải PDF"
-            >
-              <Download className="w-4 h-4" />
-            </a>
+            <UserTooltip content="Tải PDF">
+              <a
+                href={pdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+              </a>
+            </UserTooltip>
           </div>
         </div>
       </div>
