@@ -49,6 +49,79 @@ export interface Translations {
     appearance: string;
     language: string;
   };
+  home: {
+    skipToContent: string;
+    hero: {
+      eyebrow: string;
+      titleLine1: string;
+      titleLine2: string;
+      titleHighlight: string;
+      description: string;
+      startBtn: string;
+      exploreBtn: string;
+      formatLabel: string;
+      formatValue: string;
+      coachLabel: string;
+      coachValue: string;
+      scoringLabel: string;
+      scoringValue: string;
+      coverageLabel: string;
+      coverageValue: string;
+    };
+    introBand: {
+      title: string;
+      subtitle: string;
+    };
+    benefits: {
+      badge1: string;
+      title1: string;
+      desc1: string;
+      badge2: string;
+      title2: string;
+      desc2: string;
+      badge3: string;
+      title3: string;
+      desc3: string;
+    };
+    showcase: {
+      eyebrow: string;
+      meetCrew: string;
+      smallTeam: string;
+      bigResults: string;
+      domainTitle: string;
+      domainSubtitle: string;
+      passRate: string;
+      sessionsCount: string;
+      rubricPrecision: string;
+    };
+    tools: {
+      badge: string;
+      title: string;
+      voiceTitle: string;
+      voiceDesc: string;
+      starTitle: string;
+      starDesc: string;
+      reportsTitle: string;
+      reportsDesc: string;
+      bilingualTitle: string;
+      bilingualDesc: string;
+    };
+    steps: {
+      badge: string;
+      title: string;
+      step1Title: string;
+      step1Desc: string;
+      step2Title: string;
+      step2Desc: string;
+      step3Title: string;
+      step3Desc: string;
+    };
+    finalCta: {
+      eyebrow: string;
+      title: string;
+      button: string;
+    };
+  };
   header: {
     adminBadge: string;
     candidatePro: string;
