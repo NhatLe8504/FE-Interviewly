@@ -10,6 +10,9 @@ import styles from "./AuthPanel.module.css";
 
 export type AuthMode = "login" | "register";
 
+const DEFAULT_GOOGLE_CLIENT_ID =
+  "931631230905-0v425ou7p4h26232bl16u4hbq0oufgle.apps.googleusercontent.com";
+
 type AuthPanelProps = {
   initialMode: AuthMode;
   variant?: "page" | "modal";
@@ -76,7 +79,7 @@ export default function AuthPanel({
 
   // Initialize Google Identity Services (GSI)
   useEffect(() => {
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
     if (!clientId) return;
 
     const initGsi = () => {
@@ -190,8 +193,66 @@ export default function AuthPanel({
   };
 
   const handleFallbackGoogleClick = () => {
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
+
+    if (!clientId) {
+      setError("Chưa cấu hình Google Client ID. Vui lòng cấu hình .env.local.");
+      return;
+    }
+
     if (typeof window !== "undefined" && window.google?.accounts?.id) {
-      window.google.accounts.id.prompt();
+      try {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: async (response: { credential?: string }) => {
+            if (response.credential) {
+              try {
+                setLoading(true);
+                setError(null);
+                await googleLogin(response.credential);
+                setDone(true);
+                setSuccessMsg("Đăng nhập Google thành công! Đang chuyển hướng…");
+                setTimeout(() => {
+                  router.push("/practice");
+                }, 800);
+              } catch (err: any) {
+                console.error("Google auth backend error:", err);
+                const detail = err?.data?.detail;
+                const msg = typeof detail === "string" ? detail : (err?.message || "Đăng nhập Google thất bại.");
+                setError(msg);
+              } finally {
+                setLoading(false);
+              }
+            } else {
+              setError("Không nhận được token xác thực từ Google.");
+            }
+          },
+          error_callback: (err) => {
+            console.warn("Google GSI error:", err);
+          },
+          cancel_on_tap_outside: true,
+        });
+
+        window.google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            if (googleBtnRef.current) {
+              googleBtnRef.current.innerHTML = "";
+              window.google?.accounts.id.renderButton(googleBtnRef.current, {
+                type: "standard",
+                theme: "outline",
+                size: "large",
+                text: "continue_with",
+                shape: "pill",
+                width: 360,
+                logo_alignment: "left",
+              });
+              setGoogleReady(true);
+            }
+          }
+        });
+      } catch (err: any) {
+        setError(err?.message || "Không thể khởi tạo đăng nhập Google.");
+      }
     } else {
       setError("Google Identity SDK đang tải. Vui lòng thử lại sau giây lát.");
     }

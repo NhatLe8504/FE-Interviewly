@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { catalogApi } from "@/services/catalogApi";
+import { useI18n } from "@/context/I18nContext";
 import { interviewApi } from "@/services/interviewApi";
 import type { QuestionDetailOut } from "@/types/catalog";
 import { getDomainTheme } from "@/constants/domainThemes";
@@ -32,6 +33,7 @@ interface Props {
 
 export default function QuestionDetailClient({ questionId }: Props) {
   const router = useRouter();
+  const { locale, t } = useI18n();
 
   const [question, setQuestion] = useState<QuestionDetailOut | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -101,7 +103,7 @@ export default function QuestionDetailClient({ questionId }: Props) {
       <div className={styles.shell}>
         <div style={{ textAlign: "center", padding: "80px 0" }}>
           <Sparkles size={32} className="animate-spin" style={{ color: "var(--accent-warm)", margin: "0 auto 16px" }} />
-          <p style={{ fontWeight: 700, color: "var(--ink-soft)" }}>Đang tải chi tiết câu hỏi & khung STAR...</p>
+          <p style={{ fontWeight: 700, color: "var(--ink-soft)" }}>{t.questions.detail.loadingText}</p>
         </div>
       </div>
     );
@@ -113,12 +115,12 @@ export default function QuestionDetailClient({ questionId }: Props) {
         <div className={styles.backNav}>
           <Link href="/questions" className={styles.backBtn}>
             <ArrowLeft size={14} />
-            <span>Quay lại ngân hàng câu hỏi</span>
+            <span>{t.questions.detail.backToList}</span>
           </Link>
         </div>
         <div style={{ textAlign: "center", padding: "60px 0" }}>
-          <h2 style={{ fontSize: 22, fontWeight: 800 }}>Không tìm thấy câu hỏi</h2>
-          <p style={{ color: "var(--ink-soft)", marginTop: 8 }}>Câu hỏi bạn tìm kiếm có thể đã được cập nhật hoặc không tồn tại.</p>
+          <h2 style={{ fontSize: 22, fontWeight: 800 }}>{t.questions.detail.notFoundTitle}</h2>
+          <p style={{ color: "var(--ink-soft)", marginTop: 8 }}>{t.questions.detail.notFoundDesc}</p>
         </div>
       </div>
     );
@@ -133,12 +135,12 @@ export default function QuestionDetailClient({ questionId }: Props) {
       <div className={styles.backNav}>
         <Link href="/questions" className={styles.backBtn}>
           <ArrowLeft size={14} />
-          <span>Quay lại ngân hàng câu hỏi</span>
+          <span>{t.questions.detail.backToList}</span>
         </Link>
 
         <div className={styles.breadcrumbs}>
           <Link href="/questions" style={{ textDecoration: "none", color: "inherit" }}>
-            Ngân hàng câu hỏi
+            {t.questions.detail.breadcrumbRoot}
           </Link>
           <span className={styles.breadcrumbSeparator}>/</span>
           <span>{question.role_name || "Chuyên ngành"}</span>
@@ -172,17 +174,17 @@ export default function QuestionDetailClient({ questionId }: Props) {
                 </span>
               )}
               <span className={styles.badge} style={{ background: "rgba(59, 130, 246, 0.12)", color: "#1d4ed8" }}>
-                Cấp độ: {question.experience_level ? question.experience_level.toUpperCase() : "GENERAL"}
+                {locale === "vi" ? "Cấp độ:" : "Level:"} {question.experience_level ? question.experience_level.toUpperCase() : "GENERAL"}
               </span>
               <span className={styles.badge} style={{ background: "rgba(168, 85, 247, 0.12)", color: "#7e22ce" }}>
-                Dạng đề: {question.question_type ? question.question_type.toUpperCase() : "BEHAVIORAL"}
+                {locale === "vi" ? "Dạng đề:" : "Type:"} {question.question_type ? question.question_type.toUpperCase() : "BEHAVIORAL"}
               </span>
               <span className={styles.badge}>
                 {question.language === "vi" ? "🇻🇳 Tiếng Việt" : "🇺🇸 English"}
               </span>
             </div>
             <div style={{ fontSize: 12, fontWeight: 700, color: "var(--accent-deep)" }}>
-              ✦ Chuyên ngành: {theme.shortName}
+              ✦ {locale === "vi" ? "Chuyên ngành:" : "Domain:"} {theme.shortName}
             </div>
           </div>
         </div>
@@ -202,7 +204,7 @@ export default function QuestionDetailClient({ questionId }: Props) {
           className={`${styles.tabBtn} ${activeTab === "star" ? styles.tabBtnActive : ""}`}
         >
           <Sparkles size={15} />
-          <span>Khung trả lời STAR & Mẫu</span>
+          <span>{t.questions.detail.starTab}</span>
         </button>
 
         <button
@@ -213,7 +215,7 @@ export default function QuestionDetailClient({ questionId }: Props) {
           className={`${styles.tabBtn} ${activeTab === "rubric" ? styles.tabBtnActive : ""}`}
         >
           <Award size={15} />
-          <span>Tiêu chuẩn chấm điểm Rubric (4 Tiêu chí)</span>
+          <span>{t.questions.detail.rubricTab}</span>
         </button>
 
         <button
@@ -224,7 +226,7 @@ export default function QuestionDetailClient({ questionId }: Props) {
           className={`${styles.tabBtn} ${activeTab === "followup" ? styles.tabBtnActive : ""}`}
         >
           <HelpCircle size={15} />
-          <span>Câu hỏi đào sâu & Mẹo trả lời</span>
+          <span>{t.questions.detail.followupTab}</span>
         </button>
       </div>
 
@@ -234,11 +236,9 @@ export default function QuestionDetailClient({ questionId }: Props) {
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>
               <Sparkles size={20} style={{ color: "var(--accent-warm)" }} />
-              <span>{star?.title || "Hướng dẫn phương pháp STAR chuẩn quốc tế"}</span>
+              <span>{star?.title || t.questions.detail.starDefaultTitle}</span>
             </h2>
-            <p className={styles.sectionSubtitle}>
-              Phương pháp STAR (Situation - Task - Action - Result) giúp bạn cấu trúc câu chuyện thực tế một cách logic, thuyết phục và làm nổi bật vai trò cá nhân.
-            </p>
+            <p className={styles.sectionSubtitle}>{t.questions.detail.starExplanation}</p>
           </div>
 
           {/* 4 Steps Grid */}
@@ -247,11 +247,10 @@ export default function QuestionDetailClient({ questionId }: Props) {
             <div className={styles.starStepCard}>
               <div className={styles.starStepHeader}>
                 <div className={`${styles.starLetterBadge} ${styles.starLetterS}`}>S</div>
-                <div className={styles.starStepTitle}>Situation (Tình huống & Bối cảnh)</div>
+                <div className={styles.starStepTitle}>{t.questions.detail.starS}</div>
               </div>
               <p className={styles.starStepDesc}>
-                {star?.situation_guide ||
-                  "Mô tả ngắn gọn bối cảnh dự án, thời điểm xảy ra sự việc, quy mô hệ thống hoặc thử thách ban đầu mà bạn và đội ngũ phải đối mặt."}
+                {star?.situation_guide || t.questions.detail.starSDesc}
               </p>
             </div>
 
@@ -259,11 +258,10 @@ export default function QuestionDetailClient({ questionId }: Props) {
             <div className={styles.starStepCard}>
               <div className={styles.starStepHeader}>
                 <div className={`${styles.starLetterBadge} ${styles.starLetterT}`}>T</div>
-                <div className={styles.starStepTitle}>Task (Nhiệm vụ & Trách nhiệm)</div>
+                <div className={styles.starStepTitle}>{t.questions.detail.starT}</div>
               </div>
               <p className={styles.starStepDesc}>
-                {star?.task_guide ||
-                  "Nêu rõ trách nhiệm cụ thể của riêng bạn trong tình huống đó. Mục tiêu cần đạt được là gì và thời hạn (deadline) hoặc chỉ tiêu KPI đặt ra là gì?"}
+                {star?.task_guide || t.questions.detail.starTDesc}
               </p>
             </div>
 
@@ -271,11 +269,10 @@ export default function QuestionDetailClient({ questionId }: Props) {
             <div className={styles.starStepCard}>
               <div className={styles.starStepHeader}>
                 <div className={`${styles.starLetterBadge} ${styles.starLetterA}`}>A</div>
-                <div className={styles.starStepTitle}>Action (Hành động & Giải pháp)</div>
+                <div className={styles.starStepTitle}>{t.questions.detail.starA}</div>
               </div>
               <p className={styles.starStepDesc}>
-                {star?.action_guide ||
-                  "Trình bày chi tiết các bước bạn đã trực tiếp thực hiện: Phân tích nguyên nhân gốc rễ, công cụ kỹ thuật áp dụng, cách xử lý bất đồng và đưa ra quyết định."}
+                {star?.action_guide || t.questions.detail.starADesc}
               </p>
             </div>
 
@@ -283,11 +280,10 @@ export default function QuestionDetailClient({ questionId }: Props) {
             <div className={styles.starStepCard}>
               <div className={styles.starStepHeader}>
                 <div className={`${styles.starLetterBadge} ${styles.starLetterR}`}>R</div>
-                <div className={styles.starStepTitle}>Result (Kết quả & Bài học)</div>
+                <div className={styles.starStepTitle}>{t.questions.detail.starR}</div>
               </div>
               <p className={styles.starStepDesc}>
-                {star?.result_guide ||
-                  "Đưa ra con số định lượng cụ thể chứng minh kết quả: % cải thiện hiệu năng, giảm thời gian chết (downtime), doanh số mang lại và bài học đúc kết."}
+                {star?.result_guide || t.questions.detail.starRDesc}
               </p>
             </div>
           </div>
@@ -298,7 +294,7 @@ export default function QuestionDetailClient({ questionId }: Props) {
               <div className={styles.sampleAnswerHeader}>
                 <div className={styles.sampleAnswerTitle}>
                   <BookOpen size={16} />
-                  <span>Câu trả lời mẫu tham khảo (Model Answer)</span>
+                  <span>{t.questions.detail.modelAnswerTitle}</span>
                 </div>
                 <button
                   type="button"
@@ -309,12 +305,12 @@ export default function QuestionDetailClient({ questionId }: Props) {
                   {copied ? (
                     <>
                       <Check size={13} />
-                      <span>Đã sao chép!</span>
+                      <span>{t.questions.detail.copiedAnswer}</span>
                     </>
                   ) : (
                     <>
                       <Copy size={13} />
-                      <span>Sao chép mẫu</span>
+                      <span>{t.questions.detail.copyAnswer}</span>
                     </>
                   )}
                 </button>
@@ -333,11 +329,9 @@ export default function QuestionDetailClient({ questionId }: Props) {
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>
               <Award size={20} style={{ color: "var(--accent-warm)" }} />
-              <span>Thang đo Rubric chuẩn hóa năng lực</span>
+              <span>{t.questions.detail.rubricTitle}</span>
             </h2>
-            <p className={styles.sectionSubtitle}>
-              AI Interview Coach sử dụng 4 tiêu chí chuẩn hóa dưới đây để chấm điểm và cung cấp phản hồi chi tiết sau khi bạn hoàn thành câu trả lời.
-            </p>
+            <p className={styles.sectionSubtitle}>{t.questions.detail.rubricSubtitle}</p>
           </div>
 
           <div className={styles.rubricList}>
@@ -345,7 +339,7 @@ export default function QuestionDetailClient({ questionId }: Props) {
               <div key={criterion.criterion_id} className={styles.rubricItem}>
                 <div className={styles.rubricItemHeader}>
                   <span className={styles.rubricItemTitle}>{criterion.title}</span>
-                  <span className={styles.rubricItemWeight}>Trọng số: {criterion.weight}%</span>
+                  <span className={styles.rubricItemWeight}>{t.questions.detail.weightLabel} {criterion.weight}%</span>
                 </div>
                 <p className={styles.rubricItemDesc}>{criterion.description}</p>
 
@@ -390,11 +384,9 @@ export default function QuestionDetailClient({ questionId }: Props) {
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>
               <HelpCircle size={20} style={{ color: "var(--accent-warm)" }} />
-              <span>Câu hỏi đào sâu tiềm năng từ AI Interviewer</span>
+              <span>{t.questions.detail.followupTitle}</span>
             </h2>
-            <p className={styles.sectionSubtitle}>
-              Sau khi bạn kết thúc phần trình bày ban đầu, người phỏng vấn thường sẽ đào sâu vào các chi tiết kỹ thuật hoặc quyết định quan trọng.
-            </p>
+            <p className={styles.sectionSubtitle}>{t.questions.detail.followupSubtitle}</p>
           </div>
 
           <div className={styles.followUpList}>
@@ -413,7 +405,7 @@ export default function QuestionDetailClient({ questionId }: Props) {
             <div style={{ marginTop: 28 }}>
               <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                 <Lightbulb size={18} style={{ color: "var(--accent-warm)" }} />
-                <span>Mẹo phỏng vấn chuyên nghiệp</span>
+                <span>{t.questions.detail.proTipsTitle}</span>
               </h3>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {question.tips.map((tip, idx) => (
@@ -441,8 +433,8 @@ export default function QuestionDetailClient({ questionId }: Props) {
       {/* Sticky Bottom Action Bar */}
       <div className={styles.bottomActionBar}>
         <div className={styles.actionLeft}>
-          <div className={styles.actionTitle}>Sẵn sàng thử sức với câu hỏi này?</div>
-          <div className={styles.actionSub}>AI Coach sẽ lắng nghe, phân tích ngữ điệu và chấm điểm theo khung STAR.</div>
+          <div className={styles.actionTitle}>{t.questions.detail.stickyTitle}</div>
+          <div className={styles.actionSub}>{t.questions.detail.stickySub}</div>
         </div>
 
         <button
@@ -451,7 +443,7 @@ export default function QuestionDetailClient({ questionId }: Props) {
           className={styles.btnPracticePrimary}
         >
           <Sparkles size={16} />
-          <span>Luyện tập câu này ngay</span>
+          <span>{t.questions.detail.practiceNowBtn}</span>
           <ArrowRight size={14} />
         </button>
       </div>
@@ -469,7 +461,7 @@ export default function QuestionDetailClient({ questionId }: Props) {
             <div className={parentStyles.modalHeader}>
               <h3 className={parentStyles.modalTitle}>
                 <Sparkles size={20} style={{ color: "var(--accent-warm)" }} />
-                <span>Luyện tập câu hỏi này ngay</span>
+                <span>{t.questions.modal.title}</span>
               </h3>
               <button
                 type="button"
@@ -499,7 +491,7 @@ export default function QuestionDetailClient({ questionId }: Props) {
 
             <div>
               <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 800, color: "var(--ink)" }}>
-                Chọn phương thức phỏng vấn:
+                {t.questions.modal.selectModeTitle}
               </p>
               <div className={parentStyles.modeSelectGrid}>
                 <button
@@ -509,10 +501,10 @@ export default function QuestionDetailClient({ questionId }: Props) {
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13, color: "var(--ink)" }}>
                     <Keyboard size={16} />
-                    <span>Nhập văn bản (Text)</span>
+                    <span>{t.common.textMode}</span>
                   </div>
                   <span style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.5 }}>
-                    Rèn luyện tư duy cấu trúc logic và trình bày câu chữ.
+                    {t.questions.modal.textModeDesc}
                   </span>
                 </button>
 
@@ -523,10 +515,10 @@ export default function QuestionDetailClient({ questionId }: Props) {
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13, color: "var(--ink)" }}>
                     <Mic size={16} />
-                    <span>Nói trực tiếp (Voice)</span>
+                    <span>{t.common.voiceMode}</span>
                   </div>
                   <span style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.5 }}>
-                    Luyện phát âm, phản xạ giọng nói và đo tốc độ nói WPM.
+                    {t.questions.modal.voiceModeDesc}
                   </span>
                 </button>
               </div>
@@ -538,7 +530,7 @@ export default function QuestionDetailClient({ questionId }: Props) {
                 className={parentStyles.btnDetail}
                 onClick={() => setIsPracticeModalOpen(false)}
               >
-                Để sau
+                {t.questions.modal.laterBtn}
               </button>
               <button
                 type="button"
@@ -547,11 +539,11 @@ export default function QuestionDetailClient({ questionId }: Props) {
                 disabled={isStartingPractice}
               >
                 {isStartingPractice ? (
-                  <span>Đang khởi tạo phòng phỏng vấn...</span>
+                  <span>{t.questions.modal.startingBtn}</span>
                 ) : (
                   <>
                     <CheckCircle2 size={14} />
-                    <span>Vào phòng phỏng vấn ngay</span>
+                    <span>{t.questions.modal.startBtn}</span>
                   </>
                 )}
               </button>

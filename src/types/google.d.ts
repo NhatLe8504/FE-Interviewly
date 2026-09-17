@@ -10,6 +10,7 @@ declare global {
             callback: (response: { credential?: string; select_by?: string }) => void;
             auto_select?: boolean;
             cancel_on_tap_outside?: boolean;
+            error_callback?: (error: { type?: string; message?: string }) => void;
             context?: string;
             itp_support?: boolean;
           }) => void;

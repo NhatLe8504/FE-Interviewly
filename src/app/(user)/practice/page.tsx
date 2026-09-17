@@ -17,9 +17,11 @@ import {
   CatalogRole,
   SubscriptionQuota,
 } from "@/services/interviewApi";
+import { useI18n } from "@/context/I18nContext";
 import shared from "./shared.module.css";
 
 export default function PracticeSetupPage() {
+  const { t, locale } = useI18n();
   const router = useRouter();
 
   // Dynamic Catalog State
@@ -169,7 +171,7 @@ export default function PracticeSetupPage() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <ShieldCheck size={18} color={quota.can_start ? "#ea580c" : "#dc2626"} />
             <span style={{ fontSize: "13px", color: "#1f2937", fontWeight: "600" }}>
-              Gói hiện tại: <strong>{quota.plan.toUpperCase()}</strong> (Đã dùng {quota.used_interviews}/{quota.limit_interviews} lượt trong tháng)
+              {t.practice.quotaBanner.currentPlan} <strong>{quota.plan.toUpperCase()}</strong> ({t.practice.quotaBanner.used} {quota.used_interviews}/{quota.limit_interviews} {t.practice.quotaBanner.inMonth})
             </span>
           </div>
           {quota.plan === "free" && (
@@ -182,7 +184,7 @@ export default function PracticeSetupPage() {
                 textDecoration: "none",
               }}
             >
-              Nâng cấp Pro không giới hạn →
+              {t.practice.quotaBanner.upgradePro}
             </Link>
           )}
         </div>
@@ -197,7 +199,7 @@ export default function PracticeSetupPage() {
         <div className={shared.grid2}>
           {/* Domain selection */}
           <label className={shared.field}>
-            <span className={shared.fieldLabel}>Ngành nghề (Domain)</span>
+            <span className={shared.fieldLabel}>{t.practice.targetCard.domainLabel}</span>
             <select
               className={shared.select}
               value={selectedDomainId}
@@ -233,7 +235,7 @@ export default function PracticeSetupPage() {
 
           {/* Level selection */}
           <label className={shared.field}>
-            <span className={shared.fieldLabel}>Cấp bậc kinh nghiệm (Level)</span>
+            <span className={shared.fieldLabel}>{t.practice.targetCard.levelLabel}</span>
             <select
               className={shared.select}
               value={levelId}
@@ -249,7 +251,7 @@ export default function PracticeSetupPage() {
 
           {/* Language selection */}
           <label className={shared.field}>
-            <span className={shared.fieldLabel}>Ngôn ngữ phỏng vấn (Language)</span>
+            <span className={shared.fieldLabel}>{t.practice.targetCard.languageLabel}</span>
             <select
               className={shared.select}
               value={languageId}
@@ -314,11 +316,11 @@ export default function PracticeSetupPage() {
             {isStarting ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
-                <span>Đang khởi tạo phòng phỏng vấn…</span>
+                <span>{t.practice.modeCard.startingBtn}</span>
               </>
             ) : (
               <>
-                <span>Bắt đầu phỏng vấn ngay</span>
+                <span>{t.practice.modeCard.startBtn}</span>
                 <ArrowRight size={16} />
               </>
             )}
@@ -395,7 +397,7 @@ export default function PracticeSetupPage() {
                 }}
               >
                 <Sparkles size={16} />
-                <span>Nâng cấp Pro ngay (Chỉ từ 99k/tháng)</span>
+                <span>{t.practice.quotaModal.upgradeBtn}</span>
               </Link>
 
               <button
