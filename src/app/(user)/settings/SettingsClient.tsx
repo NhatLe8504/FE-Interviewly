@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
+import { CrownAvatar } from "@/components/user-component/common";
+import { useUserSubscription } from "@/hooks/useUserSubscription";
 import { profileApi } from "@/services/profileApi";
 import { ApiError } from "@/services/apiClient";
 import { UserTooltip } from "@/components/user-component/common";
@@ -35,6 +37,7 @@ type TabKey = "general" | "interview" | "notifications" | "security";
 export default function SettingsClient() {
   const { user, isAuthenticated, logout } = useAuth();
   const { locale: lang, setLocale, t } = useI18n();
+  const { isSubscribed } = useUserSubscription();
 
   const [activeTab, setActiveTab] = useState<TabKey>("general");
 
@@ -323,7 +326,7 @@ export default function SettingsClient() {
               {isAuthenticated && user && (
                 <div className={styles.userBadgeRow}>
                   <div className={styles.userBadgeLeft}>
-                    <div className={styles.userBadgeAvatar}>{initials}</div>
+                    <CrownAvatar size="md" initials={initials} isSubscribed={isSubscribed} />
                     <div>
                       <div style={{ fontWeight: 800, fontSize: 16, color: "var(--ink)" }}>
                         {user.full_name}
