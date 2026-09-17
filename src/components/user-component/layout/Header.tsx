@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useLayoutEffect, useRef, useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
+import { CrownAvatar } from "@/components/user-component/common";
+import { useUserSubscription } from "@/hooks/useUserSubscription";
 import {
   MoreVertical,
   User,
@@ -35,6 +37,7 @@ export default function Header() {
   const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuth();
   const { locale: lang, toggleLocale: toggleLang } = useI18n();
+  const { isSubscribed } = useUserSubscription();
 
   const navRef = useRef<HTMLElement>(null);
   const dropletRef = useRef<HTMLSpanElement>(null);
@@ -211,7 +214,7 @@ export default function Header() {
               aria-haspopup="true"
               aria-label="User navigation menu"
             >
-              <span className={styles.userAvatar}>{initials}</span>
+              <CrownAvatar size="sm" initials={initials} isSubscribed={isSubscribed} />
               <span className={styles.userName}>{user.full_name}</span>
               <span className={styles.menuIconBtn}>
                 <MoreVertical size={14} />
@@ -222,12 +225,16 @@ export default function Header() {
               <div className={styles.dropdownMenu} role="menu">
                 {/* User Info Header */}
                 <div className={styles.dropdownHeader}>
-                  <div className={styles.dropdownHeaderAvatar}>{initials}</div>
+                  <CrownAvatar size="md" initials={initials} isSubscribed={isSubscribed} />
                   <div className={styles.dropdownHeaderInfo}>
                     <span className={styles.dropdownHeaderName}>{user.full_name}</span>
                     <span className={styles.dropdownHeaderEmail}>{user.email}</span>
                     <span className={styles.dropdownRoleBadge}>
-                      {user.role === "admin" ? "Administrator" : "Candidate Pro"}
+                      {user.role === "admin"
+                        ? "Administrator"
+                        : isSubscribed
+                        ? (lang === "vi" ? "👑 Hội viên Pro" : "👑 Pro Member")
+                        : (lang === "vi" ? "Ứng viên Free" : "Free Candidate")}
                     </span>
                   </div>
                 </div>

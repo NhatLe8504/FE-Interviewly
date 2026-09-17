@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
+import { CrownAvatar } from "@/components/user-component/common";
+import { useUserSubscription } from "@/hooks/useUserSubscription";
 import { profileApi } from "@/services/profileApi";
 import { ApiError } from "@/services/apiClient";
 import { UserTooltip } from "@/components/user-component/common";
@@ -64,6 +66,7 @@ const SINE_FACTORS = [0.4, 0.7, 1.0, 0.8, 0.6, 0.9, 1.2, 0.7, 0.5, 0.8, 1.1, 0.9
 export default function ProfileClient() {
   const { user, isAuthenticated, isLoading: isAuthLoading, refreshUser } = useAuth();
   const { locale, t } = useI18n();
+  const { isSubscribed } = useUserSubscription();
 
   // Dynamic experience options based on locale
   const experienceOptions = useMemo(
