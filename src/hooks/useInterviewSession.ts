@@ -59,7 +59,7 @@ export function useInterviewSession(sessionId: string): UseInterviewSessionRetur
 
   const [turns, setTurns] = useState<InterviewTurnItem[]>([]);
   const [turnNumber, setTurnNumber] = useState(1);
-  const [totalEstimatedTurns] = useState(4);
+  const [totalEstimatedTurns, setTotalEstimatedTurns] = useState(4);
   const [currentQuestion, setCurrentQuestion] = useState("");
   const [currentStarTip, setCurrentStarTip] = useState("");
   const [aiState, setAiState] = useState<AiStageState>("speaking");
