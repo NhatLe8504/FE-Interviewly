@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="gh" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#022c22"/>
+      <stop offset="50%" stop-color="#065f46"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="200" fill="url(#gh)"/>
+  <circle cx="330" cy="50" r="90" fill="#34d399" opacity="0.4" filter="blur(35px)"/>
+  <rect x="50" y="35" width="300" height="135" rx="14" fill="#061c16" opacity="0.85" stroke="#047857" stroke-width="1.5"/>
+  <!-- Avatars mockup -->
+  <circle cx="110" cy="85" r="22" fill="#10b981"/>
+  <circle cx="110" cy="79" r="8" fill="#ecfdf5"/>
+  <path d="M 94 100 Q 110 88 126 100 Z" fill="#ecfdf5"/>
+  <circle cx="200" cy="85" r="22" fill="#34d399"/>
+  <circle cx="200" cy="79" r="8" fill="#064e3b"/>
+  <path d="M 184 100 Q 200 88 216 100 Z" fill="#064e3b"/>
+  <circle cx="290" cy="85" r="22" fill="#6ee7b7"/>
+  <circle cx="290" cy="79" r="8" fill="#022c22"/>
+  <path d="M 274 100 Q 290 88 306 100 Z" fill="#022c22"/>
+  <rect x="85" y="125" width="50" height="6" rx="3" fill="#a7f3d0"/>
+  <rect x="175" y="125" width="50" height="6" rx="3" fill="#a7f3d0"/>
+  <rect x="265" y="125" width="50" height="6" rx="3" fill="#a7f3d0"/>
+</svg>
