@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
@@ -30,7 +30,7 @@ import type {
   QuestionFilterParams,
 } from "@/types/catalog";
 import { getDomainTheme, getLocalizedDomainName, getLocalizedRoleName } from "@/constants/domainThemes";
-import { UserPagination, SimpleUserSelect } from "@/components/user-component/common";
+import { UserPagination, SimpleUserSelect, UserTooltip } from "@/components/user-component/common";
 import {
   ShoppingBasket,
   Plus,
@@ -477,17 +477,18 @@ export default function QuestionExplorerClient() {
             placeholder={t.questions.searchPlaceholder}
           />
           {searchQuery && (
-            <button
-              type="button"
-              className={styles.clearSearchBtn}
-              onClick={() => {
-                setSearchQuery("");
-                setCurrentPage(1);
-              }}
-              title="Xóa tìm kiếm"
-            >
-              <X size={16} />
-            </button>
+            <UserTooltip content="Xóa tìm kiếm">
+              <button
+                type="button"
+                className={styles.clearSearchBtn}
+                onClick={() => {
+                  setSearchQuery("");
+                  setCurrentPage(1);
+                }}
+              >
+                <X size={16} />
+              </button>
+            </UserTooltip>
           )}
         </div>
 
@@ -689,33 +690,37 @@ export default function QuestionExplorerClient() {
                   </Link>
 
                                     {/* Nút Thêm vào giỏ đề (icon +, không chữ) */}
-                  <button
-                    type="button"
-                    onClick={() => handleToggleQuestionInBasket(q)}
-                    className={`${basketStyles.btnPickToBasket} ${
-                      isQuestionInBasket(q.question_id) ? basketStyles.btnPickToBasketActive : ""
-                    } ${
-                      lockedDomainId !== null && q.domain_id !== lockedDomainId && !isQuestionInBasket(q.question_id)
-                        ? basketStyles.btnPickToBasketRejected
-                        : ""
-                    }`}
-                    title={
+                  <UserTooltip
+                    content={
                       isQuestionInBasket(q.question_id)
                         ? "Đã có trong giỏ (Bấm để bỏ)"
                         : lockedDomainId !== null && q.domain_id !== lockedDomainId
                         ? `Khác ngành (${lockedDomainName}) - Bấm sẽ bị từ chối!`
                         : "Thêm vào giỏ đề"
                     }
-                    aria-label={isQuestionInBasket(q.question_id) ? "Đã trong giỏ đề" : "Thêm vào giỏ đề"}
+                    side="top"
                   >
-                    {isQuestionInBasket(q.question_id) ? (
-                      <Check size={16} />
-                    ) : lockedDomainId !== null && q.domain_id !== lockedDomainId ? (
-                      <AlertTriangle size={15} />
-                    ) : (
-                      <Plus size={16} />
-                    )}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleQuestionInBasket(q)}
+                      className={`${basketStyles.btnPickToBasket} ${
+                        isQuestionInBasket(q.question_id) ? basketStyles.btnPickToBasketActive : ""
+                      } ${
+                        lockedDomainId !== null && q.domain_id !== lockedDomainId && !isQuestionInBasket(q.question_id)
+                          ? basketStyles.btnPickToBasketRejected
+                          : ""
+                      }`}
+                      aria-label={isQuestionInBasket(q.question_id) ? "Đã trong giỏ đề" : "Thêm vào giỏ đề"}
+                    >
+                      {isQuestionInBasket(q.question_id) ? (
+                        <Check size={16} />
+                      ) : lockedDomainId !== null && q.domain_id !== lockedDomainId ? (
+                        <AlertTriangle size={15} />
+                      ) : (
+                        <Plus size={16} />
+                      )}
+                    </button>
+                  </UserTooltip>
 
                   <button
                     type="button"
