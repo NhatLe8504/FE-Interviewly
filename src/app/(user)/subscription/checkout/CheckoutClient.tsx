@@ -25,7 +25,7 @@ import {
 import styles from "./checkout.module.css";
 import { useAuth } from "@/context/AuthContext";
 
-type BillingCycle = "monthly" | "yearly";
+type BillingCycle = "weekly" | "monthly" | "yearly";
 type PaymentMethod = "qr" | "atm" | "card" | "momo";
 
 export function CheckoutClient() {
@@ -35,9 +35,20 @@ export function CheckoutClient() {
 
   // Plan state (monthly vs yearly)
   const initialPlanParam = searchParams.get("plan");
-  const [cycle, setCycle] = useState<BillingCycle>(
-    initialPlanParam === "pro_yearly" || initialPlanParam === "yearly" ? "yearly" : "monthly"
-  );
+  const [cycle, setCycle] = useState<BillingCycle>(() => {
+    if (
+      initialPlanParam === "sprint_7days" ||
+      initialPlanParam === "pro_weekly" ||
+      initialPlanParam === "weekly" ||
+      initialPlanParam === "7days"
+    ) {
+      return "weekly";
+    }
+    if (initialPlanParam === "pro_yearly" || initialPlanParam === "yearly") {
+      return "yearly";
+    }
+    return "monthly";
+  });
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("qr");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -65,15 +76,15 @@ export function CheckoutClient() {
   };
 
   // Pricing calculations
-  const price = cycle === "monthly" ? 99000 : 899000;
-  const originalPrice = cycle === "monthly" ? 149000 : 1188000;
+  const price = cycle === "weekly" ? 49000 : cycle === "monthly" ? 99000 : 899000;
+  const originalPrice = cycle === "weekly" ? 79000 : cycle === "monthly" ? 149000 : 1188000;
   const discountAmount = originalPrice - price;
   const formattedPrice = new Intl.NumberFormat("vi-VN").format(price) + " đ";
   const formattedOriginalPrice = new Intl.NumberFormat("vi-VN").format(originalPrice) + " đ";
 
   // Bank transfer info
   const bankInfo = useMemo(() => {
-    const transferContent = `${orderCode} PRO`;
+    const transferContent = `${orderCode} ${cycle === "weekly" ? "SPRINT" : "PRO"}`;
     return {
       bankName: "MB Bank (Ngân hàng Quân Đội)",
       bankShortName: "MB",
@@ -140,6 +151,14 @@ export function CheckoutClient() {
 
           {/* Billing Cycle Switcher */}
           <div className={styles.planSwitcher}>
+            <button
+              type="button"
+              className={`${styles.planOption} ${cycle === "weekly" ? styles.planOptionActive : ""}`}
+              onClick={() => setCycle("weekly")}
+            >
+              <span>Gói 7 Ngày (49.000 đ)</span>
+              <span className={styles.sprintBadge}>Cấp tốc</span>
+            </button>
             <button
               type="button"
               className={`${styles.planOption} ${cycle === "monthly" ? styles.planOptionActive : ""}`}
@@ -421,10 +440,14 @@ export function CheckoutClient() {
             <div className={styles.summaryHeader}>
               <div className={styles.planCardHeader}>
                 <span className={styles.planName}>
-                  {cycle === "monthly" ? "Interviewly PRO (Tháng)" : "Interviewly PRO (1 Năm)"}
+                  {cycle === "weekly"
+                    ? "Interviewly PRO (7 Ngày Cấp Tốc)"
+                    : cycle === "monthly"
+                    ? "Interviewly PRO (Tháng)"
+                    : "Interviewly PRO (1 Năm)"}
                 </span>
                 <span className={styles.planBadge}>
-                  {cycle === "monthly" ? "Gói phổ biến" : "Tiết kiệm 25%"}
+                  {cycle === "weekly" ? "Gói cấp tốc" : cycle === "monthly" ? "Gói phổ biến" : "Tiết kiệm 25%"}
                 </span>
               </div>
 
@@ -432,7 +455,7 @@ export function CheckoutClient() {
                 <span className={styles.originalPrice}>{formattedOriginalPrice}</span>
                 <span className={styles.priceAmount}>{formattedPrice}</span>
                 <span className={styles.pricePeriod}>
-                  {cycle === "monthly" ? "/ tháng" : "/ năm"}
+                  {cycle === "weekly" ? "/ 7 ngày" : cycle === "monthly" ? "/ tháng" : "/ năm"}
                 </span>
               </div>
             </div>
@@ -444,7 +467,7 @@ export function CheckoutClient() {
             <ul className={styles.featureList}>
               <li className={styles.featureItem}>
                 <div className={styles.featureIcon}><Check size={12} /></div>
-                <span><strong>Không giới hạn</strong> lượt phỏng vấn AI đa ngành nghề</span>
+                <span><strong>{cycle === "weekly" ? "35 lượt phỏng vấn AI cấp tốc" : "Không giới hạn"}</strong> {cycle === "weekly" ? "trong 7 ngày phỏng vấn gấp" : "lượt phỏng vấn AI đa ngành nghề"}</span>
               </li>
               <li className={styles.featureItem}>
                 <div className={styles.featureIcon}><Check size={12} /></div>

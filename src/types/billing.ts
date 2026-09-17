@@ -1,4 +1,4 @@
-export type BillingCycle = "free" | "monthly" | "yearly";
+export type BillingCycle = "free" | "weekly" | "monthly" | "yearly";
 
 export interface PlanFeatureLimits {
   interview_turns?: number;
@@ -64,3 +64,4 @@ export interface QuotaInfo {
   remaining_quota: number;
   feature: string;
 }
+

@@ -26,9 +26,10 @@
 
 .title {
   font-size: clamp(26px, 4vw, 36px);
-  font-weight: 800;
-  color: #111827;
-  letter-spacing: -0.02em;
+  font-weight: 550;
+  color: var(--ink, #211914);
+  letter-spacing: -0.05em;
+  line-height: 1.1;
   margin: 0 0 10px;
 }
 
@@ -66,8 +67,8 @@
 
 .cardTitle {
   font-size: 18px;
-  font-weight: 800;
-  color: #111827;
+  font-weight: 600;
+  color: var(--ink, #211914);
   margin: 0 0 6px;
   display: flex;
   align-items: center;
@@ -108,15 +109,24 @@
 
 .planOptionActive {
   background: #ffffff;
-  color: #111827;
+  color: var(--ink, #211914);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.sprintBadge {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
 }
 
 .discountBadge {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #ffffff;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   padding: 2px 8px;
   border-radius: 999px;
 }
@@ -184,7 +194,7 @@
 .methodTitle {
   font-size: 14px;
   font-weight: 700;
-  color: #111827;
+  color: var(--ink, #211914);
   margin: 0 0 2px;
 }
 
@@ -201,7 +211,7 @@
   background: linear-gradient(135deg, #ff7a45 0%, #ff4d4f 100%);
   color: #ffffff;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
   padding: 2px 8px;
   border-radius: 999px;
   letter-spacing: 0.02em;
@@ -299,7 +309,7 @@
   align-items: center;
   gap: 8px;
   font-weight: 700;
-  color: #111827;
+  color: var(--ink, #211914);
 }
 
 .copyButton {
@@ -372,7 +382,7 @@
   background: #f3f4f6;
   color: #374151;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -455,8 +465,8 @@
 
 .planName {
   font-size: 20px;
-  font-weight: 800;
-  color: #111827;
+  font-weight: 600;
+  color: var(--ink, #211914);
 }
 
 .planBadge {
@@ -478,7 +488,7 @@
 .priceAmount {
   font-size: 32px;
   font-weight: 900;
-  color: #111827;
+  color: var(--ink, #211914);
   letter-spacing: -0.02em;
 }
 
@@ -552,8 +562,8 @@
   padding-top: 12px;
   border-top: 1px solid #e5e7eb;
   font-size: 16px;
-  font-weight: 800;
-  color: #111827;
+  font-weight: 700;
+  color: var(--ink, #211914);
 }
 
 .totalHighlight {
@@ -622,7 +632,7 @@
 
 .closeButton:hover {
   background: #e5e7eb;
-  color: #111827;
+  color: var(--ink, #211914);
 }
 
 .successIconBadge {
@@ -648,15 +658,15 @@
   background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
   color: #ffffff;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   margin-bottom: 14px;
   box-shadow: 0 4px 14px rgba(217, 119, 6, 0.3);
 }
 
 .modalTitle {
   font-size: 24px;
-  font-weight: 800;
-  color: #111827;
+  font-weight: 600;
+  color: var(--ink, #211914);
   margin: 0 0 8px;
 }
 
@@ -690,7 +700,7 @@
 
 .receiptValue {
   font-weight: 700;
-  color: #111827;
+  color: var(--ink, #211914);
 }
 
 .modalActions {
