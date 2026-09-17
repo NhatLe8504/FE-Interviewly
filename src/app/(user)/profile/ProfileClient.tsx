@@ -35,6 +35,7 @@ import type {
   ExperienceLevel,
   PreferredLanguage,
 } from "@/types/profile";
+import { SimpleUserSelect } from "@/components/user-component/common";
 import styles from "./profile.module.css";
 
 const PRESET_AVATARS = [
@@ -84,6 +85,17 @@ export default function ProfileClient() {
       { id: 4, label: locale === "vi" ? "Tiếp thị & Tăng trưởng (Marketing & Growth)" : "Marketing & Growth" },
     ],
     [locale]
+  );
+
+  const domainSelectOptions = useMemo(
+    () => [
+      { value: "", label: t.profile.careerTab.selectDomainPlaceholder },
+      ...domainOptions.map((domain) => ({
+        value: String(domain.id),
+        label: domain.label,
+      })),
+    ],
+    [domainOptions, t]
   );
 
   // Profile server data
@@ -848,22 +860,16 @@ export default function ProfileClient() {
                 <label className={styles.fieldLabel} htmlFor="target_domain_id">
                   <span>{t.profile.careerTab.targetDomainLabel}</span>
                 </label>
-                <select
+                <SimpleUserSelect
                   id="target_domain_id"
-                  className={styles.select}
-                  value={targetDomainId || ""}
-                  onChange={(e) => {
-                    const val = e.target.value ? Number(e.target.value) : null;
-                    setTargetDomainId(val);
+                  value={targetDomainId ? String(targetDomainId) : ""}
+                  onChange={(val) => {
+                    setTargetDomainId(val ? Number(val) : null);
                   }}
-                >
-                  <option value="">{t.profile.careerTab.selectDomainPlaceholder}</option>
-                  {domainOptions.map((domain) => (
-                    <option key={domain.id} value={domain.id}>
-                      {domain.label}
-                    </option>
-                  ))}
-                </select>
+                  options={domainSelectOptions}
+                  placeholder={t.profile.careerTab.selectDomainPlaceholder}
+                  aria-label={t.profile.careerTab.targetDomainLabel}
+                />
               </div>
             </div>
 
