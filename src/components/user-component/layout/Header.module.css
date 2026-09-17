@@ -386,23 +386,3 @@
 .dropdownLogout .dropdownItemIcon {
   color: #b91c1c;
 }
-
-.guestActions {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  justify-self: end;
-}
-
-.signInLink {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(33, 25, 20, 0.78);
-  transition: color 0.2s ease;
-}
-
-.signInLink:hover {
-  color: #211914;
-}
