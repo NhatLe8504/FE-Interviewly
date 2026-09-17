@@ -409,8 +409,8 @@ export default function CoachShowcaseSection() {
         </div>
 
         <h2 className={styles.smallTeam} id="smallTeam">
-          <span className={styles.word}><span className={styles.wordSpan}>Specialized</span></span>&nbsp;
-          <span className={styles.word}><span className={styles.wordSpan}>coaches,</span></span>
+          <span className={styles.word}><span className={styles.wordSpan}>{locale === "vi" ? "Đội ngũ" : "Specialized"}</span></span>&nbsp;
+          <span className={styles.word}><span className={styles.wordSpan}>{locale === "vi" ? "chuyên môn," : "coaches,"}</span></span>
         </h2>
 
         <div ref={bigResultsWrapRef} className={styles.bigResultsWrap}>
@@ -449,12 +449,23 @@ export default function CoachShowcaseSection() {
               {locale === "vi" ? "CHUYÊN MÔN PHỎNG VẤN THEO NGÀNH NGHỀ" : "DOMAIN-SPECIFIC INTERVIEW EXPERTISE"}
             </div>
             <h2>
-              Adaptive interviews for<br />
-              <em>your exact role</em> and <em>seniority</em>.
+              {locale === "vi" ? (
+                <>
+                  Phỏng vấn thích ứng cho<br />
+                  <em>chính xác vị trí</em> và <em>cấp bậc</em> của bạn.
+                </>
+              ) : (
+                <>
+                  Adaptive interviews for<br />
+                  <em>your exact role</em> and <em>seniority</em>.
+                </>
+              )}
             </h2>
           </div>
           <p>
-            Choose the interviewer persona aligned with your target position. Each AI coach delivers realistic follow-ups, targeted rubrics, and industry-calibrated feedback.
+            {locale === "vi"
+              ? "Lựa chọn chân dung người phỏng vấn phù hợp với vị trí mục tiêu của bạn. Mỗi AI Coach đều mang lại phản hồi sâu sắc, tiêu chí Rubric chuẩn hóa và đánh giá sát sườn thực tế."
+              : "Choose the interviewer persona aligned with your target position. Each AI coach delivers realistic follow-ups, targeted rubrics, and industry-calibrated feedback."}
           </p>
         </div>
 

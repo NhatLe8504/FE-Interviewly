@@ -11,11 +11,12 @@ export const home = {
     formatLabel: "ĐỊNH DẠNG PHỎNG VẤN",
     formatValue: "GIỌNG NÓI & KHUNG STAR",
     coachLabel: "HUẤN LUYỆN VIÊN AI",
-    coachValue: "THÍCH ỨNG THEO THỜI GIAN THỰC",
+    coachValue: "RUBRIC THỜI GIAN THỰC",
     scoringLabel: "THANG ĐIỂM ĐÁNH GIÁ",
     scoringValue: "RUBRIC & CORE METRICS",
     coverageLabel: "ĐỘ PHỦ CHUYÊN MÔN",
     coverageValue: "6+ NGÀNH & 50+ VỊ TRÍ",
+    scrollLabel: "CUỘN ĐỂ KHÁM PHÁ",
   },
   introBand: {
     title: "Bớt phỏng đoán mông lung. Luyện tập có chủ đích và đo lường.",

@@ -9,6 +9,7 @@ const HERO_IMAGE =
   "https://images.openai.com/static-rsc-4/5DUTD8WqNzpiVRqaN5pE1Byk4T6UMrJ0CL_sDdIlNkcC5vEGwyCxPo0-7CKoo5vrX4dWE9fb38sl1z0zZchYerFsaIC604rIhXDS1BXnQrgA36MEPJZOKgBlop1o-OZYE1bhFdg_m4k2VNpIfnEOyeGWdEgdcSdjrRqgM6mfo6w?purpose=inline";
 
 export default function AuroraHero() {
+  const { t, locale } = useI18n();
   // Preload hero image immediately – injects <link rel="preload" as="image"> in <head>
   preload(HERO_IMAGE, { as: "image", fetchPriority: "high" });
 
@@ -122,48 +123,46 @@ export default function AuroraHero() {
         <section className={styles.content}>
           <div className={styles.eyebrow}>
             <span />
-            A CALMER WAY TO PREPARE
+            {t.home.hero.eyebrow}
           </div>
 
           <h1>
-            PRACTICE THE
+            {t.home.hero.titleLine1}
             <br />
-            INTERVIEW.
+            {t.home.hero.titleLine2}
             <br />
-            <em>OWN THE ROOM.</em>
+            <em>{t.home.hero.titleHighlight}</em>
           </h1>
 
           <p className={styles.intro}>
-            Build real interview confidence with an AI coach that listens,
-            asks sharper follow-ups, and helps you make every answer count.
-            Where engineering meets human nuance.
+            {t.home.hero.description}
           </p>
 
           <div className={styles.actions}>
             <a href="#practice" className={`${styles.btn} ${styles.btnPrimary}`}>
-              START PRACTICING
+              {t.home.hero.startBtn}
               <span>↗</span>
             </a>
 
             <a href="#how-it-works" className={`${styles.btn} ${styles.btnSecondary}`}>
-              EXPLORE THE COACH
+              {t.home.hero.exploreBtn}
               <span>→</span>
             </a>
           </div>
 
           <div className={styles.meta}>
             <div className={styles.metaItem}>
-              <small>PRACTICE FORMAT</small>
-              <strong>VOICE & STAR METHOD</strong>
+              <small>{t.home.hero.formatLabel}</small>
+              <strong>{t.home.hero.formatValue}</strong>
             </div>
 
             <div className={styles.metaItem}>
-              <small>ADAPTIVE COACH</small>
-              <strong>REAL-TIME RUBRICS</strong>
+              <small>{t.home.hero.coachLabel}</small>
+              <strong>{t.home.hero.coachValue}</strong>
             </div>
 
             <div className={styles.metaItem}>
-              <small>SCROLL TO EXPLORE</small>
+              <small>{t.home.hero.scrollLabel}</small>
               <span className={styles.scrollDot}>
                 <i />
               </span>
