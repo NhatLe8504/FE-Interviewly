@@ -25,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
 import { profileApi } from "@/services/profileApi";
 import { ApiError } from "@/services/apiClient";
 import type {
@@ -58,14 +59,32 @@ const EXPERIENCE_OPTIONS: { id: ExperienceLevel; label: string; desc: string }[]
 
 const SINE_FACTORS = [0.4, 0.7, 1.0, 0.8, 0.6, 0.9, 1.2, 0.7, 0.5, 0.8, 1.1, 0.9, 0.6, 0.8, 0.5, 0.3];
 
-const DOMAIN_OPTIONS = [
-  { id: 1, label: "Kỹ thuật phần mềm (Software Engineering)" },
-  { id: 2, label: "Dữ liệu & AI (Data & AI)" },
-  { id: 3, label: "Sản phẩm & UI/UX (Product & Design)" },
-  { id: 4, label: "Tiếp thị & Tăng trưởng (Marketing & Growth)" },
-];
 export default function ProfileClient() {
   const { user, isAuthenticated, isLoading: isAuthLoading, refreshUser } = useAuth();
+  const { locale, t } = useI18n();
+
+  // Dynamic experience options based on locale
+  const experienceOptions = useMemo(
+    () => [
+      { id: "intern" as ExperienceLevel, label: "Intern", desc: locale === "vi" ? "Thực tập sinh / Đang học" : "Internship / Student" },
+      { id: "fresher" as ExperienceLevel, label: "Fresher", desc: locale === "vi" ? "Mới tốt nghiệp / Dưới 1 năm" : "Entry Level / <1 year" },
+      { id: "junior" as ExperienceLevel, label: "Junior", desc: locale === "vi" ? "1 - 2 năm kinh nghiệm" : "1 - 2 years experience" },
+      { id: "middle" as ExperienceLevel, label: "Middle", desc: locale === "vi" ? "2 - 4 năm kinh nghiệm" : "2 - 4 years experience" },
+      { id: "senior" as ExperienceLevel, label: "Senior", desc: locale === "vi" ? "5+ năm kinh nghiệm" : "5+ years experience" },
+      { id: "lead" as ExperienceLevel, label: "Lead", desc: locale === "vi" ? "Trưởng nhóm / Quản lý" : "Team Lead / Management" },
+    ],
+    [locale]
+  );
+
+  const domainOptions = useMemo(
+    () => [
+      { id: 1, label: locale === "vi" ? "Kỹ thuật phần mềm (Software Engineering)" : "Software Engineering" },
+      { id: 2, label: locale === "vi" ? "Dữ liệu & AI (Data & AI)" : "Data & Artificial Intelligence" },
+      { id: 3, label: locale === "vi" ? "Sản phẩm & UI/UX (Product & Design)" : "Product & UI/UX Design" },
+      { id: 4, label: locale === "vi" ? "Tiếp thị & Tăng trưởng (Marketing & Growth)" : "Marketing & Growth" },
+    ],
+    [locale]
+  );
 
   // Profile server data
   const [profile, setProfile] = useState<ProfileOut | null>(null);
@@ -214,22 +233,22 @@ export default function ProfileClient() {
 
     const trimmedName = fullName.trim();
     if (!trimmedName) {
-      setProfileError("Họ và tên không được để trống.");
+      setProfileError(t.profile.generalTab.nameRequired);
       return;
     }
 
     if (trimmedName.length > 150) {
-      setProfileError("Họ và tên không được vượt quá 150 ký tự.");
+      setProfileError(t.profile.generalTab.nameMaxLength);
       return;
     }
 
     if (phone && phone.trim().length > 20) {
-      setProfileError("Số điện thoại không được vượt quá 20 ký tự.");
+      setProfileError(t.profile.generalTab.phoneMaxLength);
       return;
     }
 
     if (bio && bio.length > 5000) {
-      setProfileError("Giới thiệu bản thân không được vượt quá 5000 ký tự.");
+      setProfileError(t.profile.generalTab.bioMaxLength);
       return;
     }
 
@@ -247,7 +266,7 @@ export default function ProfileClient() {
 
       const updated = await profileApi.updateProfile(payload);
       setProfile(updated);
-      setProfileSuccess("Cập nhật hồ sơ thành công!");
+      setProfileSuccess(t.profile.generalTab.successMsg);
       await refreshUser();
       setTimeout(() => setProfileSuccess(null), 4000);
     } catch (err: unknown) {
@@ -269,22 +288,22 @@ export default function ProfileClient() {
     setPasswordError(null);
 
     if (!currentPassword) {
-      setPasswordError("Vui lòng nhập mật khẩu hiện tại.");
+      setPasswordError(t.profile.securityTab.currentRequired);
       return;
     }
 
     if (!newPassword || newPassword.length < 8) {
-      setPasswordError("Mật khẩu mới phải có ít nhất 8 ký tự.");
+      setPasswordError(t.profile.securityTab.newMinLength);
       return;
     }
 
     if (newPassword === currentPassword) {
-      setPasswordError("Mật khẩu mới phải khác mật khẩu hiện tại.");
+      setPasswordError(t.profile.securityTab.newMustDiffer);
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError("Xác nhận mật khẩu mới không trùng khớp.");
+      setPasswordError(t.profile.securityTab.confirmMismatch);
       return;
     }
 
@@ -295,7 +314,7 @@ export default function ProfileClient() {
         new_password: newPassword,
       };
       const res = await profileApi.changePassword(payload);
-      setPasswordSuccess(res.message || "Đổi mật khẩu thành công!");
+      setPasswordSuccess(res.message || t.profile.securityTab.successMsg);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -323,13 +342,13 @@ export default function ProfileClient() {
 
     switch (score) {
       case 1:
-        return { score: 1, text: "Yếu", color: "#ef4444" };
+        return { score: 1, text: t.profile.securityTab.strengthWeak, color: "#ef4444" };
       case 2:
-        return { score: 2, text: "Trung bình", color: "#f59e0b" };
+        return { score: 2, text: t.profile.securityTab.strengthFair, color: "#f59e0b" };
       case 3:
-        return { score: 3, text: "Khá mạnh", color: "#10b981" };
+        return { score: 3, text: t.profile.securityTab.strengthStrong, color: "#10b981" };
       case 4:
-        return { score: 4, text: "Rất an toàn", color: "#059669" };
+        return { score: 4, text: t.profile.securityTab.strengthVeryStrong, color: "#059669" };
       default:
         return { score: 0, text: "", color: "" };
     }
@@ -405,7 +424,7 @@ export default function ProfileClient() {
     if (!profile?.created_at) return "Thành viên Interviewly";
     try {
       const d = new Date(profile.created_at);
-      return `Gia nhập: ${d.toLocaleDateString("vi-VN", { month: "long", year: "numeric" })}`;
+      return `${t.common.joined}: ${d.toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US", { month: "long", year: "numeric" })}`;
     } catch {
       return "Thành viên Interviewly";
     }
@@ -424,11 +443,9 @@ export default function ProfileClient() {
   if (!isAuthLoading && !isAuthenticated) {
     return (
       <div className={styles.shell}>
-        <div className={styles.eyebrow}>Hồ sơ ứng viên</div>
-        <h1 className={styles.title}>Quản lý tài khoản</h1>
-        <p className={styles.sub}>
-          Đăng nhập vào tài khoản Interviewly của bạn để tùy chỉnh hồ sơ cá nhân, cấp độ chuyên môn và mật khẩu.
-        </p>
+        <div className={styles.eyebrow}>{t.profile.eyebrow}</div>
+        <h1 className={styles.title}>{t.profile.title}</h1>
+        <p className={styles.sub}>{t.profile.notLoggedInDesc}</p>
 
         <div className={styles.guestBanner}>
           <div className={styles.avatar} style={{ width: 80, height: 80, fontSize: 26 }}>
@@ -436,14 +453,14 @@ export default function ProfileClient() {
           </div>
           <div>
             <h3 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 800 }}>
-              Bạn chưa đăng nhập
+              {t.profile.notLoggedInTitle}
             </h3>
             <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)" }}>
-              Vui lòng đăng nhập để xem thông tin hồ sơ và luyện tập phỏng vấn thông minh cùng AI.
+              {t.profile.notLoggedInDesc}
             </p>
           </div>
           <Link href="/login" className={styles.primaryBtn} style={{ marginTop: 8 }}>
-            Đăng nhập ngay
+            {t.profile.loginNow}
             <ArrowRight size={15} />
           </Link>
         </div>
@@ -502,7 +519,7 @@ export default function ProfileClient() {
               {fullName || user?.full_name || "Ứng viên"}
               <span className={styles.pillBadgeAccent}>
                 <Sparkles size={12} />
-                {profile?.role === "admin" ? "Administrator" : "Candidate Pro"}
+                {profile?.role === "admin" ? t.header.adminBadge : t.header.candidatePro}
               </span>
             </div>
 
@@ -515,12 +532,12 @@ export default function ProfileClient() {
             <div className={styles.badgeRow}>
               <span className={styles.pillBadge}>
                 <Globe size={11} />
-                {preferredLang === "vi" ? "Tiếng Việt (VI)" : "English (EN)"}
+                {preferredLang === "vi" ? t.common.vietnamese : t.common.english}
               </span>
               {experienceLevel && (
                 <span className={styles.pillBadge}>
                   <Briefcase size={11} />
-                  {EXPERIENCE_OPTIONS.find((o) => o.id === experienceLevel)?.label || experienceLevel}
+                  {experienceOptions.find((o) => o.id === experienceLevel)?.label || experienceLevel}
                 </span>
               )}
               {profile?.target_domain_name && (
@@ -534,21 +551,21 @@ export default function ProfileClient() {
 
         <div className={styles.heroMeta}>
           <div className={styles.metaItem}>
-            <span className={styles.metaLabel}>Trạng thái tài khoản</span>
+            <span className={styles.metaLabel}>{t.common.status}</span>
             <span className={styles.metaValue} style={{ color: "#16a34a", display: "flex", alignItems: "center", gap: 5 }}>
               <span className={styles.statusDotLive} style={{ width: 7, height: 7 }} />
-              {profile?.status === "active" ? "Đang hoạt động" : "Đã xác thực"}
+              {profile?.status === "active" ? t.profile.accountActive : t.profile.accountVerified}
             </span>
           </div>
           <div className={styles.metaItem}>
-            <span className={styles.metaLabel}>Thời gian tham gia</span>
+            <span className={styles.metaLabel}>{t.common.joined}</span>
             <span className={styles.metaValue}>
               <Calendar size={12} style={{ display: "inline", marginRight: 4 }} />
               {formattedCreatedAt}
             </span>
           </div>
           <div className={styles.metaItem}>
-            <span className={styles.metaLabel}>Mã định danh</span>
+            <span className={styles.metaLabel}>{t.common.id}</span>
             <span className={styles.metaValue}>ID #{profile?.user_id || user?.user_id || "1"}</span>
           </div>
         </div>
@@ -563,7 +580,7 @@ export default function ProfileClient() {
           className={`${styles.tabBtn} ${activeTab === "general" ? styles.tabBtnActive : ""}`}
         >
           <User size={15} />
-          Thông tin cá nhân
+          {t.profile.tabs.general}
         </button>
 
         <button
@@ -574,7 +591,7 @@ export default function ProfileClient() {
           className={`${styles.tabBtn} ${activeTab === "career" ? styles.tabBtnActive : ""}`}
         >
           <Briefcase size={15} />
-          Kinh nghiệm & Mục tiêu
+          {t.profile.tabs.career}
         </button>
 
         <button
@@ -585,7 +602,7 @@ export default function ProfileClient() {
           className={`${styles.tabBtn} ${activeTab === "security" ? styles.tabBtnActive : ""}`}
         >
           <Lock size={15} />
-          Bảo mật & Mật khẩu
+          {t.profile.tabs.security}
         </button>
 
         <button
@@ -596,7 +613,7 @@ export default function ProfileClient() {
           className={`${styles.tabBtn} ${activeTab === "readiness" ? styles.tabBtnActive : ""}`}
         >
           <Mic size={15} />
-          Thiết bị & Kiểm tra Mic
+          {t.profile.tabs.readiness}
         </button>
       </div>
 
@@ -605,10 +622,9 @@ export default function ProfileClient() {
           <div className={styles.cardHeader}>
             <h2 className={styles.cardTitle}>
               <User size={18} />
-              Thông tin ứng viên
+              {t.profile.generalTab.title}
             </h2>
-            <p className={styles.cardHint}>
-              Cập nhật tên hiển thị, phương thức liên lạc và tiểu sử nghề nghiệp của bạn.
+            <p className={styles.cardHint}>{t.profile.generalTab.hint}
             </p>
           </div>
 
@@ -630,7 +646,7 @@ export default function ProfileClient() {
             <div className={styles.grid2}>
               <div className={styles.field}>
                 <label className={styles.fieldLabel} htmlFor="full_name">
-                  <span>Họ và tên *</span>
+                  <span>{t.profile.generalTab.fullNameLabel}</span>
                   <span className={styles.charCount}>{fullName.length}/150</span>
                 </label>
                 <input
@@ -647,8 +663,8 @@ export default function ProfileClient() {
 
               <div className={styles.field}>
                 <label className={styles.fieldLabel} htmlFor="email">
-                  <span>Địa chỉ Email</span>
-                  <span className={styles.charCount}>Đã xác minh</span>
+                  <span>{t.profile.generalTab.emailLabel}</span>
+                  <span className={styles.charCount}>{t.profile.generalTab.emailVerified}</span>
                 </label>
                 <input
                   id="email"
@@ -663,7 +679,7 @@ export default function ProfileClient() {
 
               <div className={styles.field}>
                 <label className={styles.fieldLabel} htmlFor="phone">
-                  <span>Số điện thoại liên hệ</span>
+                  <span>{t.profile.generalTab.phoneLabel}</span>
                   <span className={styles.charCount}>{phone.length}/20</span>
                 </label>
                 <div className={styles.inputWithIcon}>
@@ -684,13 +700,13 @@ export default function ProfileClient() {
 
               <div className={styles.field}>
                 <label className={styles.fieldLabel} htmlFor="avatar_url">
-                  <span>Ảnh đại diện (URL)</span>
+                  <span>{t.profile.generalTab.avatarUrlLabel}</span>
                   <span
                     className={styles.charCount}
                     style={{ cursor: "pointer", color: "var(--accent-deep)", textDecoration: "underline" }}
                     onClick={() => openAvatarModal()}
                   >
-                    Chọn mẫu ảnh có sẵn
+                    {t.profile.generalTab.choosePresetAvatar}
                   </span>
                 </label>
                 <div className={styles.inputWithIcon}>
@@ -714,7 +730,7 @@ export default function ProfileClient() {
 
               <div className={styles.fieldFull}>
                 <label className={styles.fieldLabel} htmlFor="bio">
-                  <span>Giới thiệu bản thân & Mục tiêu nghề nghiệp</span>
+                  <span>{t.profile.generalTab.bioLabel}</span>
                   <span className={styles.charCount}>{bio.length}/5000</span>
                 </label>
                 <textarea
@@ -738,12 +754,12 @@ export default function ProfileClient() {
                 {isSavingProfile ? (
                   <>
                     <RefreshCw size={14} className="animate-spin" />
-                    Đang lưu...
+                    {t.profile.generalTab.savingButton}
                   </>
                 ) : (
                   <>
                     <CheckCircle2 size={14} />
-                    Lưu thông tin cá nhân
+                    {t.profile.generalTab.saveButton}
                   </>
                 )}
               </button>
@@ -781,11 +797,11 @@ export default function ProfileClient() {
           <form onSubmit={handleSaveProfile}>
             <div className={styles.fieldFull} style={{ marginBottom: 26 }}>
               <label className={styles.fieldLabel}>
-                <span>Cấp độ chuyên môn (Seniority Level)</span>
-                <span className={styles.charCount}>Chọn một cấp độ phù hợp</span>
+                <span>{t.profile.careerTab.levelLabel}</span>
+                <span className={styles.charCount}>{t.profile.careerTab.levelHint}</span>
               </label>
               <div className={styles.chipGrid}>
-                {EXPERIENCE_OPTIONS.map((opt) => {
+                {experienceOptions.map((opt) => {
                   const isActive = experienceLevel === opt.id;
                   return (
                     <button
@@ -805,7 +821,7 @@ export default function ProfileClient() {
             <div className={styles.grid2}>
               <div className={styles.field}>
                 <label className={styles.fieldLabel} htmlFor="preferred_language">
-                  <span>Ngôn ngữ phỏng vấn ưu tiên</span>
+                  <span>{t.profile.careerTab.langLabel}</span>
                   <span className={styles.charCount}>VI / EN</span>
                 </label>
                 <div style={{ display: "flex", gap: 10 }}>
@@ -815,7 +831,7 @@ export default function ProfileClient() {
                     className={`${styles.chip} ${preferredLang === "vi" ? styles.chipActive : ""}`}
                     style={{ flex: 1, justifyContent: "center" }}
                   >
-                    Tiếng Việt (VI)
+                    🇻🇳 {t.common.vietnamese}
                   </button>
                   <button
                     type="button"
@@ -823,14 +839,14 @@ export default function ProfileClient() {
                     className={`${styles.chip} ${preferredLang === "en" ? styles.chipActive : ""}`}
                     style={{ flex: 1, justifyContent: "center" }}
                   >
-                    English (EN)
+                    🇺🇸 {t.common.english}
                   </button>
                 </div>
               </div>
 
               <div className={styles.field}>
                 <label className={styles.fieldLabel} htmlFor="target_domain_id">
-                  <span>Ngành nghề mục tiêu (Target Domain)</span>
+                  <span>{t.profile.careerTab.targetDomainLabel}</span>
                 </label>
                 <select
                   id="target_domain_id"
@@ -841,8 +857,8 @@ export default function ProfileClient() {
                     setTargetDomainId(val);
                   }}
                 >
-                  <option value="">-- Chọn ngành nghề phỏng vấn --</option>
-                  {DOMAIN_OPTIONS.map((domain) => (
+                  <option value="">{t.profile.careerTab.selectDomainPlaceholder}</option>
+                  {domainOptions.map((domain) => (
                     <option key={domain.id} value={domain.id}>
                       {domain.label}
                     </option>
@@ -868,7 +884,7 @@ export default function ProfileClient() {
             >
               <Sparkles size={18} style={{ color: "var(--accent-warm)", flexShrink: 0, marginTop: 2 }} />
               <div>
-                <strong>Gợi ý AI thông minh:</strong> Khi bạn chọn cấp độ <em>{experienceLevel || "Junior"}</em> và ngành nghề mục tiêu, AI Coach sẽ tập trung vào các câu hỏi phân tích hệ thống, xử lý tình huống thực tế và tối ưu hóa giải pháp theo đúng chuẩn phỏng vấn quốc tế.
+                <strong>{t.profile.careerTab.aiTipTitle}</strong> {t.profile.careerTab.aiTipDesc}
               </div>
             </div>
 
@@ -886,7 +902,7 @@ export default function ProfileClient() {
                 ) : (
                   <>
                     <CheckCircle2 size={14} />
-                    Lưu định hướng chuyên môn
+                    {t.profile.careerTab.saveButton}
                   </>
                 )}
               </button>
@@ -899,10 +915,9 @@ export default function ProfileClient() {
           <div className={styles.cardHeader}>
             <h2 className={styles.cardTitle}>
               <Lock size={18} />
-              Đổi mật khẩu tài khoản
+              {t.profile.securityTab.title}
             </h2>
-            <p className={styles.cardHint}>
-              Để bảo vệ tài khoản, hãy sử dụng mật khẩu mạnh kết hợp chữ hoa, chữ thường, số và ký tự đặc biệt.
+            <p className={styles.cardHint}>{t.profile.securityTab.hint}
             </p>
           </div>
 
@@ -924,7 +939,7 @@ export default function ProfileClient() {
             <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 540 }}>
               <div className={styles.field}>
                 <label className={styles.fieldLabel} htmlFor="current_password">
-                  <span>Mật khẩu hiện tại *</span>
+                  <span>{t.profile.securityTab.currentPasswordLabel}</span>
                 </label>
                 <div className={styles.inputWithIcon}>
                   <input
@@ -949,7 +964,7 @@ export default function ProfileClient() {
 
               <div className={styles.field}>
                 <label className={styles.fieldLabel} htmlFor="new_password">
-                  <span>Mật khẩu mới * (Tối thiểu 8 ký tự)</span>
+                  <span>{t.profile.securityTab.newPasswordLabel}</span>
                 </label>
                 <div className={styles.inputWithIcon}>
                   <input
@@ -987,7 +1002,7 @@ export default function ProfileClient() {
                       ))}
                     </div>
                     <div className={styles.strengthLabel}>
-                      <span>Độ an toàn mật khẩu</span>
+                      <span>{t.profile.securityTab.passwordStrengthLabel}</span>
                       <span style={{ color: passwordStrength.color, fontWeight: 800 }}>
                         {passwordStrength.text}
                       </span>
@@ -998,7 +1013,7 @@ export default function ProfileClient() {
 
               <div className={styles.field}>
                 <label className={styles.fieldLabel} htmlFor="confirm_password">
-                  <span>Xác nhận mật khẩu mới *</span>
+                  <span>{t.profile.securityTab.confirmPasswordLabel}</span>
                 </label>
                 <div className={styles.inputWithIcon}>
                   <input
@@ -1037,7 +1052,7 @@ export default function ProfileClient() {
                 ) : (
                   <>
                     <Shield size={14} />
-                    Cập nhật mật khẩu
+                    {t.profile.securityTab.submitButton}
                   </>
                 )}
               </button>
@@ -1051,10 +1066,9 @@ export default function ProfileClient() {
           <div className={styles.cardHeader}>
             <h2 className={styles.cardTitle}>
               <Mic size={18} />
-              Kiểm tra Microphone & Sẵn sàng phỏng vấn
+              {t.profile.readinessTab.title}
             </h2>
-            <p className={styles.cardHint}>
-              Phiên luyện phỏng vấn sử dụng nhận diện giọng nói AI. Hãy thử mic của bạn để đảm bảo âm thanh rõ ràng nhất.
+            <p className={styles.cardHint}>{t.profile.readinessTab.hint}
             </p>
           </div>
 
@@ -1066,10 +1080,10 @@ export default function ProfileClient() {
                 />
                 <span>
                   {micStatus === "listening"
-                    ? "Đang lắng nghe âm thanh từ microphone..."
+                    ? "{t.profile.readinessTab.micListening}"
                     : micStatus === "error"
-                    ? "Không thể truy cập microphone. Vui lòng cấp quyền trong trình duyệt."
-                    : "Microphone chưa kích hoạt"}
+                    ? "{t.profile.readinessTab.micError}"
+                    : "{t.profile.readinessTab.micIdle}"}
                 </span>
               </div>
 
@@ -1081,7 +1095,7 @@ export default function ProfileClient() {
                   style={{ color: "#b91c1c", borderColor: "rgba(239, 68, 68, 0.4)" }}
                 >
                   <MicOff size={15} />
-                  Dừng kiểm tra
+                  {t.profile.readinessTab.stopMic}
                 </button>
               ) : (
                 <button
@@ -1090,7 +1104,7 @@ export default function ProfileClient() {
                   className={styles.primaryBtn}
                 >
                   <Mic size={15} />
-                  Bắt đầu kiểm tra Micro
+                  {t.profile.readinessTab.startMic}
                 </button>
               )}
             </div>
@@ -1128,10 +1142,10 @@ export default function ProfileClient() {
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
                   <Volume2 size={16} className="text-amber-700" />
-                  Mẹo ghi âm chất lượng cao
+                  {t.profile.readinessTab.tipCardTitle}
                 </div>
                 <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-                  Sử dụng tai nghe có dây hoặc micro định hướng trong không gian yên tĩnh để AI đo lường chính xác tốc độ nói (WPM) và hạn chế từ thừa (filler words).
+                  {t.profile.readinessTab.tipCardDesc}
                 </p>
               </div>
 
@@ -1145,17 +1159,17 @@ export default function ProfileClient() {
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
                   <Sparkles size={16} className="text-[#d98236]" />
-                  Sẵn sàng luyện tập?
+                  {t.profile.readinessTab.readyCardTitle}
                 </div>
                 <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-                  Sau khi kiểm tra mic, bạn có thể bắt đầu phiên phỏng vấn mock để luyện tập theo khung câu hỏi STAR.
+                  {t.profile.readinessTab.readyCardDesc}
                 </p>
                 <Link
                   href="/practice"
                   className={styles.primaryBtn}
                   style={{ marginTop: 12, display: "inline-flex", fontSize: 11, padding: "8px 18px" }}
                 >
-                  Vào phòng luyện phỏng vấn
+                  {t.profile.readinessTab.enterRoomBtn}
                   <ArrowRight size={13} />
                 </Link>
               </div>
@@ -1174,7 +1188,7 @@ export default function ProfileClient() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 className={styles.modalTitle}>Chọn ảnh đại diện</h3>
+              <h3 className={styles.modalTitle}>{t.profile.avatarModal.title}</h3>
               <button
                 type="button"
                 onClick={() => setIsAvatarModalOpen(false)}
@@ -1187,7 +1201,7 @@ export default function ProfileClient() {
 
             <div>
               <p style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 700, color: "var(--ink-soft)" }}>
-                Ảnh mẫu chuyên nghiệp có sẵn:
+                {t.profile.avatarModal.presetsLabel}
               </p>
               <div className={styles.avatarPresets}>
                 {PRESET_AVATARS.map((url, idx) => (
@@ -1210,7 +1224,7 @@ export default function ProfileClient() {
 
             <div className={styles.field} style={{ marginTop: 6 }}>
               <label className={styles.fieldLabel} htmlFor="custom_avatar_input">
-                Hoặc nhập liên kết ảnh của bạn:
+                {t.profile.avatarModal.customUrlLabel}
               </label>
               <input
                 id="custom_avatar_input"
@@ -1233,7 +1247,7 @@ export default function ProfileClient() {
                 className={styles.secondaryBtn}
                 style={{ fontSize: 11, padding: "8px 16px" }}
               >
-                Xóa ảnh (dùng chữ cái)
+                {t.profile.avatarModal.removeAvatar}
               </button>
 
               <div style={{ display: "flex", gap: 8 }}>
@@ -1243,7 +1257,7 @@ export default function ProfileClient() {
                   className={styles.secondaryBtn}
                   style={{ fontSize: 11, padding: "8px 16px" }}
                 >
-                  Đóng
+                  {t.profile.avatarModal.closeBtn}
                 </button>
                 <button
                   type="button"
@@ -1255,7 +1269,7 @@ export default function ProfileClient() {
                   className={styles.primaryBtn}
                   style={{ fontSize: 11, padding: "8px 18px" }}
                 >
-                  Áp dụng
+                  {t.profile.avatarModal.applyBtn}
                 </button>
               </div>
             </div>
