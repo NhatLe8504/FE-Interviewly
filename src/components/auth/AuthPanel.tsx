@@ -216,11 +216,19 @@ export default function AuthPanel({
                   router.push("/practice");
                 }, 800);
               } catch (err: any) {
-                setError(err.message || "Đăng nhập Google thất bại.");
+                console.error("Google auth backend error:", err);
+                const detail = err?.data?.detail;
+                const msg = typeof detail === "string" ? detail : (err?.message || "Đăng nhập Google thất bại.");
+                setError(msg);
               } finally {
                 setLoading(false);
               }
+            } else {
+              setError("Không nhận được token xác thực từ Google.");
             }
+          },
+          error_callback: (err) => {
+            console.warn("Google GSI error:", err);
           },
           cancel_on_tap_outside: true,
         });
