@@ -38,6 +38,35 @@ export function UserSelectContent({
   sideOffset = 6,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) {
+  React.useEffect(() => {
+    // Radix UI Select automatically injects data-scroll-locked on body,
+    // which hides all page/layout scrollbars and shifts the entire viewport.
+    // Clean it up immediately on mount and during dropdown lifetime.
+    const unlockScroll = () => {
+      if (typeof document !== "undefined" && document.body) {
+        if (document.body.hasAttribute("data-scroll-locked")) {
+          document.body.removeAttribute("data-scroll-locked");
+        }
+        if (document.body.style.overflow === "hidden") {
+          document.body.style.overflow = "";
+        }
+        if (document.body.style.marginRight) {
+          document.body.style.marginRight = "";
+        }
+      }
+    };
+
+    unlockScroll();
+    const timer = setTimeout(unlockScroll, 10);
+    const interval = setInterval(unlockScroll, 40);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+      unlockScroll();
+    };
+  }, []);
+
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
