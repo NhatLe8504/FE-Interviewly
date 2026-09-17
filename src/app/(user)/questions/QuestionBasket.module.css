@@ -1,0 +1,584 @@
+/* =========================================================
+   QUESTION BASKET ("GIỎ BỐC CÂU HỎI NGỔN NGANG")
+   Positioned fixed on the right side at top: 140px (same as STAR button)
+========================================================= */
+
+/* Floating Tilted Trigger Button ("nằm ngổn ngang") */
+.tiltedBasketBtn {
+  position: fixed;
+  right: 24px;
+  top: 140px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #d98236 0%, #8b4513 100%);
+  color: #fffaf4;
+  border: 2px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 12px 28px -4px rgba(139, 69, 19, 0.45),
+              inset 0 1px 2px rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  /* Playfully tilted ("ngổn ngang") */
+  transform: rotate(-14deg);
+  transform-origin: center center;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s ease,
+              background 0.3s ease,
+              border-color 0.3s ease;
+  user-select: none;
+}
+
+.tiltedBasketBtn:hover {
+  transform: rotate(-4deg) scale(1.08);
+  box-shadow: 0 18px 36px -4px rgba(139, 69, 19, 0.6),
+              inset 0 2px 4px rgba(255, 255, 255, 0.9);
+}
+
+.tiltedBasketBtn:active {
+  transform: rotate(-8deg) scale(0.98);
+}
+
+/* Active mode on button */
+.tiltedBasketBtnActive {
+  transform: rotate(0deg) scale(1.05);
+  background: linear-gradient(135deg, #211914 0%, #3e2618 100%);
+  border-color: #d98236;
+  box-shadow: 0 14px 32px -4px rgba(33, 25, 20, 0.5),
+              0 0 0 3px rgba(217, 130, 54, 0.35);
+}
+
+/* REJECTION STATE: Turns RED and SHAKES ("màu đỏ và lắc lư") */
+.tiltedBasketBtnRejected {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+  border-color: #fca5a5 !important;
+  box-shadow: 0 0 32px rgba(239, 68, 68, 0.85),
+              inset 0 2px 4px rgba(255, 255, 255, 0.6) !important;
+  animation: basketRejectionShake 0.65s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes basketRejectionShake {
+  0%, 100% {
+    transform: translate(0, 0) rotate(-14deg);
+  }
+  15% {
+    transform: translate(-14px, -4px) rotate(-26deg);
+  }
+  30% {
+    transform: translate(14px, 4px) rotate(-2deg);
+  }
+  45% {
+    transform: translate(-12px, -2px) rotate(-22deg);
+  }
+  60% {
+    transform: translate(10px, 2px) rotate(-6deg);
+  }
+  75% {
+    transform: translate(-6px, 0) rotate(-16deg);
+  }
+}
+
+/* Badge Count */
+.basketBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #8b4513;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.tiltedBasketBtnRejected .basketBadge {
+  background: #ffffff;
+  color: #dc2626;
+}
+
+/* Rejection Tooltip Bubble */
+.rejectionBubble {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 12px;
+  width: 280px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #f87171;
+  box-shadow: 0 14px 35px -5px rgba(239, 68, 68, 0.35);
+  color: #991b1b;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+  pointer-events: none;
+  animation: bubblePop 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: top right;
+  z-index: 60;
+}
+
+.rejectionBubble::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  right: 28px;
+  border: 7px solid transparent;
+  border-bottom-color: #f87171;
+}
+
+@keyframes bubblePop {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* =========================================================
+   EXPANDED BASKET DOCK / PANEL
+========================================================= */
+
+.basketPanel {
+  position: fixed;
+  right: 24px;
+  top: 140px;
+  z-index: 50;
+  width: 360px;
+  max-width: calc(100vw - 36px);
+  max-height: calc(100vh - 160px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  box-shadow: 0 24px 60px -10px rgba(84, 50, 27, 0.22),
+              inset 0 1px 2px rgba(255, 255, 255, 1);
+  overflow: hidden;
+  animation: panelSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  color: #211914;
+}
+
+@keyframes panelSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.panelRejected {
+  border-color: #f87171 !important;
+  box-shadow: 0 0 35px rgba(239, 68, 68, 0.45),
+              0 24px 60px -10px rgba(84, 50, 27, 0.22) !important;
+  animation: panelShake 0.65s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes panelShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  15% {
+    transform: translateX(-12px);
+  }
+  30% {
+    transform: translateX(12px);
+  }
+  45% {
+    transform: translateX(-8px);
+  }
+  60% {
+    transform: translateX(8px);
+  }
+  75% {
+    transform: translateX(-4px);
+  }
+}
+
+.panelHeader {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(217, 130, 54, 0.12) 0%, rgba(255, 255, 255, 0.6) 100%);
+  border-bottom: 1px solid rgba(106, 72, 49, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panelTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.panelTitleIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #d98236 0%, #8b4513 100%);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #211914;
+}
+
+.panelSub {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: rgba(45, 31, 23, 0.65);
+}
+
+.panelMinimizeBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(106, 72, 49, 0.15);
+  background: rgba(255, 255, 255, 0.8);
+  color: #211914;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.panelMinimizeBtn:hover {
+  background: #ffffff;
+  transform: scale(1.1);
+}
+
+/* Domain Lock Banner */
+.domainLockBanner {
+  padding: 10px 20px;
+  background: rgba(217, 130, 54, 0.08);
+  border-bottom: 1px solid rgba(217, 130, 54, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.domainLockTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8b4513;
+}
+
+.domainUnlockNotice {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(84, 58, 42, 0.7);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Rejection Alert Inside Panel */
+.panelAlertReject {
+  margin: 10px 16px 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #991b1b;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* Questions Scroll List */
+.questionsList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 240px;
+}
+
+.questionItem {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(106, 72, 49, 0.12);
+  transition: all 0.2s ease;
+}
+
+.questionItem:hover {
+  background: #ffffff;
+  border-color: rgba(217, 130, 54, 0.35);
+}
+
+.questionItemIndex {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: rgba(217, 130, 54, 0.15);
+  color: #8b4513;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.questionItemText {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #211914;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.questionItemRemoveBtn {
+  border: none;
+  background: transparent;
+  color: rgba(33, 25, 20, 0.4);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.questionItemRemoveBtn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+.emptyBasketHint {
+  padding: 24px 16px;
+  text-align: center;
+  color: rgba(45, 31, 23, 0.6);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* =========================================================
+   ACTION BUTTONS ROW (DẤU TÍCH ✓ VÀ DẤU X ✗)
+========================================================= */
+
+.actionButtonsRow {
+  padding: 14px 18px 18px;
+  border-top: 1px solid rgba(106, 72, 49, 0.1);
+  background: rgba(255, 255, 255, 0.7);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Dấu X (✗) - Hủy / Xóa giỏ */
+.btnCancelBasket {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btnCancelBasket:hover {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: #dc2626;
+  transform: translateY(-1px);
+}
+
+/* Dấu tích (✓) - Xác nhận luyện tập */
+.btnConfirmBasket {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: 999px;
+  border: 0;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
+.btnConfirmBasket:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.45);
+}
+
+.btnConfirmBasket:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* =========================================================
+   STICKY BANNER WHEN IN BASKET MODE
+========================================================= */
+
+.pickingModeBanner {
+  position: sticky;
+  top: 84px;
+  z-index: 40;
+  margin-bottom: 24px;
+  padding: 12px 20px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(217, 130, 54, 0.16) 0%, rgba(255, 244, 230, 0.95) 100%);
+  border: 1.5px solid rgba(217, 130, 54, 0.35);
+  box-shadow: 0 8px 24px -4px rgba(139, 69, 19, 0.12);
+  backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  animation: bannerFadeIn 0.3s ease both;
+}
+
+@keyframes bannerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pickingBannerLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pickingBannerPulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #d98236;
+  box-shadow: 0 0 0 0 rgba(217, 130, 54, 0.7);
+  animation: pulseDot 1.8s infinite;
+}
+
+@keyframes pulseDot {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(217, 130, 54, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(217, 130, 54, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(217, 130, 54, 0);
+  }
+}
+
+.pickingBannerText {
+  font-size: 13px;
+  font-weight: 700;
+  color: #211914;
+}
+
+.pickingBannerSub {
+  font-size: 11px;
+  color: #8b4513;
+  margin-top: 2px;
+}
+
+/* Card Add Button in Question List */
+.btnPickToBasket {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(217, 130, 54, 0.4);
+  background: rgba(255, 255, 255, 0.9);
+  color: #8b4513;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(106, 72, 49, 0.08);
+  flex-shrink: 0;
+}
+
+.btnPickToBasket:hover {
+  background: linear-gradient(135deg, #d98236 0%, #8b4513 100%);
+  color: #ffffff;
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px -2px rgba(139, 69, 19, 0.3);
+}
+
+.btnPickToBasketActive {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+.btnPickToBasketActive:hover {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+}
+
+.btnPickToBasketRejected {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #dc2626 !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+}
