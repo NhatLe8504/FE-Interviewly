@@ -11,11 +11,12 @@ export const home = {
     formatLabel: "PRACTICE FORMAT",
     formatValue: "VOICE & STAR METHOD",
     coachLabel: "ADAPTIVE COACH",
-    coachValue: "REAL-TIME ADAPTATION",
+    coachValue: "REAL-TIME RUBRICS",
     scoringLabel: "EVALUATION CRITERIA",
     scoringValue: "RUBRIC & CORE METRICS",
     coverageLabel: "EXPERTISE DOMAINS",
     coverageValue: "6+ DOMAINS & 50+ ROLES",
+    scrollLabel: "SCROLL TO EXPLORE",
   },
   introBand: {
     title: "Less second-guessing. More deliberate, measurable practice.",

@@ -67,6 +67,7 @@ export interface Translations {
       scoringValue: string;
       coverageLabel: string;
       coverageValue: string;
+      scrollLabel: string;
     };
     introBand: {
       title: string;
