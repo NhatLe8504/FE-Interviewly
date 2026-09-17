@@ -31,6 +31,14 @@ import type {
 } from "@/types/catalog";
 import { getDomainTheme, getLocalizedDomainName, getLocalizedRoleName } from "@/constants/domainThemes";
 import { UserPagination, SimpleUserSelect } from "@/components/user-component/common";
+import {
+  ShoppingBasket,
+  Plus,
+  Check,
+  AlertTriangle,
+} from "lucide-react";
+import { QuestionBasket } from "./QuestionBasket";
+import basketStyles from "./QuestionBasket.module.css";
 import styles from "./questions.module.css";
 
 
@@ -88,6 +96,104 @@ export default function QuestionExplorerClient() {
   const [roles, setRoles] = useState<RoleOut[]>([]);
   const [questions, setQuestions] = useState<QuestionOut[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Question Basket State ("Giỏ bốc câu hỏi nằm ngổn ngang")
+  const [selectedQuestions, setSelectedQuestions] = useState<QuestionOut[]>([]);
+  const [lockedDomainId, setLockedDomainId] = useState<number | null>(null);
+  const [lockedDomainName, setLockedDomainName] = useState<string | null>(null);
+  const [isBasketActive, setIsBasketActive] = useState<boolean>(false);
+  const [isRejected, setIsRejected] = useState<boolean>(false);
+  const [rejectionMessage, setRejectionMessage] = useState<string | null>(null);
+  const rejectTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const isQuestionInBasket = (questionId: number) => {
+    return selectedQuestions.some((q) => q.question_id === questionId);
+  };
+
+  const handleToggleQuestionInBasket = (question: QuestionOut) => {
+    const isAlreadyIn = isQuestionInBasket(question.question_id);
+
+    if (isAlreadyIn) {
+      const updated = selectedQuestions.filter((q) => q.question_id !== question.question_id);
+      setSelectedQuestions(updated);
+      if (updated.length === 0) {
+        setLockedDomainId(null);
+        setLockedDomainName(null);
+      }
+      return;
+    }
+
+    // Domain check: If basket has a locked domain, reject questions from other domains
+    if (lockedDomainId !== null && question.domain_id !== lockedDomainId) {
+      if (rejectTimerRef.current) clearTimeout(rejectTimerRef.current);
+      setIsRejected(true);
+      const curDomain = lockedDomainName || "Ngành đã khóa";
+      const qDomain = question.domain_name || `Ngành #${question.domain_id}`;
+      setRejectionMessage(
+        `Từ chối bốc câu hỏi! Giỏ đang khóa chủ đề "${curDomain}". Câu hỏi này thuộc "${qDomain}". Vui lòng chỉ bốc câu hỏi cùng ngành!`
+      );
+      setIsBasketActive(true);
+
+      rejectTimerRef.current = setTimeout(() => {
+        setIsRejected(false);
+        setRejectionMessage(null);
+      }, 2400);
+      return;
+    }
+
+    // First question locks the domain
+    if (lockedDomainId === null) {
+      setLockedDomainId(question.domain_id);
+      setLockedDomainName(question.domain_name || `Ngành #${question.domain_id}`);
+    }
+
+    setSelectedQuestions((prev) => [...prev, question]);
+    setIsBasketActive(true);
+  };
+
+  const handleRemoveFromBasket = (questionId: number) => {
+    const updated = selectedQuestions.filter((q) => q.question_id !== questionId);
+    setSelectedQuestions(updated);
+    if (updated.length === 0) {
+      setLockedDomainId(null);
+      setLockedDomainName(null);
+    }
+  };
+
+  const handleClearBasket = () => {
+    setSelectedQuestions([]);
+    setLockedDomainId(null);
+    setLockedDomainName(null);
+    setIsBasketActive(false);
+    setIsRejected(false);
+    setRejectionMessage(null);
+  };
+
+  const handleConfirmBasketPractice = () => {
+    if (selectedQuestions.length === 0) {
+      if (rejectTimerRef.current) clearTimeout(rejectTimerRef.current);
+      setIsRejected(true);
+      setRejectionMessage("Giỏ đang trống! Hãy cuộn trang và bốc ít nhất 1 câu hỏi vào giỏ.");
+      rejectTimerRef.current = setTimeout(() => {
+        setIsRejected(false);
+        setRejectionMessage(null);
+      }, 2000);
+      return;
+    }
+
+    const sid = `custom-${Date.now().toString(36)}`;
+    try {
+      sessionStorage.setItem("active_custom_questions", JSON.stringify(selectedQuestions));
+      sessionStorage.setItem(`custom_questions_${sid}`, JSON.stringify(selectedQuestions));
+    } catch {
+      // ignore
+    }
+
+    const firstQ = selectedQuestions[0];
+    router.push(
+      `/practice/${sid}?custom=1&domain=${firstQ.domain_id || 1}&role=${firstQ.role_id || 1}&level=${firstQ.experience_level || "junior"}`
+    );
+  };
 
   // Quick Practice Modal State
   const [practiceModalQuestion, setPracticeModalQuestion] = useState<QuestionOut | null>(null);
@@ -282,6 +388,19 @@ export default function QuestionExplorerClient() {
 
   return (
     <div className={styles.shell}>
+      {/* Floating Tilted Question Basket ("Nút hình cái giỏ nằm ngổn ngang") */}
+      <QuestionBasket
+        selectedQuestions={selectedQuestions}
+        lockedDomainId={lockedDomainId}
+        lockedDomainName={lockedDomainName}
+        isBasketActive={isBasketActive}
+        setIsBasketActive={setIsBasketActive}
+        isRejected={isRejected}
+        rejectionMessage={rejectionMessage}
+        onRemoveQuestion={handleRemoveFromBasket}
+        onClearBasket={handleClearBasket}
+        onConfirmPractice={handleConfirmBasketPractice}
+      />
       {/* Header Eyebrow */}
       <div className={styles.eyebrow}>{t.questions.eyebrow}</div>
 
@@ -517,7 +636,7 @@ export default function QuestionExplorerClient() {
                       }}
                     />
                     <div className={styles.cardBannerOverlay}>
-                      <div className={styles.cardBannerTop}>
+                                            <div className={styles.cardBannerTop}>
                         <span className={styles.bannerPill}>
                           <Briefcase size={11} />
                           {locale === "vi" ? theme.shortName : theme.shortNameEn}
@@ -562,6 +681,35 @@ export default function QuestionExplorerClient() {
                     <BookOpen size={14} />
                     <span>{t.questions.viewStarBtn}</span>
                   </Link>
+
+                                    {/* Nút Thêm vào giỏ đề (icon +, không chữ) */}
+                  <button
+                    type="button"
+                    onClick={() => handleToggleQuestionInBasket(q)}
+                    className={`${basketStyles.btnPickToBasket} ${
+                      isQuestionInBasket(q.question_id) ? basketStyles.btnPickToBasketActive : ""
+                    } ${
+                      lockedDomainId !== null && q.domain_id !== lockedDomainId && !isQuestionInBasket(q.question_id)
+                        ? basketStyles.btnPickToBasketRejected
+                        : ""
+                    }`}
+                    title={
+                      isQuestionInBasket(q.question_id)
+                        ? "Đã có trong giỏ (Bấm để bỏ)"
+                        : lockedDomainId !== null && q.domain_id !== lockedDomainId
+                        ? `Khác ngành (${lockedDomainName}) - Bấm sẽ bị từ chối!`
+                        : "Thêm vào giỏ đề"
+                    }
+                    aria-label={isQuestionInBasket(q.question_id) ? "Đã trong giỏ đề" : "Thêm vào giỏ đề"}
+                  >
+                    {isQuestionInBasket(q.question_id) ? (
+                      <Check size={16} />
+                    ) : lockedDomainId !== null && q.domain_id !== lockedDomainId ? (
+                      <AlertTriangle size={15} />
+                    ) : (
+                      <Plus size={16} />
+                    )}
+                  </button>
 
                   <button
                     type="button"
