@@ -127,11 +127,11 @@ export default function AuroraHero() {
           </div>
 
           <h1>
-            {t.home.hero.titleLine1}
+            PRACTICE THE
             <br />
-            {t.home.hero.titleLine2}
+            INTERVIEW.
             <br />
-            <em>{t.home.hero.titleHighlight}</em>
+            <em>OWN THE ROOM.</em>
           </h1>
 
           <p className={styles.intro}>

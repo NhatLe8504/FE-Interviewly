@@ -398,10 +398,10 @@ export default function CoachShowcaseSection() {
         <div className={styles.topHeader}>
           <div className={styles.stageEyebrow}>
             <span className={styles.eyebrowDot} />
-            {t.home.showcase.eyebrow}
+            ADAPTIVE COACHING PANEL
           </div>
           <a href="#teamGrid" className={styles.arrowPill}>
-            <span>{t.home.showcase.meetCrew}</span>
+            <span>Meet The Interview Crew</span>
             <span className={styles.ar}>
               <ArrowDown size={13} strokeWidth={2.5} />
             </span>
@@ -409,13 +409,13 @@ export default function CoachShowcaseSection() {
         </div>
 
         <h2 className={styles.smallTeam} id="smallTeam">
-          <span className={styles.word}><span className={styles.wordSpan}>{locale === "vi" ? "Đội ngũ" : "Specialized"}</span></span>&nbsp;
-          <span className={styles.word}><span className={styles.wordSpan}>{locale === "vi" ? "chuyên môn," : "coaches,"}</span></span>
+          <span className={styles.word}><span className={styles.wordSpan}>Specialized</span></span>&nbsp;
+          <span className={styles.word}><span className={styles.wordSpan}>coaches,</span></span>
         </h2>
 
         <div ref={bigResultsWrapRef} className={styles.bigResultsWrap}>
           <div className={styles.bigResults} id="bigResults">
-            {t.home.showcase.bigResults.split("").map((char: string, index: number) => (
+            {"real results".split("").map((char: string, index: number) => (
               <span key={index} className={styles.letter}>
                 {char === " " ? "\u00A0" : char}
               </span>
