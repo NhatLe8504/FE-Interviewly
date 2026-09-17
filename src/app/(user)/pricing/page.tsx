@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import styles from "./pricing.module.css";
 import { billingApi, DEFAULT_PLANS } from "@/services/billingApi";
+import { useI18n } from "@/context/I18nContext";
 import type { SubscriptionPlan } from "@/types/billing";
 
 interface FaqItem {
@@ -148,6 +149,7 @@ const COMPARISON_GROUPS: FeatureComparisonGroup[] = [
 ];
 
 export default function PricingPage() {
+  const { locale, t } = useI18n();
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [plans, setPlans] = useState<SubscriptionPlan[]>(DEFAULT_PLANS);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
@@ -447,15 +449,15 @@ export default function PricingPage() {
         <div className={styles.trustBadges}>
           <div className={styles.trustItem}>
             <ShieldCheck size={20} color="#d98236" />
-            <span>Bảo mật chuẩn VNPay</span>
+            <span>{t.pricing.trustVnpay}</span>
           </div>
           <div className={styles.trustItem}>
             <Clock size={20} color="#d98236" />
-            <span>Kích hoạt tức thì</span>
+            <span>{t.pricing.trustInstant}</span>
           </div>
           <div className={styles.trustItem}>
             <Award size={20} color="#d98236" />
-            <span>Hoàn tiền trong 7 ngày</span>
+            <span>{t.pricing.trustRefund}</span>
           </div>
         </div>
       </section>

@@ -2,6 +2,7 @@ import { common, header } from "./common";
 import { profile } from "./profile";
 import { settings } from "./settings";
 import { questions } from "./questions";
+import { pricing } from "./pricing";
 import type { Translations } from "../../types";
 
 export const vi: Translations = {
@@ -10,7 +11,8 @@ export const vi: Translations = {
   profile,
   settings,
   questions,
+  pricing,
 };
 
-export { common, header, profile, settings, questions };
+export { common, header, profile, settings, questions, pricing };
 export default vi;
