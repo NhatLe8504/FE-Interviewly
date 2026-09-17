@@ -1,0 +1,848 @@
+/* =========================================================
+   PRACTICE OVERVIEW PAGE - LUXURY LIQUID GLASS STYLE
+========================================================= */
+
+.pageShell {
+  width: min(1200px, calc(100% - 48px));
+  margin-inline: auto;
+  padding: 110px 0 90px;
+  color: var(--ink);
+}
+
+.heroHeader {
+  margin-bottom: 36px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+}
+
+.eyebrow::before {
+  content: "";
+  width: 20px;
+  height: 2px;
+  background: var(--accent-deep);
+  border-radius: 999px;
+}
+
+.title {
+  margin: 0 0 12px;
+  font-size: clamp(30px, 4.2vw, 48px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  line-height: 1.15;
+}
+
+.titleGradient {
+  background: linear-gradient(135deg, #211914 20%, #d98236 70%, #8b4513 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.sub {
+  margin: 0;
+  max-width: 760px;
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* =========================================================
+   SEARCH & CATEGORY TABS
+========================================================= */
+
+.controlsSection {
+  margin-bottom: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.searchBarWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.searchBox {
+  position: relative;
+  flex: 1;
+  min-width: 280px;
+  max-width: 520px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 14px 20px 14px 48px;
+  border-radius: 999px;
+  border: 1px solid rgba(106, 72, 49, 0.18);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  font-size: 13.5px;
+  color: var(--ink);
+  outline: none;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.9), 0 4px 16px rgba(106, 72, 49, 0.04);
+  transition: all 0.25s ease;
+  box-sizing: border-box;
+}
+
+.searchInput:focus {
+  border-color: #d98236;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(217, 130, 54, 0.2), 0 6px 20px rgba(106, 72, 49, 0.08);
+}
+
+.categoryTabsRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tabPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(106, 72, 49, 0.16);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(16px);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.tabPill:hover {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--ink);
+  transform: translateY(-1px);
+  border-color: rgba(217, 130, 54, 0.35);
+}
+
+.tabPillActive {
+  background: #211914 !important;
+  color: #fffaf4 !important;
+  border-color: #211914 !important;
+  box-shadow: 0 6px 18px rgba(33, 25, 20, 0.25);
+}
+
+/* =========================================================
+   VERTICAL PORTRAIT GRID
+========================================================= */
+
+.interviewsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 28px;
+}
+
+/* Base Card Style (Vertical portrait ~3:4 / 2:3 ratio) */
+.cardBase {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: 28px;
+  background: var(--glass-card);
+  border: 1px solid var(--glass-card-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 2px rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  overflow: hidden;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.35s ease,
+              border-color 0.3s ease;
+  min-height: 560px;
+}
+
+.cardBase:hover {
+  transform: translateY(-8px) scale(1.012);
+  box-shadow: 0 24px 50px -10px rgba(84, 50, 27, 0.16),
+              inset 0 1px 2px rgba(255, 255, 255, 1);
+  border-color: rgba(217, 130, 54, 0.45);
+}
+
+/* =========================================================
+   CARD 1: CREATE CUSTOM INTERVIEW WITH JD (SPECIAL LUXURY)
+========================================================= */
+
+.customJdCard {
+  border: 2px solid transparent;
+  background: linear-gradient(#fbf8f4, #f8f4ee) padding-box,
+              linear-gradient(135deg, #d98236 0%, #f59e0b 40%, #b45309 80%, #d97706 100%) border-box;
+  box-shadow: 0 16px 45px -8px rgba(217, 130, 54, 0.25),
+              inset 0 1px 2px rgba(255, 255, 255, 1);
+  cursor: pointer;
+}
+
+.customJdCard:hover {
+  transform: translateY(-9px) scale(1.015);
+  box-shadow: 0 28px 60px -10px rgba(217, 130, 54, 0.38),
+              0 0 0 1px rgba(217, 130, 54, 0.4);
+}
+
+.customJdHeroImgWrap {
+  position: relative;
+  height: 220px;
+  width: 100%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #2a1c13 0%, #442817 60%, #5d361c 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.customJdHeroImgWrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 70% 30%, rgba(245, 158, 11, 0.32), transparent 60%);
+  pointer-events: none;
+}
+
+.customJdIllustration {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #fffaf4;
+  text-align: center;
+  padding: 20px;
+}
+
+.customJdIconGlow {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #d98236 0%, #f59e0b 100%);
+  box-shadow: 0 10px 25px rgba(217, 130, 54, 0.45);
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  animation: floatIcon 3.5s ease-in-out infinite alternate;
+}
+
+@keyframes floatIcon {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    transform: translateY(-6px) rotate(3deg);
+  }
+}
+
+.customJdSupportedBadges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.customJdSupportPill {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #f7eadc;
+  backdrop-filter: blur(8px);
+}
+
+.customJdBody {
+  padding: 24px 26px 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  gap: 18px;
+}
+
+.customJdBadge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(217, 130, 54, 0.15);
+  border: 1px solid rgba(217, 130, 54, 0.3);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b4513;
+}
+
+.customJdTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #211914;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+}
+
+.customJdDesc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.customJdFeatures {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.customJdFeatureItem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3b281c;
+}
+
+.customJdFeatureDot {
+  color: #d98236;
+  flex-shrink: 0;
+}
+
+.btnCreateJdAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 20px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #211914 0%, #3a2215 100%);
+  color: #fffaf4;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 8px 20px -4px rgba(33, 25, 20, 0.35);
+}
+
+.customJdCard:hover .btnCreateJdAction {
+  background: linear-gradient(135deg, #d98236 0%, #8b4513 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px -4px rgba(217, 130, 54, 0.45);
+}
+
+/* =========================================================
+   PRE-MADE INTERVIEW VERTICAL CARDS
+========================================================= */
+
+.cardImgWrap {
+  position: relative;
+  height: 200px;
+  width: 100%;
+  overflow: hidden;
+  background: #2a1c13;
+}
+
+.cardImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cardBase:hover .cardImg {
+  transform: scale(1.08);
+}
+
+.cardImgOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(33, 25, 20, 0.1) 0%, rgba(33, 25, 20, 0.8) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+.cardCompanyBadge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  font-size: 11px;
+  font-weight: 800;
+  color: #211914;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.cardTopTags {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.cardRatingPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  color: #fbbf24;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.cardBody {
+  padding: 22px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  gap: 16px;
+}
+
+.cardMainInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cardRoleLevelRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.levelBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.levelJunior {
+  background: rgba(59, 130, 246, 0.14);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.levelMid {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+}
+
+.levelSenior {
+  background: rgba(147, 51, 234, 0.14);
+  color: #7e22ce;
+  border: 1px solid rgba(147, 51, 234, 0.28);
+}
+
+.levelLead {
+  background: rgba(225, 29, 72, 0.14);
+  color: #be123c;
+  border: 1px solid rgba(225, 29, 72, 0.28);
+}
+
+.cardDuration {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  color: #211914;
+  line-height: 1.35;
+}
+
+.cardSubtitle {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Highlights / Skills tags */
+.cardTopicsRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.topicTag {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 8px;
+  background: rgba(106, 72, 49, 0.08);
+  color: #543a2a;
+}
+
+/* Testimonial / Social Proof Quote */
+.testimonialQuoteBox {
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(106, 72, 49, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quoteText {
+  margin: 0;
+  font-size: 11.5px;
+  color: #3b281c;
+  font-style: italic;
+  line-height: 1.45;
+}
+
+.quoteAuthor {
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #8b4513;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Card Bottom Action */
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid rgba(106, 72, 49, 0.1);
+  margin-top: auto;
+}
+
+.candidatesCount {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.btnStartInterview {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: none;
+  background: #211914;
+  color: #fffaf4;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  box-shadow: 0 4px 14px rgba(33, 25, 20, 0.2);
+}
+
+.cardBase:hover .btnStartInterview {
+  background: #d98236;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(217, 130, 54, 0.35);
+}
+
+/* =========================================================
+   CUSTOM JD INTERVIEW CREATOR MODAL (LIQUID GLASS)
+========================================================= */
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(33, 25, 20, 0.5);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: fadeIn 0.25s ease both;
+  overflow-y: auto;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modalCard {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(36px) saturate(210%);
+  -webkit-backdrop-filter: blur(36px) saturate(210%);
+  box-shadow: 0 28px 70px -15px rgba(84, 50, 27, 0.3),
+              inset 0 1px 2px rgba(255, 255, 255, 1);
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  animation: modalScaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  color: #211914;
+  margin: auto;
+}
+
+@keyframes modalScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.modalTitleWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #211914;
+  letter-spacing: -0.015em;
+}
+
+.modalSub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
+.modalCloseBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(106, 72, 49, 0.15);
+  background: rgba(255, 255, 255, 0.8);
+  color: #211914;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.modalCloseBtn:hover {
+  background: #ffffff;
+  transform: rotate(90deg);
+  border-color: #d98236;
+}
+
+/* Modal Form Fields */
+.modalFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.modalFormFull {
+  grid-column: 1 / -1;
+}
+
+.modalField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modalFieldLabel {
+  font-size: 12px;
+  font-weight: 800;
+  color: #211914;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modalFieldInput,
+.modalFieldSelect,
+.modalFieldTextarea {
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(106, 72, 49, 0.18);
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  color: #211914;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.modalFieldInput:focus,
+.modalFieldSelect:focus,
+.modalFieldTextarea:focus {
+  border-color: #d98236;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(217, 130, 54, 0.2);
+}
+
+.modalFieldTextarea {
+  min-height: 130px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.quickFillBtn {
+  font-size: 11px;
+  font-weight: 700;
+  color: #d98236;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.quickFillBtn:hover {
+  text-decoration: underline;
+}
+
+.modalActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(106, 72, 49, 0.1);
+}
+
+.modalBtnCancel {
+  padding: 12px 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(106, 72, 49, 0.2);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modalBtnCancel:hover {
+  background: rgba(106, 72, 49, 0.08);
+  color: var(--ink);
+}
+
+.modalBtnSubmit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 26px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #d98236 0%, #8b4513 100%);
+  color: #fffaf4;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  box-shadow: 0 8px 20px -4px rgba(139, 69, 19, 0.35);
+}
+
+.modalBtnSubmit:hover:not(:disabled) {
+  background: linear-gradient(135deg, #b45309 0%, #78350f 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px -6px rgba(139, 69, 19, 0.45);
+}
+
+.modalBtnSubmit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .pageShell {
+    padding: 90px 0 60px;
+  }
+  .interviewsGrid {
+    grid-template-columns: 1fr;
+  }
+  .modalFormGrid {
+    grid-template-columns: 1fr;
+  }
+  .modalCard {
+    padding: 24px 20px;
+  }
+}
