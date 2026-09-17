@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useRef } from "react";
 import Link from "next/link";
@@ -24,7 +24,7 @@ import {
   Loader2,
   Check,
 } from "lucide-react";
-import { SimpleUserSelect, UserSelectOption } from "@/components/user-component/common";
+import { SimpleUserSelect, UserSelectOption, UserTooltip } from "@/components/user-component/common";
 import styles from "./newPractice.module.css";
 
 const MAX_FILES = 3;
@@ -362,21 +362,24 @@ export default function NewPracticeSessionPage() {
                       <div className={styles.fileCardLeft}>
                         <div className={styles.fileTypeIcon}>{getFileIcon(file.name)}</div>
                         <div className={styles.fileNameWrap}>
-                          <span className={styles.fileName} title={file.name}>
-                            {file.name}
-                          </span>
+                          <UserTooltip content={file.name}>
+                            <span className={styles.fileName}>
+                              {file.name}
+                            </span>
+                          </UserTooltip>
                           <span className={styles.fileSize}>{formatFileSize(file.size)}</span>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        className={styles.fileRemoveBtn}
-                        onClick={() => handleRemoveFile(file.id)}
-                        title="Xóa tệp này"
-                        aria-label={`Xóa tệp ${file.name}`}
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <UserTooltip content="Xóa tệp này">
+                        <button
+                          type="button"
+                          className={styles.fileRemoveBtn}
+                          onClick={() => handleRemoveFile(file.id)}
+                          aria-label={`Xóa tệp ${file.name}`}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </UserTooltip>
                     </div>
                   ))}
                 </div>

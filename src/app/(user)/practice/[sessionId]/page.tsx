@@ -9,6 +9,7 @@ import { InterviewHeader } from "./components/InterviewHeader";
 import { AiStageAvatar } from "./components/AiStageAvatar";
 import { ResponseInputArea } from "./components/ResponseInputArea";
 import { StarGuidanceDrawer } from "./components/StarGuidanceDrawer";
+import { UserTooltip } from "@/components/user-component/common";
 import { useI18n } from "@/context/I18nContext";
 import shared from "../shared.module.css";
 
@@ -180,36 +181,47 @@ export default function InterviewRoomPage({
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             {/* Play/Stop audio icon right on the question */}
             {tts.isSupported && currentQuestion && !isCompleted && !isStreaming && (
-              <button
-                type="button"
-                onClick={tts.isSpeaking ? tts.stop : handleManualPlayQuestion}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  padding: "4px 8px",
-                  borderRadius: "6px",
-                  border: "1px solid #fed7aa",
-                  backgroundColor: tts.isSpeaking ? "#fff7ed" : "#fefce8",
-                  color: tts.isSpeaking ? "#ea580c" : "#ca8a04",
-                  fontSize: "11px",
-                  fontWeight: "700",
-                  cursor: "pointer",
-                }}
-                title={tts.isSpeaking ? (locale === "vi" ? "Dừng giọng nói" : "Stop voice") : (locale === "vi" ? "Nghe lại câu hỏi này" : "Listen to question")}
+              <UserTooltip
+                content={
+                  tts.isSpeaking
+                    ? locale === "vi"
+                      ? "Dừng giọng nói"
+                      : "Stop voice"
+                    : locale === "vi"
+                    ? "Nghe lại câu hỏi này"
+                    : "Listen to question"
+                }
               >
-                {tts.isSpeaking ? (
-                  <>
-                    <Square size={11} fill="#ea580c" />
-                    <span>{locale === "vi" ? "Dừng" : "Stop"}</span>
-                  </>
-                ) : (
-                  <>
-                    <Volume2 size={12} />
-                    <span>{locale === "vi" ? "Nghe" : "Listen"}</span>
-                  </>
-                )}
-              </button>
+                <button
+                  type="button"
+                  onClick={tts.isSpeaking ? tts.stop : handleManualPlayQuestion}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    padding: "4px 8px",
+                    borderRadius: "6px",
+                    border: "1px solid #fed7aa",
+                    backgroundColor: tts.isSpeaking ? "#fff7ed" : "#fefce8",
+                    color: tts.isSpeaking ? "#ea580c" : "#ca8a04",
+                    fontSize: "11px",
+                    fontWeight: "700",
+                    cursor: "pointer",
+                  }}
+                >
+                  {tts.isSpeaking ? (
+                    <>
+                      <Square size={11} fill="#ea580c" />
+                      <span>{locale === "vi" ? "Dừng" : "Stop"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 size={12} />
+                      <span>{locale === "vi" ? "Nghe" : "Listen"}</span>
+                    </>
+                  )}
+                </button>
+              </UserTooltip>
             )}
 
             {isStreaming && (

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { CirclePlusIcon, ExternalLinkIcon } from "lucide-react"
+import { UserTooltip } from "@/components/user-component/common"
 
 export function NavMain({
   items,
@@ -35,18 +36,19 @@ export function NavMain({
                 <span>New Question</span>
               </Link>
             </SidebarMenuButton>
-            <Button
-              asChild
-              size="icon"
-              className="size-8 group-data-[collapsible=icon]:opacity-0"
-              variant="outline"
-              title="Xem trang User"
-            >
-              <Link href="/" target="_blank">
-                <ExternalLinkIcon />
-                <span className="sr-only">Home</span>
-              </Link>
-            </Button>
+            <UserTooltip content="Xem trang User" side="right">
+              <Button
+                asChild
+                size="icon"
+                className="size-8 group-data-[collapsible=icon]:opacity-0"
+                variant="outline"
+              >
+                <Link href="/" target="_blank">
+                  <ExternalLinkIcon />
+                  <span className="sr-only">Home</span>
+                </Link>
+              </Button>
+            </UserTooltip>
           </SidebarMenuItem>
         </SidebarMenu>
         <SidebarMenu>

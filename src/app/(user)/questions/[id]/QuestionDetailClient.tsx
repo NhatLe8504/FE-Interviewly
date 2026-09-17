@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
@@ -23,6 +23,7 @@ import { catalogApi } from "@/services/catalogApi";
 import { useI18n } from "@/context/I18nContext";
 import { interviewApi } from "@/services/interviewApi";
 import type { QuestionDetailOut } from "@/types/catalog";
+import { UserTooltip } from "@/components/user-component/common";
 import { getDomainTheme } from "@/constants/domainThemes";
 import styles from "./detail.module.css";
 import parentStyles from "../questions.module.css";
@@ -296,24 +297,25 @@ export default function QuestionDetailClient({ questionId }: Props) {
                   <BookOpen size={16} />
                   <span>{t.questions.detail.modelAnswerTitle}</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleCopyAnswer}
-                  className={styles.copyBtn}
-                  title="Sao chép nội dung câu trả lời"
-                >
-                  {copied ? (
-                    <>
-                      <Check size={13} />
-                      <span>{t.questions.detail.copiedAnswer}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={13} />
-                      <span>{t.questions.detail.copyAnswer}</span>
-                    </>
-                  )}
-                </button>
+                <UserTooltip content="Sao chép nội dung câu trả lời">
+                  <button
+                    type="button"
+                    onClick={handleCopyAnswer}
+                    className={styles.copyBtn}
+                  >
+                    {copied ? (
+                      <>
+                        <Check size={13} />
+                        <span>{t.questions.detail.copiedAnswer}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={13} />
+                        <span>{t.questions.detail.copyAnswer}</span>
+                      </>
+                    )}
+                  </button>
+                </UserTooltip>
               </div>
               <p className={styles.sampleAnswerText}>
                 &ldquo;{question.sample_answer}&rdquo;
