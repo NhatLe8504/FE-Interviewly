@@ -247,7 +247,7 @@ export default function NewPracticeSessionPage() {
           <span>AI JOB DESCRIPTION INTELLIGENCE</span>
         </div>
         <h1 className={styles.title}>
-          Tạo Buổi Phỏng Vấn Theo <span className={styles.titleGradient}>JD & Tài Liệu Tuyển Dụng</span>
+          Tạo buổi phỏng vấn theo <em>JD &amp; Tài liệu tuyển dụng</em>
         </h1>
         <p className={styles.sub}>
           Tải lên tệp tài liệu JD (tối đa 3 tệp, 200MB) hoặc dán trực tiếp nội dung mô tả công việc.
