@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="gm" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4c0519"/>
+      <stop offset="60%" stop-color="#881337"/>
+      <stop offset="100%" stop-color="#e11d48"/>
+    </linearGradient>
+    <linearGradient id="glowM" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb7185" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#fda4af" stop-opacity="0.2"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="200" fill="url(#gm)"/>
+  <circle cx="330" cy="60" r="90" fill="url(#glowM)" filter="blur(35px)"/>
+  <!-- Chart Card -->
+  <rect x="50" y="35" width="300" height="135" rx="14" fill="#1f0710" opacity="0.85" stroke="#9f1239" stroke-width="1.5"/>
+  <path d="M 80 135 L 140 105 L 190 120 L 250 75 L 310 55" fill="none" stroke="#fb7185" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 80 135 L 140 105 L 190 120 L 250 75 L 310 55 L 310 145 L 80 145 Z" fill="#fb7185" opacity="0.15"/>
+  <circle cx="310" cy="55" r="7" fill="#ffe4e6" stroke="#e11d48" stroke-width="3"/>
+  <rect x="80" y="55" width="90" height="8" rx="4" fill="#fda4af"/>
+  <rect x="80" y="70" width="60" height="6" rx="3" fill="#f43f5e" opacity="0.6"/>
+</svg>

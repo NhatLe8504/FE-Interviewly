@@ -1,0 +1,109 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding-top: 28px;
+  margin-top: 10px;
+  border-top: 1px solid var(--line, rgba(106, 72, 49, 0.13));
+}
+
+@media (min-width: 640px) {
+  .wrapper {
+    flex-direction: row;
+  }
+}
+
+.info {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft, rgba(45, 31, 23, 0.72));
+}
+
+.infoHighlight {
+  font-weight: 800;
+  color: var(--ink, #211914);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  display: inline-flex;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(106, 72, 49, 0.18);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink, #211914);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+}
+
+.btn:hover:not(:disabled) {
+  background: #ffffff;
+  transform: translateY(-1.5px);
+  border-color: rgba(106, 72, 49, 0.3);
+  box-shadow: 0 4px 12px rgba(84, 50, 27, 0.08);
+}
+
+.btnActive {
+  background: var(--ink, #211914) !important;
+  color: #fffaf4 !important;
+  border-color: var(--ink, #211914) !important;
+  box-shadow: 0 4px 14px rgba(33, 25, 20, 0.25);
+}
+
+.btnActive:hover {
+  transform: none;
+}
+
+.btnNav {
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 36px;
+  color: var(--ink-muted, rgba(84, 58, 42, 0.5));
+}
