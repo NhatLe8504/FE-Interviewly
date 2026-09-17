@@ -1,4 +1,5 @@
-import { request } from "./apiClient";
+import { store } from "@/redux/store";
+import { billingApiSlice } from "@/redux/api/billingApi";
 import type {
   SubscriptionPlan,
   CheckoutRequest,
@@ -65,7 +66,9 @@ export const DEFAULT_PLANS: SubscriptionPlan[] = [
 export const billingApi = {
   async getPlans(): Promise<SubscriptionPlan[]> {
     try {
-      const plans = await request<SubscriptionPlan[]>("/api/v1/billing/plans");
+      const plans = await store
+        .dispatch(billingApiSlice.endpoints.getPlans.initiate())
+        .unwrap();
       if (Array.isArray(plans) && plans.length > 0) {
         return plans;
       }
@@ -76,21 +79,37 @@ export const billingApi = {
   },
 
   async createCheckout(data: CheckoutRequest): Promise<CheckoutResponse> {
-    return request<CheckoutResponse>("/api/v1/billing/checkout", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    return store
+      .dispatch(billingApiSlice.endpoints.createCheckout.initiate(data))
+      .unwrap();
   },
 
   async getMySubscription(): Promise<UserSubscription | null> {
-    return request<UserSubscription | null>("/api/v1/billing/subscriptions/me");
+    try {
+      return await store
+        .dispatch(billingApiSlice.endpoints.getMySubscription.initiate())
+        .unwrap();
+    } catch {
+      return null;
+    }
   },
 
   async getPaymentHistory(limit: number = 50): Promise<PaymentTransaction[]> {
-    return request<PaymentTransaction[]>(`/api/v1/billing/payments/history?limit=${limit}`);
+    try {
+      return await store
+        .dispatch(billingApiSlice.endpoints.getPaymentHistory.initiate(limit))
+        .unwrap();
+    } catch {
+      return [];
+    }
   },
 
   async getQuota(feature: string = "interview_turns"): Promise<QuotaInfo> {
-    return request<QuotaInfo>(`/api/v1/billing/quota?feature=${feature}`);
+    return store
+      .dispatch(billingApiSlice.endpoints.getQuota.initiate(feature))
+      .unwrap();
   },
 };
+
+// Re-export RTK Query hooks for direct component usage
+export * from "@/redux/api/billingApi";
