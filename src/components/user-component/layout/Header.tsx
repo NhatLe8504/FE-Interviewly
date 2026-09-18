@@ -39,6 +39,7 @@ export default function Header() {
   const { user, isAuthenticated, logout } = useAuth();
   const { locale: lang, toggleLocale: toggleLang } = useI18n();
   const { isSubscribed } = useUserSubscription();
+  const isAdmin = user?.role?.toLowerCase() === "admin";
 
   const navRef = useRef<HTMLElement>(null);
   const dropletRef = useRef<HTMLSpanElement>(null);
@@ -231,8 +232,8 @@ export default function Header() {
                     <span className={styles.dropdownHeaderName}>{user.full_name}</span>
                     <span className={styles.dropdownHeaderEmail}>{user.email}</span>
                     <span className={styles.dropdownRoleBadge}>
-                      {user.role === "admin"
-                        ? "Administrator"
+                      {isAdmin
+                        ? (lang === "vi" ? "🛡️ Quản trị viên" : "🛡️ Administrator")
                         : isSubscribed
                         ? (lang === "vi" ? "👑 Hội viên Pro" : "👑 Pro Member")
                         : (lang === "vi" ? "Ứng viên Free" : "Free Candidate")}
@@ -265,7 +266,7 @@ export default function Header() {
                   </span>
                 </Link>
 
-                {user.role === "admin" && (
+                {isAdmin && (
                   <Link
                     href="/admin"
                     className={styles.dropdownItem}
@@ -273,10 +274,12 @@ export default function Header() {
                     onClick={handleCloseMenu}
                   >
                     <span className={styles.dropdownItemLeft}>
-                      <Shield size={14} className="text-amber-500" />
-                      {lang === "vi" ? "Trang quản trị" : "Admin Portal"}
+                      <Shield size={14} className="text-amber-500 fill-amber-500/20" />
+                      <span className="font-bold text-amber-700 dark:text-amber-400">
+                        {lang === "vi" ? "Vào trang quản trị" : "Admin Portal"}
+                      </span>
                     </span>
-                    <span className={styles.dropdownItemTag}>Admin</span>
+                    <span className={styles.dropdownItemTag}>/admin</span>
                   </Link>
                 )}
 
