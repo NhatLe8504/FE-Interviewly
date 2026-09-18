@@ -179,9 +179,11 @@ export default function AdminPaymentDetailPage({
                     const accNo = txn.sender_account || "Chưa ghi nhận";
                     return (
                       <div className="flex items-center gap-2">
-                        <Avatar className="size-6 rounded-md border shrink-0 bg-background">
-                          <AvatarImage src={bank.logo} alt={bank.name} className="object-contain p-0.5" />
-                          <AvatarFallback className="text-[9px] font-bold rounded-md uppercase">{bank.short}</AvatarFallback>
+                        <Avatar className="size-7 rounded-lg border border-border bg-white dark:bg-zinc-900 shrink-0 after:hidden p-0.5 shadow-2xs">
+                          <AvatarImage src={bank.logo} alt={bank.name} className="size-full object-contain rounded-none" />
+                          <AvatarFallback className="rounded-md text-[9px] font-bold bg-muted text-muted-foreground uppercase size-full flex items-center justify-center">
+                            {bank.short}
+                          </AvatarFallback>
                         </Avatar>
                         <span className="font-semibold text-foreground">{bank.name} - </span>
                         <span className="font-mono font-bold text-foreground">{accNo}</span>
