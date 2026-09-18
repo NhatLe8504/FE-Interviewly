@@ -193,10 +193,8 @@ export default function AdminPaymentDetailPage({
                 </div>
 
                 <div className="flex justify-between py-1 border-b">
-                  <span className="text-muted-foreground">Cổng thanh toán:</span>
-                  <Badge variant="secondary" className="uppercase font-bold text-[10px] tracking-wider">
-                    {txn.payment_gateway}
-                  </Badge>
+                  <span className="text-muted-foreground">Hình thức:</span>
+                  <span className="font-semibold text-foreground text-xs">Chuyển khoản MB Bank (xGate xác thực)</span>
                 </div>
 
                 <div className="flex justify-between py-1 border-b">

@@ -62,7 +62,6 @@ export function PaymentDataTable({
   onRefresh?: () => void;
 }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedGateway, setSelectedGateway] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [page, setPage] = useState(1);
   const limit = 10;
@@ -84,17 +83,13 @@ export function PaymentDataTable({
         item.user_email?.toLowerCase().includes(searchTerm.toLowerCase().trim()) ||
         item.plan_name?.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
-      const matchGateway =
-        selectedGateway === "all" ||
-        item.payment_gateway?.toLowerCase() === selectedGateway.toLowerCase();
-
       const matchStatus =
         selectedStatus === "all" ||
         item.status?.toLowerCase() === selectedStatus.toLowerCase();
 
-      return matchSearch && matchGateway && matchStatus;
+      return matchSearch && matchStatus;
     });
-  }, [items, searchTerm, selectedGateway, selectedStatus]);
+  }, [items, searchTerm, selectedStatus]);
 
   const totalFilteredCount = filteredItems.length;
   const totalPages = Math.max(1, Math.ceil(totalFilteredCount / limit));
@@ -240,26 +235,6 @@ export function PaymentDataTable({
           </div>
 
           <Select
-            value={selectedGateway}
-            onValueChange={(val) => {
-              setSelectedGateway(val);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="h-9 w-[150px] text-xs">
-              <SelectValue placeholder="Cổng thanh toán" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả cổng</SelectItem>
-              <SelectItem value="xgate">xGate (Ngân hàng)</SelectItem>
-              <SelectItem value="vnpay">VNPay</SelectItem>
-              <SelectItem value="vietqr">VietQR</SelectItem>
-              <SelectItem value="momo">Ví MoMo</SelectItem>
-              <SelectItem value="stripe">Stripe</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select
             value={selectedStatus}
             onValueChange={(val) => {
               setSelectedStatus(val);
@@ -278,13 +253,12 @@ export function PaymentDataTable({
             </SelectContent>
           </Select>
 
-          {(searchTerm || selectedGateway !== "all" || selectedStatus !== "all") && (
+          {(searchTerm || selectedStatus !== "all") && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
                 setSearchTerm("");
-                setSelectedGateway("all");
                 setSelectedStatus("all");
               }}
               className="text-xs text-muted-foreground hover:text-foreground h-9"
@@ -318,7 +292,6 @@ export function PaymentDataTable({
               <TableHead>Gói cước</TableHead>
               <TableHead className="w-[180px]">TK chuyển tới</TableHead>
               <TableHead>Số tiền</TableHead>
-              <TableHead>Cổng</TableHead>
               <TableHead>Trạng thái</TableHead>
               <TableHead>Thời gian</TableHead>
               <TableHead className="text-right">Chi tiết</TableHead>
@@ -328,14 +301,14 @@ export function PaymentDataTable({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={9} className="h-36 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-36 text-center text-muted-foreground">
                   <RefreshCw className="size-6 animate-spin mx-auto mb-2 text-primary" />
                   <span>Đang tải dữ liệu giao dịch...</span>
                 </TableCell>
               </TableRow>
             ) : paginatedItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="h-36 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-36 text-center text-muted-foreground">
                   <Receipt className="size-8 mx-auto mb-2 opacity-40" />
                   <p className="font-medium text-foreground text-sm">Không có giao dịch nào phù hợp</p>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -420,17 +393,7 @@ export function PaymentDataTable({
                       {formatPrice(txn.amount, txn.currency)}
                     </TableCell>
 
-                    {/* Gateway Badge */}
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className="uppercase text-[10px] tracking-wider font-semibold"
-                      >
-                        {txn.payment_gateway}
-                      </Badge>
-                    </TableCell>
-
-                    {/* Status Badge */}
+                                        {/* Status Badge */}
                     <TableCell>
                       <Badge
                         variant={isSuccess ? "default" : isPending ? "secondary" : "destructive"}
@@ -600,10 +563,8 @@ export function PaymentDataTable({
               </div>
 
               <div className="flex items-center justify-between pt-2">
-                <span className="text-muted-foreground">Cổng thanh toán:</span>
-                <Badge variant="secondary" className="uppercase font-bold text-[10px]">
-                  {selectedTxn.payment_gateway}
-                </Badge>
+                <span className="text-muted-foreground">Hình thức:</span>
+                <span className="font-medium text-foreground text-xs">Chuyển khoản MB Bank (xGate đối soát)</span>
               </div>
 
               <div className="flex items-center justify-between pt-2">
