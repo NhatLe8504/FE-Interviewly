@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { use, useEffect, useState, useMemo, KeyboardEvent, useRef } from "react";
 import Link from "next/link";
@@ -30,6 +30,7 @@ import { AudioWaveformVisualizer } from "./components/AudioWaveformVisualizer";
 import { InterviewStagesTimeline } from "./components/InterviewStagesTimeline";
 import { StarGuidanceDrawer } from "./components/StarGuidanceDrawer";
 import { ConversationTimelineDrawer } from "./components/ConversationTimelineDrawer";
+import { UserTooltip } from "@/components/user-component/common";
 import { useI18n } from "@/context/I18nContext";
 import styles from "./interviewRoom.module.css";
 
