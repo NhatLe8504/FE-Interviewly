@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { authApi } from "@/services/authApi";
+import { toast, setFlashToast } from "@/components/user-component/toast";
 import styles from "./AuthPanel.module.css";
 
 export type AuthMode = "login" | "register";
@@ -97,10 +98,12 @@ export default function AuthPanel({
                 setError(null);
                 await googleLogin(response.credential);
                 setDone(true);
-                setSuccessMsg("Đăng nhập Google thành công! Đang chuyển hướng…");
-                setTimeout(() => {
-                  router.push("/practice");
-                }, 800);
+                setFlashToast({
+                  variant: "success",
+                  title: "Đăng nhập Google thành công!",
+                  description: "Chào mừng bạn quay trở lại với Interviewly.",
+                });
+                window.location.href = "/";
               } catch (err: any) {
                 setError(err.message || "Đăng nhập Google thất bại.");
               } finally {
@@ -166,7 +169,9 @@ export default function AuthPanel({
       const res = await authApi.sendOtp({ email, purpose: "verify_email" });
       setShowOtpField(true);
       setOtpCountdown(60);
-      setSuccessMsg(res.message || "Mã OTP 6 chữ số đã được gửi tới email của bạn.");
+      const msg = res.message || "Mã OTP 6 chữ số đã được gửi tới email của bạn.";
+      setSuccessMsg(msg);
+      toast.info("Đã gửi mã OTP", msg);
     } catch (err: any) {
       setError(err.message || "Không thể gửi mã OTP. Vui lòng thử lại sau.");
     } finally {
@@ -184,7 +189,9 @@ export default function AuthPanel({
       setError(null);
       const res = await authApi.verifyOtp({ email, otp: otp.trim(), purpose: "verify_email" });
       setOtpVerified(true);
-      setSuccessMsg(res.message || "Xác thực OTP thành công!");
+      const msg = res.message || "Xác thực OTP thành công!";
+      setSuccessMsg(msg);
+      toast.success("Xác thực OTP thành công", "Bạn có thể tiếp tục hoàn tất tạo tài khoản.");
     } catch (err: any) {
       setError(err.message || "Mã OTP không hợp lệ hoặc đã hết hạn.");
     } finally {
@@ -211,10 +218,12 @@ export default function AuthPanel({
                 setError(null);
                 await googleLogin(response.credential);
                 setDone(true);
-                setSuccessMsg("Đăng nhập Google thành công! Đang chuyển hướng…");
-                setTimeout(() => {
-                  router.push("/practice");
-                }, 800);
+                setFlashToast({
+                  variant: "success",
+                  title: "Đăng nhập Google thành công!",
+                  description: "Chào mừng bạn quay trở lại với Interviewly.",
+                });
+                window.location.href = "/";
               } catch (err: any) {
                 console.error("Google auth backend error:", err);
                 const detail = err?.data?.detail;
@@ -278,10 +287,12 @@ export default function AuthPanel({
         setLoading(true);
         await login({ email, password });
         setDone(true);
-        setSuccessMsg("Đăng nhập thành công! Đang chuyển hướng tới trang luyện tập…");
-        setTimeout(() => {
-          router.push("/practice");
-        }, 1000);
+        setFlashToast({
+          variant: "success",
+          title: "Đăng nhập thành công!",
+          description: "Chào mừng bạn quay trở lại với Interviewly.",
+        });
+        window.location.href = "/";
       } catch (err: any) {
         setError(err.message || "Tài khoản hoặc mật khẩu không chính xác.");
       } finally {
@@ -312,13 +323,15 @@ export default function AuthPanel({
         });
 
         setDone(true);
-        setSuccessMsg("Tạo tài khoản thành công! Đang tự động đăng nhập…");
+        setFlashToast({
+          variant: "success",
+          title: "Tạo tài khoản thành công!",
+          description: "Chào mừng bạn bắt đầu hành trình cùng Interviewly.",
+        });
 
         try {
           await login({ email, password });
-          setTimeout(() => {
-            router.push("/practice");
-          }, 1200);
+          window.location.href = "/";
         } catch {
           setTimeout(() => {
             switchMode("login");

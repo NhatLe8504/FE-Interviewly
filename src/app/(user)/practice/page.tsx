@@ -45,6 +45,18 @@ export default function PracticeOverviewPage() {
   // Pre-made Interview Quick Launch Modal
   const [selectedInterview, setSelectedInterview] = useState<PreMadeInterview | null>(null);
   const [launchMode, setLaunchMode] = useState<"text" | "voice">("voice");
+  const [selectedStages, setSelectedStages] = useState<string[]>(["warmup", "technical", "closing"]);
+
+  const toggleStage = (stageId: string) => {
+    setSelectedStages((prev) => {
+      if (prev.includes(stageId)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((id) => id !== stageId);
+      }
+      const order = ["warmup", "technical", "closing"];
+      return order.filter((id) => prev.includes(id) || id === stageId);
+    });
+  };
   const [isLaunching, setIsLaunching] = useState(false);
 
   // Filter categories
@@ -91,7 +103,7 @@ export default function PracticeOverviewPage() {
 
   // Handle launch pre-made interview
   const handleStartPreMade = (interview: PreMadeInterview) => {
-    setSelectedInterview(interview);
+    router.push(`/practice/setup/${interview.id}`);
   };
 
   const confirmLaunchPreMade = () => {
@@ -106,6 +118,7 @@ export default function PracticeOverviewPage() {
       levelLabel: selectedInterview.levelLabel,
       languageLabel: "Tiếng Việt",
       mode: launchMode,
+      selected_stages: selectedStages,
       totalQuestions: selectedInterview.sampleQuestions.length,
     };
 
@@ -466,6 +479,66 @@ export default function PracticeOverviewPage() {
               </div>
             </div>
 
+            {/* Stage Selector (3 Chặng Phỏng Vấn) */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <label style={{ fontSize: 12, fontWeight: 800, color: "#211914", display: "flex", alignItems: "center", gap: 6 }}>
+                  <Layers size={14} className="text-[#d98236]" />
+                  <span>Chọn các chặng phỏng vấn:</span>
+                </label>
+                <span style={{ fontSize: 11, fontWeight: 700, color: selectedStages.length > 0 ? "#d98236" : "#ef4444" }}>
+                  {selectedStages.length}/3
+                </span>
+              </div>
+
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <button type="button" onClick={() => setSelectedStages(["warmup", "technical", "closing"])}
+                  style={{ padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "700",
+                    border: selectedStages.length === 3 ? "1.5px solid #d98236" : "1px solid rgba(106, 72, 49, 0.2)",
+                    background: selectedStages.length === 3 ? "rgba(217, 130, 54, 0.15)" : "transparent",
+                    color: selectedStages.length === 3 ? "#8b4513" : "rgba(33, 25, 20, 0.7)", cursor: "pointer" }}>
+                  Full 3 chặng
+                </button>
+                <button type="button" onClick={() => setSelectedStages(["technical"])}
+                  style={{ padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "700",
+                    border: selectedStages.length === 1 && selectedStages[0] === "technical" ? "1.5px solid #d98236" : "1px solid rgba(106, 72, 49, 0.2)",
+                    background: selectedStages.length === 1 && selectedStages[0] === "technical" ? "rgba(217, 130, 54, 0.15)" : "transparent",
+                    color: selectedStages.length === 1 && selectedStages[0] === "technical" ? "#8b4513" : "rgba(33, 25, 20, 0.7)", cursor: "pointer" }}>
+                  Chỉ chuyên môn
+                </button>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {[
+                  { id: "warmup", label: "1. Khởi động (Warm-up)", desc: "Chào hỏi, thời tiết, giới thiệu bản thân" },
+                  { id: "technical", label: "2. Chuyên môn (Technical)", desc: "Kiến trúc, kinh nghiệm, câu hỏi kỹ thuật & STAR" },
+                  { id: "closing", label: "3. Thỏa thuận (Closing)", desc: "Câu hỏi, nguyện vọng & deal lương" },
+                ].map((stg) => (
+                  <div key={stg.id} onClick={() => toggleStage(stg.id)}
+                    style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 10px", borderRadius: "12px", cursor: "pointer",
+                      background: selectedStages.includes(stg.id) ? "rgba(217, 130, 54, 0.08)" : "rgba(255, 255, 255, 0.5)",
+                      border: selectedStages.includes(stg.id) ? "1.5px solid #d98236" : "1px solid rgba(106, 72, 49, 0.12)" }}>
+                    <input type="checkbox" checked={selectedStages.includes(stg.id)} onChange={() => {}} style={{ marginTop: 3, accentColor: "#d98236" }} />
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "#211914" }}>{stg.label}</div>
+                      <div style={{ fontSize: 11, color: "rgba(45, 31, 23, 0.7)" }}>{stg.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ padding: "6px 10px", borderRadius: "10px", background: "rgba(217, 130, 54, 0.05)", border: "1px dashed rgba(217, 130, 54, 0.25)",
+                display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: "#8b4513" }}>Preview:</span>
+                {selectedStages.map((stg, i) => (
+                  <span key={stg} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 800, color: "#d98236" }}>
+                    {"\u25CF"} {stg === "warmup" ? "Warm-up" : stg === "technical" ? "Technical" : "Closing"}
+                    {i < selectedStages.length - 1 && <span style={{ color: "rgba(106, 72, 49, 0.3)", margin: "0 2px" }}>{"\u2500\u2500\u2500"}</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+
             <div className={styles.modalActions}>
               <button
                 type="button"
@@ -478,7 +551,7 @@ export default function PracticeOverviewPage() {
                 type="button"
                 className={styles.modalBtnSubmit}
                 onClick={confirmLaunchPreMade}
-                disabled={isLaunching}
+                disabled={isLaunching || selectedStages.length === 0}
               >
                 <Sparkles size={16} />
                 <span>{isLaunching ? "Đang chuẩn bị phòng..." : "Vào phòng phỏng vấn ngay"}</span>
