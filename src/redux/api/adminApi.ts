@@ -12,6 +12,7 @@ import type {
   PaymentAdminOut,
   PaymentListPageOut,
   PaymentFilterParams,
+  XGateSyncResult,
 } from "@/types/admin";
 
 export const adminApiSlice = baseApi.injectEndpoints({
@@ -112,6 +113,28 @@ export const adminApiSlice = baseApi.injectEndpoints({
           : [{ type: "AdminPayments", id: "LIST" }],
     }),
 
+    
+    syncXGate: builder.mutation<XGateSyncResult, void>({
+      query: () => ({
+        url: "/api/v1/admin/payments/sync-xgate",
+        method: "POST",
+      }),
+      invalidatesTags: [{ type: "AdminPayments", id: "LIST" }, "AdminStats"],
+    }),
+
+    updatePaymentStatus: builder.mutation<PaymentAdminOut, { transactionId: number; status: string }>({
+      query: ({ transactionId, status }) => ({
+        url: `/api/v1/admin/payments/${transactionId}/status`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: (_result, _error, { transactionId }) => [
+        { type: "AdminPayments", id: transactionId },
+        { type: "AdminPayments", id: "LIST" },
+        "AdminStats",
+      ],
+    }),
+
     getPayment: builder.query<PaymentAdminOut, number>({
       query: (txnId) => `/api/v1/admin/payments/${txnId}`,
       providesTags: (_result, _error, id) => [{ type: "AdminPayments", id }],
@@ -142,4 +165,6 @@ export const {
   useGetModerationLogsQuery,
   useGetPaymentsQuery,
   useGetPaymentQuery,
+  useSyncXGateMutation,
+  useUpdatePaymentStatusMutation,
 } = adminApiSlice;
