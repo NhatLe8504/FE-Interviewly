@@ -31,7 +31,7 @@ export function NavDocuments({
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Documents</SidebarGroupLabel>
+      <SidebarGroupLabel>Lối tắt nhanh</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
           <SidebarMenuItem key={item.name}>
@@ -60,18 +60,18 @@ export function NavDocuments({
                 <DropdownMenuItem>
                   <FolderIcon
                   />
-                  <span>Open</span>
+                  <span>Mở</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <ShareIcon
                   />
-                  <span>Share</span>
+                  <span>Chia sẻ</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive">
                   <Trash2Icon
                   />
-                  <span>Delete</span>
+                  <span>Xóa</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -80,7 +80,7 @@ export function NavDocuments({
         <SidebarMenuItem>
           <SidebarMenuButton className="text-sidebar-foreground/70">
             <MoreHorizontalIcon className="text-sidebar-foreground/70" />
-            <span>More</span>
+            <span>Thêm</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>

@@ -3,6 +3,7 @@ import Script from "next/script";
 import StoreProvider from "@/redux/StoreProvider";
 import { AuthProvider } from "@/context/AuthContext";
 import { I18nProvider } from "@/context/I18nContext";
+import { SocketProvider } from "@/context/SocketContext";
 
 export const metadata: Metadata = {
   title: "AI Interview Coach | Practice with clarity",
@@ -20,7 +21,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         />
         <StoreProvider>
           <AuthProvider>
-          <I18nProvider>{children}</I18nProvider>
+          <SocketProvider><I18nProvider>{children}</I18nProvider></SocketProvider>
         </AuthProvider>
         </StoreProvider>
       </body>
