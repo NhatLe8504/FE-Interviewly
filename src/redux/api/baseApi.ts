@@ -43,6 +43,8 @@ export const baseApi = createApi({
     "History",
     "Quota",
     "Catalog",
+    "AdminUsers",
+    "AdminStats",
   ],
   endpoints: () => ({}),
 });
