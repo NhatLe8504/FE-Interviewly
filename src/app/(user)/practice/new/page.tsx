@@ -212,6 +212,7 @@ export default function NewPracticeSessionPage() {
       levelLabel: level.toUpperCase(),
       languageLabel: language === "vi" ? "Tiếng Việt" : "English",
       mode,
+      selected_stages: ["warmup", "technical", "closing"],
       totalQuestions: questionsList.length,
       uploadedFileNames: uploadedFiles.map((f) => f.name),
       jdTextSnippet: jdText.slice(0, 300),

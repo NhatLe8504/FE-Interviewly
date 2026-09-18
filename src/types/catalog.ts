@@ -56,6 +56,9 @@ export interface RubricCriterion {
   };
 }
 
+export type QuestionModerationStatus = "pending" | "approved" | "rejected";
+export type QuestionSource = "admin_manual" | "admin_ai" | "user_ai" | "user_manual";
+
 export interface QuestionOut {
   question_id: number;
   domain_id: number;
@@ -68,6 +71,14 @@ export interface QuestionOut {
   question_text: string;
   star_template_id: number | null;
   is_active: boolean;
+  moderation_status?: QuestionModerationStatus;
+  moderated_by?: number | null;
+  moderated_at?: string | null;
+  moderation_reason?: string | null;
+  source?: QuestionSource;
+  practice_id?: number | null;
+  intent?: string | null;
+  difficulty?: number | null;
   created_by?: number | null;
   created_at?: string | null;
   updated_at?: string | null;

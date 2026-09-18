@@ -26,3 +26,7 @@ pnpm-debug.log*
 /RULE.md
 /TASK.md
 *.log
+
+# Local backend copy and duplicate media artefacts
+/reference_app/
+/public/leader.mp4
