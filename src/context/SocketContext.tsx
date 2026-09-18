@@ -24,6 +24,9 @@ interface SocketContextType {
   socket: WebSocket | null;
   status: SocketStatus;
   isConnected: boolean;
+  onlineCount: number;
+  onlineUserIds: number[];
+  isUserOnline: (userId?: number | null) => boolean;
   lastMessage: any;
   connect: (endpointOrUrl?: string) => void;
   disconnect: () => void;
@@ -48,18 +51,31 @@ function getBaseWsUrl(): string {
 }
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
-  const { token } = useAuth();
+  const { user, token } = useAuth();
   const [status, setStatus] = useState<SocketStatus>("disconnected");
   const [lastMessage, setLastMessage] = useState<any>(null);
+  const [onlineCount, setOnlineCount] = useState<number>(1);
+  const [onlineUserIds, setOnlineUserIds] = useState<number[]>([]);
 
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef<number>(0);
   const isManuallyClosedRef = useRef<boolean>(false);
   const currentUrlRef = useRef<string>("");
   const listenersRef = useRef<Map<string, Set<SocketEventHandler>>>(new Map());
 
-  // Subscribe to specific event types
+  // Check if a specific user is currently online
+  const isUserOnline = useCallback(
+    (userId?: number | null): boolean => {
+      if (!userId) return false;
+      // Current user is always online if socket or session is active
+      if (user && user.user_id === userId) return true;
+      return onlineUserIds.includes(userId);
+    },
+    [user, onlineUserIds]
+  );
+
   const subscribe = useCallback(
     <T = any>(eventType: string, handler: SocketEventHandler<T>): (() => void) => {
       if (!listenersRef.current.has(eventType)) {
@@ -84,6 +100,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
+    if (pingIntervalRef.current) {
+      clearInterval(pingIntervalRef.current);
+      pingIntervalRef.current = null;
+    }
     if (socketRef.current) {
       try {
         socketRef.current.close(1000, "Client disconnect");
@@ -97,21 +117,19 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   const connect = useCallback(
     (endpointOrUrl?: string) => {
-      // Disconnect existing socket if any
       if (socketRef.current) {
         disconnect();
       }
 
       isManuallyClosedRef.current = false;
       const baseWs = getBaseWsUrl();
-      let fullUrl = endpointOrUrl || `${baseWs}/api/v1/voice/ws/1`;
+      let fullUrl = endpointOrUrl || `${baseWs}/api/v1/ws/presence`;
 
       if (!fullUrl.startsWith("ws://") && !fullUrl.startsWith("wss://")) {
         const cleanPath = fullUrl.startsWith("/") ? fullUrl : `/${fullUrl}`;
         fullUrl = `${baseWs}${cleanPath}`;
       }
 
-      // Append auth token if available and not yet present
       if (token && !fullUrl.includes("token=")) {
         const separator = fullUrl.includes("?") ? "&" : "?";
         fullUrl = `${fullUrl}${separator}token=${encodeURIComponent(token)}`;
@@ -127,6 +145,18 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         ws.onopen = () => {
           setStatus("connected");
           reconnectAttemptsRef.current = 0;
+
+          // Start ping heartbeat
+          if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+          pingIntervalRef.current = setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+              try {
+                ws.send(JSON.stringify({ type: "ping" }));
+              } catch {
+                // Ignored
+              }
+            }
+          }, 25000);
         };
 
         ws.onmessage = (event: MessageEvent) => {
@@ -134,7 +164,16 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
             const parsed = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
             setLastMessage(parsed);
 
-            // Notify wildcard and type-specific listeners
+            // Handle presence events
+            if (parsed?.type === "presence_state" || parsed?.type === "presence_update") {
+              if (typeof parsed.online_count === "number") {
+                setOnlineCount(Math.max(1, parsed.online_count));
+              }
+              if (Array.isArray(parsed.online_user_ids)) {
+                setOnlineUserIds(parsed.online_user_ids);
+              }
+            }
+
             const eventType = parsed?.type || parsed?.event || "message";
             const typeListeners = listenersRef.current.get(eventType);
             if (typeListeners) {
@@ -153,11 +192,14 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
           setStatus("error");
         };
 
-        ws.onclose = (event: CloseEvent) => {
+        ws.onclose = () => {
           socketRef.current = null;
           setStatus("disconnected");
+          if (pingIntervalRef.current) {
+            clearInterval(pingIntervalRef.current);
+            pingIntervalRef.current = null;
+          }
 
-          // Auto-reconnect if not closed manually and under 5 attempts
           if (!isManuallyClosedRef.current && reconnectAttemptsRef.current < 5) {
             const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 10000);
             reconnectAttemptsRef.current += 1;
@@ -168,7 +210,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
             }, delay);
           }
         };
-      } catch (err) {
+      } catch {
         setStatus("error");
       }
     },
@@ -188,22 +230,13 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Cleanup on unmount
+  // Auto-connect to presence websocket on mount or token change
   useEffect(() => {
+    connect();
     return () => {
-      isManuallyClosedRef.current = true;
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (socketRef.current) {
-        try {
-          socketRef.current.close();
-        } catch {
-          // Ignored
-        }
-      }
+      disconnect();
     };
-  }, []);
+  }, [connect, disconnect]);
 
   return (
     <SocketContext.Provider
@@ -211,6 +244,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         socket: socketRef.current,
         status,
         isConnected: status === "connected",
+        onlineCount,
+        onlineUserIds,
+        isUserOnline,
         lastMessage,
         connect,
         disconnect,

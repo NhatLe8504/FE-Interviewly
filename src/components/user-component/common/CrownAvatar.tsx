@@ -16,6 +16,7 @@ export interface CrownAvatarProps {
   interactive?: boolean;
   onClick?: () => void;
   crownSrc?: string;
+  showOnline?: boolean;
 }
 
 export function CrownAvatar({
@@ -30,6 +31,7 @@ export function CrownAvatar({
   interactive = false,
   onClick,
   crownSrc = "/victory_crown.png",
+  showOnline = true,
 }: CrownAvatarProps) {
   const { isSubscribed: detectedSubscribed } = useUserSubscription();
   const [imgError, setImgError] = useState(false);
@@ -89,6 +91,18 @@ export function CrownAvatar({
           <span>{initials}</span>
         )}
       </div>
+      {showOnline && (
+        <span
+          className={`${styles.onlineDot} ${
+            size === "sm"
+              ? styles.onlineDotSm
+              : size === "lg"
+              ? styles.onlineDotLg
+              : styles.onlineDotMd
+          }`}
+          title="Đang trực tuyến"
+        />
+      )}
     </div>
   );
 }

@@ -127,3 +127,38 @@
     transform: translateX(-50%) translateY(-2.5px) rotate(1deg);
   }
 }
+
+
+/* Realtime Socket Online Status Dot */
+.onlineDot {
+  position: absolute;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
+  z-index: 12;
+  pointer-events: none;
+}
+
+.onlineDotSm {
+  width: 8px;
+  height: 8px;
+  bottom: 0px;
+  right: 0px;
+  border: 1.5px solid #ffffff;
+}
+
+.onlineDotMd {
+  width: 11px;
+  height: 11px;
+  bottom: 1px;
+  right: 1px;
+  border: 2px solid #ffffff;
+}
+
+.onlineDotLg {
+  width: 16px;
+  height: 16px;
+  bottom: 2px;
+  right: 2px;
+  border: 2.5px solid #ffffff;
+}
