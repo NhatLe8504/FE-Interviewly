@@ -36,6 +36,7 @@ function isActive(pathname: string, href: string) {
 
 export default function Header() {
   const pathname = usePathname();
+  if (pathname === "/onboarding") return null;
   const { user, isAuthenticated, logout } = useAuth();
   const { locale: lang, toggleLocale: toggleLang } = useI18n();
   const { isSubscribed } = useUserSubscription();
