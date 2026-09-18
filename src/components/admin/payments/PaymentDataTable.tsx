@@ -47,7 +47,7 @@ import {
   DialogTitle,
 } from "@/components/admin/ui/dialog";
 import { toast } from "sonner";
-import { useUpdatePaymentStatusMutation } from "@/redux/api/adminApi";
+import { useUpdatePaymentStatusMutation } from "@/redux/api/admin/paymentApi";
 import type { PaymentAdminOut } from "@/types/admin";
 
 export function PaymentDataTable({

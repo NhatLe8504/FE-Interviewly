@@ -20,7 +20,7 @@ import { Button } from "@/components/admin/ui/button";
 import { Badge } from "@/components/admin/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/admin/ui/card";
 import { AdminPageHeader } from "@/components/admin";
-import { useGetPaymentQuery } from "@/redux/api/adminApi";
+import { useGetPaymentQuery } from "@/redux/api/admin/paymentApi";
 
 export default function AdminPaymentDetailPage({
   params,

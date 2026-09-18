@@ -12,9 +12,9 @@ import { toast } from "sonner";
 import { RefreshCw, RotateCcw, ShieldCheck } from "lucide-react";
 import {
   useGetPaymentsQuery,
-  useGetAdminStatsQuery,
   useSyncXGateMutation,
-} from "@/redux/api/adminApi";
+} from "@/redux/api/admin/paymentApi";
+import { useGetAdminStatsQuery } from "@/redux/api/admin/statsApi";
 
 export default function AdminPaymentsPage() {
   const {
