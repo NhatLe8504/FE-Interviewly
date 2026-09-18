@@ -42,6 +42,7 @@ export interface StartSessionPayload {
   level: string;
   language: string;
   mode: "text" | "voice";
+  barge_in_enabled?: boolean;
 }
 
 export interface TurnResponse {
@@ -61,6 +62,7 @@ export interface SessionResponse {
   level: string;
   language: string;
   mode?: "text" | "voice";
+  barge_in_enabled?: boolean;
   status: "in_progress" | "completed" | "abandoned";
   total_score?: number | null;
   current_turn?: TurnResponse | null;
@@ -169,26 +171,9 @@ export const interviewApi = {
   async startSession(
     payload: StartSessionIn | StartSessionPayload
   ): Promise<SessionOut | SessionResponse | any> {
-    try {
-      return await store
-        .dispatch(interviewApiSlice.endpoints.startSession.initiate(payload))
-        .unwrap();
-    } catch {
-      const sid = `sess-${Date.now().toString(36)}`;
-      return {
-        session_id: sid,
-        user_id: 1,
-        domain_id: payload.domain_id,
-        role_id: payload.role_id,
-        level: payload.level,
-        language: payload.language,
-        mode: (payload as any).mode || "text",
-        status: "in_progress",
-        current_turn: 1 as any,
-        max_turns: 5,
-        created_at: new Date().toISOString(),
-      };
-    }
+    return store
+      .dispatch(interviewApiSlice.endpoints.startSession.initiate(payload))
+      .unwrap();
   },
 
   /**

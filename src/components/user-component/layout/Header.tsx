@@ -19,6 +19,7 @@ import {
   LogOut,
   ChevronDown,
 } from "lucide-react";
+import { toast } from "@/components/user-component/toast";
 import styles from "./Header.module.css";
 
 const NAV_ITEMS = [
@@ -339,6 +340,7 @@ export default function Header() {
                   onClick={() => {
                     handleCloseMenu();
                     logout();
+                    toast.info("Đã đăng xuất", "Hẹn gặp lại bạn trong các phiên luyện tập tiếp theo!");
                   }}
                 >
                   <span className={styles.dropdownItemLeft}>
