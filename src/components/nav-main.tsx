@@ -36,10 +36,10 @@ export function NavMain({
             >
               <Link href="/admin/questions/new">
                 <CirclePlusIcon />
-                <span>New Question</span>
+                <span>Tạo câu hỏi</span>
               </Link>
             </SidebarMenuButton>
-            <UserTooltip content="Xem trang User" side="right">
+            <UserTooltip content="Xem trang chủ" side="right">
               <Button
                 asChild
                 size="icon"
@@ -48,7 +48,7 @@ export function NavMain({
               >
                 <Link href="/" target="_blank">
                   <ExternalLinkIcon />
-                  <span className="sr-only">Home</span>
+                  <span className="sr-only">Trang chủ</span>
                 </Link>
               </Button>
             </UserTooltip>

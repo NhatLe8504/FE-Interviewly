@@ -148,8 +148,8 @@ export default function AdminUsersPage() {
       await updateUserRole({ userId, role: newRole }).unwrap();
       toast.success(
         newRole === "admin"
-          ? "Đã cấp quyền Quản trị viên (Admin) cho người dùng"
-          : "Đã chuyển vai trò về Ứng viên (Candidate)"
+          ? "Đã cấp quyền Quản trị viên cho người dùng"
+          : "Đã chuyển vai trò về Ứng viên"
       );
     } catch (err: any) {
       toast.error(err?.data?.detail || "Không thể cập nhật vai trò người dùng");
@@ -309,7 +309,7 @@ export default function AdminUsersPage() {
                   <Shield className="size-5" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Quản trị viên (Admin)</p>
+                  <p className="text-xs text-muted-foreground font-medium">Quản trị viên</p>
                   <p className="text-xl font-bold text-foreground">{stats.admins}</p>
                 </div>
               </CardContent>
@@ -364,8 +364,8 @@ export default function AdminUsersPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tất cả vai trò</SelectItem>
-                    <SelectItem value="candidate">Ứng viên (Candidate)</SelectItem>
-                    <SelectItem value="admin">Quản trị viên (Admin)</SelectItem>
+                    <SelectItem value="candidate">Ứng viên</SelectItem>
+                    <SelectItem value="admin">Quản trị viên</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -426,7 +426,7 @@ export default function AdminUsersPage() {
                     <TableCell colSpan={6} className="h-32 text-center text-destructive">
                       <p className="font-medium text-sm">Không thể tải dữ liệu từ máy chủ.</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Vui lòng kiểm tra kết nối API Backend hoặc quyền truy cập tài khoản Admin.
+                        Vui lòng kiểm tra kết nối API Backend hoặc quyền truy cập tài khoản Quản trị viên.
                       </p>
                       <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-3">
                         Thử lại
@@ -500,7 +500,7 @@ export default function AdminUsersPage() {
                                     : ""
                                 }`}
                               >
-                                {isAdmin ? "Admin" : "Candidate"}
+                                {isAdmin ? "Quản trị viên" : "Ứng viên"}
                                 <ArrowUpDown className="size-3 opacity-60" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -511,13 +511,13 @@ export default function AdminUsersPage() {
                                 onClick={() => handleRoleChange(user.user_id, "candidate")}
                                 className={!isAdmin ? "font-bold text-primary" : ""}
                               >
-                                Ứng viên (Candidate)
+                                Ứng viên
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleRoleChange(user.user_id, "admin")}
                                 className={isAdmin ? "font-bold text-amber-600" : ""}
                               >
-                                Quản trị viên (Admin)
+                                Quản trị viên
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -549,21 +549,21 @@ export default function AdminUsersPage() {
                                 className={isActive ? "font-bold text-emerald-600" : ""}
                               >
                                 <CheckCircle2 className="size-3.5 text-emerald-500 mr-1.5" />
-                                Hoạt động (Active)
+                                Đang hoạt động
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleStatusChange(user.user_id, "suspended")}
                                 className={isSuspended ? "font-bold text-amber-600" : ""}
                               >
                                 <Lock className="size-3.5 text-amber-500 mr-1.5" />
-                                Tạm khóa (Suspend)
+                                Tạm khóa
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleStatusChange(user.user_id, "deleted")}
                                 className="text-destructive focus:text-destructive"
                               >
                                 <Trash2 className="size-3.5 mr-1.5" />
-                                Xóa tài khoản (Delete)
+                                Xóa tài khoản
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -606,7 +606,7 @@ export default function AdminUsersPage() {
                                   onClick={() => handleRoleChange(user.user_id, isAdmin ? "candidate" : "admin")}
                                 >
                                   <Shield className="size-3.5 mr-2 text-amber-500" />
-                                  {isAdmin ? "Hạ quyền Candidate" : "Nâng quyền Admin"}
+                                  {isAdmin ? "Chuyển thành Ứng viên" : "Thăng cấp Quản trị viên"}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() =>
@@ -777,8 +777,8 @@ export default function AdminUsersPage() {
                       <SelectValue placeholder="Chọn vai trò" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="candidate">Ứng viên (Candidate)</SelectItem>
-                      <SelectItem value="admin">Quản trị viên (Admin)</SelectItem>
+                      <SelectItem value="candidate">Ứng viên</SelectItem>
+                      <SelectItem value="admin">Quản trị viên</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -871,7 +871,7 @@ export default function AdminUsersPage() {
                     variant={selectedUserForDetail.role === "admin" ? "default" : "secondary"}
                     className="capitalize"
                   >
-                    {selectedUserForDetail.role === "admin" ? "Quản trị viên (Admin)" : "Ứng viên (Candidate)"}
+                    {selectedUserForDetail.role === "admin" ? "Quản trị viên" : "Ứng viên"}
                   </Badge>
                 </div>
 

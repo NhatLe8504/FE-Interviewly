@@ -101,19 +101,19 @@ export function NavUser({
               <DropdownMenuItem>
                 <CreditCardIcon
                 />
-                Billing
+                Thanh toán & Gói cước
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <BellIcon
                 />
-                Notifications
+                Thông báo
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <LogOutIcon
               />
-              Log out
+              Đăng xuất
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -52,7 +52,7 @@ export function AdminRoleGuard({ children }: { children: React.ReactNode }) {
             </div>
             <h2 className="text-xl font-bold text-foreground">Yêu Cầu Đăng Nhập Quản Trị</h2>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Bạn cần đăng nhập tài khoản có quyền Quản trị viên (Admin) để truy cập trang này.
+              Bạn cần đăng nhập tài khoản có quyền Quản trị viên để truy cập trang này.
             </p>
             <div className="pt-2 flex flex-col sm:flex-row gap-2.5 justify-center">
               <Button asChild className="gap-1.5 w-full sm:w-auto">
@@ -83,7 +83,7 @@ export function AdminRoleGuard({ children }: { children: React.ReactNode }) {
             </div>
             <div>
               <Badge variant="destructive" className="mb-2 uppercase tracking-wider text-[10px]">
-                403 Forbidden
+                403 Không có quyền
               </Badge>
               <h2 className="text-2xl font-extrabold text-foreground tracking-tight">
                 Từ Chối Quyền Truy Cập
@@ -95,7 +95,7 @@ export function AdminRoleGuard({ children }: { children: React.ReactNode }) {
               thẩm quyền để vào trang quản trị <code>/admin</code>.
             </p>
             <div className="p-3 rounded-xl bg-muted/60 text-[11px] text-muted-foreground text-left space-y-1 border">
-              <div>• Chỉ tài khoản có vai trò <strong>Admin</strong> mới có thể quản lý hệ thống.</div>
+              <div>• Chỉ tài khoản có vai trò <strong>Quản trị viên</strong> mới có thể quản lý hệ thống.</div>
               <div>• Nếu bạn là quản trị viên, vui lòng đăng nhập bằng đúng tài khoản được cấp quyền.</div>
             </div>
             <div className="pt-3 flex flex-col sm:flex-row gap-2.5 justify-center">

@@ -81,19 +81,19 @@ const data = {
   ],
   documents: [
     {
-      name: "Question Explorer",
+      name: "Khám phá câu hỏi",
       url: "/questions",
       icon: <GlobeIcon />,
     },
     {
-      name: "Candidate View",
+      name: "Giao diện ứng viên",
       url: "/practice",
       icon: <SparklesIcon />,
     },
   ],
   navSecondary: [
     {
-      title: "Admin Settings",
+      title: "Cài đặt hệ thống",
       url: "/admin/settings",
       icon: <Settings2Icon />,
     },
@@ -118,7 +118,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <Link href="/admin">
                 <ShieldCheckIcon className="size-5! text-primary" />
-                <span className="text-base font-semibold">Interviewly Admin</span>
+                <span className="text-base font-semibold">Quản trị Interviewly</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
