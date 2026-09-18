@@ -1,10 +1,11 @@
-import { baseApi } from "../baseApi";
+﻿import { baseApi } from "../baseApi";
 import {
   RegisterIn,
   LoginIn,
   SendOtpIn,
   VerifyOtpIn,
   GoogleAuthIn,
+  SetInitialPasswordIn,
   TokenOut,
   UserOut,
   MessageOut,
@@ -98,6 +99,15 @@ export const authApiSlice = baseApi.injectEndpoints({
           // Handle unauthorized
         }
       },
+    }),
+
+    setInitialPassword: builder.mutation<MessageOut, SetInitialPasswordIn>({
+      query: (data) => ({
+        url: "/api/v1/auth/set-initial-password",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["User", "Profile"],
     }),
 
     checkHealth: builder.query<{ status: string; database?: string }, void>({
