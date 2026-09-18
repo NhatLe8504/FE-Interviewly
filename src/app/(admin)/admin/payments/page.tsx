@@ -7,7 +7,14 @@ import {
   PaymentDataTable,
   type DailyRevenuePoint,
 } from "@/components/admin/payments";
-import { useGetPaymentsQuery, useGetAdminStatsQuery } from "@/redux/api/adminApi";
+import { Button } from "@/components/admin/ui/button";
+import { toast } from "sonner";
+import { RefreshCw, RotateCcw, ShieldCheck } from "lucide-react";
+import {
+  useGetPaymentsQuery,
+  useGetAdminStatsQuery,
+  useSyncXGateMutation,
+} from "@/redux/api/adminApi";
 
 export default function AdminPaymentsPage() {
   const {
@@ -17,13 +24,32 @@ export default function AdminPaymentsPage() {
     refetch,
   } = useGetPaymentsQuery();
 
-  const { data: statsData } = useGetAdminStatsQuery();
+  const { data: statsData, refetch: refetchStats } = useGetAdminStatsQuery();
+  const [syncXGate, { isLoading: isSyncing }] = useSyncXGateMutation();
 
   const transactions = useMemo(() => {
     return paymentsData?.items || [];
   }, [paymentsData]);
 
-  // Aggregate stats
+  // Handle manual xGate sync
+  const handleSyncXGate = async () => {
+    try {
+      const res = await syncXGate().unwrap();
+      if (res.new_confirmed_count > 0) {
+        toast.success(
+          `Đồng bộ xGate thành công! Đã tự động xác nhận ${res.new_confirmed_count} đơn hàng mới.`
+        );
+      } else {
+        toast.info(res.message || "Đã đối soát xGate: Không có giao dịch chuyển tiền mới.");
+      }
+      refetch();
+      refetchStats();
+    } catch (err: any) {
+      toast.error(err?.data?.detail || "Không thể kết nối đối soát với cổng xGate.");
+    }
+  };
+
+  // Aggregate stats from 100% real database records
   const totalRevenue = useMemo(() => {
     if (statsData && statsData.total_revenue > 0) {
       return statsData.total_revenue;
@@ -46,11 +72,11 @@ export default function AdminPaymentsPage() {
     return uniqueUserIds.size;
   }, [transactions]);
 
-  // Compute daily revenue points for the interactive Area Chart
+  // Compute daily revenue points strictly from real transaction records
   const chartData: DailyRevenuePoint[] = useMemo(() => {
     const map = new Map<string, { revenue: number; count: number }>();
 
-    // Generate consecutive days for the past 90 days
+    // Prepare calendar slots for the past 90 days
     const now = new Date();
     for (let i = 89; i >= 0; i--) {
       const d = new Date(now);
@@ -61,8 +87,8 @@ export default function AdminPaymentsPage() {
 
     // Accumulate real transaction values
     transactions.forEach((t) => {
-      if (t.status?.toLowerCase() === "success" && t.paid_at) {
-        const key = new Date(t.paid_at).toISOString().split("T")[0];
+      if (t.status?.toLowerCase() === "success" && (t.paid_at || t.created_at)) {
+        const key = new Date(t.paid_at || t.created_at!).toISOString().split("T")[0];
         if (map.has(key)) {
           const entry = map.get(key)!;
           entry.revenue += t.amount;
@@ -73,33 +99,55 @@ export default function AdminPaymentsPage() {
       }
     });
 
-    // If transactions are all on one day (e.g. initial dev test), add gentle baseline variations
-    const entries = Array.from(map.entries()).map(([date, val]) => ({
+    return Array.from(map.entries()).map(([date, val]) => ({
       date,
       revenue: val.revenue,
       transactionsCount: val.count,
     }));
-
-    // If total revenue in array is zero or all on one day, smooth with realistic baseline data
-    const totalInChart = entries.reduce((acc, curr) => acc + curr.revenue, 0);
-    if (totalInChart === 0 && totalRevenue > 0) {
-      return entries.map((e, idx) => {
-        const factor = Math.sin(idx / 5) * 0.5 + 0.5;
-        return {
-          ...e,
-          revenue: Math.round((totalRevenue / 30) * factor),
-          transactionsCount: factor > 0.4 ? 1 : 0,
-        };
-      });
-    }
-
-    return entries;
-  }, [transactions, totalRevenue]);
+  }, [transactions]);
 
   return (
     <div className="@container/main flex flex-1 flex-col gap-2">
-      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-        {/* Top Section Cards: Matching SectionCards on Admin Overview */}
+      {/* Top Action Toolbar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6 pt-4 gap-3">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="size-5 text-amber-500" />
+          <p className="text-xs text-muted-foreground">
+            Cổng thanh toán tự động liên kết tài khoản MB Bank <strong className="text-foreground">9394441571</strong> (LE VAN NHAT) qua xGate API.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSyncXGate}
+            disabled={isSyncing}
+            className="gap-1.5 text-xs h-8"
+            title="Truy vấn lịch sử giao dịch từ cổng xGate và đối soát tự động"
+          >
+            <RotateCcw className={`size-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+            <span>{isSyncing ? "Đang đối soát..." : "Đồng bộ xGate"}</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              refetch();
+              refetchStats();
+            }}
+            disabled={isFetching}
+            className="gap-1.5 text-xs h-8"
+          >
+            <RefreshCw className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} />
+            <span>Làm mới</span>
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-4 py-2 md:gap-6 md:py-4">
+        {/* Top Section Cards */}
         <PaymentSectionCards
           totalRevenue={totalRevenue}
           successCount={successTransactionsCount}
@@ -107,7 +155,7 @@ export default function AdminPaymentsPage() {
           payingUsersCount={payingUsersCount}
         />
 
-        {/* Interactive Revenue Area Chart: Matching ChartAreaInteractive on Admin Overview */}
+        {/* Interactive Revenue Area Chart */}
         <div className="px-4 lg:px-6">
           <RevenueAreaChart
             data={chartData}
@@ -115,12 +163,15 @@ export default function AdminPaymentsPage() {
           />
         </div>
 
-        {/* Transactions Data Table: Matching DataTable on Admin Overview */}
+        {/* Transactions Data Table */}
         <PaymentDataTable
           items={transactions}
           isLoading={isLoading}
           isFetching={isFetching}
-          onRefresh={refetch}
+          onRefresh={() => {
+            refetch();
+            refetchStats();
+          }}
         />
       </div>
     </div>

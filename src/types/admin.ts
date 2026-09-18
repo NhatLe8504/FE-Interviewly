@@ -120,3 +120,16 @@ export interface PaymentFilterParams {
   limit?: number;
   offset?: number;
 }
+
+
+export interface PaymentStatusUpdateIn {
+  status: string;
+}
+
+export interface XGateSyncResult {
+  success: boolean;
+  scanned_xgate_count: number;
+  matched_count: number;
+  new_confirmed_count: number;
+  message: string;
+}

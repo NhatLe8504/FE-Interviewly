@@ -71,6 +71,7 @@ export function RevenueAreaChart({
 
     const startDate = new Date(now);
     startDate.setDate(startDate.getDate() - daysToSubtract);
+    startDate.setHours(0, 0, 0, 0);
 
     return data.filter((item) => {
       const itemDate = new Date(item.date);
@@ -85,7 +86,7 @@ export function RevenueAreaChart({
   const formattedRangeTotal = new Intl.NumberFormat("vi-VN", {
     style: "currency",
     currency: "VND",
-  }).format(rangeTotal || totalRevenue);
+  }).format(rangeTotal);
 
   return (
     <Card className="@container/card">
@@ -161,10 +162,7 @@ export function RevenueAreaChart({
               minTickGap={32}
               tickFormatter={(value) => {
                 const date = new Date(value);
-                return date.toLocaleDateString("vi-VN", {
-                  month: "numeric",
-                  day: "numeric",
-                });
+                return `${date.getDate()}/${date.getMonth() + 1}`;
               }}
             />
             <ChartTooltip

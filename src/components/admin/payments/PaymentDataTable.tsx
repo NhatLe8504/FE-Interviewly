@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   Search,
   Filter,
@@ -13,6 +14,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Receipt,
+  User,
+  Copy,
+  Check,
   RotateCcw,
 } from "lucide-react";
 import {
@@ -42,6 +46,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/admin/ui/dialog";
+import { toast } from "sonner";
+import { useUpdatePaymentStatusMutation } from "@/redux/api/adminApi";
 import type { PaymentAdminOut } from "@/types/admin";
 
 export function PaymentDataTable({
@@ -62,6 +68,10 @@ export function PaymentDataTable({
   const limit = 10;
 
   const [selectedTxn, setSelectedTxn] = useState<PaymentAdminOut | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const [updatePaymentStatus, { isLoading: isUpdatingStatus }] =
+    useUpdatePaymentStatusMutation();
 
   // Client-side search & filtering
   const filteredItems = useMemo(() => {
@@ -90,6 +100,33 @@ export function PaymentDataTable({
   const totalPages = Math.max(1, Math.ceil(totalFilteredCount / limit));
   const offset = (page - 1) * limit;
   const paginatedItems = filteredItems.slice(offset, offset + limit);
+
+  const handleCopy = (key: string, text: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 2000);
+    }
+  };
+
+  const handleStatusUpdate = async (transactionId: number, status: string) => {
+    try {
+      const updated = await updatePaymentStatus({ transactionId, status }).unwrap();
+      toast.success(
+        status === "success"
+          ? "Đã duyệt và kích hoạt gói cước cho giao dịch thành công!"
+          : status === "refunded"
+          ? "Đã cập nhật trạng thái đơn hàng thành hoàn tiền!"
+          : "Đã cập nhật trạng thái đơn hàng thành công!"
+      );
+      if (selectedTxn && selectedTxn.transaction_id === transactionId) {
+        setSelectedTxn(updated);
+      }
+      if (onRefresh) onRefresh();
+    } catch (err: any) {
+      toast.error(err?.data?.detail || "Không thể cập nhật trạng thái giao dịch.");
+    }
+  };
 
   const formatPrice = (amount: number, currency: string = "VND") => {
     return new Intl.NumberFormat("vi-VN", {
@@ -170,8 +207,8 @@ export function PaymentDataTable({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả cổng</SelectItem>
+              <SelectItem value="xgate">xGate (Ngân hàng)</SelectItem>
               <SelectItem value="vnpay">VNPay</SelectItem>
-              <SelectItem value="xgate">XGate</SelectItem>
               <SelectItem value="vietqr">VietQR</SelectItem>
               <SelectItem value="momo">Ví MoMo</SelectItem>
               <SelectItem value="stripe">Stripe</SelectItem>
@@ -236,7 +273,7 @@ export function PaymentDataTable({
               <TableHead className="w-[260px]">Khách hàng</TableHead>
               <TableHead>Gói cước</TableHead>
               <TableHead>Số tiền</TableHead>
-              <TableHead>Cổng thanh toán</TableHead>
+              <TableHead>Cổng</TableHead>
               <TableHead>Trạng thái</TableHead>
               <TableHead>Thời gian</TableHead>
               <TableHead className="text-right">Chi tiết</TableHead>
@@ -272,7 +309,7 @@ export function PaymentDataTable({
                     {/* Transaction ID */}
                     <TableCell className="font-mono text-xs font-medium">
                       <span className="text-foreground font-semibold">#{txn.transaction_id}</span>
-                      <div className="text-[10px] text-muted-foreground truncate max-w-28">
+                      <div className="text-[10px] text-muted-foreground truncate max-w-28 font-mono">
                         {txn.gateway_transaction_id}
                       </div>
                     </TableCell>
@@ -299,7 +336,7 @@ export function PaymentDataTable({
                     {/* Plan */}
                     <TableCell>
                       <Badge variant="outline" className="text-xs font-normal">
-                        {txn.plan_name || "Gói dịch vụ"}
+                        {txn.plan_name || "Gói dịch vụ Pro"}
                       </Badge>
                     </TableCell>
 
@@ -322,8 +359,13 @@ export function PaymentDataTable({
                     <TableCell>
                       <Badge
                         variant={isSuccess ? "default" : isPending ? "secondary" : "destructive"}
-                        className="text-[11px]"
+                        className="text-[11px] font-medium gap-1"
                       >
+                        <span
+                          className={`size-1.5 rounded-full ${
+                            isSuccess ? "bg-emerald-500" : isPending ? "bg-amber-500" : "bg-destructive"
+                          }`}
+                        />
                         {isSuccess ? "Thành công" : isPending ? "Đang chờ" : isFailed ? "Thất bại" : "Hoàn tiền"}
                       </Badge>
                     </TableCell>
@@ -335,15 +377,30 @@ export function PaymentDataTable({
 
                     {/* Actions */}
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8"
-                        onClick={() => setSelectedTxn(txn)}
-                        title="Xem chi tiết hóa đơn"
-                      >
-                        <Eye className="size-4" />
-                      </Button>
+                      <div className="inline-flex items-center justify-end gap-1">
+                        {isPending && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-xs gap-1"
+                            onClick={() => handleStatusUpdate(txn.transaction_id, "success")}
+                            disabled={isUpdatingStatus}
+                            title="Xác nhận đã nhận tiền"
+                          >
+                            <CheckCircle2 className="size-3.5" />
+                            <span className="hidden sm:inline">Duyệt</span>
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8"
+                          onClick={() => setSelectedTxn(txn)}
+                          title="Xem chi tiết hóa đơn"
+                        >
+                          <Eye className="size-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -402,7 +459,7 @@ export function PaymentDataTable({
                 <div>
                   <DialogTitle>Chi Tiết Giao Dịch #{selectedTxn.transaction_id}</DialogTitle>
                   <DialogDescription className="text-xs">
-                    Mã tham chiếu cổng: {selectedTxn.gateway_transaction_id}
+                    Mã tham chiếu: {selectedTxn.gateway_transaction_id}
                   </DialogDescription>
                 </div>
               </div>
@@ -421,11 +478,19 @@ export function PaymentDataTable({
                 <div className="text-right">
                   <p className="font-semibold text-foreground">{selectedTxn.user_name || "Khách hàng"}</p>
                   <p className="text-[11px] text-muted-foreground">{selectedTxn.user_email || "--"}</p>
+                  {selectedTxn.user_id && (
+                    <Link
+                      href={`/admin/users/${selectedTxn.user_id}`}
+                      className="text-[11px] text-primary hover:underline inline-block mt-0.5"
+                    >
+                      Xem tài khoản #{selectedTxn.user_id}
+                    </Link>
+                  )}
                 </div>
               </div>
 
               <div className="flex items-center justify-between pt-2">
-                <span className="text-muted-foreground">Gói dịch vụ kích hoạt:</span>
+                <span className="text-muted-foreground">Gói cước:</span>
                 <Badge variant="outline" className="font-semibold">
                   {selectedTxn.plan_name || "Gói Pro"}
                 </Badge>
@@ -439,7 +504,7 @@ export function PaymentDataTable({
               </div>
 
               <div className="flex items-center justify-between pt-2">
-                <span className="text-muted-foreground">Trạng thái:</span>
+                <span className="text-muted-foreground">Trạng thái hiện tại:</span>
                 <Badge
                   variant={
                     selectedTxn.status === "success"
@@ -449,7 +514,11 @@ export function PaymentDataTable({
                       : "destructive"
                   }
                 >
-                  {selectedTxn.status === "success" ? "Thành công" : selectedTxn.status}
+                  {selectedTxn.status === "success"
+                    ? "Thành công"
+                    : selectedTxn.status === "pending"
+                    ? "Đang chờ"
+                    : "Thất bại"}
                 </Badge>
               </div>
 
@@ -464,7 +533,49 @@ export function PaymentDataTable({
               </div>
             </div>
 
-            <DialogFooter className="pt-3">
+            {/* Status change actions */}
+            <div className="p-3 bg-muted/40 rounded-xl space-y-2 text-xs">
+              <p className="font-medium text-foreground">Hành động của Quản trị viên:</p>
+              <div className="flex flex-wrap gap-2">
+                {selectedTxn.status !== "success" && (
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs gap-1.5"
+                    disabled={isUpdatingStatus}
+                    onClick={() => handleStatusUpdate(selectedTxn.transaction_id, "success")}
+                  >
+                    <CheckCircle2 className="size-3.5" />
+                    <span>Duyệt thành công</span>
+                  </Button>
+                )}
+                {selectedTxn.status !== "pending" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs gap-1.5"
+                    disabled={isUpdatingStatus}
+                    onClick={() => handleStatusUpdate(selectedTxn.transaction_id, "pending")}
+                  >
+                    <Clock className="size-3.5" />
+                    <span>Chuyển sang Chờ</span>
+                  </Button>
+                )}
+                {selectedTxn.status !== "refunded" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs text-destructive hover:bg-destructive/10 gap-1.5"
+                    disabled={isUpdatingStatus}
+                    onClick={() => handleStatusUpdate(selectedTxn.transaction_id, "refunded")}
+                  >
+                    <RotateCcw className="size-3.5" />
+                    <span>Hoàn tiền</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2">
               <Button variant="outline" size="sm" onClick={() => setSelectedTxn(null)}>
                 Đóng
               </Button>

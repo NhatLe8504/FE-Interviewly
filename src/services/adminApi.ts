@@ -8,6 +8,10 @@ import type {
   UserFilterParams,
   UserStatus,
   UserRole,
+  PaymentAdminOut,
+  PaymentListPageOut,
+  PaymentFilterParams,
+  XGateSyncResult,
 } from "@/types/admin";
 
 export const adminApi = {
@@ -38,6 +42,22 @@ export const adminApi = {
   async getAdminStats(): Promise<SystemStatsOut> {
     return store.dispatch(adminApiSlice.endpoints.getAdminStats.initiate()).unwrap();
   },
+  async getPayments(params?: PaymentFilterParams): Promise<PaymentListPageOut> {
+    return store.dispatch(adminApiSlice.endpoints.getPayments.initiate(params)).unwrap();
+  },
+
+  async getPayment(transactionId: number): Promise<PaymentAdminOut> {
+    return store.dispatch(adminApiSlice.endpoints.getPayment.initiate(transactionId)).unwrap();
+  },
+
+  async syncXGate(): Promise<XGateSyncResult> {
+    return store.dispatch(adminApiSlice.endpoints.syncXGate.initiate()).unwrap();
+  },
+
+  async updatePaymentStatus(transactionId: number, status: string): Promise<PaymentAdminOut> {
+    return store.dispatch(adminApiSlice.endpoints.updatePaymentStatus.initiate({ transactionId, status })).unwrap();
+  },
+
 };
 
 // Re-export RTK Query hooks for React component usage

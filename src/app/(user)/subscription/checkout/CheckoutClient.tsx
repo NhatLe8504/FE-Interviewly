@@ -58,7 +58,7 @@ export function CheckoutClient() {
   const [orderCode, setOrderCode] = useState<string>("");
   useEffect(() => {
     const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-    setOrderCode(`ITVLY-${randomSuffix}`);
+    setOrderCode(`IC${randomSuffix}`);
   }, []);
 
   // 15-minute countdown timer (900 seconds)
@@ -85,7 +85,7 @@ export function CheckoutClient() {
 
   // Bank transfer info
   const bankInfo = useMemo(() => {
-    const transferContent = `${orderCode} ${cycle === "weekly" ? "SPRINT" : "PRO"}`;
+    const transferContent = orderCode;
     return {
       bankName: "MB Bank (Ngân hàng Quân Đội)",
       bankShortName: "MB",
