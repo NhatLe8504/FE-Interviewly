@@ -27,7 +27,7 @@ import {
   TableRow,
   TableCell,
 } from "@/components/admin/ui/table";
-import { Avatar, AvatarFallback } from "@/components/admin/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/admin/ui/avatar";
 import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
 import { Input } from "@/components/admin/ui/input";
@@ -151,6 +151,50 @@ export function PaymentDataTable({
     }
   };
 
+
+  const getBankDetails = (bankCode?: string | null) => {
+    const code = (bankCode || "MB").toUpperCase();
+    const banks: Record<string, { name: string; logo: string; short: string }> = {
+      MB: {
+        name: "MB Bank",
+        short: "MB",
+        logo: "https://api.vietqr.io/img/MB.png",
+      },
+      VCB: {
+        name: "Vietcombank",
+        short: "VCB",
+        logo: "https://api.vietqr.io/img/VCB.png",
+      },
+      BIDV: {
+        name: "BIDV",
+        short: "BIDV",
+        logo: "https://api.vietqr.io/img/BIDV.png",
+      },
+      TCB: {
+        name: "Techcombank",
+        short: "TCB",
+        logo: "https://api.vietqr.io/img/TCB.png",
+      },
+      VPB: {
+        name: "VPBank",
+        short: "VPB",
+        logo: "https://api.vietqr.io/img/VPB.png",
+      },
+      MOMO: {
+        name: "Ví MoMo",
+        short: "MOMO",
+        logo: "https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png",
+      },
+    };
+    return (
+      banks[code] || {
+        name: `${code} Bank`,
+        short: code.slice(0, 3),
+        logo: `https://api.vietqr.io/img/${code}.png`,
+      }
+    );
+  };
+
   const getInitials = (name?: string | null) => {
     if (!name) return "U";
     return name
@@ -272,6 +316,7 @@ export function PaymentDataTable({
               <TableHead className="w-[140px]">Mã GD</TableHead>
               <TableHead className="w-[260px]">Khách hàng</TableHead>
               <TableHead>Gói cước</TableHead>
+              <TableHead className="w-[180px]">TK chuyển tới</TableHead>
               <TableHead>Số tiền</TableHead>
               <TableHead>Cổng</TableHead>
               <TableHead>Trạng thái</TableHead>
@@ -283,14 +328,14 @@ export function PaymentDataTable({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-36 text-center text-muted-foreground">
+                <TableCell colSpan={9} className="h-36 text-center text-muted-foreground">
                   <RefreshCw className="size-6 animate-spin mx-auto mb-2 text-primary" />
                   <span>Đang tải dữ liệu giao dịch...</span>
                 </TableCell>
               </TableRow>
             ) : paginatedItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-36 text-center text-muted-foreground">
+                <TableCell colSpan={9} className="h-36 text-center text-muted-foreground">
                   <Receipt className="size-8 mx-auto mb-2 opacity-40" />
                   <p className="font-medium text-foreground text-sm">Không có giao dịch nào phù hợp</p>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -338,6 +383,36 @@ export function PaymentDataTable({
                       <Badge variant="outline" className="text-xs font-normal">
                         {txn.plan_name || "Gói dịch vụ Pro"}
                       </Badge>
+                    </TableCell>
+
+                                        {/* Sender Bank Account Cell with shadcn Avatar (Fallback to text if no image) */}
+                    <TableCell>
+                      {(() => {
+                        const bank = getBankDetails(txn.sender_bank);
+                        const accNo = txn.sender_account || "Chưa ghi nhận";
+                        return (
+                          <div className="flex items-center gap-2">
+                            <Avatar className="size-7 rounded-md border shrink-0 bg-background/80">
+                              <AvatarImage
+                                src={bank.logo}
+                                alt={bank.name}
+                                className="object-contain p-0.5"
+                              />
+                              <AvatarFallback className="text-[10px] font-bold rounded-md bg-muted text-muted-foreground uppercase">
+                                {bank.short}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0 text-xs leading-tight">
+                              <p className="font-semibold text-foreground truncate max-w-28" title={bank.name}>
+                                {bank.name}
+                              </p>
+                              <p className="font-mono text-[11px] text-muted-foreground tracking-tight">
+                                {accNo}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </TableCell>
 
                     {/* Amount */}
@@ -487,6 +562,32 @@ export function PaymentDataTable({
                     </Link>
                   )}
                 </div>
+              </div>
+
+                            <div className="flex items-center justify-between pt-2">
+                <span className="text-muted-foreground">TK chuyển tới:</span>
+                {(() => {
+                  const bank = getBankDetails(selectedTxn.sender_bank);
+                  const accNo = selectedTxn.sender_account || "Chưa ghi nhận";
+                  return (
+                    <div className="flex items-center gap-2">
+                      <Avatar className="size-6 rounded-md border shrink-0 bg-background">
+                        <AvatarImage src={bank.logo} alt={bank.name} className="object-contain p-0.5" />
+                        <AvatarFallback className="text-[9px] font-bold rounded-md">{bank.short}</AvatarFallback>
+                      </Avatar>
+                      <span className="font-semibold text-foreground">{bank.name} - </span>
+                      <span className="font-mono font-bold text-foreground">{accNo}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy("account", accNo)}
+                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground ml-1"
+                        title="Sao chép số tài khoản"
+                      >
+                        {copiedKey === "account" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+                      </button>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="flex items-center justify-between pt-2">
