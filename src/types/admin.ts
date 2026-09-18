@@ -89,3 +89,34 @@ export interface UserFilterParams {
   limit?: number;
   offset?: number;
 }
+
+
+export interface PaymentAdminOut {
+  transaction_id: number;
+  user_subscription_id: number;
+  payment_gateway: string;
+  gateway_transaction_id: string;
+  amount: number;
+  currency: string;
+  status: "pending" | "success" | "failed" | "refunded" | string;
+  paid_at?: string | null;
+  created_at?: string | null;
+  user_id?: number | null;
+  user_email?: string | null;
+  user_name?: string | null;
+  plan_name?: string | null;
+}
+
+export interface PaymentListPageOut {
+  items: PaymentAdminOut[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface PaymentFilterParams {
+  status?: string;
+  gateway?: string;
+  limit?: number;
+  offset?: number;
+}
