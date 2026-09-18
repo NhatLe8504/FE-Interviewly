@@ -69,8 +69,8 @@ export default function AdminUserDetailPage({
       await updateUserRole({ userId: user.user_id, role: nextRole }).unwrap();
       toast.success(
         nextRole === "admin"
-          ? "Đã cấp quyền Quản trị viên (Admin) thành công"
-          : "Đã chuyển vai trò về Ứng viên (Candidate)"
+          ? "Đã cấp quyền Quản trị viên thành công"
+          : "Đã chuyển vai trò về Ứng viên"
       );
     } catch (err: any) {
       toast.error(err?.data?.detail || "Lỗi cập nhật vai trò người dùng");
@@ -186,7 +186,7 @@ export default function AdminUserDetailPage({
                         <h1 className="text-xl font-bold text-foreground">{user.full_name}</h1>
                         <Badge variant={isAdmin ? "default" : "secondary"} className="gap-1">
                           {isAdmin && <Shield className="size-3 text-amber-500 fill-amber-500 shrink-0" />}
-                          {isAdmin ? "Quản trị viên (Admin)" : "Ứng viên (Candidate)"}
+                          {isAdmin ? "Quản trị viên" : "Ứng viên"}
                         </Badge>
 
                         <Badge
@@ -233,7 +233,7 @@ export default function AdminUserDetailPage({
                       className="gap-1.5"
                     >
                       <Shield className="size-3.5 text-amber-500" />
-                      <span>{isAdmin ? "Hạ về Candidate" : "Nâng quyền Admin"}</span>
+                      <span>{isAdmin ? "Chuyển thành Ứng viên" : "Thăng cấp Quản trị viên"}</span>
                     </Button>
 
                     <Button
@@ -311,7 +311,7 @@ export default function AdminUserDetailPage({
                     <div className="p-3.5 rounded-xl bg-muted/50 border">
                       <div className="font-semibold text-foreground mb-1 flex items-center gap-1.5">
                         <Shield className="size-3.5 text-amber-500" />
-                        <span>Quyền hạn vai trò: {isAdmin ? "Admin (Toàn quyền)" : "Candidate (Ứng viên)"}</span>
+                        <span>Quyền hạn vai trò: {isAdmin ? "Quản trị viên (Toàn quyền)" : "Ứng viên"}</span>
                       </div>
                       <p className="text-[11px] leading-relaxed">
                         {isAdmin
