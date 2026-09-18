@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import styles from "./checkout.module.css";
 import { useAuth } from "@/context/AuthContext";
+import { UserTooltip } from "@/components/user-component/common";
 
 type BillingCycle = "weekly" | "monthly" | "yearly";
 type PaymentMethod = "qr" | "atm" | "card" | "momo";
@@ -397,15 +398,16 @@ export function CheckoutClient() {
                   )}
                 </button>
 
-                <button
-                  type="button"
-                  className={styles.demoButton}
-                  onClick={handleQuickDemoSuccess}
-                  title="Thử nghiệm popup thành công ngay mà không cần chuyển tiền thực tế"
-                >
-                  <Sparkles size={16} />
-                  <span>Mô phỏng thanh toán thành công (Bấm để xem Popup)</span>
-                </button>
+                <UserTooltip content="Thử nghiệm popup thành công ngay mà không cần chuyển tiền thực tế">
+                  <button
+                    type="button"
+                    className={styles.demoButton}
+                    onClick={handleQuickDemoSuccess}
+                  >
+                    <Sparkles size={16} />
+                    <span>Mô phỏng thanh toán thành công (Bấm để xem Popup)</span>
+                  </button>
+                </UserTooltip>
               </div>
             </div>
           )}

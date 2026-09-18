@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, Sparkles, ArrowRight, ShieldCheck, Home, FileText } from "lucide-react";
@@ -13,6 +14,16 @@ export function PaymentResultSuccessClient() {
   const amountNumber = rawAmount ? Number(rawAmount) / 100 : 99000;
   const formattedAmount = new Intl.NumberFormat("vi-VN").format(amountNumber) + " đ";
   const bankCode = searchParams.get("vnp_BankCode") || "VNPAY-QR / VietQR";
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("interviewly_subscription_active", "true");
+      localStorage.setItem("interviewly_is_pro", "true");
+      window.dispatchEvent(new Event("interviewly_subscription_change"));
+    } catch {
+      // Ignore
+    }
+  }, []);
 
   return (
     <div

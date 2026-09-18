@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
@@ -26,8 +26,11 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
+import { CrownAvatar } from "@/components/user-component/common";
+import { useUserSubscription } from "@/hooks/useUserSubscription";
 import { profileApi } from "@/services/profileApi";
 import { ApiError } from "@/services/apiClient";
+import { UserTooltip } from "@/components/user-component/common";
 import type {
   ProfileOut,
   ProfileUpdateIn,
@@ -63,6 +66,7 @@ const SINE_FACTORS = [0.4, 0.7, 1.0, 0.8, 0.6, 0.9, 1.2, 0.7, 0.5, 0.8, 1.1, 0.9
 export default function ProfileClient() {
   const { user, isAuthenticated, isLoading: isAuthLoading, refreshUser } = useAuth();
   const { locale, t } = useI18n();
+  const { isSubscribed } = useUserSubscription();
 
   // Dynamic experience options based on locale
   const experienceOptions = useMemo(
@@ -489,16 +493,17 @@ export default function ProfileClient() {
             Tùy chỉnh thông tin chuyên môn, định hướng nghề nghiệp, mức độ kinh nghiệm và kiểm tra thiết bị phỏng vấn.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={loadProfile}
-          disabled={isFetching}
-          className={styles.secondaryBtn}
-          title="Làm mới dữ liệu từ máy chủ"
-        >
-          <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
-          Làm mới
-        </button>
+        <UserTooltip content="Làm mới dữ liệu từ máy chủ">
+          <button
+            type="button"
+            onClick={loadProfile}
+            disabled={isFetching}
+            className={styles.secondaryBtn}
+          >
+            <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
+            Làm mới
+          </button>
+        </UserTooltip>
       </div>
 
       <div className={styles.heroCard}>
@@ -515,15 +520,16 @@ export default function ProfileClient() {
             ) : (
               <div className={styles.avatar}>{initials}</div>
             )}
-            <button
-              type="button"
-              className={styles.avatarChangeBtn}
-              onClick={() => openAvatarModal()}
-              title="Đổi ảnh đại diện"
-              aria-label="Đổi ảnh đại diện"
-            >
-              <Camera size={15} />
-            </button>
+            <UserTooltip content="Đổi ảnh đại diện">
+              <button
+                type="button"
+                className={styles.avatarChangeBtn}
+                onClick={() => openAvatarModal()}
+                aria-label="Đổi ảnh đại diện"
+              >
+                <Camera size={15} />
+              </button>
+            </UserTooltip>
           </div>
 
           <div className={styles.heroInfo}>
@@ -678,15 +684,16 @@ export default function ProfileClient() {
                   <span>{t.profile.generalTab.emailLabel}</span>
                   <span className={styles.charCount}>{t.profile.generalTab.emailVerified}</span>
                 </label>
-                <input
-                  id="email"
-                  type="email"
-                  className={`${styles.input} ${styles.inputDisabled}`}
-                  value={profile?.email || user?.email || ""}
-                  disabled
-                  readOnly
-                  title="Email dùng để đăng nhập và không thể tự chỉnh sửa"
-                />
+                <UserTooltip content="Email dùng để đăng nhập và không thể tự chỉnh sửa">
+                  <input
+                    id="email"
+                    type="email"
+                    className={`${styles.input} ${styles.inputDisabled}`}
+                    value={profile?.email || user?.email || ""}
+                    disabled
+                    readOnly
+                  />
+                </UserTooltip>
               </div>
 
               <div className={styles.field}>
@@ -957,14 +964,15 @@ export default function ProfileClient() {
                     placeholder="••••••••"
                     required
                   />
-                  <button
-                    type="button"
-                    className={styles.inputIconRight}
-                    onClick={() => setShowCurrentPassword((prev) => !prev)}
-                    title={showCurrentPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                  >
-                    {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
+                  <UserTooltip content={showCurrentPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}>
+                    <button
+                      type="button"
+                      className={styles.inputIconRight}
+                      onClick={() => setShowCurrentPassword((prev) => !prev)}
+                    >
+                      {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </UserTooltip>
                 </div>
               </div>
 
@@ -983,14 +991,15 @@ export default function ProfileClient() {
                     minLength={8}
                     required
                   />
-                  <button
-                    type="button"
-                    className={styles.inputIconRight}
-                    onClick={() => setShowNewPassword((prev) => !prev)}
-                    title={showNewPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                  >
-                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
+                  <UserTooltip content={showNewPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}>
+                    <button
+                      type="button"
+                      className={styles.inputIconRight}
+                      onClick={() => setShowNewPassword((prev) => !prev)}
+                    >
+                      {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </UserTooltip>
                 </div>
 
                 {newPassword && (
@@ -1032,14 +1041,15 @@ export default function ProfileClient() {
                     minLength={8}
                     required
                   />
-                  <button
-                    type="button"
-                    className={styles.inputIconRight}
-                    onClick={() => setShowConfirmPassword((prev) => !prev)}
-                    title={showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                  >
-                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
+                  <UserTooltip content={showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}>
+                    <button
+                      type="button"
+                      className={styles.inputIconRight}
+                      onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    >
+                      {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </UserTooltip>
                 </div>
               </div>
             </div>

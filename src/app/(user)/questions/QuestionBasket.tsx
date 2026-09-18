@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import {
@@ -14,6 +14,7 @@ import {
   Layers,
 } from "lucide-react";
 import type { QuestionOut } from "@/types/catalog";
+import { UserTooltip } from "@/components/user-component/common";
 import styles from "./QuestionBasket.module.css";
 
 interface QuestionBasketProps {
@@ -47,26 +48,27 @@ export function QuestionBasket({
   if (!isBasketActive || isMinimized) {
     return (
       <div style={{ position: "relative" }}>
-        <button
-          type="button"
-          className={`${styles.tiltedBasketBtn} ${
-            isBasketActive ? styles.tiltedBasketBtnActive : ""
-          } ${isRejected ? styles.tiltedBasketBtnRejected : ""}`}
-          onClick={() => {
-            setIsBasketActive(true);
-            setIsMinimized(false);
-          }}
-          title="Mở giỏ đề luyện tập"
-          aria-label="Giỏ đề luyện tập"
-        >
-          <ShoppingBasket size={20} />
-          <span style={{ fontSize: "12px", fontWeight: 800 }}>
-            Giỏ đề
-          </span>
-          <span className={styles.basketBadge}>
-            {selectedQuestions.length}
-          </span>
-        </button>
+        <UserTooltip content="Mở giỏ đề luyện tập" side="left">
+          <button
+            type="button"
+            className={`${styles.tiltedBasketBtn} ${
+              isBasketActive ? styles.tiltedBasketBtnActive : ""
+            } ${isRejected ? styles.tiltedBasketBtnRejected : ""}`}
+            onClick={() => {
+              setIsBasketActive(true);
+              setIsMinimized(false);
+            }}
+            aria-label="Giỏ đề luyện tập"
+          >
+            <ShoppingBasket size={20} />
+            <span style={{ fontSize: "12px", fontWeight: 800 }}>
+              Giỏ đề
+            </span>
+            <span className={styles.basketBadge}>
+              {selectedQuestions.length}
+            </span>
+          </button>
+        </UserTooltip>
 
         {/* Rejection tooltip bubble popping out when rejected while minimized */}
         {isRejected && rejectionMessage && (
@@ -106,15 +108,16 @@ export function QuestionBasket({
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          className={styles.panelMinimizeBtn}
-          onClick={() => setIsMinimized(true)}
-          title="Thu gọn giỏ"
-          aria-label="Thu gọn giỏ"
-        >
-          <Minimize2 size={13} />
-        </button>
+        <UserTooltip content="Thu gọn giỏ" side="top">
+          <button
+            type="button"
+            className={styles.panelMinimizeBtn}
+            onClick={() => setIsMinimized(true)}
+            aria-label="Thu gọn giỏ"
+          >
+            <Minimize2 size={13} />
+          </button>
+        </UserTooltip>
       </div>
 
       {/* Domain Lock Status Banner */}
@@ -167,18 +170,21 @@ export function QuestionBasket({
           selectedQuestions.map((q, idx) => (
             <div key={q.question_id} className={styles.questionItem}>
               <span className={styles.questionItemIndex}>{idx + 1}</span>
-              <p className={styles.questionItemText} title={q.question_text}>
-                {q.question_text}
-              </p>
-              <button
-                type="button"
-                className={styles.questionItemRemoveBtn}
-                onClick={() => onRemoveQuestion(q.question_id)}
-                title="Bỏ câu này ra khỏi giỏ"
-                aria-label={`Bỏ câu hỏi ${idx + 1} khỏi giỏ`}
-              >
-                <X size={14} />
-              </button>
+              <UserTooltip content={q.question_text} side="top" align="start">
+                <p className={styles.questionItemText}>
+                  {q.question_text}
+                </p>
+              </UserTooltip>
+              <UserTooltip content="Bỏ câu này ra khỏi giỏ" side="top">
+                <button
+                  type="button"
+                  className={styles.questionItemRemoveBtn}
+                  onClick={() => onRemoveQuestion(q.question_id)}
+                  aria-label={`Bỏ câu hỏi ${idx + 1} khỏi giỏ`}
+                >
+                  <X size={14} />
+                </button>
+              </UserTooltip>
             </div>
           ))
         )}
@@ -187,31 +193,36 @@ export function QuestionBasket({
       {/* Action Buttons Row: DẤU TÍCH (✓) VÀ DẤU X (✗) */}
       <div className={styles.actionButtonsRow}>
         {/* Dấu X (✗) - Hủy bỏ / Làm trống giỏ */}
-        <button
-          type="button"
-          className={styles.btnCancelBasket}
-          onClick={onClearBasket}
-          title="Xóa toàn bộ câu hỏi trong giỏ và mở khóa ngành (✗)"
-        >
-          <X size={16} />
-          <span>Hủy giỏ (✗)</span>
-        </button>
+        <UserTooltip content="Xóa toàn bộ câu hỏi trong giỏ và mở khóa ngành" side="top">
+          <button
+            type="button"
+            className={styles.btnCancelBasket}
+            onClick={onClearBasket}
+          >
+            <X size={16} />
+            <span>Hủy giỏ (✗)</span>
+          </button>
+        </UserTooltip>
 
         {/* Dấu tích (✓) - Xác nhận luyện tập */}
-        <button
-          type="button"
-          className={styles.btnConfirmBasket}
-          onClick={onConfirmPractice}
-          disabled={selectedQuestions.length === 0}
-          title={
+        <UserTooltip
+          content={
             selectedQuestions.length === 0
               ? "Hãy bốc ít nhất 1 câu hỏi vào giỏ trước khi xác nhận"
               : "Bắt đầu phiên phỏng vấn với bộ câu hỏi này (✓)"
           }
+          side="top"
         >
-          <Check size={16} />
-          <span>Luyện tập (✓)</span>
-        </button>
+          <button
+            type="button"
+            className={styles.btnConfirmBasket}
+            onClick={onConfirmPractice}
+            disabled={selectedQuestions.length === 0}
+          >
+            <Check size={16} />
+            <span>Luyện tập (✓)</span>
+          </button>
+        </UserTooltip>
       </div>
     </div>
   );
