@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import {
   Card,
   CardAction,
@@ -27,7 +27,6 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/admin/ui/toggle-group";
-import { TrendingUp, Coins, Calendar } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface DailyRevenuePoint {
@@ -39,7 +38,7 @@ export interface DailyRevenuePoint {
 const chartConfig = {
   revenue: {
     label: "Doanh thu",
-    color: "var(--color-revenue, #d98236)",
+    color: "var(--primary)",
   },
 } satisfies ChartConfig;
 
@@ -53,7 +52,12 @@ export function RevenueAreaChart({
   const isMobile = useIsMobile();
   const [timeRange, setTimeRange] = React.useState<"90d" | "30d" | "7d">("30d");
 
-  // Filter data according to timeRange
+  React.useEffect(() => {
+    if (isMobile) {
+      setTimeRange("7d");
+    }
+  }, [isMobile]);
+
   const filteredData = React.useMemo(() => {
     if (!data || data.length === 0) return [];
 
@@ -84,63 +88,71 @@ export function RevenueAreaChart({
   }).format(rangeTotal || totalRevenue);
 
   return (
-    <Card className="@container/chart overflow-hidden shadow-xs border-border">
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
-              <Coins className="size-4 text-amber-500" />
-              <span>Biểu Đồ Tăng Trưởng Doanh Thu</span>
-            </CardTitle>
-          </div>
-          <CardDescription className="text-xs text-muted-foreground mt-1">
-            Tổng doanh thu phát sinh trong kỳ: <strong className="text-foreground">{formattedRangeTotal}</strong>
-          </CardDescription>
-        </div>
-
+    <Card className="@container/card">
+      <CardHeader>
+        <CardTitle>Tổng Doanh Thu</CardTitle>
+        <CardDescription>
+          <span className="hidden @[540px]/card:block">
+            Doanh thu tích lũy trong kỳ: {formattedRangeTotal}
+          </span>
+          <span className="@[540px]/card:hidden">Kỳ: {formattedRangeTotal}</span>
+        </CardDescription>
         <CardAction>
-          {isMobile ? (
-            <Select value={timeRange} onValueChange={(val) => setTimeRange(val as any)}>
-              <SelectTrigger className="w-36 text-xs h-8">
-                <SelectValue placeholder="Chọn khoảng thời gian" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="90d">90 ngày qua</SelectItem>
-                <SelectItem value="30d">30 ngày qua</SelectItem>
-                <SelectItem value="7d">7 ngày qua</SelectItem>
-              </SelectContent>
-            </Select>
-          ) : (
-            <ToggleGroup
-              type="single"
-              value={timeRange}
-              onValueChange={(val) => val && setTimeRange(val as any)}
-              className="border rounded-lg p-0.5 bg-muted/30"
+          <ToggleGroup
+            type="single"
+            value={timeRange}
+            onValueChange={(val) => val && setTimeRange(val as any)}
+            variant="outline"
+            className="hidden *:data-[slot=toggle-group-item]:px-4! @[767px]/card:flex"
+          >
+            <ToggleGroupItem value="90d">90 ngày qua</ToggleGroupItem>
+            <ToggleGroupItem value="30d">30 ngày qua</ToggleGroupItem>
+            <ToggleGroupItem value="7d">7 ngày qua</ToggleGroupItem>
+          </ToggleGroup>
+          <Select value={timeRange} onValueChange={(val) => setTimeRange(val as any)}>
+            <SelectTrigger
+              className="flex w-36 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[767px]/card:hidden"
+              size="sm"
+              aria-label="Chọn khoảng thời gian"
             >
-              <ToggleGroupItem value="90d" className="text-xs h-7 px-3 data-[state=on]:bg-background data-[state=on]:shadow-xs">
+              <SelectValue placeholder="30 ngày qua" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="90d" className="rounded-lg">
                 90 ngày qua
-              </ToggleGroupItem>
-              <ToggleGroupItem value="30d" className="text-xs h-7 px-3 data-[state=on]:bg-background data-[state=on]:shadow-xs">
+              </SelectItem>
+              <SelectItem value="30d" className="rounded-lg">
                 30 ngày qua
-              </ToggleGroupItem>
-              <ToggleGroupItem value="7d" className="text-xs h-7 px-3 data-[state=on]:bg-background data-[state=on]:shadow-xs">
+              </SelectItem>
+              <SelectItem value="7d" className="rounded-lg">
                 7 ngày qua
-              </ToggleGroupItem>
-            </ToggleGroup>
-          )}
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </CardAction>
       </CardHeader>
 
-      <CardContent className="p-4 sm:p-6">
-        <ChartContainer config={chartConfig} className="aspect-auto h-[260px] w-full">
-          <AreaChart data={filteredData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+        <ChartContainer
+          config={chartConfig}
+          className="aspect-auto h-[250px] w-full"
+        >
+          <AreaChart data={filteredData}>
             <defs>
               <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#d98236" stopOpacity={0.45} />
-                <stop offset="95%" stopColor="#d98236" stopOpacity={0.02} />
+                <stop
+                  offset="5%"
+                  stopColor="var(--primary)"
+                  stopOpacity={0.8}
+                />
+                <stop
+                  offset="95%"
+                  stopColor="var(--primary)"
+                  stopOpacity={0.1}
+                />
               </linearGradient>
             </defs>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted" />
+            <CartesianGrid vertical={false} />
             <XAxis
               dataKey="date"
               tickLine={false}
@@ -154,10 +166,9 @@ export function RevenueAreaChart({
                   day: "numeric",
                 });
               }}
-              className="text-[11px] fill-muted-foreground"
             />
             <ChartTooltip
-              cursor={{ stroke: "#d98236", strokeWidth: 1.5, strokeDasharray: "4 4" }}
+              cursor={false}
               content={
                 <ChartTooltipContent
                   labelFormatter={(value) => {
@@ -169,9 +180,10 @@ export function RevenueAreaChart({
                     });
                   }}
                   formatter={(value) => [
-                    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-                      Number(value)
-                    ),
+                    new Intl.NumberFormat("vi-VN", {
+                      style: "currency",
+                      currency: "VND",
+                    }).format(Number(value)),
                     " Doanh thu ngày",
                   ]}
                   indicator="dot"
@@ -182,9 +194,8 @@ export function RevenueAreaChart({
               dataKey="revenue"
               type="natural"
               fill="url(#fillRevenue)"
-              stroke="#d98236"
-              strokeWidth={2.5}
-              stackId="a"
+              stroke="var(--primary)"
+              strokeWidth={2}
             />
           </AreaChart>
         </ChartContainer>
