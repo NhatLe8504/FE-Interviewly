@@ -513,17 +513,70 @@ export default function ProfileClient() {
             Tùy chỉnh thông tin chuyên môn, định hướng nghề nghiệp, mức độ kinh nghiệm và kiểm tra thiết bị phỏng vấn.
           </p>
         </div>
-        <UserTooltip content="Làm mới dữ liệu từ máy chủ">
+
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          {/* NÚT TÀNG HÌNH TEST ONBOARDING - CHUYỂN TRẠNG THÁI VỀ CHƯA ONBOARD */}
           <button
             type="button"
-            onClick={loadProfile}
-            disabled={isFetching}
-            className={styles.secondaryBtn}
+            onClick={handleResetOnboardingTest}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "7px 14px",
+              borderRadius: "12px",
+              border: "1.5px dashed rgba(217, 130, 54, 0.45)",
+              backgroundColor: "rgba(217, 130, 54, 0.08)",
+              color: "#b35919",
+              fontSize: "12px",
+              fontWeight: 700,
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              opacity: 0.55,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = "1";
+              e.currentTarget.style.backgroundColor = "rgba(217, 130, 54, 0.18)";
+              e.currentTarget.style.borderColor = "#d98236";
+              e.currentTarget.style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = "0.55";
+              e.currentTarget.style.backgroundColor = "rgba(217, 130, 54, 0.08)";
+              e.currentTarget.style.borderColor = "rgba(217, 130, 54, 0.45)";
+              e.currentTarget.style.transform = "translateY(0)";
+            }}
+            title="🕵️ Nút tàng hình: Bấm vào đây để xóa khảo sát cũ, chuyển trạng thái Onboarding về false và mở lại trang Onboarding để test lại"
+            aria-label="Reset Onboarding Test"
           >
-            <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
-            Làm mới
+            <RotateCcw size={13} />
+            <span>Reset Onboarding lại</span>
+            <span
+              style={{
+                fontSize: "10px",
+                padding: "2px 6px",
+                borderRadius: "999px",
+                backgroundColor: user?.is_onboarded ? "#dcfce7" : "#fee2e2",
+                color: user?.is_onboarded ? "#15803d" : "#b91c1c",
+                fontWeight: 800,
+              }}
+            >
+              {user?.is_onboarded ? "Đã Onboard" : "Chưa Onboard"}
+            </span>
           </button>
-        </UserTooltip>
+
+          <UserTooltip content="Làm mới dữ liệu từ máy chủ">
+            <button
+              type="button"
+              onClick={loadProfile}
+              disabled={isFetching}
+              className={styles.secondaryBtn}
+            >
+              <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
+              Làm mới
+            </button>
+          </UserTooltip>
+        </div>
       </div>
 
       <div className={styles.heroCard}>
@@ -607,35 +660,40 @@ export default function ProfileClient() {
             <span className={styles.metaValue}>ID #{profile?.user_id || user?.user_id || "1"}</span>
           </div>
 
-          {/* STEALTH INVISIBLE BUTTON FOR TESTING ONBOARDING RESET */}
+          {/* STEALTH INLINE BUTTON IN HERO META */}
           <div style={{ marginTop: "auto", paddingTop: "8px" }}>
-            <UserTooltip content="🕵️ Nút tàng hình: Bấm để chuyển Onboarding về false và test lại từ đầu">
-              <button
-                type="button"
-                onClick={handleResetOnboardingTest}
-                style={{
-                  opacity: 0.08,
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  color: "#d98236",
-                  background: "rgba(217, 130, 54, 0.08)",
-                  border: "1px dashed rgba(217, 130, 54, 0.3)",
-                  borderRadius: "8px",
-                  padding: "4px 8px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-                onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.08")}
-                aria-label="Reset Onboarding Test"
-              >
-                <RotateCcw size={12} />
-                <span>Reset Onboarding (Debug)</span>
-              </button>
-            </UserTooltip>
+            <button
+              type="button"
+              onClick={handleResetOnboardingTest}
+              style={{
+                opacity: 0.45,
+                fontSize: "11px",
+                fontWeight: 600,
+                color: "#d98236",
+                background: "rgba(217, 130, 54, 0.08)",
+                border: "1px dashed rgba(217, 130, 54, 0.4)",
+                borderRadius: "8px",
+                padding: "4px 8px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.backgroundColor = "rgba(217, 130, 54, 0.18)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "0.45";
+                e.currentTarget.style.backgroundColor = "rgba(217, 130, 54, 0.08)";
+              }}
+              title="🕵️ Nút tàng hình: Bấm để xóa khảo sát cũ, chuyển Onboarding về false và test lại"
+              aria-label="Reset Onboarding Test"
+            >
+              <RotateCcw size={12} />
+              <span>Reset Onboarding</span>
+            </button>
           </div>
         </div>
       </div>
