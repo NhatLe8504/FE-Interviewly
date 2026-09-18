@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   User,
   Mail,
@@ -22,6 +23,7 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
+  RotateCcw,
   X,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -29,8 +31,9 @@ import { useI18n } from "@/context/I18nContext";
 import { CrownAvatar } from "@/components/user-component/common";
 import { useUserSubscription } from "@/hooks/useUserSubscription";
 import { profileApi } from "@/services/profileApi";
-import { ApiError } from "@/services/apiClient";
+import { ApiError, request } from "@/services/apiClient";
 import { UserTooltip } from "@/components/user-component/common";
+import { toast } from "@/components/user-component/toast";
 import type {
   ProfileOut,
   ProfileUpdateIn,
@@ -64,7 +67,24 @@ const EXPERIENCE_OPTIONS: { id: ExperienceLevel; label: string; desc: string }[]
 const SINE_FACTORS = [0.4, 0.7, 1.0, 0.8, 0.6, 0.9, 1.2, 0.7, 0.5, 0.8, 1.1, 0.9, 0.6, 0.8, 0.5, 0.3];
 
 export default function ProfileClient() {
+  const router = useRouter();
   const { user, isAuthenticated, isLoading: isAuthLoading, refreshUser } = useAuth();
+
+  const handleResetOnboardingTest = async () => {
+    try {
+      toast.info("Đang đặt lại trạng thái Onboarding...", "Vui lòng chờ trong giây lát");
+      await request("/api/v1/onboarding/reset", { method: "POST" });
+      await refreshUser();
+      toast.success("Đã chuyển trạng thái Onboarding về false!", "Đang đưa bạn đến trang Onboarding để test lại...");
+      router.push("/onboarding");
+    } catch (err) {
+      console.warn("Reset onboarding error:", err);
+      if (user) {
+        user.is_onboarded = false;
+      }
+      router.push("/onboarding");
+    }
+  };
   const { locale, t } = useI18n();
   const { isSubscribed } = useUserSubscription();
 
@@ -585,6 +605,37 @@ export default function ProfileClient() {
           <div className={styles.metaItem}>
             <span className={styles.metaLabel}>{t.common.id}</span>
             <span className={styles.metaValue}>ID #{profile?.user_id || user?.user_id || "1"}</span>
+          </div>
+
+          {/* STEALTH INVISIBLE BUTTON FOR TESTING ONBOARDING RESET */}
+          <div style={{ marginTop: "auto", paddingTop: "8px" }}>
+            <UserTooltip content="🕵️ Nút tàng hình: Bấm để chuyển Onboarding về false và test lại từ đầu">
+              <button
+                type="button"
+                onClick={handleResetOnboardingTest}
+                style={{
+                  opacity: 0.08,
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  color: "#d98236",
+                  background: "rgba(217, 130, 54, 0.08)",
+                  border: "1px dashed rgba(217, 130, 54, 0.3)",
+                  borderRadius: "8px",
+                  padding: "4px 8px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.08")}
+                aria-label="Reset Onboarding Test"
+              >
+                <RotateCcw size={12} />
+                <span>Reset Onboarding (Debug)</span>
+              </button>
+            </UserTooltip>
           </div>
         </div>
       </div>
