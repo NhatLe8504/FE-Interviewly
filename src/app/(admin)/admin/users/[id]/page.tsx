@@ -34,6 +34,7 @@ import {
   useUpdateUserRoleMutation,
 } from "@/redux/api/adminApi";
 import type { UserRole, UserStatus } from "@/types/admin";
+import { useSocket } from "@/context/SocketContext";
 
 export default function AdminUserDetailPage({
   params,
@@ -55,6 +56,7 @@ export default function AdminUserDetailPage({
 
   const [updateUserStatus, { isLoading: isUpdatingStatus }] = useUpdateUserStatusMutation();
   const [updateUserRole, { isLoading: isUpdatingRole }] = useUpdateUserRoleMutation();
+  const { isUserOnline } = useSocket();
 
   const isAdmin = user?.role === "admin";
   const isActive = user?.status === "active";

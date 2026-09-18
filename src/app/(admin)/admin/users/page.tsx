@@ -72,6 +72,7 @@ import {
   useGetAdminStatsQuery,
 } from "@/redux/api/adminApi";
 import type { UserAdminOut, UserRole, UserStatus } from "@/types/admin";
+import { useSocket } from "@/context/SocketContext";
 
 export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -79,6 +80,7 @@ export default function AdminUsersPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [page, setPage] = useState(1);
   const limit = 15;
+  const { onlineCount, isUserOnline } = useSocket();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedUserForDetail, setSelectedUserForDetail] = useState<UserAdminOut | null>(null);
@@ -262,7 +264,21 @@ export default function AdminUsersPage() {
           </div>
 
           {/* Quick Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <Card className="border-emerald-500/30 bg-emerald-500/5">
+              <CardContent className="p-4 flex items-center gap-3.5">
+                <div className="size-10 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 relative">
+                  <span className="size-2.5 rounded-full bg-emerald-500 animate-ping absolute" />
+                  <span className="size-2.5 rounded-full bg-emerald-500" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">Người dùng Online</p>
+                  </div>
+                  <p className="text-xl font-bold text-foreground">{onlineCount} <span className="text-xs font-normal text-muted-foreground">trực tuyến</span></p>
+                </div>
+              </CardContent>
+            </Card>
             <Card>
               <CardContent className="p-4 flex items-center gap-3.5">
                 <div className="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
