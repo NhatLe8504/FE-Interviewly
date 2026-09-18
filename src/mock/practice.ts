@@ -82,7 +82,7 @@ export function mockSessionMeta(sessionId: string) {
     domainLabel: "Software Engineering",
     levelLabel: "Junior",
     languageLabel: "English",
-    mode: "text",
+    mode: "voice",
     startedAt: "Sep 10, 2026 · 09:30",
     duration: "18 min",
   };

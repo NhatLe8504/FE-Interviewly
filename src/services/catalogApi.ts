@@ -418,6 +418,36 @@ export const FALLBACK_QUESTIONS: QuestionDetailOut[] = [
 ];
 
 export const catalogApi = {
+  async getQuestionsForSelection(
+    params: QuestionFilterParams = {}
+  ): Promise<QuestionPageOut> {
+    const searchParams = new URLSearchParams();
+    if (params.domain_id) searchParams.set("domain_id", String(params.domain_id));
+    if (params.role_id) searchParams.set("role_id", String(params.role_id));
+    if (params.level && params.level !== "all") searchParams.set("level", params.level);
+    if (params.type && params.type !== "all") searchParams.set("type", params.type);
+    if (params.language && params.language !== "all") searchParams.set("language", params.language);
+    if (params.limit) searchParams.set("limit", String(params.limit));
+    if (params.offset) searchParams.set("offset", String(params.offset));
+
+    const query = searchParams.toString();
+    const result = await request<QuestionPageOut>(
+      `/api/v1/catalog/questions${query ? `?${query}` : ""}`
+    );
+    const search = params.search?.trim().toLowerCase();
+    const items = search
+      ? result.items.filter((question) =>
+          question.question_text.toLowerCase().includes(search)
+        )
+      : result.items;
+
+    return {
+      ...result,
+      items,
+      total: search ? items.length : result.total,
+    };
+  },
+
   async getDomains(): Promise<DomainOut[]> {
     try {
       const data = await request<DomainOut[]>("/api/v1/catalog/domains");

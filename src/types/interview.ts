@@ -6,12 +6,36 @@ export type InterviewMode = "text" | "voice";
 
 export type SessionStatus = "in_progress" | "completed" | "abandoned";
 
+export type QuestionSourceMode = "auto_random" | "manual" | "mixed";
+
+export interface StageConfigIn {
+  stage_key: string;
+  source_mode: QuestionSourceMode;
+  min_turns: number;
+  max_turns: number;
+  selected_question_ids?: number[];
+  difficulty_filter?: number;
+}
+
+export interface QuestionIntentContext {
+  question_id: number;
+  intent: string;
+  stage_key: string;
+  difficulty?: number;
+  topic_label?: string;
+}
+
 export interface StartSessionIn {
-  domain_id: number;
-  role_id: number;
+  domain_id?: number | null;
+  role_id?: number | null;
+  role_name?: string;
   level: InterviewLevel | string;
   language: InterviewLanguage | string;
   mode?: InterviewMode;
+  barge_in_enabled?: boolean;
+  stage_configs?: StageConfigIn[];
+  selected_question_ids?: number[];
+  practice_id?: number;
 }
 
 export interface SessionOut {
@@ -21,6 +45,7 @@ export interface SessionOut {
   role_id: number;
   level: string;
   language: string;
+  barge_in_enabled?: boolean;
   status: SessionStatus;
   current_turn: number;
   max_turns: number;

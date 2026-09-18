@@ -1,4 +1,4 @@
-# Dependencies
+﻿# Dependencies
 /node_modules
 
 # Next.js
@@ -26,3 +26,9 @@ pnpm-debug.log*
 /RULE.md
 /TASK.md
 *.log
+
+# Local backend copy and duplicate media artefacts
+/reference_app/
+/public/leader.mp4
+
+/public/tương_tự_hãy_làm_với_hình_này.mp4
