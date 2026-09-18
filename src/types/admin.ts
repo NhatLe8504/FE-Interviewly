@@ -105,6 +105,10 @@ export interface PaymentAdminOut {
   user_email?: string | null;
   user_name?: string | null;
   plan_name?: string | null;
+  bank_code?: string | null;
+  account_number?: string | null;
+  sender_bank?: string | null;
+  sender_account?: string | null;
 }
 
 export interface PaymentListPageOut {

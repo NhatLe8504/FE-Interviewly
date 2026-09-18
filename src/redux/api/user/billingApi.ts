@@ -52,6 +52,7 @@ export const billingApiSlice = baseApi.injectEndpoints({
 export const {
   useGetPlansQuery,
   useCreateCheckoutMutation,
+  useVerifyPaymentMutation,
   useGetMySubscriptionQuery,
   useGetPaymentHistoryQuery,
   useGetQuotaQuery,

@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/admin/ui/button";
 import { Badge } from "@/components/admin/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/admin/ui/avatar";
+import { Building2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/admin/ui/card";
 import { AdminPageHeader } from "@/components/admin";
 import { useGetPaymentQuery } from "@/redux/api/admin/paymentApi";
@@ -56,6 +58,26 @@ export default function AdminPaymentDetailPage({
     } catch {
       return isoString;
     }
+  };
+
+
+  const getBankDetails = (bankCode?: string | null) => {
+    const code = (bankCode || "MB").toUpperCase();
+    const banks: Record<string, { name: string; logo: string; short: string }> = {
+      MB: { name: "MB Bank", short: "MB", logo: "https://api.vietqr.io/img/MB.png" },
+      VCB: { name: "Vietcombank", short: "VCB", logo: "https://api.vietqr.io/img/VCB.png" },
+      BIDV: { name: "BIDV", short: "BIDV", logo: "https://api.vietqr.io/img/BIDV.png" },
+      TCB: { name: "Techcombank", short: "TCB", logo: "https://api.vietqr.io/img/TCB.png" },
+      VPB: { name: "VPBank", short: "VPB", logo: "https://api.vietqr.io/img/VPB.png" },
+      MOMO: { name: "Ví MoMo", short: "MOMO", logo: "https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" },
+    };
+    return (
+      banks[code] || {
+        name: `${code} Bank`,
+        short: code.slice(0, 3),
+        logo: `https://api.vietqr.io/img/${code}.png`,
+      }
+    );
   };
 
   const isSuccess = txn?.status?.toLowerCase() === "success";
@@ -149,6 +171,24 @@ export default function AdminPaymentDetailPage({
                   <CreditCard className="size-4 text-primary" />
                   <span>Thông Tin Thanh Toán</span>
                 </h3>
+
+                                <div className="flex justify-between py-1 border-b items-center">
+                  <span className="text-muted-foreground">TK chuyển tới:</span>
+                  {(() => {
+                    const bank = getBankDetails(txn.sender_bank);
+                    const accNo = txn.sender_account || "Chưa ghi nhận";
+                    return (
+                      <div className="flex items-center gap-2">
+                        <Avatar className="size-6 rounded-md border shrink-0 bg-background">
+                          <AvatarImage src={bank.logo} alt={bank.name} className="object-contain p-0.5" />
+                          <AvatarFallback className="text-[9px] font-bold rounded-md uppercase">{bank.short}</AvatarFallback>
+                        </Avatar>
+                        <span className="font-semibold text-foreground">{bank.name} - </span>
+                        <span className="font-mono font-bold text-foreground">{accNo}</span>
+                      </div>
+                    );
+                  })()}
+                </div>
 
                 <div className="flex justify-between py-1 border-b">
                   <span className="text-muted-foreground">Cổng thanh toán:</span>
