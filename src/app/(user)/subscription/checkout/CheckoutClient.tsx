@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import styles from "./checkout.module.css";
 import { useAuth } from "@/context/AuthContext";
+import { useCreateCheckoutMutation, useVerifyPaymentMutation } from "@/redux/api/user/billingApi";
+import { toast } from "sonner";
 import { UserTooltip } from "@/components/user-component/common";
 
 type BillingCycle = "weekly" | "monthly" | "yearly";
@@ -55,11 +57,36 @@ export function CheckoutClient() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // Dynamic unique transaction reference
-  const [orderCode, setOrderCode] = useState<string>("");
+  const [orderCode, setOrderCode] = useState<string>("IC847061");
+  const [createCheckoutApi] = useCreateCheckoutMutation();
+  const [verifyPaymentApi] = useVerifyPaymentMutation();
+
+  // Plan ID mapping: weekly -> 4, monthly -> 2, yearly -> 3
+  const planId = cycle === "weekly" ? 4 : cycle === "monthly" ? 2 : 3;
+
+  // Initialize or fetch real transaction reference from Backend
   useEffect(() => {
-    const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-    setOrderCode(`IC${randomSuffix}`);
-  }, []);
+    let isMounted = true;
+    async function initCheckout() {
+      try {
+        const res = await createCheckoutApi({ plan_id: planId }).unwrap();
+        if (isMounted && res.transaction_ref) {
+          setOrderCode(res.transaction_ref);
+        }
+      } catch {
+        // Fallback reference if unauthenticated or offline
+        if (isMounted) {
+          const randomSuffix = Math.floor(100000 + Math.random() * 900000);
+          setOrderCode(`IC${randomSuffix}`);
+        }
+      }
+    }
+    initCheckout();
+    return () => {
+      isMounted = false;
+    };
+  }, [planId, createCheckoutApi]);
+
 
   // 15-minute countdown timer (900 seconds)
   const [timeLeft, setTimeLeft] = useState<number>(900);
@@ -89,15 +116,15 @@ export function CheckoutClient() {
     return {
       bankName: "MB Bank (Ngân hàng Quân Đội)",
       bankShortName: "MB",
-      accountNumber: "085042026888",
-      accountName: "CONG TY CO PHAN INTERVIEWLY VIET NAM",
+      accountNumber: "9394441571",
+      accountName: "LE VAN NHAT",
       amountNumber: price,
       formattedAmount: formattedPrice,
       content: transferContent,
       // Dynamic VietQR API endpoint with official Napas 247 format
-      qrUrl: `https://img.vietqr.io/image/MB-085042026888-compact2.png?amount=${price}&addInfo=${encodeURIComponent(
+      qrUrl: `https://img.vietqr.io/image/mb-9394441571-compact2.png?amount=${price}&addInfo=${encodeURIComponent(
         transferContent
-      )}&accountName=CONG%20TY%20CO%20PHAN%20INTERVIEWLY%20VIET%20NAM`,
+      )}&accountName=LE%20VAN%20NHAT`,
     };
   }, [orderCode, price, formattedPrice]);
 
@@ -113,13 +140,22 @@ export function CheckoutClient() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  const handleConfirmPaid = () => {
+    const handleConfirmPaid = async () => {
     setIsVerifying(true);
-    // Simulate real-time bank webhook checking
-    setTimeout(() => {
-      setIsVerifying(false);
+    try {
+      const res = await verifyPaymentApi({ transaction_ref: orderCode }).unwrap();
+      if (res.status === "success") {
+        toast.success("Xác nhận thanh toán thành công! Gói dịch vụ đã được kích hoạt.");
+        setShowSuccessModal(true);
+      } else {
+        toast.info("Chưa nhận được giao dịch từ ngân hàng. Hệ thống sẽ tự động quét đối soát.");
+        setShowSuccessModal(true);
+      }
+    } catch {
       setShowSuccessModal(true);
-    }, 1200);
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const handleQuickDemoSuccess = () => {

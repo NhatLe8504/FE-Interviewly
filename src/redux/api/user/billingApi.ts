@@ -15,6 +15,14 @@ export const billingApiSlice = baseApi.injectEndpoints({
       providesTags: ["Subscription"],
     }),
 
+        verifyPayment: builder.mutation<{ status: string; message: string; transaction_ref: string }, { transaction_ref: string }>({
+      query: (body) => ({
+        url: "/api/v1/billing/verify-payment",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Subscription", "Quota"],
+    }),
     createCheckout: builder.mutation<CheckoutResponse, CheckoutRequest>({
       query: (body) => ({
         url: "/api/v1/billing/checkout",
