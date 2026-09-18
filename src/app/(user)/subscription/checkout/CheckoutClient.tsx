@@ -19,6 +19,80 @@ import { useAuth } from "@/context/AuthContext";
 import { useCreateCheckoutMutation, useVerifyPaymentMutation } from "@/redux/api/user/billingApi";
 import { toast } from "sonner";
 
+// Synthesize a loud, crystal-clear, bright two-tone "Ting... TING!" payment notification chime
+function playSuccessChime() {
+  if (typeof window === "undefined") return;
+  try {
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const ctx = new AudioContextClass();
+    if (ctx.state === "suspended") {
+      ctx.resume();
+    }
+
+    const now = ctx.currentTime;
+
+    const playBellTone = (freq: number, start: number, duration: number, vol: number) => {
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const osc3 = ctx.createOscillator();
+
+      const gain1 = ctx.createGain();
+      const gain2 = ctx.createGain();
+      const gain3 = ctx.createGain();
+      const master = ctx.createGain();
+
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(freq, start);
+
+      osc2.type = "triangle";
+      osc2.frequency.setValueAtTime(freq * 2, start);
+
+      osc3.type = "sine";
+      osc3.frequency.setValueAtTime(freq * 3.01, start);
+
+      master.gain.setValueAtTime(vol, start);
+      master.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+      gain1.gain.setValueAtTime(0.7, start);
+      gain2.gain.setValueAtTime(0.3, start);
+      gain3.gain.setValueAtTime(0.2, start);
+
+      osc1.connect(gain1);
+      osc2.connect(gain2);
+      osc3.connect(gain3);
+
+      gain1.connect(master);
+      gain2.connect(master);
+      gain3.connect(master);
+
+      master.connect(ctx.destination);
+
+      osc1.start(start);
+      osc2.start(start);
+      osc3.start(start);
+
+      osc1.stop(start + duration);
+      osc2.stop(start + duration);
+      osc3.stop(start + duration);
+    };
+
+    // First bright "Ting" (E6: 1318.5 Hz, volume 0.9)
+    playBellTone(1318.51, now, 0.65, 0.9);
+
+    // Second loud "TING!" (B6: 1975.5 Hz, volume 1.0)
+    playBellTone(1975.53, now + 0.15, 0.95, 1.0);
+
+    // Shimmering chord overtone (E7: 2637 Hz, volume 0.6)
+    playBellTone(2637.02, now + 0.3, 1.2, 0.6);
+  } catch {
+    // Ignored if AudioContext blocked
+  }
+}
+
 type BillingCycle = "weekly" | "monthly" | "yearly";
 
 export function CheckoutClient() {
@@ -49,6 +123,12 @@ export function CheckoutClient() {
   const [createCheckoutApi] = useCreateCheckoutMutation();
   const [verifyPaymentApi, { isLoading: isVerifying }] = useVerifyPaymentMutation();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  useEffect(() => {
+    if (showSuccessModal) {
+      playSuccessChime();
+    }
+  }, [showSuccessModal]);
 
   // Plan ID mapping
   const planId = cycle === "weekly" ? 4 : cycle === "monthly" ? 2 : 3;
@@ -425,29 +505,53 @@ export function CheckoutClient() {
         </div>
       </div>
 
-      {/* PAYMENT SUCCESS MODAL */}
+      {/* PAYMENT SUCCESS CELEBRATION MODAL */}
       {showSuccessModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
+            {/* Ambient Celebration Aura Glow */}
+            <div className={styles.glowRays} aria-hidden="true" />
+
+            {/* Floating Burst Confetti Particles */}
+            <div className={styles.confettiContainer} aria-hidden="true">
+              <span className={`${styles.confetti} ${styles.c1}`} />
+              <span className={`${styles.confetti} ${styles.c2}`} />
+              <span className={`${styles.confetti} ${styles.c3}`} />
+              <span className={`${styles.confetti} ${styles.c4}`} />
+              <span className={`${styles.confetti} ${styles.c5}`} />
+              <span className={`${styles.confetti} ${styles.c6}`} />
+              <span className={`${styles.confetti} ${styles.c7}`} />
+              <span className={`${styles.confetti} ${styles.c8}`} />
+              <span className={`${styles.confetti} ${styles.c9}`} />
+              <span className={`${styles.confetti} ${styles.c10}`} />
+            </div>
+
             <button
               type="button"
               className={styles.closeButton}
               onClick={() => setShowSuccessModal(false)}
+              aria-label="Đóng hộp thoại"
             >
               <X size={16} />
             </button>
 
-            <div className={styles.successIconBadge}>
-              <Sparkles size={32} />
+            {/* Glowing Success Badge with Pulse Rings */}
+            <div className={styles.badgeWrapper}>
+              <span className={styles.pulseRing} />
+              <span className={styles.pulseRingDelay} />
+              <div className={styles.successIconBadge}>
+                <CheckCircle2 size={38} className={styles.checkIconAnim} />
+              </div>
             </div>
 
             <div className={styles.goldProTag}>
-              <span>✨ KÍCH HOẠT THÀNH CÔNG</span>
+              <Sparkles size={14} className={styles.sparkleSpin} />
+              <span>KÍCH HOẠT THÀNH CÔNG</span>
             </div>
 
             <h3 className={styles.modalTitle}>Chào Mừng Bạn Đến Với PRO!</h3>
             <p className={styles.modalDesc}>
-              Hệ thống xGate đã ghi nhận giao dịch chuyển khoản. Tài khoản của bạn đã được nâng cấp đầy đủ đặc quyền gói {planDisplayName}.
+              Hệ thống xGate đã ghi nhận giao dịch chuyển khoản thành công. Tài khoản của bạn đã được kích hoạt đầy đủ đặc quyền gói <strong>{planDisplayName}</strong>.
             </p>
 
             <div className={styles.receiptCard}>
@@ -461,7 +565,7 @@ export function CheckoutClient() {
               </div>
               <div className={styles.receiptRow}>
                 <span className={styles.receiptLabel}>Số tiền:</span>
-                <span className={styles.receiptValue} style={{ color: "#16a34a" }}>
+                <span className={styles.receiptValue} style={{ color: "#16a34a", fontSize: "14px" }}>
                   {formattedPrice}
                 </span>
               </div>
@@ -476,7 +580,7 @@ export function CheckoutClient() {
             <div className={styles.modalActions}>
               <Link
                 href="/practice"
-                className={styles.primaryButton}
+                className={`${styles.primaryButton} ${styles.shinyButton}`}
                 onClick={() => setShowSuccessModal(false)}
               >
                 <span>Bắt đầu luyện phỏng vấn ngay</span>
