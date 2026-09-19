@@ -22,8 +22,10 @@ import {
   Award,
   Zap,
   Copy,
+  RotateCcw,
 } from "lucide-react";
 import { useI18n } from "@/context/I18nContext";
+import { toast } from "@/components/user-component/toast";
 import { useAuth } from "@/context/AuthContext";
 import { request } from "@/services/apiClient";
 import {
@@ -46,7 +48,7 @@ type StepIndex = 1 | 2 | 3 | 4 | 5 | 6;
 export function UserOnboardingClient() {
   const router = useRouter();
   const { locale, setLocale } = useI18n();
-  const { user } = useAuth();
+  const { user, updateUserLocal, refreshUser } = useAuth();
 
   const [currentStep, setCurrentStep] = useState<StepIndex>(1);
   const [selectedLanguage, setSelectedLanguage] = useState<"vi" | "en">(
@@ -68,21 +70,35 @@ export function UserOnboardingClient() {
     setLocale(lang);
   };
 
-  // Auto-redirect to home on Step 6 (Success)
+  // Auto-redirect to home on Step 6 (Success) with top-level navigation
   useEffect(() => {
     if (currentStep === 6) {
       const timer = setTimeout(() => {
-        router.push("/");
-      }, 2500);
+        window.location.href = "/";
+      }, 2200);
       return () => clearTimeout(timer);
     }
-  }, [currentStep, router]);
+  }, [currentStep]);
 
   const handleCopy = (key: string, text: string) => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text);
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(null), 2000);
+    }
+  };
+
+  const handleResetOnboardingDebug = async () => {
+    try {
+      toast.info("Đang đặt lại trạng thái Onboarding...", "Vui lòng chờ trong giây lát");
+      await request("/api/v1/onboarding/reset", { method: "POST" });
+      updateUserLocal({ is_onboarded: false });
+      await refreshUser();
+      toast.success("Đã reset về Chưa Onboard!", "Bắt đầu lại luồng khảo sát từ bước 1.");
+      setCurrentStep(1);
+    } catch (err) {
+      updateUserLocal({ is_onboarded: false });
+      setCurrentStep(1);
     }
   };
 
@@ -177,7 +193,10 @@ export function UserOnboardingClient() {
             target_goal: targetGoal || (isVi ? "Chuẩn bị phỏng vấn tuyển dụng" : "Preparing for upcoming interviews"),
           }),
         });
+        updateUserLocal({ is_onboarded: true });
+        await refreshUser();
       } catch (err) {
+        updateUserLocal({ is_onboarded: true });
         console.warn("Onboarding persist fallback:", err);
       } finally {
         setIsSubmitting(false);
@@ -315,6 +334,32 @@ export function UserOnboardingClient() {
             >
               <span>1900 6868 (8:00 - 21:00)</span>
               {copiedKey === "hotline" ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
+            </button>
+          </div>
+
+          <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px dashed rgba(106, 72, 49, 0.15)" }}>
+            <button
+              type="button"
+              onClick={handleResetOnboardingDebug}
+              style={{
+                background: "none",
+                border: "none",
+                fontSize: "11px",
+                color: "#b35919",
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                padding: "2px 0",
+                opacity: 0.6,
+                fontWeight: 600,
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.6")}
+              title="Đặt lại trạng thái về Chưa Onboard để test lại luồng khảo sát"
+            >
+              <RotateCcw size={11} />
+              <span>Reset Chưa Onboard (Debug)</span>
             </button>
           </div>
         </div>

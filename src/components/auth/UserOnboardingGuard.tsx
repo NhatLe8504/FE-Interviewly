@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -20,8 +20,7 @@ export function UserOnboardingGuard({ children }: { children: React.ReactNode })
         pathname.startsWith("/register") ||
         pathname.startsWith("/forgot-password") ||
         pathname.startsWith("/reset-password") ||
-        pathname.startsWith("/admin") ||
-        pathname === "/profile"; // Permit profile page so user can test the stealth reset button
+        pathname.startsWith("/admin"); // Admin routes
 
       if (!isExcluded) {
         router.replace("/onboarding");
