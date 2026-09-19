@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { UserOut, LoginIn, RegisterIn, TokenOut } from "@/types/auth";
@@ -14,6 +14,7 @@ interface AuthContextType {
   register: (payload: RegisterIn) => Promise<UserOut>;
   googleLogin: (credential: string) => Promise<TokenOut>;
   setInitialPassword: (password: string) => Promise<void>;
+  updateUserLocal: (updated: Partial<UserOut>) => void;
   logout: () => void;
   refreshUser: () => Promise<UserOut | null>;
 }
@@ -87,6 +88,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await refreshUser();
   };
 
+  const updateUserLocal = (updated: Partial<UserOut>) => {
+    setUser((prev) => (prev ? { ...prev, ...updated } : null));
+  };
+
   const logout = () => {
     authApi.logout();
     setUser(null);
@@ -104,6 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         googleLogin,
         setInitialPassword,
+        updateUserLocal,
         logout,
         refreshUser,
       }}
