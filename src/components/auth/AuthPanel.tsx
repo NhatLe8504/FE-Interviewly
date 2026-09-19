@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { authApi } from "@/services/authApi";
 import { toast, setFlashToast } from "@/components/user-component/toast";
 import styles from "./AuthPanel.module.css";
+import { SetPasswordModal } from "./SetPasswordModal";
 
 export type AuthMode = "login" | "register" | "set_password";
 
@@ -34,7 +35,9 @@ export default function AuthPanel({
   onModeChange,
 }: AuthPanelProps) {
   const router = useRouter();
-  const { login, register, googleLogin, setInitialPassword } = useAuth();
+  const { login, register, googleLogin, setInitialPassword, user } = useAuth();
+  const [showSetPasswordPopup, setShowSetPasswordPopup] = useState(false);
+  const [pendingAuthResponse, setPendingAuthResponse] = useState<any>(null);
   const [newPassword, setNewPassword] = useState("");
   const googleBtnRef = useRef<HTMLDivElement>(null);
 
@@ -151,12 +154,12 @@ export default function AuthPanel({
   }, [googleLogin, router]);
 
   const handlePostAuthRedirect = (tokenRes?: any, userProfile?: any) => {
-    // 1. Force password setup for first-time Google users
+    // 1. Force password setup popup for first-time Google users (or users without password)
     if (tokenRes?.needs_password || userProfile?.needs_password) {
-      setMode("set_password");
+      setPendingAuthResponse({ tokenRes, userProfile });
+      setShowSetPasswordPopup(true);
       setLoading(false);
       setError(null);
-      setSuccessMsg("Chào mừng bạn lần đầu đăng nhập bằng Google! Vui lòng thiết lập mật khẩu bảo mật để tiếp tục.");
       return;
     }
 
@@ -803,6 +806,29 @@ export default function AuthPanel({
           <span className={styles.showMark}>{"\u2726"}</span>
         </aside>
       </div>
+
+      {/* POPUP REQUIRING PASSWORD FOR FIRST-TIME GOOGLE LOGIN */}
+      {showSetPasswordPopup && (
+        <SetPasswordModal
+          isOpen={true}
+          canClose={false}
+          email={email || user?.email || pendingAuthResponse?.userProfile?.email}
+          onSuccess={() => {
+            setShowSetPasswordPopup(false);
+            const isNotOnboarded =
+              pendingAuthResponse?.tokenRes?.is_onboarded === false ||
+              pendingAuthResponse?.userProfile?.is_onboarded === false ||
+              user?.is_onboarded === false;
+            if (isNotOnboarded) {
+              window.location.href = "/onboarding";
+            } else if (user?.role === "admin" || pendingAuthResponse?.userProfile?.role === "admin") {
+              window.location.href = "/admin";
+            } else {
+              window.location.href = "/";
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

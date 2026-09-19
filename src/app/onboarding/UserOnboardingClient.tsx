@@ -42,6 +42,7 @@ import {
   COMPREHENSIVE_ROLES,
 } from "./onboardingData";
 import styles from "./onboarding.module.css";
+import { SetPasswordModal } from "@/components/auth/SetPasswordModal";
 
 type StepIndex = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -764,6 +765,20 @@ export function UserOnboardingClient() {
           )}
         </div>
       </main>
+      {/* FORCE PASSWORD SETUP POPUP FOR FIRST-TIME GOOGLE USERS */}
+      {Boolean(user && user.needs_password) && (
+        <SetPasswordModal
+          isOpen={true}
+          canClose={false}
+          email={user?.email}
+          onSuccess={() => {
+            toast.success(
+              isVi ? "Thiết lập mật khẩu thành công!" : "Password created successfully!",
+              isVi ? "Bắt đầu hoàn tất khảo sát Onboarding." : "Proceeding with onboarding."
+            );
+          }}
+        />
+      )}
     </div>
   );
 }

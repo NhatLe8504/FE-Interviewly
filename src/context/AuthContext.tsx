@@ -76,7 +76,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(res.access_token);
     try {
       const profile = await authApi.getMe();
-      setUser(profile);
+      const combinedProfile: UserOut = {
+        ...profile,
+        needs_password: res.needs_password !== undefined ? res.needs_password : profile?.needs_password,
+      };
+      setUser(combinedProfile);
     } catch {
       // Ignored
     }
