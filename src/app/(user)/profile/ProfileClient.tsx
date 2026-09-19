@@ -582,17 +582,14 @@ export default function ProfileClient() {
       <div className={styles.heroCard}>
         <div className={styles.heroMain}>
           <div className={styles.avatarWrapper}>
-            {avatarUrl && !avatarLoadError ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={avatarUrl}
-                alt={fullName || "Avatar"}
-                className={styles.avatar}
-                onError={() => setAvatarLoadError(true)}
-              />
-            ) : (
-              <div className={styles.avatar}>{initials}</div>
-            )}
+            <CrownAvatar
+              size="lg"
+              src={avatarUrl && !avatarLoadError ? avatarUrl : null}
+              initials={initials}
+              alt={fullName || "Avatar"}
+              isSubscribed={isSubscribed}
+              showOnline={false}
+            />
             <UserTooltip content="Đổi ảnh đại diện">
               <button
                 type="button"
