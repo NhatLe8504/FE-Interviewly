@@ -1,14 +1,11 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useI18n } from "@/context/I18nContext";
 import styles from "./Footer.module.css";
 
 export default function Footer() {
   const { locale } = useI18n();
-  const pathname = usePathname();
-  if (pathname === "/onboarding") return null;
 
   return (
     <footer className={styles.footer}>
