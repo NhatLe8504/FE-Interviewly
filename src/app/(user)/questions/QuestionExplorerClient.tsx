@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
@@ -38,12 +38,16 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { QuestionBasket } from "./QuestionBasket";
+import { CuratedQuestionSetsView } from "@/components/user-component/questions/CuratedQuestionSetsView";
+import { MOCK_QUESTION_SETS } from "@/mock/questionSetsMock";
+import { FolderKanban } from "lucide-react";
 import basketStyles from "./QuestionBasket.module.css";
 import styles from "./questions.module.css";
 
 
 
 export default function QuestionExplorerClient() {
+  const [activeTab, setActiveTab] = useState<"sets" | "individual">("sets");
   const router = useRouter();
   const { locale, t } = useI18n();
 
@@ -405,64 +409,57 @@ export default function QuestionExplorerClient() {
       <div className={styles.eyebrow}>{t.questions.eyebrow}</div>
 
       {/* Main Header */}
-      <div className={styles.headerRow}>
+      <div className={styles.headerRow} style={{ marginBottom: 20 }}>
         <div>
           <h1 className={styles.title}>
-              {locale === "vi" ? (
-                <>Ngân hàng <em>câu hỏi tuyển dụng</em></>
-              ) : (
-                <>Interview <em>Question Bank</em></>
-              )}
-            </h1>
-          <p className={styles.sub}>{t.questions.subtitle}</p>
+            {locale === "vi" ? (
+              <>Ngân hàng <em>câu hỏi tuyển dụng</em></>
+            ) : (
+              <>Interview <em>Question Bank</em></>
+            )}
+          </h1>
         </div>
       </div>
 
-      {/* Value Proposition Cards */}
-      <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <div className={styles.statIcon}>
-            <Compass size={22} />
-          </div>
-          <div>
-            <div className={styles.statNumber}>{t.questions.stats.practical}</div>
-            <div className={styles.statLabel}>{t.questions.stats.practicalSub}</div>
-          </div>
-        </div>
-
-        <div className={styles.statCard}>
-          <div className={styles.statIcon}>
-            <Award size={22} />
-          </div>
-          <div>
-            <div className={styles.statNumber}>{t.questions.stats.starRubric}</div>
-            <div className={styles.statLabel}>{t.questions.stats.starRubricSub}</div>
-          </div>
-        </div>
-
-        <div className={styles.statCard}>
-          <div className={styles.statIcon}>
-            <Sparkles size={22} />
-          </div>
-          <div>
-            <div className={styles.statNumber}>{t.questions.stats.aiCoach}</div>
-            <div className={styles.statLabel}>{t.questions.stats.aiCoachSub}</div>
-          </div>
-        </div>
-
-        <div className={styles.statCard}>
-          <div className={styles.statIcon}>
-            <Flame size={22} />
-          </div>
-          <div>
-            <div className={styles.statNumber}>{t.questions.stats.bilingual}</div>
-            <div className={styles.statLabel}>{t.questions.stats.bilingualSub}</div>
-          </div>
-        </div>
-      </div>
-
+      {activeTab === "sets" ? (
+        <CuratedQuestionSetsView activeTab={activeTab} setActiveTab={setActiveTab} />
+      ) : (
+        <>
       {/* Search & Filter Panel */}
       <div className={styles.filterCard}>
+        {/* Integrated Compact Tab Switcher */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 mb-4 border-b border-[rgba(106,72,49,0.12)]">
+          <div className="flex items-center gap-1 p-1 rounded-2xl bg-[#f5efe6] border border-[rgba(106,72,49,0.15)] shrink-0 self-start md:self-auto">
+            <button
+              type="button"
+              onClick={() => setActiveTab("sets")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeTab === "sets"
+                  ? "bg-gradient-to-r from-[#d98236] to-[#8b4513] text-white shadow-xs"
+                  : "text-[#8b4513]/70 hover:text-[#211914] hover:bg-white/40"
+              }`}
+            >
+              <FolderKanban size={13} />
+              <span>Bộ Đề Tuyển Dụng ({MOCK_QUESTION_SETS.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("individual")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeTab === "individual"
+                  ? "bg-gradient-to-r from-[#d98236] to-[#8b4513] text-white shadow-xs"
+                  : "text-[#8b4513]/70 hover:text-[#211914] hover:bg-white/40"
+              }`}
+            >
+              <HelpCircle size={13} />
+              <span>Khám Phá Câu Hỏi Lẻ & Bốc Đề</span>
+            </button>
+          </div>
+
+          <span className="text-xs text-[#8b4513]/70 font-semibold hidden md:inline">
+            Tìm kiếm & thêm câu hỏi vào giỏ đề để tự do ôn luyện
+          </span>
+        </div>
         {/* Search Bar */}
         <div className={styles.searchBox}>
           <Search size={18} className={styles.searchIcon} />
@@ -768,6 +765,9 @@ export default function QuestionExplorerClient() {
         </div>
       )}
 
+              </>
+      )}
+
       {/* Quick Practice Launch Modal */}
       {practiceModalQuestion && (
         <div
@@ -874,3 +874,6 @@ export default function QuestionExplorerClient() {
     </div>
   );
 }
+
+
+
