@@ -109,3 +109,57 @@ export interface QuestionFilterParams {
   limit?: number;
   offset?: number;
 }
+
+// ==========================================
+// QUESTION SET (BỘ CÂU HỎI PHỎNG VẤN)
+// ==========================================
+
+export interface QuestionSetItem {
+  set_id: number;
+  title: string;
+  description: string;
+  domain_id: number;
+  domain_name: string;
+  role_id: number;
+  role_name: string;
+  experience_level: string;
+  tech_stack: string[];
+  language: string;
+  target_difficulty: number;
+  estimated_duration_minutes: number;
+  is_curated: boolean;
+  is_active: boolean;
+  moderation_status: QuestionModerationStatus | "draft";
+  source: QuestionSource | "imported_doc" | "imported_url";
+  source_metadata?: {
+    url?: string | null;
+    doc_name?: string | null;
+    extracted_keywords?: string[];
+  };
+  questions: QuestionDetailOut[];
+  question_count: number;
+  practice_count: number;
+  avg_score: number;
+  pass_rate: number;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface QuestionSetPageOut {
+  items: QuestionSetItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface QuestionSetFilterParams {
+  domain_id?: number | null;
+  role_id?: number | null;
+  level?: string | null;
+  tech?: string | null;
+  language?: string | null;
+  difficulty?: number | null;
+  search?: string | null;
+  limit?: number;
+  offset?: number;
+}
