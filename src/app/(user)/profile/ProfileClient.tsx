@@ -709,18 +709,17 @@ export default function ProfileClient() {
 
         
 
-          <UserTooltip content="Làm mới dữ liệu từ máy chủ">
-            <button
-              type="button"
-              onClick={loadProfile}
-              disabled={isFetching}
-              className={styles.secondaryBtn}
-            >
-              <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
-              Làm mới
-            </button>
-          </UserTooltip>
-        </div>
+        <UserTooltip content="Làm mới dữ liệu từ máy chủ">
+          <button
+            type="button"
+            onClick={loadProfile}
+            disabled={isFetching}
+            className={styles.secondaryBtn}
+          >
+            <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
+            Làm mới
+          </button>
+        </UserTooltip>
       </div>
 
       <div className={styles.heroCard}>
