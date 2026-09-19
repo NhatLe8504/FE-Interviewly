@@ -73,42 +73,36 @@
               inset 0 1px 2px rgba(255, 255, 255, 0.8) !important;
 }
 
-/* Crown Overlay Element (3x bigger as requested, tilted gracefully on the avatar) */
+/* Crown Overlay Element (Tightly cropped image, prominently crowning the avatar) */
 .crown {
   position: absolute;
   pointer-events: none;
   user-select: none;
   z-index: 10;
   object-fit: contain;
-  filter: drop-shadow(0 3px 6px rgba(180, 83, 9, 0.6))
-          drop-shadow(0 0 10px rgba(251, 191, 36, 0.45));
+  left: 50%;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 2px 4px rgba(180, 83, 9, 0.55))
+          drop-shadow(0 0 6px rgba(251, 191, 36, 0.35));
+  animation: crownFloat 3s ease-in-out infinite alternate;
 }
 
 .crownSm {
-  width: 66px;
+  width: 38px;
   height: auto;
-  top: -19px;
-  left: -15px;
-  transform: rotate(-15deg);
-  animation: crownFloatSm 3s ease-in-out infinite alternate;
+  top: -18px;
 }
 
 .crownMd {
-  width: 98px;
+  width: 58px;
   height: auto;
   top: -28px;
-  left: -22px;
-  transform: rotate(-15deg);
-  animation: crownFloatMd 3s ease-in-out infinite alternate;
 }
 
 .crownLg {
-  width: 180px;
+  width: 115px;
   height: auto;
-  top: -52px;
-  left: -40px;
-  transform: rotate(-15deg);
-  animation: crownFloatLg 3s ease-in-out infinite alternate;
+  top: -55px;
 }
 
 /* Interactive Hover */
@@ -116,43 +110,17 @@
   transform: scale(1.05);
 }
 
-.interactive:hover .crownSm {
-  transform: rotate(-15deg) translateY(-2px) scale(1.05);
-}
-
-.interactive:hover .crownMd {
-  transform: rotate(-15deg) translateY(-3px) scale(1.05);
-}
-
-.interactive:hover .crownLg {
-  transform: rotate(-15deg) translateY(-4px) scale(1.05);
+.interactive:hover .crown {
+  transform: translateX(-50%) translateY(-2px) scale(1.06);
 }
 
 /* Floating Animation */
-@keyframes crownFloatSm {
+@keyframes crownFloat {
   0% {
-    transform: rotate(-15deg) translateY(0px);
+    transform: translateX(-50%) translateY(0px);
   }
   100% {
-    transform: rotate(-13deg) translateY(-2px);
-  }
-}
-
-@keyframes crownFloatMd {
-  0% {
-    transform: rotate(-15deg) translateY(0px);
-  }
-  100% {
-    transform: rotate(-13deg) translateY(-3px);
-  }
-}
-
-@keyframes crownFloatLg {
-  0% {
-    transform: rotate(-15deg) translateY(0px);
-  }
-  100% {
-    transform: rotate(-13deg) translateY(-4px);
+    transform: translateX(-50%) translateY(-2px);
   }
 }
 
