@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -241,6 +241,24 @@ export default function Header() {
                   </div>
                 </div>
 
+                {/* Onboarding Alert Link if not completed */}
+                {!user.is_onboarded && (
+                  <Link
+                    href="/onboarding"
+                    className={styles.dropdownItem}
+                    role="menuitem"
+                    onClick={handleCloseMenu}
+                    style={{ backgroundColor: "rgba(217, 130, 54, 0.08)" }}
+                  >
+                    <span className={styles.dropdownItemLeft}>
+                      <Sparkles size={14} className="text-[#d98236]" />
+                      <span className="font-bold text-[#b35919]">
+                        {lang === "vi" ? "Khảo sát Onboarding" : "Complete Onboarding"}
+                      </span>
+                    </span>
+                    <span className="inline-block size-2 rounded-full bg-amber-500 animate-pulse ml-auto" />
+                  </Link>
+                )}
                 {/* Primary Navigation */}
                 <Link
                   href="/profile"

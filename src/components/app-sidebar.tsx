@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import * as React from "react"
 import Link from "next/link"
@@ -29,6 +29,7 @@ import {
   SparklesIcon,
   ShieldCheckIcon,
   GlobeIcon,
+  CompassIcon,
 } from "lucide-react"
 
 const data = {
@@ -62,6 +63,11 @@ const data = {
       title: "Subscriptions",
       url: "/admin/subscriptions",
       icon: <SparklesIcon />,
+    },
+    {
+      title: "Onboarding Flow",
+      url: "/admin/onboarding",
+      icon: <CompassIcon />,
     },
     {
       title: "Domains & Roles",

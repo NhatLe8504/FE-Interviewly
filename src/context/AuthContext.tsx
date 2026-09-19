@@ -13,6 +13,8 @@ interface AuthContextType {
   login: (payload: LoginIn) => Promise<TokenOut>;
   register: (payload: RegisterIn) => Promise<UserOut>;
   googleLogin: (credential: string) => Promise<TokenOut>;
+  setInitialPassword: (password: string) => Promise<void>;
+  updateUserLocal: (updated: Partial<UserOut>) => void;
   logout: () => void;
   refreshUser: () => Promise<UserOut | null>;
 }
@@ -74,11 +76,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(res.access_token);
     try {
       const profile = await authApi.getMe();
-      setUser(profile);
+      const combinedProfile: UserOut = {
+        ...profile,
+        needs_password: res.needs_password !== undefined ? res.needs_password : profile?.needs_password,
+      };
+      setUser(combinedProfile);
     } catch {
       // Ignored
     }
     return res;
+  };
+
+  const setInitialPassword = async (password: string): Promise<void> => {
+    await authApi.setInitialPassword({ password });
+    await refreshUser();
+  };
+
+  const updateUserLocal = (updated: Partial<UserOut>) => {
+    setUser((prev) => (prev ? { ...prev, ...updated } : null));
   };
 
   const logout = () => {
@@ -97,6 +112,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         googleLogin,
+        setInitialPassword,
+        updateUserLocal,
         logout,
         refreshUser,
       }}
