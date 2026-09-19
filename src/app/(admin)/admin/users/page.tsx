@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
@@ -372,14 +372,14 @@ export default function AdminUsersPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
                   <RefreshCw className="size-6 animate-spin mx-auto mb-2 text-primary" />
                   <span>Đang tải dữ liệu thực từ máy chủ...</span>
                 </TableCell>
               </TableRow>
             ) : fetchError ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-destructive">
+                <TableCell colSpan={7} className="h-32 text-center text-destructive">
                   <p className="font-medium text-sm">Không thể tải dữ liệu từ máy chủ.</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Vui lòng kiểm tra kết nối API Backend hoặc quyền truy cập tài khoản Quản trị viên.
@@ -391,7 +391,7 @@ export default function AdminUsersPage() {
               </TableRow>
             ) : usersList.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
                   <Users className="size-8 mx-auto mb-2 opacity-40" />
                   <p className="font-medium text-foreground text-sm">Chưa có người dùng nào</p>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -531,6 +531,23 @@ export default function AdminUsersPage() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                    </TableCell>
+
+                    {/* Onboarding Status */}
+                    <TableCell>
+                      {user.is_onboarded ? (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] gap-1 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 font-semibold"
+                        >
+                          <CheckCircle2 className="size-2.5 text-emerald-500" />
+                          <span>Đã Onboard</span>
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-[10px] text-muted-foreground font-normal">
+                          Chưa Onboard
+                        </Badge>
+                      )}
                     </TableCell>
 
                     {/* Created Date */}

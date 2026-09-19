@@ -1,4 +1,4 @@
-import { store } from "@/redux/store";
+﻿import { store } from "@/redux/store";
 import { authApiSlice } from "@/redux/api/authApi";
 import { logOut } from "@/redux/slices/authSlice";
 import { getStoredToken } from "./apiClient";
@@ -8,6 +8,7 @@ import type {
   SendOtpIn,
   VerifyOtpIn,
   GoogleAuthIn,
+  SetInitialPasswordIn,
   TokenOut,
   UserOut,
   MessageOut,
@@ -36,6 +37,10 @@ export const authApi = {
 
   async getMe(): Promise<UserOut> {
     return store.dispatch(authApiSlice.endpoints.getMe.initiate()).unwrap();
+  },
+
+  async setInitialPassword(payload: SetInitialPasswordIn): Promise<MessageOut> {
+    return store.dispatch(authApiSlice.endpoints.setInitialPassword.initiate(payload)).unwrap();
   },
 
   async checkHealth(): Promise<{ status: string; database?: string }> {

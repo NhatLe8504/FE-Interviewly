@@ -161,6 +161,8 @@
 }
 
 .userMenuTrigger {
+  position: relative;
+  overflow: visible;
   display: inline-flex;
   align-items: center;
   gap: 10px;

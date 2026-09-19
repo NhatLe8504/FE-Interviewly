@@ -1,14 +1,23 @@
-export interface UserOut {
+﻿export interface UserOut {
   user_id: number;
   full_name: string;
   email: string;
   role: string;
   status: string;
+  is_onboarded?: boolean;
+  needs_password?: boolean;
 }
 
 export interface TokenOut {
   access_token: string;
   token_type: string;
+  is_new_user?: boolean;
+  needs_password?: boolean;
+  is_onboarded?: boolean;
+}
+
+export interface SetInitialPasswordIn {
+  password: string;
 }
 
 export interface RegisterIn {

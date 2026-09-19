@@ -8,8 +8,9 @@ import { useAuth } from "@/context/AuthContext";
 import { authApi } from "@/services/authApi";
 import { toast, setFlashToast } from "@/components/user-component/toast";
 import styles from "./AuthPanel.module.css";
+import { SetPasswordModal } from "./SetPasswordModal";
 
-export type AuthMode = "login" | "register";
+export type AuthMode = "login" | "register" | "set_password";
 
 const DEFAULT_GOOGLE_CLIENT_ID =
   "931631230905-0v425ou7p4h26232bl16u4hbq0oufgle.apps.googleusercontent.com";
@@ -24,6 +25,7 @@ type AuthPanelProps = {
 const MODE_PATH: Record<AuthMode, string> = {
   login: "/login",
   register: "/register",
+  set_password: "/login?mode=set_password",
 };
 
 export default function AuthPanel({
@@ -33,7 +35,10 @@ export default function AuthPanel({
   onModeChange,
 }: AuthPanelProps) {
   const router = useRouter();
-  const { login, register, googleLogin } = useAuth();
+  const { login, register, googleLogin, setInitialPassword, user } = useAuth();
+  const [showSetPasswordPopup, setShowSetPasswordPopup] = useState(false);
+  const [pendingAuthResponse, setPendingAuthResponse] = useState<any>(null);
+  const [newPassword, setNewPassword] = useState("");
   const googleBtnRef = useRef<HTMLDivElement>(null);
 
   const [mode, setMode] = useState<AuthMode>(initialMode);
@@ -96,14 +101,18 @@ export default function AuthPanel({
               try {
                 setLoading(true);
                 setError(null);
-                await googleLogin(response.credential);
+                const tokenRes = await googleLogin(response.credential);
+                let profile = null;
+                try {
+                  profile = await authApi.getMe();
+                } catch {}
                 setDone(true);
                 setFlashToast({
                   variant: "success",
                   title: "Đăng nhập Google thành công!",
                   description: "Chào mừng bạn quay trở lại với Interviewly.",
                 });
-                window.location.href = "/";
+                handlePostAuthRedirect(tokenRes, profile);
               } catch (err: any) {
                 setError(err.message || "Đăng nhập Google thất bại.");
               } finally {
@@ -143,6 +152,69 @@ export default function AuthPanel({
       return () => clearInterval(interval);
     }
   }, [googleLogin, router]);
+
+  const handlePostAuthRedirect = (tokenRes?: any, userProfile?: any) => {
+    // 1. Force password setup popup for first-time Google users (or users without password)
+    if (tokenRes?.needs_password || userProfile?.needs_password) {
+      setPendingAuthResponse({ tokenRes, userProfile });
+      setShowSetPasswordPopup(true);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    // 2. Check if user hasn't completed onboarding -> redirect to /onboarding
+    if (tokenRes?.is_onboarded === false || (userProfile && !userProfile.is_onboarded)) {
+      window.location.href = "/onboarding";
+      return;
+    }
+
+    // 3. Otherwise redirect to admin or home
+    if (userProfile?.role === "admin") {
+      window.location.href = "/admin";
+      return;
+    }
+
+    window.location.href = "/";
+  };
+
+  const handleSetInitialPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 8) {
+      setError("Mật khẩu mới phải có độ dài tối thiểu 8 ký tự.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("Xác nhận mật khẩu không trùng khớp.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      await setInitialPassword(newPassword);
+      setFlashToast({
+        variant: "success",
+        title: "Thiết lập mật khẩu thành công!",
+        description: "Mật khẩu của bạn đã được cập nhật an toàn.",
+      });
+
+      let profile = null;
+      try {
+        profile = await authApi.getMe();
+      } catch {}
+
+      if (profile && !profile.is_onboarded) {
+        window.location.href = "/onboarding";
+      } else {
+        window.location.href = "/";
+      }
+    } catch (err: any) {
+      setError(err?.data?.detail || err?.message || "Không thể thiết lập mật khẩu.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const switchMode = (next: AuthMode) => {
     if (next === mode || loading) return;
@@ -216,14 +288,18 @@ export default function AuthPanel({
               try {
                 setLoading(true);
                 setError(null);
-                await googleLogin(response.credential);
+                const tokenRes = await googleLogin(response.credential);
+                let profile = null;
+                try {
+                  profile = await authApi.getMe();
+                } catch {}
                 setDone(true);
                 setFlashToast({
                   variant: "success",
                   title: "Đăng nhập Google thành công!",
                   description: "Chào mừng bạn quay trở lại với Interviewly.",
                 });
-                window.location.href = "/";
+                handlePostAuthRedirect(tokenRes, profile);
               } catch (err: any) {
                 console.error("Google auth backend error:", err);
                 const detail = err?.data?.detail;
@@ -330,8 +406,12 @@ export default function AuthPanel({
         });
 
         try {
-          await login({ email, password });
-          window.location.href = "/";
+          const tokenRes = await login({ email, password });
+          let profile = null;
+          try {
+            profile = await authApi.getMe();
+          } catch {}
+          handlePostAuthRedirect(tokenRes, profile);
         } catch {
           setTimeout(() => {
             switchMode("login");
@@ -364,16 +444,29 @@ export default function AuthPanel({
         <div className={styles.formSide}>
           <p className={styles.eyebrow}>
             <span />
-            {mode === "login" ? "Chào mừng trở lại" : "Tham gia cùng interviewly"}
+            {mode === "set_password"
+              ? "Bảo mật tài khoản Google"
+              : mode === "login"
+              ? "Chào mừng trở lại"
+              : "Tham gia cùng interviewly"}
           </p>
-          <h1>{mode === "login" ? "Đăng nhập tài khoản" : "Tạo tài khoản luyện tập"}</h1>
+          <h1>
+            {mode === "set_password"
+              ? "Thiết lập mật khẩu tài khoản"
+              : mode === "login"
+              ? "Đăng nhập tài khoản"
+              : "Tạo tài khoản luyện tập"}
+          </h1>
           <p className={styles.sub}>
-            {mode === "login"
+            {mode === "set_password"
+              ? "Bạn vừa đăng nhập lần đầu bằng Google. Vui lòng tạo mật khẩu cho tài khoản để tăng cường bảo mật và có thể đăng nhập bằng email sau này."
+              : mode === "login"
               ? "Tiếp tục các phiên luyện tập phỏng vấn và xem nhận xét chi tiết từ AI."
               : "Khởi tạo tài khoản chỉ trong 1 phút và bắt đầu phiên phỏng vấn thông minh."}
           </p>
 
-          <div className={styles.segmented} role="tablist" aria-label="Lựa chọn đăng nhập hoặc tạo tài khoản">
+          {mode !== "set_password" && (
+            <div className={styles.segmented} role="tablist" aria-label="Lựa chọn đăng nhập hoặc tạo tài khoản">
             <span className={styles.segmentThumb} aria-hidden="true" />
             <button
               type="button"
@@ -394,9 +487,72 @@ export default function AuthPanel({
               Đăng ký
             </button>
           </div>
+          )}
 
           <div className={styles.formStack}>
-            {mode === "login" ? (
+            {mode === "set_password" ? (
+              <form
+                key="set-password-form"
+                className={styles.formPane + " " + styles.paneLogin}
+                onSubmit={handleSetInitialPasswordSubmit}
+                noValidate
+              >
+                <label className={styles.field}>
+                  <span>Mật khẩu mới (tối thiểu 8 ký tự)</span>
+                  <span className={styles.passwordWrap}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="new_password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Nhập ít nhất 8 ký tự"
+                      autoComplete="new-password"
+                      minLength={8}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className={styles.eyeButton}
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                    >
+                      {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                    </button>
+                  </span>
+                </label>
+
+                <label className={styles.field}>
+                  <span>Xác nhận mật khẩu mới</span>
+                  <span className={styles.passwordWrap}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="confirm_password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Nhập lại mật khẩu mới"
+                      autoComplete="new-password"
+                      minLength={8}
+                      required
+                    />
+                  </span>
+                </label>
+
+                {error && <p className={styles.error} role="alert">{error}</p>}
+                {(done || successMsg) && (
+                  <p className={styles.success} role="status">
+                    <Check size={15} /> {successMsg}
+                  </p>
+                )}
+
+                <button type="submit" className={styles.primaryButton} disabled={loading}>
+                  {loading ? (
+                    <Loader2 size={18} className={styles.spin} aria-hidden="true" />
+                  ) : (
+                    <>Lưu mật khẩu &amp; Tiếp tục <ArrowRight size={18} aria-hidden="true" /></>
+                  )}
+                </button>
+              </form>
+            ) : mode === "login" ? (
               <form
                 key="login-form"
                 className={styles.formPane + " " + styles.paneLogin}
@@ -589,9 +745,11 @@ export default function AuthPanel({
             )}
           </div>
 
-          <div className={styles.divider}>
-            <span /> hoặc <span />
-          </div>
+          {mode !== "set_password" && (
+            <>
+              <div className={styles.divider}>
+                <span /> hoặc <span />
+              </div>
 
           {/* Official Google Identity Services Button Container */}
           <div className={styles.googleContainer}>
@@ -614,13 +772,15 @@ export default function AuthPanel({
             )}
           </div>
 
-          <p className={styles.switchLine}>
-            {mode === "login" ? (
-              <>Bạn mới biết đến Interviewly? <button type="button" onClick={() => switchMode("register")}>Đăng ký ngay</button></>
-            ) : (
-              <>Đã có tài khoản? <button type="button" onClick={() => switchMode("login")}>Đăng nhập</button></>
-            )}
-          </p>
+              <p className={styles.switchLine}>
+                {mode === "login" ? (
+                  <>Bạn mới biết đến Interviewly? <button type="button" onClick={() => switchMode("register")}>Đăng ký ngay</button></>
+                ) : (
+                  <>Đã có tài khoản? <button type="button" onClick={() => switchMode("login")}>Đăng nhập</button></>
+                )}
+              </p>
+            </>
+          )}
         </div>
 
         <aside className={styles.showcase} aria-hidden="true">
@@ -646,6 +806,29 @@ export default function AuthPanel({
           <span className={styles.showMark}>{"\u2726"}</span>
         </aside>
       </div>
+
+      {/* POPUP REQUIRING PASSWORD FOR FIRST-TIME GOOGLE LOGIN */}
+      {showSetPasswordPopup && (
+        <SetPasswordModal
+          isOpen={true}
+          canClose={false}
+          email={email || user?.email || pendingAuthResponse?.userProfile?.email}
+          onSuccess={() => {
+            setShowSetPasswordPopup(false);
+            const isNotOnboarded =
+              pendingAuthResponse?.tokenRes?.is_onboarded === false ||
+              pendingAuthResponse?.userProfile?.is_onboarded === false ||
+              user?.is_onboarded === false;
+            if (isNotOnboarded) {
+              window.location.href = "/onboarding";
+            } else if (user?.role === "admin" || pendingAuthResponse?.userProfile?.role === "admin") {
+              window.location.href = "/admin";
+            } else {
+              window.location.href = "/";
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

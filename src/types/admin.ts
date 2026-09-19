@@ -1,4 +1,4 @@
-export type UserRole = "candidate" | "admin";
+﻿export type UserRole = "candidate" | "admin";
 export type UserStatus = "active" | "suspended" | "deleted";
 
 export interface UserAdminOut {
@@ -11,6 +11,19 @@ export interface UserAdminOut {
   preferred_language: string;
   created_at?: string | null;
   updated_at?: string | null;
+  is_onboarded?: boolean;
+  onboarding?: {
+    response_id?: number;
+    preferred_language?: string;
+    acquisition_channel?: string;
+    current_domain?: string;
+    current_role?: string;
+    target_role?: string;
+    target_level?: string;
+    target_goal?: string | null;
+    is_completed?: boolean;
+    completed_at?: string | null;
+  } | null;
 }
 
 export interface UserAdminCreateIn {

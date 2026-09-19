@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { use, useState } from "react";
 import Link from "next/link";
@@ -43,6 +43,8 @@ import {
 } from "@/components/admin/ui/dialog";
 import { Skeleton } from "@/components/admin/ui/skeleton";
 import { AdminPageHeader } from "@/components/admin";
+import { ChannelBrandIcon } from "@/components/admin/onboarding/BrandLogos";
+import { Compass } from "lucide-react";
 import { toast } from "sonner";
 import {
   useGetUserQuery,
@@ -402,14 +404,18 @@ export default function AdminUserDetailPage({
 
           {/* SHADCN TABS SECTION */}
           <Tabs defaultValue="profile" className="w-full space-y-5">
-            <TabsList className="grid w-full grid-cols-2 max-w-md h-10">
+            <TabsList className="grid w-full grid-cols-3 max-w-lg h-10">
               <TabsTrigger value="profile" className="text-xs font-semibold gap-1.5">
                 <UserCog className="size-3.5" />
-                <span>Hồ sơ & Tài khoản</span>
+                <span>Hồ sơ &amp; Tài khoản</span>
+              </TabsTrigger>
+              <TabsTrigger value="onboarding" className="text-xs font-semibold gap-1.5">
+                <Sparkles className="size-3.5" />
+                <span>Khảo sát Onboarding</span>
               </TabsTrigger>
               <TabsTrigger value="roles" className="text-xs font-semibold gap-1.5">
                 <Shield className="size-3.5" />
-                <span>Quyền hạn & Hệ thống</span>
+                <span>Quyền hạn &amp; Hệ thống</span>
               </TabsTrigger>
             </TabsList>
 
@@ -554,7 +560,120 @@ export default function AdminUserDetailPage({
               </div>
             </TabsContent>
 
-            {/* TAB 2: ROLES & SYSTEM CAPABILITIES */}
+            {/* TAB 2: ONBOARDING SURVEY STATUS & DATA */}
+            <TabsContent value="onboarding" className="space-y-5 focus-visible:outline-none">
+              <Card>
+                <CardHeader className="pb-4 border-b">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <CardTitle className="text-sm font-bold flex items-center gap-2">
+                        <Compass className="size-4 text-primary" />
+                        <span>Trạng Thái &amp; Dữ Liệu Khảo Sát Onboarding</span>
+                      </CardTitle>
+                      <CardDescription className="text-xs mt-0.5">
+                        Lộ trình phát triển sự nghiệp, mục tiêu và kênh tiếp thị ứng viên biết đến Interviewly.
+                      </CardDescription>
+                    </div>
+
+                    <Badge
+                      variant={user.is_onboarded ? "default" : "outline"}
+                      className={`gap-1.5 text-xs font-bold ${user.is_onboarded ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" : "border-amber-400/40 text-amber-600 bg-amber-500/10"}`}
+                    >
+                      {user.is_onboarded ? (
+                        <>
+                          <CheckCircle2 className="size-3 text-emerald-500" />
+                          <span>Đã hoàn thành khảo sát</span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="size-3 text-amber-500" />
+                          <span>Chưa thực hiện khảo sát</span>
+                        </>
+                      )}
+                    </Badge>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="p-6 text-xs space-y-4">
+                  {user.is_onboarded && user.onboarding ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Domain & Roles Card */}
+                        <div className="p-4 rounded-xl border bg-muted/30 space-y-3">
+                          <div className="flex justify-between py-1 border-b border-border/50">
+                            <span className="text-muted-foreground">Ngành nghề hiện tại:</span>
+                            <span className="font-bold text-foreground">{user.onboarding.current_domain}</span>
+                          </div>
+
+                          <div className="flex justify-between py-1 border-b border-border/50">
+                            <span className="text-muted-foreground">Chức danh công việc:</span>
+                            <span className="font-semibold text-foreground">{user.onboarding.current_role}</span>
+                          </div>
+
+                          <div className="flex justify-between py-1 border-b border-border/50">
+                            <span className="text-muted-foreground">Vị trí hướng tới:</span>
+                            <span className="font-bold text-primary">{user.onboarding.target_role}</span>
+                          </div>
+
+                          <div className="flex justify-between py-1">
+                            <span className="text-muted-foreground">Cấp bậc mục tiêu:</span>
+                            <Badge variant="secondary" className="capitalize text-[11px] font-semibold">
+                              {user.onboarding.target_level}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {/* Marketing & Preferences */}
+                        <div className="p-4 rounded-xl border bg-muted/30 space-y-3">
+                          <div className="flex justify-between items-center py-1 border-b border-border/50">
+                            <span className="text-muted-foreground">Nguồn tiếp cận:</span>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border bg-background text-xs font-bold shadow-2xs">
+                              <ChannelBrandIcon channelKey={user.onboarding.acquisition_channel || "other"} className="size-4" />
+                              <span className="capitalize">{user.onboarding.acquisition_channel || "Khác"}</span>
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between py-1 border-b border-border/50">
+                            <span className="text-muted-foreground">Ngôn ngữ phỏng vấn:</span>
+                            <span className="font-bold uppercase text-foreground">
+                              {user.onboarding.preferred_language === "en" ? "Tiếng Anh (en-US)" : "Tiếng Việt (vi-VN)"}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between py-1">
+                            <span className="text-muted-foreground">Thời điểm hoàn tất:</span>
+                            <span className="font-mono text-muted-foreground">
+                              {formatDate(user.onboarding.completed_at)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {user.onboarding.target_goal && (
+                        <div className="p-3.5 rounded-xl border bg-card space-y-1">
+                          <span className="text-muted-foreground block text-[11px]">Mục tiêu phỏng vấn cốt lõi:</span>
+                          <p className="font-medium text-foreground italic leading-relaxed">
+                            &ldquo;{user.onboarding.target_goal}&rdquo;
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 space-y-2 text-muted-foreground">
+                      <Compass className="size-8 mx-auto opacity-30 text-primary" />
+                      <p className="font-semibold text-sm text-foreground">
+                        Người dùng này chưa hoàn thành luồng khảo sát Onboarding
+                      </p>
+                      <p className="text-xs max-w-md mx-auto">
+                        Khi ứng viên truy cập và hoàn tất các bước khảo sát định hướng nghề nghiệp (/onboarding), toàn bộ dữ liệu lựa chọn ngành nghề, vị trí mục tiêu và kênh tiếp thị sẽ tự động hiển thị tại đây.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* TAB 3: ROLES & SYSTEM CAPABILITIES */}
             <TabsContent value="roles" className="space-y-5 focus-visible:outline-none">
               <Card>
                 <CardHeader className="pb-4 border-b">

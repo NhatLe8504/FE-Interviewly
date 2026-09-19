@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   User,
   Mail,
@@ -22,6 +23,7 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
+  RotateCcw,
   X,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -29,8 +31,9 @@ import { useI18n } from "@/context/I18nContext";
 import { CrownAvatar } from "@/components/user-component/common";
 import { useUserSubscription } from "@/hooks/useUserSubscription";
 import { profileApi } from "@/services/profileApi";
-import { ApiError } from "@/services/apiClient";
+import { ApiError, request } from "@/services/apiClient";
 import { UserTooltip } from "@/components/user-component/common";
+import { toast } from "@/components/user-component/toast";
 import type {
   ProfileOut,
   ProfileUpdateIn,
@@ -64,7 +67,24 @@ const EXPERIENCE_OPTIONS: { id: ExperienceLevel; label: string; desc: string }[]
 const SINE_FACTORS = [0.4, 0.7, 1.0, 0.8, 0.6, 0.9, 1.2, 0.7, 0.5, 0.8, 1.1, 0.9, 0.6, 0.8, 0.5, 0.3];
 
 export default function ProfileClient() {
+  const router = useRouter();
   const { user, isAuthenticated, isLoading: isAuthLoading, refreshUser } = useAuth();
+
+  const handleResetOnboardingTest = async () => {
+    try {
+      toast.info("Đang đặt lại trạng thái Onboarding...", "Vui lòng chờ trong giây lát");
+      await request("/api/v1/onboarding/reset", { method: "POST" });
+      await refreshUser();
+      toast.success("Đã chuyển trạng thái Onboarding về false!", "Đang đưa bạn đến trang Onboarding để test lại...");
+      router.push("/onboarding");
+    } catch (err) {
+      console.warn("Reset onboarding error:", err);
+      if (user) {
+        user.is_onboarded = false;
+      }
+      router.push("/onboarding");
+    }
+  };
   const { locale, t } = useI18n();
   const { isSubscribed } = useUserSubscription();
 
@@ -493,33 +513,83 @@ export default function ProfileClient() {
             Tùy chỉnh thông tin chuyên môn, định hướng nghề nghiệp, mức độ kinh nghiệm và kiểm tra thiết bị phỏng vấn.
           </p>
         </div>
-        <UserTooltip content="Làm mới dữ liệu từ máy chủ">
+
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          {/* NÚT TÀNG HÌNH TEST ONBOARDING - CHUYỂN TRẠNG THÁI VỀ CHƯA ONBOARD */}
           <button
             type="button"
-            onClick={loadProfile}
-            disabled={isFetching}
-            className={styles.secondaryBtn}
+            onClick={handleResetOnboardingTest}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "7px 14px",
+              borderRadius: "12px",
+              border: "1.5px dashed rgba(217, 130, 54, 0.45)",
+              backgroundColor: "rgba(217, 130, 54, 0.08)",
+              color: "#b35919",
+              fontSize: "12px",
+              fontWeight: 700,
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              opacity: 0.55,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = "1";
+              e.currentTarget.style.backgroundColor = "rgba(217, 130, 54, 0.18)";
+              e.currentTarget.style.borderColor = "#d98236";
+              e.currentTarget.style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = "0.55";
+              e.currentTarget.style.backgroundColor = "rgba(217, 130, 54, 0.08)";
+              e.currentTarget.style.borderColor = "rgba(217, 130, 54, 0.45)";
+              e.currentTarget.style.transform = "translateY(0)";
+            }}
+            title="🕵️ Nút tàng hình: Bấm vào đây để xóa khảo sát cũ, chuyển trạng thái Onboarding về false và mở lại trang Onboarding để test lại"
+            aria-label="Reset Onboarding Test"
           >
-            <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
-            Làm mới
+            <RotateCcw size={13} />
+            <span>Reset Onboarding lại</span>
+            <span
+              style={{
+                fontSize: "10px",
+                padding: "2px 6px",
+                borderRadius: "999px",
+                backgroundColor: user?.is_onboarded ? "#dcfce7" : "#fee2e2",
+                color: user?.is_onboarded ? "#15803d" : "#b91c1c",
+                fontWeight: 800,
+              }}
+            >
+              {user?.is_onboarded ? "Đã Onboard" : "Chưa Onboard"}
+            </span>
           </button>
-        </UserTooltip>
+
+          <UserTooltip content="Làm mới dữ liệu từ máy chủ">
+            <button
+              type="button"
+              onClick={loadProfile}
+              disabled={isFetching}
+              className={styles.secondaryBtn}
+            >
+              <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
+              Làm mới
+            </button>
+          </UserTooltip>
+        </div>
       </div>
 
       <div className={styles.heroCard}>
         <div className={styles.heroMain}>
           <div className={styles.avatarWrapper}>
-            {avatarUrl && !avatarLoadError ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={avatarUrl}
-                alt={fullName || "Avatar"}
-                className={styles.avatar}
-                onError={() => setAvatarLoadError(true)}
-              />
-            ) : (
-              <div className={styles.avatar}>{initials}</div>
-            )}
+            <CrownAvatar
+              size="lg"
+              src={avatarUrl && !avatarLoadError ? avatarUrl : null}
+              initials={initials}
+              alt={fullName || "Avatar"}
+              isSubscribed={isSubscribed}
+              showOnline={false}
+            />
             <UserTooltip content="Đổi ảnh đại diện">
               <button
                 type="button"
@@ -585,6 +655,42 @@ export default function ProfileClient() {
           <div className={styles.metaItem}>
             <span className={styles.metaLabel}>{t.common.id}</span>
             <span className={styles.metaValue}>ID #{profile?.user_id || user?.user_id || "1"}</span>
+          </div>
+
+          {/* STEALTH INLINE BUTTON IN HERO META */}
+          <div style={{ marginTop: "auto", paddingTop: "8px" }}>
+            <button
+              type="button"
+              onClick={handleResetOnboardingTest}
+              style={{
+                opacity: 0.45,
+                fontSize: "11px",
+                fontWeight: 600,
+                color: "#d98236",
+                background: "rgba(217, 130, 54, 0.08)",
+                border: "1px dashed rgba(217, 130, 54, 0.4)",
+                borderRadius: "8px",
+                padding: "4px 8px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.backgroundColor = "rgba(217, 130, 54, 0.18)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "0.45";
+                e.currentTarget.style.backgroundColor = "rgba(217, 130, 54, 0.08)";
+              }}
+              title="🕵️ Nút tàng hình: Bấm để xóa khảo sát cũ, chuyển Onboarding về false và test lại"
+              aria-label="Reset Onboarding Test"
+            >
+              <RotateCcw size={12} />
+              <span>Reset Onboarding</span>
+            </button>
           </div>
         </div>
       </div>
