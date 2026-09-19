@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -216,7 +216,7 @@ export default function Header() {
               aria-haspopup="true"
               aria-label="User navigation menu"
             >
-              <CrownAvatar size="sm" initials={initials} isSubscribed={isSubscribed} />
+              <CrownAvatar size="sm" src={user.avatar_url} initials={initials} isSubscribed={isSubscribed} />
               <span className={styles.userName}>{user.full_name}</span>
               <span className={styles.menuIconBtn}>
                 <MoreVertical size={14} />
@@ -227,7 +227,7 @@ export default function Header() {
               <div className={styles.dropdownMenu} role="menu">
                 {/* User Info Header */}
                 <div className={styles.dropdownHeader}>
-                  <CrownAvatar size="md" initials={initials} isSubscribed={isSubscribed} />
+                  <CrownAvatar size="md" src={user.avatar_url} initials={initials} isSubscribed={isSubscribed} />
                   <div className={styles.dropdownHeaderInfo}>
                     <span className={styles.dropdownHeaderName}>{user.full_name}</span>
                     <span className={styles.dropdownHeaderEmail}>{user.email}</span>

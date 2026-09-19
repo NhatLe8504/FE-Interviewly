@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { UserOut, LoginIn, RegisterIn, TokenOut } from "@/types/auth";
 import { authApi } from "@/services/authApi";
 import { getStoredToken } from "@/services/apiClient";
+import { profileApi } from "@/services/profileApi";
 
 interface AuthContextType {
   user: UserOut | null;
@@ -38,8 +39,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setToken(storedToken);
       const profile = await authApi.getMe();
-      setUser(profile);
-      return profile;
+      let avatarUrl = profile.avatar_url;
+      if (!avatarUrl) {
+        try {
+          const userProfile = await profileApi.getMyProfile();
+          avatarUrl = userProfile.avatar_url;
+        } catch {}
+      }
+      const combined: UserOut = {
+        ...profile,
+        avatar_url: avatarUrl || profile.avatar_url || null,
+      };
+      setUser(combined);
+      return combined;
     } catch {
       authApi.logout();
       setUser(null);

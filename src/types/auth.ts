@@ -1,4 +1,4 @@
-﻿export interface UserOut {
+export interface UserOut {
   user_id: number;
   full_name: string;
   email: string;
@@ -6,6 +6,7 @@
   status: string;
   is_onboarded?: boolean;
   needs_password?: boolean;
+  avatar_url?: string | null;
 }
 
 export interface TokenOut {

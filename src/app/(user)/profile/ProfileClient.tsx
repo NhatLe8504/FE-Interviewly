@@ -363,7 +363,7 @@ export default function ProfileClient() {
       setProfile(updated);
       setAvatarUrl(finalUrl);
       setAvatarLoadError(false);
-      updateUserLocal({ ...user, full_name: fullName || user?.full_name || "" });
+      updateUserLocal({ avatar_url: finalUrl, full_name: fullName || user?.full_name || "" });
       await refreshUser();
 
       toast.success(
@@ -387,6 +387,7 @@ export default function ProfileClient() {
       setAvatarPreview(null);
       setSelectedAvatarFile(null);
       setAvatarLoadError(false);
+      updateUserLocal({ avatar_url: null });
       await refreshUser();
       toast.success("Đã gỡ ảnh đại diện", "Tài khoản của bạn đã chuyển về chữ cái đại diện mặc định.");
       setIsAvatarModalOpen(false);
