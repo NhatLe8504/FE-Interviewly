@@ -25,6 +25,10 @@ import {
   ArrowRight,
   RotateCcw,
   X,
+  UploadCloud,
+  Play,
+  Square,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
@@ -44,16 +48,44 @@ import type {
 import { SimpleUserSelect } from "@/components/user-component/common";
 import styles from "./profile.module.css";
 
-const PRESET_AVATARS = [
-  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=256&h=256&fit=crop&crop=faces",
-  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=256&h=256&fit=crop&crop=faces",
-  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=256&h=256&fit=crop&crop=faces",
-  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=256&h=256&fit=crop&crop=faces",
-  "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=256&h=256&fit=crop&crop=faces",
-  "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=256&h=256&fit=crop&crop=faces",
-  "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=256&h=256&fit=crop&crop=faces",
-  "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=256&h=256&fit=crop&crop=faces",
-];
+// Helper to resize image client-side to ensure lightweight, fast uploads
+function resizeImageToDataUrl(file: File, maxWidth = 400, maxHeight = 400): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(e.target?.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.88));
+      };
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+}
 
 const EXPERIENCE_OPTIONS: { id: ExperienceLevel; label: string; desc: string }[] = [
   { id: "intern", label: "Intern", desc: "Thực tập sinh / Đang học" },
@@ -68,23 +100,8 @@ const SINE_FACTORS = [0.4, 0.7, 1.0, 0.8, 0.6, 0.9, 1.2, 0.7, 0.5, 0.8, 1.1, 0.9
 
 export default function ProfileClient() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading: isAuthLoading, refreshUser } = useAuth();
+  const { user, isAuthenticated, isLoading: isAuthLoading, refreshUser, updateUserLocal } = useAuth();
 
-  const handleResetOnboardingTest = async () => {
-    try {
-      toast.info("Đang đặt lại trạng thái Onboarding...", "Vui lòng chờ trong giây lát");
-      await request("/api/v1/onboarding/reset", { method: "POST" });
-      await refreshUser();
-      toast.success("Đã chuyển trạng thái Onboarding về false!", "Đang đưa bạn đến trang Onboarding để test lại...");
-      router.push("/onboarding");
-    } catch (err) {
-      console.warn("Reset onboarding error:", err);
-      if (user) {
-        user.is_onboarded = false;
-      }
-      router.push("/onboarding");
-    }
-  };
   const { locale, t } = useI18n();
   const { isSubscribed } = useUserSubscription();
 
@@ -157,10 +174,23 @@ export default function ProfileClient() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  // Avatar picker modal
+  // Avatar picker modal & file states
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
-  const [customAvatarInput, setCustomAvatarInput] = useState("");
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [avatarLoadError, setAvatarLoadError] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Echo test state (record 5 seconds and listen back)
+  const [isEchoRecording, setIsEchoRecording] = useState(false);
+  const [echoCountdown, setEchoCountdown] = useState(5);
+  const [echoAudioUrl, setEchoAudioUrl] = useState<string | null>(null);
+  const [isPlayingEcho, setIsPlayingEcho] = useState(false);
+  const [micDeviceName, setMicDeviceName] = useState<string>("");
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const echoAudioElementRef = useRef<HTMLAudioElement | null>(null);
 
   // Audio / Mic tester
   const [isMicTesting, setIsMicTesting] = useState(false);
@@ -259,8 +289,112 @@ export default function ProfileClient() {
   }, [isAuthLoading, isAuthenticated, user]);
 
   const openAvatarModal = () => {
-    setCustomAvatarInput(avatarUrl || "");
-    openAvatarModal();
+    setSelectedAvatarFile(null);
+    setAvatarPreview(avatarUrl || null);
+    setIsAvatarModalOpen(true);
+  };
+
+  const handleSelectAvatarFile = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Định dạng tệp không hợp lệ", "Vui lòng chọn tệp hình ảnh (PNG, JPG, WEBP, GIF).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Dung lượng tệp quá lớn", "Vui lòng chọn ảnh có kích thước dưới 5MB.");
+      return;
+    }
+    setSelectedAvatarFile(file);
+    const objectUrl = URL.createObjectURL(file);
+    setAvatarPreview(objectUrl);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleSelectAvatarFile(file);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleSelectAvatarFile(file);
+    }
+  };
+
+  const handleSaveAvatar = async () => {
+    if (!selectedAvatarFile && !avatarPreview) {
+      setIsAvatarModalOpen(false);
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      let finalUrl = avatarPreview || "";
+
+      if (selectedAvatarFile) {
+        // 1. First resize and create clean data URL
+        const dataUrl = await resizeImageToDataUrl(selectedAvatarFile, 400, 400);
+        finalUrl = dataUrl;
+
+        // 2. Attempt to upload via backend API /api/v1/upload/avatar
+        try {
+          const formData = new FormData();
+          formData.append("file", selectedAvatarFile);
+          const uploadRes = await request<{ url?: string; secure_url?: string }>(
+            "/api/v1/upload/avatar",
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
+          if (uploadRes?.secure_url || uploadRes?.url) {
+            finalUrl = uploadRes.secure_url || uploadRes.url || dataUrl;
+          }
+        } catch {
+          // Graceful fallback to client-side compressed Data URL
+        }
+      }
+
+      // Save to database
+      const updated = await profileApi.updateProfile({ avatar_url: finalUrl });
+      setProfile(updated);
+      setAvatarUrl(finalUrl);
+      setAvatarLoadError(false);
+      updateUserLocal({ ...user, full_name: fullName || user?.full_name || "" });
+      await refreshUser();
+
+      toast.success(
+        "Cập nhật ảnh đại diện thành công!",
+        "Ảnh đại diện mới đã được áp dụng trên toàn bộ tài khoản của bạn."
+      );
+      setIsAvatarModalOpen(false);
+    } catch (err: any) {
+      toast.error("Không thể lưu ảnh đại diện", err?.message || "Vui lòng thử lại.");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    setIsUploadingAvatar(true);
+    try {
+      const updated = await profileApi.updateProfile({ avatar_url: null });
+      setProfile(updated);
+      setAvatarUrl("");
+      setAvatarPreview(null);
+      setSelectedAvatarFile(null);
+      setAvatarLoadError(false);
+      await refreshUser();
+      toast.success("Đã gỡ ảnh đại diện", "Tài khoản của bạn đã chuyển về chữ cái đại diện mặc định.");
+      setIsAvatarModalOpen(false);
+    } catch (err: any) {
+      toast.error("Không thể gỡ ảnh đại diện", err?.message || "Vui lòng thử lại.");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
   const handleSaveProfile = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -414,6 +548,13 @@ export default function ProfileClient() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStreamRef.current = stream;
 
+      const track = stream.getAudioTracks()[0];
+      if (track?.label) {
+        setMicDeviceName(track.label);
+      } else {
+        setMicDeviceName("Microphone mặc định");
+      }
+
       const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const ctx = new AudioContextClass();
       audioContextRef.current = ctx;
@@ -450,11 +591,63 @@ export default function ProfileClient() {
     }
   };
 
+  // Start 5-second Echo Recording Test
+  const startEchoTest = async () => {
+    try {
+      setEchoAudioUrl(null);
+      setIsEchoRecording(true);
+      setEchoCountdown(5);
+
+      let stream = mediaStreamRef.current;
+      if (!stream || !stream.active) {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaStreamRef.current = stream;
+      }
+
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      const chunks: Blob[] = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        const url = URL.createObjectURL(blob);
+        setEchoAudioUrl(url);
+        setIsEchoRecording(false);
+      };
+
+      mediaRecorder.start();
+
+      let secondsLeft = 5;
+      const interval = setInterval(() => {
+        secondsLeft -= 1;
+        setEchoCountdown(secondsLeft);
+        if (secondsLeft <= 0) {
+          clearInterval(interval);
+          if (mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+          }
+        }
+      }, 1000);
+    } catch {
+      setIsEchoRecording(false);
+      toast.error("Không thể ghi âm thử", "Vui lòng cấp quyền truy cập micro trên trình duyệt của bạn.");
+    }
+  };
+
   useEffect(() => {
     return () => {
       stopMicTest();
+      if (echoAudioUrl) {
+        URL.revokeObjectURL(echoAudioUrl);
+      }
     };
-  }, [stopMicTest]);
+  }, [stopMicTest, echoAudioUrl]);
 
   const formattedCreatedAt = useMemo(() => {
     if (!profile?.created_at) return "Thành viên Interviewly";
@@ -514,56 +707,7 @@ export default function ProfileClient() {
           </p>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-          {/* NÚT TÀNG HÌNH TEST ONBOARDING - CHUYỂN TRẠNG THÁI VỀ CHƯA ONBOARD */}
-          <button
-            type="button"
-            onClick={handleResetOnboardingTest}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "7px 14px",
-              borderRadius: "12px",
-              border: "1.5px dashed rgba(217, 130, 54, 0.45)",
-              backgroundColor: "rgba(217, 130, 54, 0.08)",
-              color: "#b35919",
-              fontSize: "12px",
-              fontWeight: 700,
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-              opacity: 0.55,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = "1";
-              e.currentTarget.style.backgroundColor = "rgba(217, 130, 54, 0.18)";
-              e.currentTarget.style.borderColor = "#d98236";
-              e.currentTarget.style.transform = "translateY(-1px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = "0.55";
-              e.currentTarget.style.backgroundColor = "rgba(217, 130, 54, 0.08)";
-              e.currentTarget.style.borderColor = "rgba(217, 130, 54, 0.45)";
-              e.currentTarget.style.transform = "translateY(0)";
-            }}
-            title="🕵️ Nút tàng hình: Bấm vào đây để xóa khảo sát cũ, chuyển trạng thái Onboarding về false và mở lại trang Onboarding để test lại"
-            aria-label="Reset Onboarding Test"
-          >
-            <RotateCcw size={13} />
-            <span>Reset Onboarding lại</span>
-            <span
-              style={{
-                fontSize: "10px",
-                padding: "2px 6px",
-                borderRadius: "999px",
-                backgroundColor: user?.is_onboarded ? "#dcfce7" : "#fee2e2",
-                color: user?.is_onboarded ? "#15803d" : "#b91c1c",
-                fontWeight: 800,
-              }}
-            >
-              {user?.is_onboarded ? "Đã Onboard" : "Chưa Onboard"}
-            </span>
-          </button>
+        
 
           <UserTooltip content="Làm mới dữ liệu từ máy chủ">
             <button
@@ -657,41 +801,7 @@ export default function ProfileClient() {
             <span className={styles.metaValue}>ID #{profile?.user_id || user?.user_id || "1"}</span>
           </div>
 
-          {/* STEALTH INLINE BUTTON IN HERO META */}
-          <div style={{ marginTop: "auto", paddingTop: "8px" }}>
-            <button
-              type="button"
-              onClick={handleResetOnboardingTest}
-              style={{
-                opacity: 0.45,
-                fontSize: "11px",
-                fontWeight: 600,
-                color: "#d98236",
-                background: "rgba(217, 130, 54, 0.08)",
-                border: "1px dashed rgba(217, 130, 54, 0.4)",
-                borderRadius: "8px",
-                padding: "4px 8px",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = "1";
-                e.currentTarget.style.backgroundColor = "rgba(217, 130, 54, 0.18)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = "0.45";
-                e.currentTarget.style.backgroundColor = "rgba(217, 130, 54, 0.08)";
-              }}
-              title="🕵️ Nút tàng hình: Bấm để xóa khảo sát cũ, chuyển Onboarding về false và test lại"
-              aria-label="Reset Onboarding Test"
-            >
-              <RotateCcw size={12} />
-              <span>Reset Onboarding</span>
-            </button>
-          </div>
+          
         </div>
       </div>
 
@@ -824,32 +934,46 @@ export default function ProfileClient() {
               </div>
 
               <div className={styles.field}>
-                <label className={styles.fieldLabel} htmlFor="avatar_url">
-                  <span>{t.profile.generalTab.avatarUrlLabel}</span>
-                  <span
-                    className={styles.charCount}
-                    style={{ cursor: "pointer", color: "var(--accent-deep)", textDecoration: "underline" }}
-                    onClick={() => openAvatarModal()}
-                  >
-                    {t.profile.generalTab.choosePresetAvatar}
-                  </span>
+                <label className={styles.fieldLabel}>
+                  <span>Ảnh đại diện (Avatar)</span>
+                  <span className={styles.charCount}>Tải tệp ảnh từ máy tính</span>
                 </label>
-                <div className={styles.inputWithIcon}>
-                  <input
-                    id="avatar_url"
-                    type="url"
-                    className={styles.input}
-                    value={avatarUrl}
-                    onChange={(e) => {
-                      setAvatarUrl(e.target.value);
-                      setAvatarLoadError(false);
-                    }}
-                    placeholder="https://images.unsplash.com/..."
-                    maxLength={500}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 14,
+                    padding: "8px 14px",
+                    borderRadius: 14,
+                    border: "1px solid rgba(106, 72, 49, 0.2)",
+                    background: "rgba(255, 255, 255, 0.75)",
+                  }}
+                >
+                  <CrownAvatar
+                    size="sm"
+                    src={avatarUrl && !avatarLoadError ? avatarUrl : null}
+                    initials={initials}
+                    alt={fullName || "Avatar"}
+                    isSubscribed={isSubscribed}
+                    showOnline={false}
                   />
-                  <span className={styles.inputIconRight} style={{ pointerEvents: "none" }}>
-                    <Camera size={14} />
-                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+                      {avatarUrl ? "Ảnh đại diện tùy chỉnh" : "Đang dùng chữ cái mặc định"}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--ink-soft)" }}>
+                      {avatarUrl ? "Đã lưu trên hệ thống" : "Chưa có ảnh đại diện"}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={openAvatarModal}
+                    className={styles.secondaryBtn}
+                    style={{ fontSize: 11, padding: "6px 12px" }}
+                  >
+                    <UploadCloud size={13} />
+                    <span>Tải ảnh mới</span>
+                  </button>
                 </div>
               </div>
 
@@ -1200,13 +1324,27 @@ export default function ProfileClient() {
                 <span
                   className={`${styles.statusDot} ${isMicTesting ? styles.statusDotLive : ""}`}
                 />
-                <span>
+                <span style={{ fontWeight: 600 }}>
                   {micStatus === "listening"
-                    ? "{t.profile.readinessTab.micListening}"
+                    ? t.profile.readinessTab.micListening
                     : micStatus === "error"
-                    ? "{t.profile.readinessTab.micError}"
-                    : "{t.profile.readinessTab.micIdle}"}
+                    ? t.profile.readinessTab.micError
+                    : t.profile.readinessTab.micIdle}
                 </span>
+                {micDeviceName && isMicTesting && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "var(--ink-soft)",
+                      background: "rgba(106, 72, 49, 0.08)",
+                      padding: "2px 8px",
+                      borderRadius: 999,
+                      marginLeft: 6,
+                    }}
+                  >
+                    🎧 {micDeviceName}
+                  </span>
+                )}
               </div>
 
               {isMicTesting ? (
@@ -1231,6 +1369,7 @@ export default function ProfileClient() {
               )}
             </div>
 
+            {/* Real-time 16-bar Visualizer */}
             <div className={styles.micVisualizer}>
               {Array.from({ length: 16 }).map((_, index) => {
                 const barHeight = isMicTesting
@@ -1244,6 +1383,101 @@ export default function ProfileClient() {
                   />
                 );
               })}
+            </div>
+
+            {/* Realtime volume status badge */}
+            {isMicTesting && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+                <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+                  Cường độ âm thanh thu nhận: <strong>{micVolume}%</strong>
+                </span>
+                <span
+                  className={styles.micLevelBadge}
+                  style={{
+                    backgroundColor:
+                      micVolume <= 5
+                        ? "rgba(156, 163, 175, 0.18)"
+                        : micVolume <= 70
+                        ? "rgba(16, 185, 129, 0.18)"
+                        : "rgba(245, 158, 11, 0.18)",
+                    color:
+                      micVolume <= 5
+                        ? "#6b7280"
+                        : micVolume <= 70
+                        ? "#059669"
+                        : "#b45309",
+                  }}
+                >
+                  {micVolume <= 5
+                    ? "Chưa phát hiện giọng nói (Hãy nói thử)"
+                    : micVolume <= 70
+                    ? "✓ Âm lượng lý tưởng (Rõ ràng & sắc nét)"
+                    : "⚠️ Âm lượng hơi to (Có thể giảm mic)"}
+                </span>
+              </div>
+            )}
+
+            {/* Interactive 5-second Echo Test */}
+            <div className={styles.micEchoCard}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+                    🎙️ Thử nghiệm ghi âm &amp; nghe lại giọng nói (Echo Test)
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "var(--ink-soft)" }}>
+                    Ghi âm thử 5 giây để kiểm tra chất lượng âm thanh và độ trong của giọng nói trước khi vào phòng phỏng vấn.
+                  </div>
+                </div>
+
+                {isEchoRecording ? (
+                  <button
+                    type="button"
+                    className={styles.secondaryBtn}
+                    style={{ color: "#b91c1c", borderColor: "#ef4444", fontSize: 12, padding: "6px 14px" }}
+                    disabled
+                  >
+                    <Square size={13} className="animate-pulse" />
+                    <span>Đang ghi âm ({echoCountdown}s)...</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={startEchoTest}
+                    className={styles.secondaryBtn}
+                    style={{ fontSize: 12, padding: "6px 14px" }}
+                  >
+                    <Mic size={13} />
+                    <span>Ghi âm thử 5 giây</span>
+                  </button>
+                )}
+              </div>
+
+              {echoAudioUrl && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "10px 14px",
+                    borderRadius: 12,
+                    background: "rgba(217, 130, 54, 0.08)",
+                    border: "1px solid rgba(217, 130, 54, 0.25)",
+                  }}
+                >
+                  <audio
+                    ref={echoAudioElementRef}
+                    src={echoAudioUrl}
+                    onPlay={() => setIsPlayingEcho(true)}
+                    onEnded={() => setIsPlayingEcho(false)}
+                    onPause={() => setIsPlayingEcho(false)}
+                    controls
+                    style={{ height: 32, flex: 1 }}
+                  />
+                  <span style={{ fontSize: 11.5, fontWeight: 600, color: "#b35919" }}>
+                    {isPlayingEcho ? "🔊 Đang phát" : "✓ Bản ghi âm đã sẵn sàng"}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div
@@ -1300,82 +1534,122 @@ export default function ProfileClient() {
         </div>
       )}
 
+      {/* REAL AVATAR UPLOAD MODAL - NO LINKS, NO MOCK DATA */}
       {isAvatarModalOpen && (
         <div
           className={styles.modalOverlay}
-          onClick={() => setIsAvatarModalOpen(false)}
+          onClick={() => !isUploadingAvatar && setIsAvatarModalOpen(false)}
         >
           <div
             className={styles.modalContent}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 className={styles.modalTitle}>{t.profile.avatarModal.title}</h3>
+              <h3 className={styles.modalTitle}>Tải lên ảnh đại diện</h3>
               <button
                 type="button"
-                onClick={() => setIsAvatarModalOpen(false)}
+                onClick={() => !isUploadingAvatar && setIsAvatarModalOpen(false)}
                 style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ink)" }}
                 aria-label="Đóng cửa sổ"
+                disabled={isUploadingAvatar}
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div>
-              <p style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 700, color: "var(--ink-soft)" }}>
-                {t.profile.avatarModal.presetsLabel}
-              </p>
-              <div className={styles.avatarPresets}>
-                {PRESET_AVATARS.map((url, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => {
-                      setAvatarUrl(url);
-                      setAvatarLoadError(false);
-                      setIsAvatarModalOpen(false);
-                    }}
-                    className={`${styles.avatarPresetBtn} ${avatarUrl === url ? styles.avatarPresetBtnActive : ""}`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt={`Preset ${idx + 1}`} className={styles.presetImg} />
-                  </button>
-                ))}
+            {/* Hidden native file input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/png, image/jpeg, image/webp, image/gif"
+              style={{ display: "none" }}
+            />
+
+            {/* Image Preview & Upload Dropzone */}
+            {avatarPreview ? (
+              <div className={styles.avatarPreviewBox}>
+                <div className={styles.avatarPreviewFrame}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={avatarPreview}
+                    alt="Avatar Preview"
+                    className={styles.avatarPreviewImg}
+                  />
+                </div>
+                <div className={styles.avatarFileInfo}>
+                  <strong>{selectedAvatarFile ? selectedAvatarFile.name : "Ảnh đại diện hiện tại"}</strong>
+                  {selectedAvatarFile && (
+                    <span>{(selectedAvatarFile.size / 1024).toFixed(1)} KB • Sẵn sàng cập nhật</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className={styles.secondaryBtn}
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{ fontSize: 12, padding: "6px 14px" }}
+                  disabled={isUploadingAvatar}
+                >
+                  <Camera size={13} />
+                  <span>Chọn ảnh khác từ máy tính</span>
+                </button>
               </div>
-            </div>
-
-            <div className={styles.field} style={{ marginTop: 6 }}>
-              <label className={styles.fieldLabel} htmlFor="custom_avatar_input">
-                {t.profile.avatarModal.customUrlLabel}
-              </label>
-              <input
-                id="custom_avatar_input"
-                type="url"
-                className={styles.input}
-                value={customAvatarInput}
-                onChange={(e) => setCustomAvatarInput(e.target.value)}
-                placeholder="https://example.com/avatar.jpg"
-              />
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setAvatarUrl("");
-                  setAvatarLoadError(false);
-                  setIsAvatarModalOpen(false);
+            ) : (
+              <div
+                className={`${styles.avatarDropzone} ${isDragOver ? styles.avatarDropzoneOver : ""}`}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(true);
                 }}
-                className={styles.secondaryBtn}
-                style={{ fontSize: 11, padding: "8px 16px" }}
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={handleDrop}
               >
-                {t.profile.avatarModal.removeAvatar}
-              </button>
+                <div
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: "50%",
+                    background: "rgba(217, 130, 54, 0.15)",
+                    color: "#d98236",
+                    display: "grid",
+                    placeItems: "center",
+                  }}
+                >
+                  <UploadCloud size={26} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
+                    Bấm để chọn ảnh hoặc kéo thả vào đây
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 4 }}>
+                    Hỗ trợ định dạng PNG, JPG, WEBP hoặc GIF (Tối đa 5MB)
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+              {avatarUrl ? (
+                <button
+                  type="button"
+                  onClick={handleRemoveAvatar}
+                  disabled={isUploadingAvatar}
+                  className={styles.secondaryBtn}
+                  style={{ fontSize: 11, padding: "8px 14px", color: "#b91c1c", borderColor: "rgba(239, 68, 68, 0.3)" }}
+                >
+                  <Trash2 size={13} />
+                  <span>Gỡ ảnh đại diện</span>
+                </button>
+              ) : (
+                <div />
+              )}
 
               <div style={{ display: "flex", gap: 8 }}>
                 <button
                   type="button"
                   onClick={() => setIsAvatarModalOpen(false)}
+                  disabled={isUploadingAvatar}
                   className={styles.secondaryBtn}
                   style={{ fontSize: 11, padding: "8px 16px" }}
                 >
@@ -1383,15 +1657,22 @@ export default function ProfileClient() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setAvatarUrl(customAvatarInput.trim());
-                    setAvatarLoadError(false);
-                    setIsAvatarModalOpen(false);
-                  }}
+                  onClick={handleSaveAvatar}
+                  disabled={isUploadingAvatar || (!selectedAvatarFile && !avatarPreview)}
                   className={styles.primaryBtn}
-                  style={{ fontSize: 11, padding: "8px 18px" }}
+                  style={{ fontSize: 11, padding: "8px 20px" }}
                 >
-                  {t.profile.avatarModal.applyBtn}
+                  {isUploadingAvatar ? (
+                    <>
+                      <RefreshCw size={13} className="animate-spin" />
+                      <span>Đang lưu...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={13} />
+                      <span>Áp dụng &amp; Lưu</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
