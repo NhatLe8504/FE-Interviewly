@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -206,9 +206,29 @@ export function UserOnboardingClient() {
   };
 
   return (
-    <div className={styles.layout}>
+    <div
+      className={styles.layout}
+      style={{
+        display: "flex",
+        flexDirection: "row",
+        width: "100vw",
+        height: "100vh",
+        background: "#ffffff",
+        overflow: "hidden",
+      }}
+    >
       {/* LEFT PANEL: CONCENTRIC ORBITAL RINGS & CONTACT (Untitled UI style) */}
-      <aside className={styles.sidebar}>
+      <aside
+        className={styles.sidebar}
+        style={{
+          width: "360px",
+          minWidth: "340px",
+          maxWidth: "400px",
+          height: "100vh",
+          flexShrink: 0,
+          background: "#faf9f6",
+        }}
+      >
         <div className={styles.sidebarHeader}>
           <Link href="/" className={styles.brandLogo}>
             <span className={styles.brandIcon}>✦</span>
@@ -301,8 +321,21 @@ export function UserOnboardingClient() {
       </aside>
 
       {/* RIGHT MAIN CANVAS */}
-      <main className={styles.mainCanvas}>
-        <div className={styles.canvasInner}>
+      <main
+        className={styles.mainCanvas}
+        style={{
+          flex: "1 1 0%",
+          minWidth: 0,
+          height: "100vh",
+          overflowY: "auto",
+          background: "#ffffff",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          padding: "48px 32px 64px",
+        }}
+      >
+        <div className={styles.canvasInner} style={{ width: "100%", maxWidth: "660px", margin: "0 auto" }}>
           {/* STEP 1: LANGUAGE SELECTION (BILINGUAL) */}
           {currentStep === 1 && (
             <div>
