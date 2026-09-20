@@ -854,14 +854,13 @@ export default function PracticeWorkspaceClient() {
               ))}
             </div>
 
-            {/* VAD State indicator */}
+            {/* Silent Recording UX - Calm, focused, background-only tracking */}
             <div style={{ fontSize: 12, fontWeight: 700, color: voiceRecorder.isRecording ? "#10b981" : "var(--ink-soft)", marginBottom: 8 }}>
-              {voiceRecorder.turnState === "calibrating" && "🎧 Đang hiệu chỉnh mức ồn sàn phòng..."}
-              {voiceRecorder.turnState === "listening" && "👂 Đang lắng nghe giọng nói của bạn..."}
-              {voiceRecorder.turnState === "speakingDetected" && "🎙️ Đang phát biểu (VAD Active)..."}
-              {voiceRecorder.turnState === "paused" && "⏸️ Tạm dừng phát biểu..."}
-              {voiceRecorder.turnState === "ready" && "✓ Bản ghi âm đã sẵn sàng"}
-              {voiceRecorder.turnState === "idle" && !recordedAudioUrl && "Nhấn micro để bắt đầu phát biểu"}
+              {voiceRecorder.isRecording
+                ? "🎙️ Đang ghi âm câu trả lời của bạn..."
+                : (recordedAudioUrl || voiceRecorder.recordedAudioUrl)
+                ? "✓ Bản ghi âm đã hoàn thành"
+                : "Nhấn micro để bắt đầu phát biểu"}
             </div>
 
             <div style={{ display: "flex", gap: 12 }}>
@@ -888,14 +887,7 @@ export default function PracticeWorkspaceClient() {
               )}
             </div>
 
-            {/* Live Transcript Preview */}
-            {(voiceRecorder.transcript || voiceRecorder.interimTranscript) && (
-              <div className={styles.transcriptBox}>
-                <strong>Nhận diện giọng nói trực tiếp: </strong>
-                <span>{voiceRecorder.transcript}</span>
-                <span style={{ color: "#d98236", fontStyle: "italic" }}> {voiceRecorder.interimTranscript}</span>
-              </div>
-            )}
+
 
             {recordedAudioUrl && (
               <div style={{ marginTop: 10, width: "100%", maxWidth: 360 }}>

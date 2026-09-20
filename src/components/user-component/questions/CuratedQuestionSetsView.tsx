@@ -64,7 +64,19 @@ export function CuratedQuestionSetsView({
   const [search, setSearch] = useState("");
   const [selectedDomain, setSelectedDomain] = useState<string>("all");
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
+  const [questionSets, setQuestionSets] = useState<QuestionSetItem[]>(MOCK_QUESTION_SETS);
+  const [isLoadingSets, setIsLoadingSets] = useState<boolean>(false);
   const [detailSet, setDetailSet] = useState<QuestionSetItem | null>(null);
+
+  React.useEffect(() => {
+    setIsLoadingSets(true);
+    catalogApi.getQuestionSets().then((res) => {
+      if (res && res.items && res.items.length > 0) {
+        setQuestionSets(res.items);
+      }
+      setIsLoadingSets(false);
+    });
+  }, []);
   const [modalTab, setModalTab] = useState<"questions" | "leaderboard" | "reviews">("questions");
   const [leaderboard, setLeaderboard] = useState<LeaderboardItem[]>([]);
   const [reviewsData, setReviewsData] = useState<QuestionSetReviewsPage | null>(null);
@@ -116,7 +128,7 @@ export function CuratedQuestionSetsView({
 
   // Filter logic
   const filteredSets = useMemo(() => {
-    return MOCK_QUESTION_SETS.filter((s) => {
+    return questionSets.filter((s) => {
       if (search.trim()) {
         const kw = search.trim().toLowerCase();
         const matchTitle = s.title.toLowerCase().includes(kw);
