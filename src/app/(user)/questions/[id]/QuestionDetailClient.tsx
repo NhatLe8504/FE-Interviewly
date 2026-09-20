@@ -830,51 +830,59 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
           </div>
         </div>
 
-        {/* AI Overall Examination Synthesis Card */}
-        <div className={styles.contentCard} style={{ padding: "24px", marginBottom: "22px", background: "#ffffff", border: "1.5px solid rgba(217, 130, 54, 0.35)", borderRadius: "20px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-            <Sparkles size={20} color="#d98236" />
-            <h3 style={{ fontSize: 17, fontWeight: 900, margin: 0, color: "var(--ink)" }}>
-              Nhận xét toàn diện từ AI Coach cho cả bài thi
-            </h3>
+        {/* AI Overall Examination Synthesis Card (Professional Executive Style) */}
+        <div className={styles.contentCard} style={{ padding: "26px", marginBottom: "24px", background: "#ffffff", border: "1px solid rgba(226, 232, 240, 0.9)", borderRadius: "20px", boxShadow: "0 2px 10px rgba(0,0,0,0.03)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
+            <div>
+              <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8b4513", display: "block", marginBottom: 3 }}>
+                Tổng kết bài thi
+              </span>
+              <h3 style={{ fontSize: 17, fontWeight: 800, margin: 0, color: "var(--ink)" }}>
+                Nhận xét toàn diện từ AI Coach
+              </h3>
+            </div>
+
+            {pullQueue.overallSynthesis.result?.career_readiness_verdict && (
+              <span style={{ padding: "4px 14px", borderRadius: "999px", background: "#f5f5f4", border: "1px solid #e7e5e4", fontSize: 12, fontWeight: 700, color: "#44403c" }}>
+                Đánh giá: {pullQueue.overallSynthesis.result.career_readiness_verdict}
+              </span>
+            )}
           </div>
 
           {pullQueue.overallSynthesis.status === "processing" || pullQueue.overallSynthesis.status === "queued" ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px", borderRadius: 14, background: "rgba(217, 130, 54, 0.08)", color: "#8b4513", fontWeight: 700, fontSize: 13 }}>
-              <Sparkles size={18} className="animate-spin" style={{ color: "#d98236", flexShrink: 0 }} />
-              <span>⏳ AI Coach đang tổng hợp nhận xét toàn diện cho toàn bộ {questionsList.length} câu hỏi...</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 20px", borderRadius: 14, background: "#fafaf9", border: "1px solid #e7e5e4", color: "#57534e", fontWeight: 600, fontSize: 13 }}>
+              <div style={{ width: 16, height: 16, border: "2px solid #d98236", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite", flexShrink: 0 }} />
+              <span>Đang tổng hợp đánh giá chuyên sâu cho toàn bộ {questionsList.length} câu hỏi...</span>
             </div>
           ) : pullQueue.overallSynthesis.result ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <p style={{ fontSize: 13.5, lineHeight: 1.65, color: "var(--ink-soft)", margin: 0, fontStyle: "italic", background: "rgba(33, 25, 20, 0.03)", padding: "12px 16px", borderRadius: 12 }}>
-                "{pullQueue.overallSynthesis.result.overall_feedback}"
-              </p>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
-                <div style={{ padding: 14, borderRadius: 12, background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)" }}>
-                  <div style={{ fontWeight: 800, fontSize: 12.5, color: "#065f46", marginBottom: 6 }}>✓ Điểm mạnh tổng thể</div>
-                  <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, lineHeight: 1.6 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ fontSize: 13.5, lineHeight: 1.7, color: "#292524", background: "#fbfbfa", borderLeft: "3px solid #d98236", padding: "14px 18px", borderRadius: "0 12px 12px 0" }}>
+                {pullQueue.overallSynthesis.result.overall_feedback}
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
+                <div style={{ padding: 16, borderRadius: 14, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                  <div style={{ fontWeight: 800, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em", color: "#0f766e", marginBottom: 8 }}>
+                    Điểm mạnh cốt lõi
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: "#334155", lineHeight: 1.65 }}>
                     {pullQueue.overallSynthesis.result.strengths.map((s, i) => <li key={i}>{s}</li>)}
                   </ul>
                 </div>
-                <div style={{ padding: 14, borderRadius: 12, background: "rgba(234, 88, 12, 0.08)", border: "1px solid rgba(234, 88, 12, 0.2)" }}>
-                  <div style={{ fontWeight: 800, fontSize: 12.5, color: "#9a3412", marginBottom: 6 }}>💡 Điểm cần khắc phục</div>
-                  <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, lineHeight: 1.6 }}>
+
+                <div style={{ padding: 16, borderRadius: 14, background: "#fffaf5", border: "1px solid #fed7aa" }}>
+                  <div style={{ fontWeight: 800, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em", color: "#c2410c", marginBottom: 8 }}>
+                    Điểm cần hoàn thiện
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: "#7c2d12", lineHeight: 1.65 }}>
                     {pullQueue.overallSynthesis.result.improvements.map((im, i) => <li key={i}>{im}</li>)}
                   </ul>
                 </div>
               </div>
-              {pullQueue.overallSynthesis.result.career_readiness_verdict && (
-                <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, fontWeight: 800, color: "#d98236" }}>
-                  <span>Đánh giá mức độ sẵn sàng:</span>
-                  <span style={{ padding: "3px 12px", borderRadius: 999, background: "rgba(217, 130, 54, 0.12)", color: "#8b4513" }}>
-                    {pullQueue.overallSynthesis.result.career_readiness_verdict}
-                  </span>
-                </div>
-              )}
             </div>
           ) : (
-            <div style={{ fontSize: 12.5, color: "var(--ink-muted)", fontStyle: "italic" }}>
-              (Nhận xét tổng thể sẽ tự động hiển thị ngay khi tất cả các câu hỏi được chấm xong.)
+            <div style={{ fontSize: 12.5, color: "var(--ink-muted)", fontStyle: "italic", padding: "8px 0" }}>
+              Bản tổng kết toàn diện sẽ hiển thị tự động khi tất cả câu hỏi được chấm xong.
             </div>
           )}
         </div>
@@ -928,15 +936,15 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                   </div>
                 </div>
 
-                {/* Live evaluating skeleton if question is still being processed by AI */}
+                {/* Live evaluating state (Minimalist clean loader) */}
                 {!ev ? (
-                  <div style={{ padding: "30px 20px", textAlign: "center", background: "rgba(217, 130, 54, 0.04)", borderRadius: 16, border: "1.5px dashed rgba(217, 130, 54, 0.35)", margin: "14px 0" }}>
-                    <Sparkles size={26} className="animate-spin" style={{ color: "#d98236", margin: "0 auto 8px" }} />
-                    <div style={{ fontSize: 14, fontWeight: 800, color: "#b45309" }}>
-                      ⏳ Đang chấm điểm...
+                  <div style={{ padding: "28px 20px", textAlign: "center", background: "#fbfbfa", borderRadius: 16, border: "1px dashed #d6d3d1", margin: "14px 0" }}>
+                    <div style={{ width: 22, height: 22, border: "2px solid #d98236", borderTopColor: "transparent", borderRadius: "50%", margin: "0 auto 10px", animation: "spin 1s linear infinite" }} />
+                    <div style={{ fontSize: 13.5, fontWeight: 800, color: "#44403c" }}>
+                      Đang phân tích và chấm điểm câu hỏi này...
                     </div>
-                    <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--ink-soft)" }}>
-                      AI Coach đang phân tích cấu trúc STAR và giọng nói phát âm ngầm qua hàng đợi Pull MQ.
+                    <p style={{ margin: "4px 0 0", fontSize: 12, color: "#78716c" }}>
+                      Tiến trình ngầm đang đánh giá nội dung STAR và các chỉ số phát âm qua hàng đợi.
                     </p>
                   </div>
                 ) : (
@@ -959,23 +967,29 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                   </div>
                 )}
 
-                {/* 1. Quiz Review & Explanation */}
-                <div style={{ marginBottom: 14, padding: "14px 16px", borderRadius: "14px", background: "rgba(255, 255, 255, 0.85)", border: "1px solid rgba(106, 72, 49, 0.12)" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13, marginBottom: 6 }}>
-                    <CheckSquare size={15} color="#d98236" />
-                    <span>Kết quả Trắc nghiệm:</span>
-                    {isQuizCorrect ? (
-                      <span style={{ color: "#059669", fontSize: 12 }}>✓ Chính xác (+{scoreMultipliers.quizMax}đ)</span>
-                    ) : (
-                      <span style={{ color: "#dc2626", fontSize: 12 }}>✗ Chưa chính xác (0đ)</span>
-                    )}
+                {/* 1. Quiz Review & Explanation (Clean minimal layout) */}
+                <div style={{ marginBottom: 14, padding: "16px 18px", borderRadius: "14px", background: "#ffffff", border: "1px solid #e7e5e4" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", color: "#78716c" }}>
+                      Phần 1: Trắc nghiệm tình huống
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 10px", borderRadius: "999px", background: isQuizCorrect ? "#ecfdf5" : "#fef2f2", color: isQuizCorrect ? "#047857" : "#b91c1c", border: `1px solid ${isQuizCorrect ? "#a7f3d0" : "#fecaca"}` }}>
+                      {isQuizCorrect ? `Đạt (+${scoreMultipliers.quizMax}đ)` : "Chưa chính xác (0đ)"}
+                    </span>
                   </div>
-                  <div style={{ fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-                    <div>• Bạn đã chọn: <strong>{ans?.selectedOption || "Chưa chọn"}</strong> {chosenOpt ? `- ${chosenOpt.text}` : ""}</div>
-                    {correctOpt && <div>• Đáp án đúng: <strong>{correctOpt.id}</strong> - {correctOpt.text}</div>}
+
+                  <div style={{ fontSize: 13, color: "#44403c", lineHeight: 1.6 }}>
+                    <div style={{ marginBottom: 4 }}>
+                      Phương án đã chọn: <strong style={{ color: "#1c1917" }}>{ans?.selectedOption || "Chưa chọn"}</strong> {chosenOpt ? `— ${chosenOpt.text}` : ""}
+                    </div>
+                    {correctOpt && !isQuizCorrect && (
+                      <div style={{ marginBottom: 4, color: "#047857" }}>
+                        Phương án tối ưu: <strong>{correctOpt.id}</strong> — {correctOpt.text}
+                      </div>
+                    )}
                     {item.quiz_data?.explanation && (
-                      <div style={{ marginTop: 6, fontStyle: "italic", color: "var(--ink)" }}>
-                        💡 <strong>Giải thích:</strong> {item.quiz_data.explanation}
+                      <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, background: "#fafaf9", borderLeft: "2px solid #d6d3d1", fontSize: 12.5, color: "#57534e", lineHeight: 1.6 }}>
+                        {item.quiz_data.explanation}
                       </div>
                     )}
                   </div>
@@ -1011,28 +1025,28 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                         {cleanWords > 0 ? `"${ans?.writtenText}"` : (ans?.writtenText ? `${ans.writtenText} (Chưa có nội dung thực tế)` : "(Chưa làm bài tự luận)")}
                       </p>
 
-                      {/* AI Short Feedback */}
-                      <div style={{ fontSize: 12.5, color: "#8b4513", background: "rgba(217, 130, 54, 0.08)", padding: "10px 14px", borderRadius: "10px", lineHeight: 1.6, marginBottom: 8 }}>
-                        🤖 <strong>AI Nhận xét tự luận:</strong> {textFeedback}
+                      {/* AI Structured Feedback */}
+                      <div style={{ fontSize: 13, color: "#292524", background: "#fafaf9", borderLeft: "3px solid #78716c", padding: "10px 14px", borderRadius: "0 8px 8px 0", lineHeight: 1.6, marginBottom: 10 }}>
+                        <strong style={{ color: "#1c1917" }}>Nhận xét chuyên môn: </strong>{textFeedback}
                       </div>
 
-                      {/* Improvements OR Praise */}
+                      {/* Targeted Suggestions or Commendations */}
                       {cleanWords > 0 && textImps.length > 0 && (mb?.text_score || 0) < (scoreMultipliers.textMax * 0.85) ? (
-                        <div style={{ padding: "10px 14px", borderRadius: "10px", background: "rgba(234, 88, 12, 0.08)", border: "1px solid rgba(234, 88, 12, 0.2)", marginTop: 8 }}>
-                          <div style={{ fontWeight: 800, fontSize: 12, color: "#9a3412", marginBottom: 4 }}>
-                            💡 Gợi ý cải thiện từ AI:
+                        <div style={{ padding: "12px 14px", borderRadius: 10, background: "#fffaf5", border: "1px solid #fed7aa", marginTop: 8 }}>
+                          <div style={{ fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.05em", color: "#c2410c", marginBottom: 6 }}>
+                            Điểm cần hoàn thiện
                           </div>
-                          <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: "#9a3412", lineHeight: 1.6 }}>
+                          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: "#7c2d12", lineHeight: 1.65 }}>
                             {textImps.map((im: string, i: number) => <li key={i}>{im}</li>)}
                           </ul>
                         </div>
                       ) : cleanWords >= 15 ? (
-                        <div style={{ padding: "10px 14px", borderRadius: "10px", background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)", marginTop: 8 }}>
-                          <div style={{ fontWeight: 800, fontSize: 12, color: "#065f46", marginBottom: 4 }}>
-                            🌟 Lời khen ngợi từ AI:
+                        <div style={{ padding: "12px 14px", borderRadius: 10, background: "#f0fdf4", border: "1px solid #bbf7d0", marginTop: 8 }}>
+                          <div style={{ fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.05em", color: "#15803d", marginBottom: 4 }}>
+                            Điểm nổi bật
                           </div>
-                          <p style={{ margin: 0, fontSize: 12, color: "#065f46", lineHeight: 1.5 }}>
-                            {textStrs.length > 0 ? textStrs.join(". ") : "Bài làm trả lời rất tốt, cấu trúc STAR rõ ràng, mạch lạc và có tính thuyết phục cao."}
+                          <p style={{ margin: 0, fontSize: 12.5, color: "#166534", lineHeight: 1.6 }}>
+                            {textStrs.length > 0 ? textStrs.join(". ") : "Bài làm cấu trúc STAR mạch lạc, tư duy kỹ thuật rõ ràng và có tính thuyết phục cao."}
                           </p>
                         </div>
                       ) : null}
@@ -1076,37 +1090,42 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                             </p>
                           </div>
 
-                          {/* Speech Disfluency & Telemetry Analysis - Only list pauses > 3.0s */}
+                          {/* Speech Delivery Metrics - Minimalist executive tags */}
                           {(() => {
                             const dm = ans?.delivery_metrics || ev?.delivery_metrics || voiceRecorder.deliveryMetrics;
                             if (!dm) return null;
                             const fillers = dm.fillers || [];
-                            // Strictly filter pauses >= 3000ms (> 3 seconds)
                             const longPausesOver3s = (dm.pauseDurationsMs || []).filter((p: number) => p >= 3000);
 
                             return (
-                              <div style={{ padding: "12px 16px", borderRadius: 12, background: "#fffaf4", border: "1px solid rgba(217, 130, 54, 0.25)" }}>
-                                <div style={{ fontSize: 12.5, fontWeight: 800, color: "#8b4513", marginBottom: 6 }}>
-                                  📊 Phân tích lỗi ngập ngừng & Tốc độ nói:
+                              <div style={{ padding: "14px 16px", borderRadius: 12, background: "#fafaf9", border: "1px solid #e7e5e4" }}>
+                                <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", color: "#78716c", marginBottom: 8 }}>
+                                  Chỉ số phát biểu và nhịp điệu
                                 </div>
-                                <div style={{ display: "flex", flexWrap: "wrap", gap: 14, fontSize: 12, color: "var(--ink-soft)" }}>
-                                  <span>• ⏱️ Tốc độ nói: <strong>{dm.activeSpeechWpm || 0} WPM</strong> {dm.activeSpeechWpm >= 110 && dm.activeSpeechWpm <= 165 ? "✓ (Chuẩn phỏng vấn)" : dm.activeSpeechWpm > 165 ? "⚠️ (Nói hơi nhanh)" : "⚠️ (Nói chậm/ngập ngừng)"}</span>
-                                  <span>• 🗣️ <strong>{dm.fillerCount || 0}</strong> lần ậm ừ/từ đệm</span>
-                                  <span>• ⏸️ <strong>{longPausesOver3s.length}</strong> lần dừng suy nghĩ lâu (&gt;3s)</span>
-                                  <span>• 🔁 <strong>{dm.repetitionCount || 0}</strong> lần lặp từ</span>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, fontSize: 12.5, color: "#44403c" }}>
+                                  <span style={{ padding: "3px 10px", borderRadius: 6, background: "#ffffff", border: "1px solid #e7e5e4" }}>
+                                    Tốc độ: <strong>{dm.activeSpeechWpm || 0} WPM</strong> {dm.activeSpeechWpm >= 110 && dm.activeSpeechWpm <= 165 ? "(Chuẩn)" : dm.activeSpeechWpm > 165 ? "(Nói nhanh)" : "(Nói chậm)"}
+                                  </span>
+                                  <span style={{ padding: "3px 10px", borderRadius: 6, background: "#ffffff", border: "1px solid #e7e5e4" }}>
+                                    Từ đệm: <strong>{dm.fillerCount || 0} lần</strong>
+                                  </span>
+                                  <span style={{ padding: "3px 10px", borderRadius: 6, background: "#ffffff", border: "1px solid #e7e5e4" }}>
+                                    Dừng lâu (&gt;3s): <strong>{longPausesOver3s.length} lần</strong>
+                                  </span>
+                                  <span style={{ padding: "3px 10px", borderRadius: 6, background: "#ffffff", border: "1px solid #e7e5e4" }}>
+                                    Lặp từ: <strong>{dm.repetitionCount || 0} lần</strong>
+                                  </span>
                                 </div>
 
-                                {/* Details of filler words */}
                                 {fillers.length > 0 && (
-                                  <div style={{ marginTop: 8, fontSize: 11.5, color: "#b45309", lineHeight: 1.5 }}>
-                                    ⚠️ <strong>Từ đệm/ậm ừ phát hiện:</strong> {fillers.map((f: any) => `"${f.text}" (×${f.count})`).join(", ")}
+                                  <div style={{ marginTop: 8, fontSize: 12, color: "#78716c", lineHeight: 1.5 }}>
+                                    Từ đệm được ghi nhận: {fillers.map((f: any) => `"${f.text}" (${f.count} lần)`).join(", ")}
                                   </div>
                                 )}
 
-                                {/* Details of long pauses > 3s ONLY */}
                                 {longPausesOver3s.length > 0 && (
-                                  <div style={{ marginTop: 4, fontSize: 11.5, color: "#b45309", lineHeight: 1.5 }}>
-                                    ⚠️ <strong>Các khoảng dừng suy nghĩ kéo dài (&gt;3s):</strong> {longPausesOver3s.map((p: number) => `${(p / 1000).toFixed(1)}s`).join(", ")}
+                                  <div style={{ marginTop: 4, fontSize: 12, color: "#78716c", lineHeight: 1.5 }}>
+                                    Khoảng dừng kéo dài (&gt;3s): {longPausesOver3s.map((p: number) => `${(p / 1000).toFixed(1)}s`).join(", ")}
                                   </div>
                                 )}
                               </div>
@@ -1114,17 +1133,17 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                           })()}
 
                           {/* AI Voice Feedback */}
-                          <div style={{ fontSize: 12.5, color: "#8b4513", background: "rgba(217, 130, 54, 0.08)", padding: "10px 14px", borderRadius: "10px", lineHeight: 1.6 }}>
-                            🤖 <strong>AI Nhận xét phát âm:</strong> {voiceFeedback}
+                          <div style={{ fontSize: 13, color: "#292524", background: "#fafaf9", borderLeft: "3px solid #78716c", padding: "10px 14px", borderRadius: "0 8px 8px 0", lineHeight: 1.6 }}>
+                            <strong style={{ color: "#1c1917" }}>Đánh giá phát biểu: </strong>{voiceFeedback}
                           </div>
 
                           {/* Voice improvements */}
                           {voiceImps.length > 0 && (
-                            <div style={{ padding: "10px 14px", borderRadius: "10px", background: "rgba(234, 88, 12, 0.08)", border: "1px solid rgba(234, 88, 12, 0.2)" }}>
-                              <div style={{ fontWeight: 800, fontSize: 12, color: "#9a3412", marginBottom: 4 }}>
-                                💡 Gợi ý cải thiện phát âm từ AI:
+                            <div style={{ padding: "12px 14px", borderRadius: 10, background: "#fffaf5", border: "1px solid #fed7aa" }}>
+                              <div style={{ fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.05em", color: "#c2410c", marginBottom: 4 }}>
+                                Gợi ý hoàn thiện phát âm
                               </div>
-                              <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: "#9a3412", lineHeight: 1.6 }}>
+                              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: "#7c2d12", lineHeight: 1.65 }}>
                                 {voiceImps.map((im: string, i: number) => <li key={i}>{im}</li>)}
                               </ul>
                             </div>
@@ -1734,13 +1753,13 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
               </div>
 
               <div className={styles.voiceBox}>
-                {/* Silent Recording UX - Calm, focused, background-only tracking */}
-                <div style={{ fontSize: 12, fontWeight: 700, color: voiceRecorder.isRecording ? "#10b981" : "var(--ink-soft)", marginBottom: 8 }}>
+                {/* Silent Recording UX - Modern Studio Style */}
+                <div style={{ fontSize: 12, fontWeight: 600, color: voiceRecorder.isRecording ? "#059669" : "#78716c", marginBottom: 8, letterSpacing: "0.02em" }}>
                   {voiceRecorder.isRecording
-                    ? "🎙️ Đang ghi âm câu trả lời của bạn..."
+                    ? "Đang thu âm phát biểu..."
                     : (currentAns.recordedAudioUrl || voiceRecorder.recordedAudioUrl)
-                    ? "✓ Bản ghi âm đã hoàn thành"
-                    : "Nhấn micro để bắt đầu phát biểu"}
+                    ? "Bản ghi âm đã sẵn sàng"
+                    : "Nhấn micro để bắt đầu trả lời"}
                 </div>
 
                 <div style={{ fontSize: 26, fontWeight: 900, color: "var(--accent-deep)" }}>

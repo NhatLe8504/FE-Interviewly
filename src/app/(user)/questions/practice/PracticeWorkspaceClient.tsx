@@ -857,9 +857,9 @@ export default function PracticeWorkspaceClient() {
             {/* Silent Recording UX - Calm, focused, background-only tracking */}
             <div style={{ fontSize: 12, fontWeight: 700, color: voiceRecorder.isRecording ? "#10b981" : "var(--ink-soft)", marginBottom: 8 }}>
               {voiceRecorder.isRecording
-                ? "🎙️ Đang ghi âm câu trả lời của bạn..."
+                ? "Đang thu âm phát biểu..."
                 : (recordedAudioUrl || voiceRecorder.recordedAudioUrl)
-                ? "✓ Bản ghi âm đã hoàn thành"
+                ? "Bản ghi âm đã sẵn sàng"
                 : "Nhấn micro để bắt đầu phát biểu"}
             </div>
 
@@ -1032,7 +1032,7 @@ export default function PracticeWorkspaceClient() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12, marginTop: 12 }}>
                   <div style={{ padding: 14, borderRadius: 14, background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.25)" }}>
                     <div style={{ fontWeight: 800, fontSize: 12.5, color: "#065f46", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
-                      <CheckCircle size={15} /> Điểm mạnh
+                      Điểm mạnh cốt lõi
                     </div>
                     <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, lineHeight: 1.6 }}>
                       {evaluation.strengths.map((s, i) => <li key={i}>{s}</li>)}
@@ -1041,7 +1041,7 @@ export default function PracticeWorkspaceClient() {
 
                   <div style={{ padding: 14, borderRadius: 14, background: "rgba(234, 88, 12, 0.08)", border: "1px solid rgba(234, 88, 12, 0.25)" }}>
                     <div style={{ fontWeight: 800, fontSize: 12.5, color: "#9a3412", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
-                      <Lightbulb size={15} /> Gợi ý cải thiện
+                      Gợi ý hoàn thiện
                     </div>
                     <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, lineHeight: 1.6 }}>
                       {evaluation.improvements.map((im, i) => <li key={i}>{im}</li>)}
