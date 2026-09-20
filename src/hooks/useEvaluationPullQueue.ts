@@ -8,6 +8,7 @@ import type { DeliveryMetrics } from "@/types/delivery";
 export interface EnqueueQuestionPayload {
   question_id: number | string;
   question_text?: string;
+  sample_answer?: string;
   quiz_answer?: string | null;
   text_answer?: string;
   transcript?: string;
@@ -20,8 +21,7 @@ export interface EnqueueQuestionPayload {
 
 export interface QuestionTaskState {
   status: "queued" | "processing" | "completed" | "failed";
-  textTaskId?: string;
-  voiceTaskId?: string;
+  taskId?: string;
   result?: AIEvaluationResult;
 }
 
@@ -46,8 +46,8 @@ export function useEvaluationPullQueue() {
   const activeSynthesisPollerRef = useRef<boolean>(false);
 
   // Poll a single generic task_id until completed
-  const pollSingleTaskId = useCallback(async (taskId: string, maxAttempts = 30): Promise<any> => {
-    let delayMs = 250;
+  const pollSingleTaskId = useCallback(async (taskId: string, maxAttempts = 35): Promise<any> => {
+    let delayMs = 300;
     let attempt = 0;
 
     while (attempt < maxAttempts) {
@@ -64,7 +64,7 @@ export function useEvaluationPullQueue() {
           return null;
         }
         // Exponential backoff
-        delayMs = Math.min(1200, Math.round(delayMs * 1.4));
+        delayMs = Math.min(1500, Math.round(delayMs * 1.35));
       } catch (err) {
         console.warn("Pull task polling error:", taskId, err);
         break;
@@ -73,7 +73,7 @@ export function useEvaluationPullQueue() {
     return null;
   }, []);
 
-  // Enqueue a completed question (decoupled: text + voice + quiz)
+  // Enqueue a completed question (all multimodal inputs in single request)
   const enqueueQuestionEvaluation = useCallback(
     async (
       payload: EnqueueQuestionPayload,
@@ -88,212 +88,40 @@ export function useEvaluationPullQueue() {
         [qid]: { status: "processing" },
       }));
 
-      // 1. Instant Quiz Score (0ms)
-      const quizScore = payload.is_quiz_correct === true ? 15.0 : 0.0;
-      const text = (payload.text_answer || "").trim();
-      const transcript = (payload.transcript || "").trim();
-      const delivery = payload.delivery_metrics;
+      // Call unified backend queue endpoint
+      const enqueueRes = await catalogApi.enqueueEvaluation({
+        question_id: qid,
+        question_text: payload.question_text,
+        sample_answer: payload.sample_answer,
+        quiz_answer: payload.quiz_answer,
+        text_answer: payload.text_answer,
+        transcript: payload.transcript,
+        delivery_metrics: payload.delivery_metrics,
+        language: payload.language || "vi",
+        is_quiz_correct: payload.is_quiz_correct,
+        audio_duration_seconds: payload.audio_duration_seconds,
+        role_name: payload.role_name,
+      });
 
-      // 2. Parallel Background Enqueue: Text and Voice
-      const textPromise = (async () => {
-        if (!text) return null;
-        const textEnqueue = await catalogApi.enqueueTextEvaluation({
-          question_id: qid,
-          question_text: payload.question_text,
-          answer_text: text,
-          role_name: payload.role_name,
-          language: payload.language || "vi",
-        });
-        if (textEnqueue?.task_id) {
-          return await pollSingleTaskId(textEnqueue.task_id);
+      if (enqueueRes?.task_id) {
+        const taskResult = await pollSingleTaskId(enqueueRes.task_id);
+        if (taskResult) {
+          setTasksMap((prev) => ({
+            ...prev,
+            [qid]: {
+              status: "completed",
+              taskId: enqueueRes.task_id,
+              result: taskResult,
+            },
+          }));
+          activeQuestionPollersRef.current.delete(qid);
+          onComplete?.(taskResult);
+          return taskResult;
         }
-        return null;
-      })();
-
-      const voicePromise = (async () => {
-        if (!delivery && !transcript) return null;
-        const voiceEnqueue = await catalogApi.enqueueVoiceEvaluation({
-          question_id: qid,
-          question_text: payload.question_text,
-          transcript,
-          delivery_metrics: delivery || {},
-          language: payload.language || "vi",
-        });
-        if (voiceEnqueue?.task_id) {
-          return await pollSingleTaskId(voiceEnqueue.task_id);
-        }
-        return null;
-      })();
-
-      // Await both IO tasks asynchronously without blocking candidate UI
-      const [textResult, voiceResult] = await Promise.all([textPromise, voicePromise]);
-
-      // Strip common STAR prompt headers to count ACTUAL candidate words
-      const cleanCandidateText = text
-        .replace(/•?\s*(Tình huống|Nhiệm vụ|Hành động|Kết quả|Situation|Task|Action|Result)\s*(\([^)]*\))?:?/gi, "")
-        .trim();
-      const actualCandidateWords = cleanCandidateText ? cleanCandidateText.split(/\s+/).filter(Boolean).length : 0;
-
-      // 1. Text Score Strict Determination
-      let textScore = 0.0;
-      if (actualCandidateWords === 0) {
-        textScore = 0.0;
-      } else if (textResult && typeof textResult.text_score === "number") {
-        textScore = textResult.text_score;
-      } else if (actualCandidateWords < 15) {
-        textScore = Number(((actualCandidateWords / 60.0) * 35.0).toFixed(1));
-      } else {
-        textScore = Math.min(35.0, Number((0.4 + (actualCandidateWords / 150.0) * 0.6) * 35.0).toFixed(1));
       }
-
-      // 2. Voice Score Strict Determination & Non-Answer Detection
-      let voiceScore = 0.0;
-      let voiceFeedback = "";
-      let voiceImprovements: string[] = [];
-      let voiceStrengths: string[] = [];
-
-      const voiceDurMs = delivery?.durationMs || 0;
-      const voiceWords = delivery?.wordCount || (transcript ? transcript.split(/\s+/).filter(Boolean).length : 0);
-      const isNonAnswerVoice = Boolean(
-        /không biết|chưa biết|không hiểu|chịu|chịu thôi|không có kinh nghiệm|alo|thử mic|test|1 2 3|i don't know|no idea/i.test(transcript)
-        || (voiceWords < 5 && transcript.trim().length > 0)
-      );
-
-      if (voiceDurMs < 3500 || (voiceWords === 0 && !transcript.trim())) {
-        voiceScore = 0.0;
-        voiceFeedback = "Chưa thực hiện ghi âm câu trả lời bằng giọng nói (chiếm 50% số điểm câu hỏi).";
-        voiceImprovements = ["Hãy sử dụng micro để phát biểu trực tiếp ít nhất 15-30 giây để đạt điểm phần nói."];
-      } else if (isNonAnswerVoice) {
-        voiceScore = Math.min(4.0, Number((voiceWords * 0.4).toFixed(1)));
-        voiceFeedback = "Ứng viên chưa trả lời vào trọng tâm câu hỏi (phát biểu không biết cách trả lời hoặc thử mic). Cần tự tin chia sẻ trải nghiệm thực tế hoặc suy luận giải pháp.";
-        voiceImprovements = ["Hãy chủ động đưa ra hướng tiếp cận hoặc suy luận kỹ thuật cho câu hỏi thay vì từ chối trả lời."];
-      } else if (voiceResult && typeof voiceResult.voice_score === "number") {
-        voiceScore = voiceResult.voice_score;
-        voiceFeedback = voiceResult.feedback || "Phát biểu đã được ghi nhận.";
-        voiceImprovements = voiceResult.improvements || [];
-        voiceStrengths = voiceResult.strengths || [];
-      } else if (voiceDurMs >= 5000) {
-        voiceScore = 32.0;
-        voiceFeedback = `Phát biểu ${Math.round(voiceDurMs / 1000)}s với tốc độ ${delivery?.activeSpeechWpm || 0} WPM.`;
-        voiceStrengths = [`Tốc độ phát âm ${delivery?.activeSpeechWpm || 0} WPM tự nhiên.`];
-      }
-
-      const totalScore = Math.min(100, Math.round(quizScore + textScore + voiceScore));
-      const passed = totalScore >= 70;
-
-      // Pure text feedback & improvements
-      const textFeedback = textResult?.feedback || (actualCandidateWords === 0
-        ? "Chưa có nội dung câu trả lời tự luận (chỉ có các tiêu đề mẫu gợi ý). Cần bổ sung nội dung thực tế theo khung STAR."
-        : `Bài tự luận có ${actualCandidateWords} từ thực tế.`);
-      const textImprovements = textResult?.improvements || (actualCandidateWords < 15
-        ? ["Cần viết chi tiết hơn từ 100 - 300 từ theo khung STAR để làm rõ năng lực kỹ thuật."]
-        : []);
-      const textStrengths = textResult?.strengths || [];
-
-      // General feedback
-      let feedback = "";
-      if (totalScore === 0) {
-        feedback = "Bạn chưa hoàn thành các phần thi của câu hỏi này (chưa chọn đúng trắc nghiệm, chưa viết nội dung tự luận và chưa ghi âm giọng nói).";
-      } else if (actualCandidateWords === 0 && voiceScore === 0) {
-        feedback = "Chưa có nội dung tự luận và chưa thực hiện ghi âm. Hãy bổ sung đầy đủ cả 3 phần để đạt điểm chuẩn.";
-      } else if (textResult?.feedback) {
-        feedback = textResult.feedback;
-      } else if (voiceFeedback) {
-        feedback = voiceFeedback;
-      } else if (passed) {
-        feedback = "Bài làm hoàn thành tốt các thành phần theo tiêu chuẩn đánh giá.";
-      } else {
-        feedback = "Bài làm thể hiện sự cố gắng nhưng cần trình bày chi tiết và trả lời đúng trọng tâm hơn.";
-      }
-
-      const mergedResult: AIEvaluationResult = {
-        score: totalScore,
-        passed,
-        general_feedback: feedback,
-        text_feedback: textFeedback,
-        text_improvements: textImprovements,
-        text_strengths: textStrengths,
-        voice_feedback: voiceFeedback,
-        voice_improvements: voiceImprovements,
-        voice_strengths: voiceStrengths,
-        transcript: transcript || undefined,
-        delivery_metrics: delivery || undefined,
-        star_breakdown: textResult?.star_breakdown || (actualCandidateWords === 0 ? {
-          situation_score: 0,
-          situation_feedback: "Chưa nhập bối cảnh tình huống.",
-          task_score: 0,
-          task_feedback: "Chưa nêu nhiệm vụ hoặc mục tiêu.",
-          action_score: 0,
-          action_feedback: "Chưa có hành động cụ thể.",
-          result_score: 0,
-          result_feedback: "Chưa có kết quả đo lường.",
-        } : {
-          situation_score: actualCandidateWords >= 15 ? 7 : 2,
-          situation_feedback: actualCandidateWords >= 15 ? "Bối cảnh rõ ràng." : "Nội dung quá ngắn.",
-          task_score: actualCandidateWords >= 15 ? 7 : 2,
-          task_feedback: actualCandidateWords >= 15 ? "Nhiệm vụ cụ thể." : "Cần nêu rõ vai trò cá nhân.",
-          action_score: actualCandidateWords >= 15 ? 7 : 2,
-          action_feedback: actualCandidateWords >= 15 ? "Hành động logic." : "Cần nêu rõ giải pháp kỹ thuật.",
-          result_score: actualCandidateWords >= 15 ? 6 : 1,
-          result_feedback: actualCandidateWords >= 15 ? "Có số liệu đo lường." : "Thiếu số liệu định lượng.",
-        }),
-        rubric_scores: [
-          {
-            criterion_id: "quiz",
-            criterion_name: "Trắc nghiệm tình huống (15%)",
-            score: quizScore >= 15 ? 10 : 0,
-            max_score: 10,
-            level_label: `${quizScore}/15đ`,
-            feedback: quizScore >= 15 ? "Đạt trọn vẹn điểm trắc nghiệm." : "Chưa chọn phương án chuẩn nhất.",
-          },
-          {
-            criterion_id: "text",
-            criterion_name: "Tự luận khung STAR (35%)",
-            score: Math.min(10, Math.round((textScore / 35.0) * 10)),
-            max_score: 10,
-            level_label: `${textScore}/35đ`,
-            feedback: textScore >= 25 ? "Lập luận mạch lạc theo khung STAR." : "Cần viết chi tiết hơn.",
-          },
-          {
-            criterion_id: "voice",
-            criterion_name: "Nói & Ghi âm trực tiếp (50%)",
-            score: Math.min(10, Math.round((voiceScore / 50.0) * 10)),
-            max_score: 10,
-            level_label: `${voiceScore}/50đ`,
-            feedback: voiceResult?.feedback || (voiceScore >= 35 ? "Phát biểu rõ ràng, thời lượng tốt." : "Cần luyện nói lưu loát hơn."),
-          },
-        ],
-        strengths: [
-          ...(textResult?.strengths || ["Cấu trúc trả lời mạch lạc theo chuẩn STAR."]),
-          ...(voiceResult?.strengths || [voiceResult?.pace_label ? `Tốc độ phát âm ${voiceResult.pace_label}.` : "Phong thái tự tin."]),
-        ],
-        improvements: [
-          ...(textResult?.improvements || ["Bổ sung thêm số liệu đo lường định lượng."]),
-          ...(voiceResult?.improvements || ["Duy trì nhịp thở và hạn chế từ đệm."]),
-        ],
-        modal_breakdown: {
-          quiz_score: quizScore,
-          quiz_max: 15.0,
-          text_score: textScore,
-          text_max: 35.0,
-          voice_score: voiceScore,
-          voice_max: 50.0,
-          total_score: totalScore,
-        },
-        delivery_metrics: delivery || undefined,
-      };
-
-      setTasksMap((prev) => ({
-        ...prev,
-        [qid]: {
-          status: "completed",
-          result: mergedResult,
-        },
-      }));
 
       activeQuestionPollersRef.current.delete(qid);
-      onComplete?.(mergedResult);
-      return mergedResult;
+      return null;
     },
     [pollSingleTaskId]
   );
@@ -342,9 +170,9 @@ export function useEvaluationPullQueue() {
       const fallbackResult = {
         session_title: params.session_title,
         average_score: avg,
-        overall_feedback: `Bạn đã hoàn thành tốt bài luyện tập '${params.session_title}' với điểm trung bình ${avg}/100đ. Phong thái trả lời tự tin, nắm chắc kiến thức chuyên môn.`,
-        strengths: ["Cấu trúc trả lời mạch lạc theo khung STAR.", "Thực hiện đầy đủ cả 3 hình thức Trắc nghiệm, Tự luận và Giọng nói."],
-        improvements: ["Nêu rõ hơn các đánh đổi kỹ thuật (trade-offs).", "Rèn luyện nhịp thở và hạn chế từ đệm khi nói."],
+        overall_feedback: `Bạn đã hoàn thành bài luyện tập '${params.session_title}' với điểm trung bình ${avg}/100đ.`,
+        strengths: ["Cấu trúc trả lời mạch lạc theo khung STAR."],
+        improvements: ["Bổ sung số liệu định lượng về tác động thực tế của dự án."],
         career_readiness_verdict: avg >= 70 ? "Sẵn sàng nhận việc (Job Ready)" : "Cần rèn luyện thêm",
       };
 
