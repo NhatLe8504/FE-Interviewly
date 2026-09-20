@@ -553,6 +553,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
         {
           question_id: currentQId,
           question_text: currentQuestion?.question_text,
+          sample_answer: currentQuestion?.sample_answer || undefined,
           quiz_answer: currentAns.selectedOption,
           text_answer: currentAns.writtenText,
           transcript: finalTranscript,

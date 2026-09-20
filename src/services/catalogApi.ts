@@ -922,12 +922,16 @@ export const catalogApi = {
    */
   async enqueueEvaluation(payload: {
     question_id: number | string;
+    question_text?: string;
+    sample_answer?: string;
     quiz_answer?: string | null;
     text_answer?: string;
+    transcript?: string;
     delivery_metrics?: any;
     language?: string;
     is_quiz_correct?: boolean | null;
     audio_duration_seconds?: number;
+    role_name?: string;
   }): Promise<{ task_id: string; status: string; quiz_score: number } | null> {
     try {
       const res = await request<{ task_id: string; status: string; quiz_score: number }>(
@@ -936,18 +940,22 @@ export const catalogApi = {
           method: "POST",
           body: JSON.stringify({
             question_id: Number(payload.question_id),
+            question_text: payload.question_text || null,
+            sample_answer: payload.sample_answer || null,
             quiz_answer: payload.quiz_answer || null,
             text_answer: payload.text_answer || "",
+            transcript: payload.transcript || null,
             delivery_metrics: payload.delivery_metrics || null,
             language: payload.language || "vi",
             is_quiz_correct: payload.is_quiz_correct !== undefined ? payload.is_quiz_correct : null,
             audio_duration_seconds: payload.audio_duration_seconds || null,
+            role_name: payload.role_name || "Software Engineer",
           }),
         }
       );
       return res;
     } catch (err) {
-      console.warn("Enqueue evaluation failed, will fallback to sync evaluation:", err);
+      console.warn("Enqueue evaluation failed:", err);
       return null;
     }
   },
