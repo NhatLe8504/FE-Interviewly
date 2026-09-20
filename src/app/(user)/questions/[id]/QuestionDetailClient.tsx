@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   ArrowLeft,
   Sparkles,
@@ -59,17 +59,32 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
   const searchParams = useSearchParams();
   const { locale, t } = useI18n();
 
+  const pathname = usePathname();
   const qParam = searchParams.get("q");
   const setParam = searchParams.get("set") || searchParams.get("setId");
   const tabParam = searchParams.get("tab");
 
-  const initialTab =
-    tabParam === "practice" || searchParams.get("practice") === "1"
-      ? "practice"
-      : "star";
+  const isPracticeView =
+    pathname?.includes("/questions/practice") ||
+    tabParam === "practice" ||
+    searchParams.get("practice") === "1" ||
+    searchParams.get("source") === "basket" ||
+    searchParams.get("source") === "set" ||
+    Boolean(setParam) ||
+    (Boolean(qParam) && qParam.includes(","));
+
+  const initialTab = isPracticeView
+    ? "practice"
+    : (tabParam === "rubric" || tabParam === "followup" ? (tabParam as any) : "star");
 
   // Active tab: star | rubric | followup | practice
   const [activeTab, setActiveTab] = useState<"star" | "rubric" | "followup" | "practice">(initialTab);
+
+  useEffect(() => {
+    if (isPracticeView && activeTab !== "practice") {
+      setActiveTab("practice");
+    }
+  }, [isPracticeView, activeTab]);
 
   // List of questions for this session
   const [questionsList, setQuestionsList] = useState<QuestionDetailOut[]>([]);
@@ -136,7 +151,39 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
       setIsLoading(true);
       setLoadError(null);
 
-      // Source 1: Query param ?set=1 (Curated Question Set)
+      // Source 1: If source is basket or active basket exists, recover basket questions first
+      if (typeof window !== "undefined") {
+        try {
+          const raw = sessionStorage.getItem("basket_questions") || sessionStorage.getItem("active_custom_questions");
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              if (qParam) {
+                const rawIds = qParam.split(",").map((s) => Number(s.trim())).filter((n) => !isNaN(n));
+                const matched = rawIds.map((id) => parsed.find((q: any) => q.question_id === id)).filter(Boolean);
+                if (matched.length > 0) {
+                  setQuestionsList(matched);
+                  setSessionTitle(sessionStorage.getItem("active_question_set_title") || `Giỏ câu hỏi thực hành (${matched.length} câu)`);
+                  setCurrentIdx(0);
+                  setIsLoading(false);
+                  return;
+                }
+              }
+              if (searchParams.get("source") === "basket") {
+                setQuestionsList(parsed);
+                setSessionTitle(sessionStorage.getItem("active_question_set_title") || `Giỏ câu hỏi thực hành (${parsed.length} câu)`);
+                setCurrentIdx(0);
+                setIsLoading(false);
+                return;
+              }
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Source 2: Query param ?set=1 (Curated Question Set)
       if (setParam) {
         const foundSet = MOCK_QUESTION_SETS.find((s) => String(s.set_id) === String(setParam));
         if (foundSet && foundSet.questions && foundSet.questions.length > 0) {
@@ -161,7 +208,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
         }
       }
 
-      // Source 2: Query param ?q=19,20,21
+      // Source 3: Query param ?q=19,20,21
       if (qParam && qParam.trim()) {
         const rawIds = qParam
           .split(",")
@@ -185,7 +232,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
         }
       }
 
-      // Source 3: Single Question from Route ID /questions/[id]
+      // Source 4: Single Question from Route ID /questions/[id]
       if (propQuestionId && !isNaN(Number(propQuestionId))) {
         try {
           const detail = await catalogApi.getQuestionDetail(Number(propQuestionId));
@@ -202,26 +249,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
         }
       }
 
-      // Source 4: SessionStorage Basket fallback
-      if (typeof window !== "undefined") {
-        try {
-          const raw = sessionStorage.getItem("basket_questions") || sessionStorage.getItem("active_custom_questions");
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setQuestionsList(parsed);
-              setSessionTitle(sessionStorage.getItem("active_question_set_title") || `Giỏ câu hỏi (${parsed.length} câu)`);
-              setCurrentIdx(0);
-              setIsLoading(false);
-              return;
-            }
-          }
-        } catch {
-          // ignore
-        }
-      }
-
-      // Final Fallback: Default to Question Set 1
+      // Final Fallback: Default to Question Set 1 questions
       const defaultSet = MOCK_QUESTION_SETS[0];
       if (defaultSet && defaultSet.questions) {
         setQuestionsList(defaultSet.questions);
@@ -234,6 +262,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
       setLoadError("Không tìm thấy dữ liệu câu hỏi phù hợp.");
       setIsLoading(false);
     }
+
 
 
     loadData();
