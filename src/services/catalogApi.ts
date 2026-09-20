@@ -990,6 +990,7 @@ export const catalogApi = {
   async enqueueTextEvaluation(payload: {
     question_id: number | string;
     question_text?: string;
+    sample_answer?: string;
     answer_text: string;
     role_name?: string;
     language?: string;
@@ -1002,6 +1003,7 @@ export const catalogApi = {
           body: JSON.stringify({
             question_id: Number(payload.question_id),
             question_text: payload.question_text || null,
+            sample_answer: payload.sample_answer || null,
             answer_text: payload.answer_text,
             role_name: payload.role_name || "Software Engineer",
             language: payload.language || "vi",
@@ -1020,8 +1022,10 @@ export const catalogApi = {
   async enqueueVoiceEvaluation(payload: {
     question_id: number | string;
     question_text?: string;
+    sample_answer?: string;
     transcript: string;
     delivery_metrics: any;
+    role_name?: string;
     language?: string;
   }): Promise<{ task_id: string; status: string } | null> {
     try {
@@ -1032,8 +1036,10 @@ export const catalogApi = {
           body: JSON.stringify({
             question_id: Number(payload.question_id),
             question_text: payload.question_text || null,
+            sample_answer: payload.sample_answer || null,
             transcript: payload.transcript,
             delivery_metrics: payload.delivery_metrics,
+            role_name: payload.role_name || "Software Engineer",
             language: payload.language || "vi",
           }),
         }

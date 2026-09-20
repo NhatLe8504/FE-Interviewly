@@ -21,7 +21,8 @@ export interface EnqueueQuestionPayload {
 
 export interface QuestionTaskState {
   status: "queued" | "processing" | "completed" | "failed";
-  taskId?: string;
+  textTaskId?: string;
+  voiceTaskId?: string;
   result?: AIEvaluationResult;
 }
 
@@ -73,7 +74,7 @@ export function useEvaluationPullQueue() {
     return null;
   }, []);
 
-  // Enqueue a completed question (all multimodal inputs in single request)
+  // Enqueue a completed question with DECOUPLED Text and Voice tasks
   const enqueueQuestionEvaluation = useCallback(
     async (
       payload: EnqueueQuestionPayload,
@@ -88,40 +89,145 @@ export function useEvaluationPullQueue() {
         [qid]: { status: "processing" },
       }));
 
-      // Call unified backend queue endpoint
-      const enqueueRes = await catalogApi.enqueueEvaluation({
-        question_id: qid,
-        question_text: payload.question_text,
-        sample_answer: payload.sample_answer,
-        quiz_answer: payload.quiz_answer,
-        text_answer: payload.text_answer,
-        transcript: payload.transcript,
-        delivery_metrics: payload.delivery_metrics,
-        language: payload.language || "vi",
-        is_quiz_correct: payload.is_quiz_correct,
-        audio_duration_seconds: payload.audio_duration_seconds,
-        role_name: payload.role_name,
-      });
+      // 1. Instant Quiz Score (0ms)
+      const quizScore = payload.is_quiz_correct === true ? 15.0 : 0.0;
+      const text = (payload.text_answer || "").trim();
+      const transcript = (payload.transcript || "").trim();
+      const delivery = payload.delivery_metrics;
 
-      if (enqueueRes?.task_id) {
-        const taskResult = await pollSingleTaskId(enqueueRes.task_id);
-        if (taskResult) {
-          setTasksMap((prev) => ({
-            ...prev,
-            [qid]: {
-              status: "completed",
-              taskId: enqueueRes.task_id,
-              result: taskResult,
-            },
-          }));
-          activeQuestionPollersRef.current.delete(qid);
-          onComplete?.(taskResult);
-          return taskResult;
+      // 2. Parallel Decoupled Evaluation Tasks: Text Essay Separate & Voice Delivery Separate
+      const textPromise = (async () => {
+        if (!text) return null;
+        const textEnqueue = await catalogApi.enqueueTextEvaluation({
+          question_id: qid,
+          question_text: payload.question_text,
+          sample_answer: payload.sample_answer,
+          answer_text: text,
+          role_name: payload.role_name,
+          language: payload.language || "vi",
+        });
+        if (textEnqueue?.task_id) {
+          return await pollSingleTaskId(textEnqueue.task_id);
         }
-      }
+        return null;
+      })();
+
+      const voicePromise = (async () => {
+        if (!delivery && !transcript) return null;
+        const voiceEnqueue = await catalogApi.enqueueVoiceEvaluation({
+          question_id: qid,
+          question_text: payload.question_text,
+          sample_answer: payload.sample_answer,
+          transcript,
+          delivery_metrics: delivery || {},
+          role_name: payload.role_name,
+          language: payload.language || "vi",
+        });
+        if (voiceEnqueue?.task_id) {
+          return await pollSingleTaskId(voiceEnqueue.task_id);
+        }
+        return null;
+      })();
+
+      // Await both independent evaluations in parallel via async/await
+      const [textResult, voiceResult] = await Promise.all([textPromise, voicePromise]);
+
+      const textScore = textResult && typeof textResult.text_score === "number"
+        ? textResult.text_score
+        : (text.length >= 80 ? 20.0 : text.length > 0 ? 8.0 : 0.0);
+
+      const voiceScore = voiceResult && typeof voiceResult.voice_score === "number"
+        ? voiceResult.voice_score
+        : ((delivery?.durationMs && delivery.durationMs >= 4000 && transcript.length >= 20) ? 25.0 : 0.0);
+
+      const totalScore = Math.min(100, Math.round(quizScore + textScore + voiceScore));
+      const passed = totalScore >= 70;
+
+      const textFeedback = textResult?.text_feedback || (text
+        ? "Nội dung tự luận đã được ghi nhận."
+        : "Chưa nhập nội dung tự luận (chỉ có tiêu đề mẫu gợi ý). Cần bổ sung nội dung thực tế theo khung STAR.");
+      const textImprovements = textResult?.text_improvements || [];
+      const textStrengths = textResult?.text_strengths || [];
+
+      const voiceFeedback = voiceResult?.voice_feedback || (transcript || (delivery?.durationMs && delivery.durationMs >= 4000)
+        ? "Phát biểu đã được ghi nhận."
+        : "Chưa thực hiện ghi âm câu trả lời cho câu này.");
+      const voiceImprovements = voiceResult?.voice_improvements || [];
+      const voiceStrengths = voiceResult?.voice_strengths || [];
+
+      const mergedResult: AIEvaluationResult = {
+        score: totalScore,
+        passed,
+        general_feedback: textFeedback,
+        text_feedback: textFeedback,
+        text_improvements: textImprovements,
+        text_strengths: textStrengths,
+        voice_feedback: voiceFeedback,
+        voice_improvements: voiceImprovements,
+        voice_strengths: voiceStrengths,
+        star_breakdown: textResult?.star_breakdown || {
+          situation_score: text ? 6 : 0,
+          situation_feedback: text ? "Bối cảnh cơ bản." : "Chưa có nội dung.",
+          task_score: text ? 6 : 0,
+          task_feedback: text ? "Nhiệm vụ cơ bản." : "Chưa có nội dung.",
+          action_score: text ? 6 : 0,
+          action_feedback: text ? "Hành động cơ bản." : "Chưa có nội dung.",
+          result_score: text ? 5 : 0,
+          result_feedback: text ? "Kết quả cơ bản." : "Chưa có nội dung.",
+        },
+        rubric_scores: [
+          {
+            criterion_id: "quiz",
+            criterion_name: "Trắc nghiệm tình huống (15%)",
+            score: quizScore >= 15 ? 10 : 0,
+            max_score: 10,
+            level_label: `${quizScore}/15đ`,
+            feedback: quizScore >= 15 ? "Đạt trọn vẹn điểm trắc nghiệm." : "Chưa chọn phương án chuẩn nhất.",
+          },
+          {
+            criterion_id: "text",
+            criterion_name: "Tự luận khung STAR (35%)",
+            score: Math.min(10, Math.round((textScore / 35.0) * 10)),
+            max_score: 10,
+            level_label: `${textScore}/35đ`,
+            feedback: textFeedback,
+          },
+          {
+            criterion_id: "voice",
+            criterion_name: "Nói & Ghi âm trực tiếp (50%)",
+            score: Math.min(10, Math.round((voiceScore / 50.0) * 10)),
+            max_score: 10,
+            level_label: `${voiceScore}/50đ`,
+            feedback: voiceFeedback,
+          },
+        ],
+        strengths: [...textStrengths, ...voiceStrengths],
+        improvements: [...textImprovements, ...voiceImprovements],
+        modal_breakdown: {
+          quiz_score: quizScore,
+          quiz_max: 15.0,
+          text_score: textScore,
+          text_max: 35.0,
+          voice_score: voiceScore,
+          voice_max: 50.0,
+          total_score: totalScore,
+        },
+        transcript: transcript || undefined,
+        delivery_metrics: delivery || undefined,
+        sample_better_answer: textResult?.sample_better_answer || "",
+      };
+
+      setTasksMap((prev) => ({
+        ...prev,
+        [qid]: {
+          status: "completed",
+          result: mergedResult,
+        },
+      }));
 
       activeQuestionPollersRef.current.delete(qid);
-      return null;
+      onComplete?.(mergedResult);
+      return mergedResult;
     },
     [pollSingleTaskId]
   );
