@@ -107,11 +107,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
   // Pipeline B: Pull MQ Hook
   const pullQueue = useEvaluationPullQueue();
 
-  // Voice recording state
-  const [isRecording, setIsRecording] = useState<boolean>(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const voiceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
 
   // AI Evaluation loading state during final submission
   const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
