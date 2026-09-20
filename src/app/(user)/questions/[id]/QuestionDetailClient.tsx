@@ -136,31 +136,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
       setIsLoading(true);
       setLoadError(null);
 
-      // Source 1: Query param ?q=19,20,21
-      if (qParam && qParam.trim()) {
-        const rawIds = qParam
-          .split(",")
-          .map((s) => Number(s.trim()))
-          .filter((n) => !isNaN(n) && n > 0);
-
-        if (rawIds.length > 0) {
-          try {
-            const batch = await catalogApi.getQuestionsBatch(rawIds);
-            if (!isMounted) return;
-            if (batch.length > 0) {
-              setQuestionsList(batch);
-              setSessionTitle(batch.length > 1 ? `Bộ câu hỏi thực hành (${batch.length} câu)` : `Câu hỏi #${batch[0].question_id}`);
-              setCurrentIdx(0);
-              setIsLoading(false);
-              return;
-            }
-          } catch {
-            // fallback
-          }
-        }
-      }
-
-      // Source 2: Query param ?set=1
+      // Source 1: Query param ?set=1 (Curated Question Set)
       if (setParam) {
         const foundSet = MOCK_QUESTION_SETS.find((s) => String(s.set_id) === String(setParam));
         if (foundSet && foundSet.questions && foundSet.questions.length > 0) {
@@ -185,19 +161,57 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
         }
       }
 
-      // Source 3: Basket from sessionStorage
-      if (searchParams.get("from") === "basket") {
+      // Source 2: Query param ?q=19,20,21
+      if (qParam && qParam.trim()) {
+        const rawIds = qParam
+          .split(",")
+          .map((s) => Number(s.trim()))
+          .filter((n) => !isNaN(n) && n > 0);
+
+        if (rawIds.length > 0) {
+          try {
+            const batch = await catalogApi.getQuestionsBatch(rawIds);
+            if (!isMounted) return;
+            if (batch.length > 0) {
+              setQuestionsList(batch);
+              setSessionTitle(batch.length > 1 ? `Bộ câu hỏi thực hành (${batch.length} câu)` : `Câu hỏi #${batch[0].question_id}`);
+              setCurrentIdx(0);
+              setIsLoading(false);
+              return;
+            }
+          } catch {
+            // fallback
+          }
+        }
+      }
+
+      // Source 3: Single Question from Route ID /questions/[id]
+      if (propQuestionId && !isNaN(Number(propQuestionId))) {
         try {
-          const raw = sessionStorage.getItem("basket_questions");
+          const detail = await catalogApi.getQuestionDetail(Number(propQuestionId));
+          if (!isMounted) return;
+          if (detail && detail.question_id) {
+            setQuestionsList([detail]);
+            setSessionTitle(`Câu hỏi #${detail.question_id}: ${detail.role_name || "Chuyên ngành"}`);
+            setCurrentIdx(0);
+            setIsLoading(false);
+            return;
+          }
+        } catch {
+          // fallback
+        }
+      }
+
+      // Source 4: SessionStorage Basket fallback
+      if (typeof window !== "undefined") {
+        try {
+          const raw = sessionStorage.getItem("basket_questions") || sessionStorage.getItem("active_custom_questions");
           if (raw) {
-            const list: QuestionDetailOut[] = JSON.parse(raw);
-            if (Array.isArray(list) && list.length > 0) {
-              if (!isMounted) return;
-              setQuestionsList(list);
-              setSessionTitle(`Giỏ đề tự chọn (${list.length} câu)`);
-              const initialId = propQuestionId || String(list[0].question_id);
-              const foundIdx = list.findIndex((q) => String(q.question_id) === initialId);
-              setCurrentIdx(foundIdx !== -1 ? foundIdx : 0);
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setQuestionsList(parsed);
+              setSessionTitle(sessionStorage.getItem("active_question_set_title") || `Giỏ câu hỏi (${parsed.length} câu)`);
+              setCurrentIdx(0);
               setIsLoading(false);
               return;
             }
@@ -207,21 +221,20 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
         }
       }
 
-      // Source 4: Single question ID
-      const targetId = propQuestionId || (qParam ? qParam.split(",")[0] : "1");
-      try {
-        const detail = await catalogApi.getQuestionDetail(targetId);
-        if (!isMounted) return;
-        setQuestionsList([detail]);
-        setSessionTitle(detail.role_name ? `Câu hỏi: ${detail.role_name}` : `Câu hỏi #${detail.question_id}`);
+      // Final Fallback: Default to Question Set 1
+      const defaultSet = MOCK_QUESTION_SETS[0];
+      if (defaultSet && defaultSet.questions) {
+        setQuestionsList(defaultSet.questions);
+        setSessionTitle(defaultSet.title);
         setCurrentIdx(0);
-      } catch (err: any) {
-        if (!isMounted) return;
-        setLoadError("Không tìm thấy câu hỏi hoặc câu hỏi đã bị xóa khỏi hệ thống.");
-      } finally {
-        if (isMounted) setIsLoading(false);
+        setIsLoading(false);
+        return;
       }
+
+      setLoadError("Không tìm thấy dữ liệu câu hỏi phù hợp.");
+      setIsLoading(false);
     }
+
 
     loadData();
 
