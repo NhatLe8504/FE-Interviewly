@@ -34,6 +34,7 @@ export function useDeliveryVoiceRecorder(options: UseDeliveryVoiceRecorderOption
   const speechRecognizerRef = useRef<BrowserSpeechRecognizer | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
+  const stopPromiseResolverRef = useRef<((val: { url: string; blob: Blob }) => void) | null>(null);
 
   // Cleanup all media resources safely
   const cleanup = useCallback(() => {
@@ -103,6 +104,10 @@ export function useDeliveryVoiceRecorder(options: UseDeliveryVoiceRecorderOption
         setRecordedAudioBlob(blob);
         const url = URL.createObjectURL(blob);
         setRecordedAudioUrl(url);
+        if (stopPromiseResolverRef.current) {
+          stopPromiseResolverRef.current({ url, blob });
+          stopPromiseResolverRef.current = null;
+        }
       };
 
       recorder.start(250);
@@ -172,9 +177,16 @@ export function useDeliveryVoiceRecorder(options: UseDeliveryVoiceRecorderOption
     }
   }, [cleanup, language, onAutoEndDetected, vadConfig]);
 
-  const stopRecording = useCallback((): DeliveryMetrics | null => {
+  const stopRecording = useCallback(async (): Promise<{
+    metrics: DeliveryMetrics | null;
+    audioUrl: string | null;
+    audioBlob: Blob | null;
+    transcript: string;
+    recordingSeconds: number;
+  }> => {
     setTurnState("finalizing");
     const totalDurationMs = performance.now() - startTimeRef.current;
+    const finalSec = Math.max(1, Math.round(totalDurationMs / 1000));
 
     // Stop timer
     if (timerRef.current) {
@@ -182,10 +194,19 @@ export function useDeliveryVoiceRecorder(options: UseDeliveryVoiceRecorderOption
       timerRef.current = null;
     }
 
-    // Stop MediaRecorder
+    // Stop MediaRecorder and await onstop for valid audioUrl
+    let finalUrl = recordedAudioUrl;
+    let finalBlob = recordedAudioBlob;
+
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      const waitStop = new Promise<{ url: string; blob: Blob }>((resolve) => {
+        stopPromiseResolverRef.current = resolve;
+      });
       try {
         mediaRecorderRef.current.stop();
+        const stopped = await waitStop;
+        finalUrl = stopped.url;
+        finalBlob = stopped.blob;
       } catch {
         // ignore
       }
@@ -231,8 +252,15 @@ export function useDeliveryVoiceRecorder(options: UseDeliveryVoiceRecorderOption
 
     setVolumeLevel(0);
     setTurnState("ready");
-    return metrics;
-  }, []);
+
+    return {
+      metrics,
+      audioUrl: finalUrl,
+      audioBlob: finalBlob,
+      transcript: fullTranscript,
+      recordingSeconds: finalSec,
+    };
+  }, [recordedAudioUrl, recordedAudioBlob]);
 
   const reset = useCallback(() => {
     cleanup();

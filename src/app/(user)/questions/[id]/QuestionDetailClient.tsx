@@ -502,13 +502,13 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
     await voiceRecorder.startRecording();
   };
 
-  const handleStopVoiceRecording = () => {
-    const metrics = voiceRecorder.stopRecording();
+  const handleStopVoiceRecording = async () => {
+    const voiceRes = await voiceRecorder.stopRecording();
     updateCurrentAnswer({
-      recordedAudioUrl: voiceRecorder.recordedAudioUrl,
-      recordingSeconds: metrics ? Math.round(metrics.durationMs / 1000) : voiceRecorder.recordingSeconds,
-      delivery_metrics: metrics,
-      transcript: voiceRecorder.transcript,
+      recordedAudioUrl: voiceRes.audioUrl,
+      recordingSeconds: voiceRes.recordingSeconds,
+      delivery_metrics: voiceRes.metrics,
+      transcript: voiceRes.transcript,
     });
   };
 
@@ -519,9 +519,29 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
 
   // Final Submission: Immediately opens Live Scorecard (0ms delay)
   // and enqueues final question in the background via Pull MQ
-  const handleFinalSubmit = () => {
+  const handleFinalSubmit = async () => {
     if (currentQId) {
       setLockedQuestionIds((prev) => new Set(prev).add(currentQId));
+
+      // If user was actively recording, stop and capture audio & metrics immediately
+      let finalVoiceUrl = currentAns.recordedAudioUrl;
+      let finalVoiceSec = currentAns.recordingSeconds;
+      let finalMetrics = currentAns.delivery_metrics;
+      let finalTranscript = currentAns.transcript;
+
+      if (voiceRecorder.isRecording) {
+        const voiceRes = await voiceRecorder.stopRecording();
+        finalVoiceUrl = voiceRes.audioUrl;
+        finalVoiceSec = voiceRes.recordingSeconds;
+        finalMetrics = voiceRes.metrics;
+        finalTranscript = voiceRes.transcript;
+        updateCurrentAnswer({
+          recordedAudioUrl: voiceRes.audioUrl,
+          recordingSeconds: voiceRes.recordingSeconds,
+          delivery_metrics: voiceRes.metrics,
+          transcript: voiceRes.transcript,
+        });
+      }
 
       let isCorrect = false;
       if (currentAns.selectedOption) {
@@ -529,24 +549,31 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
         isCorrect = opt ? Boolean(opt.is_correct) : currentAns.selectedOption === "B";
       }
 
-      const metrics = currentAns.delivery_metrics || voiceRecorder.deliveryMetrics;
-      const durSec = voiceRecorder.recordingSeconds || currentAns.recordingSeconds || 0;
-
       pullQueue.enqueueQuestionEvaluation(
         {
           question_id: currentQId,
           question_text: currentQuestion?.question_text,
           quiz_answer: currentAns.selectedOption,
           text_answer: currentAns.writtenText,
-          transcript: voiceRecorder.transcript,
-          delivery_metrics: metrics,
+          transcript: finalTranscript,
+          delivery_metrics: finalMetrics,
           language: currentQuestion?.language || "vi",
           is_quiz_correct: isCorrect,
-          audio_duration_seconds: durSec,
+          audio_duration_seconds: finalVoiceSec,
           role_name: currentQuestion?.role_name || "Software Engineer",
         },
         (result) => {
-          const scaled = scaleEvaluationResult(result, currentAns, isCorrect);
+          const scaled = scaleEvaluationResult(
+            result,
+            {
+              ...currentAns,
+              recordedAudioUrl: finalVoiceUrl,
+              recordingSeconds: finalVoiceSec,
+              delivery_metrics: finalMetrics,
+              transcript: finalTranscript,
+            },
+            isCorrect
+          );
           setEvaluationsMap((prev) => ({ ...prev, [currentQId]: scaled }));
         }
       );
