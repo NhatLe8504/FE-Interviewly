@@ -30,6 +30,9 @@ import {
   Lock,
 } from "lucide-react";
 import { useQuestionPracticeSession } from "@/hooks/useQuestionPracticeSession";
+import { useDeliveryVoiceRecorder } from "@/hooks/useDeliveryVoiceRecorder";
+import { useEvaluationPullQueue } from "@/hooks/useEvaluationPullQueue";
+import type { DeliveryMetrics } from "@/types/delivery";
 import { useUserSubscription } from "@/hooks/useUserSubscription";
 import { useI18n } from "@/context/I18nContext";
 import { catalogApi } from "@/services/catalogApi";
@@ -43,6 +46,14 @@ export default function PracticeWorkspaceClient() {
 
   const session = useQuestionPracticeSession();
   const [copiedUrl, setCopiedUrl] = useState(false);
+
+  const pullQueue = useEvaluationPullQueue();
+  const currentQId = session.currentQuestion?.question_id || 0;
+  const isCurrentLocked = Boolean(session.isQuestionLocked(currentQId));
+
+  const voiceRecorder = useDeliveryVoiceRecorder({
+    language: session.currentQuestion?.language === "en" ? "en-US" : "vi-VN",
+  });
 
   // Collapsible STAR Guidance Accordion
   const [showGuidance, setShowGuidance] = useState(false);
@@ -142,11 +153,24 @@ export default function PracticeWorkspaceClient() {
     }
   };
 
-  const stopVoiceRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (voiceTimerRef.current) clearInterval(voiceTimerRef.current);
+  const handleStartVoice = async () => {
+    if (isCurrentLocked) return;
+    await voiceRecorder.startRecording();
+  };
+
+  const handleStopVoice = () => {
+    const metrics = voiceRecorder.stopRecording();
+    if (session.currentQuestion) {
+      const qid = session.currentQuestion.question_id;
+      session.saveAnswer(qid, {
+        mode: "voice",
+        selected_option_id: selectedOption,
+        written_text: writtenText,
+        audio_url: voiceRecorder.recordedAudioUrl,
+        audio_duration_seconds: metrics ? Math.round(metrics.durationMs / 1000) : voiceRecorder.recordingSeconds,
+        delivery_metrics: metrics,
+        submitted_at: new Date().toISOString(),
+      });
     }
   };
 
@@ -167,12 +191,51 @@ export default function PracticeWorkspaceClient() {
     return issues;
   };
 
-  // Safe navigation with incomplete check
+  // Forward-Only Progression Lock & Pipeline B Background Enqueue
+  const proceedWithNavigation = (targetIdx: number) => {
+    if (!session.currentQuestion) return;
+    const qid = session.currentQuestion.question_id;
+
+    // If moving forward, lock the current question immediately
+    if (targetIdx > session.currentIndex) {
+      session.lockQuestion(qid);
+
+      // Trigger Pipeline B Background Enqueue (< 15ms latency, non-blocking)
+      if (!session.evaluations[qid]) {
+        let isCorrect: boolean | undefined = undefined;
+        if (selectedOption) {
+          const opt = session.currentQuestion.quiz_data?.options.find((o) => o.id === selectedOption);
+          isCorrect = opt ? opt.is_correct : (selectedOption === "B");
+        }
+
+        const metrics = session.answers[qid]?.delivery_metrics || voiceRecorder.deliveryMetrics;
+        const durSec = voiceRecorder.recordingSeconds || session.answers[qid]?.audio_duration_seconds || 0;
+
+        pullQueue.enqueueQuestionEvaluation(
+          {
+            question_id: qid,
+            quiz_answer: selectedOption,
+            text_answer: writtenText,
+            delivery_metrics: metrics,
+            language: session.currentQuestion.language || "vi",
+            is_quiz_correct: isCorrect,
+            audio_duration_seconds: durSec,
+          },
+          (evalResult) => {
+            session.saveEvaluation(qid, evalResult);
+          }
+        );
+      }
+    }
+
+    session.goToIndex(targetIdx);
+  };
+
   const handleAttemptNavigate = (targetIdx: number) => {
     if (targetIdx === session.currentIndex) return;
 
-    // If current question has not been submitted or evaluated, check issues
-    if (!session.currentEvaluation) {
+    // When moving forward, if current question is not locked and not evaluated, check completeness
+    if (targetIdx > session.currentIndex && !isCurrentLocked && !session.currentEvaluation) {
       const issues = checkCurrentIncomplete();
       if (issues.length > 0) {
         setIncompleteIssues(issues);
@@ -181,13 +244,14 @@ export default function PracticeWorkspaceClient() {
         return;
       }
     }
-    session.goToIndex(targetIdx);
+
+    proceedWithNavigation(targetIdx);
   };
 
   const handleConfirmSkip = () => {
     setShowIncompleteModal(false);
     if (pendingTargetIndex !== null) {
-      session.goToIndex(pendingTargetIndex);
+      proceedWithNavigation(pendingTargetIndex);
       setPendingTargetIndex(null);
     }
   };
@@ -548,6 +612,14 @@ export default function PracticeWorkspaceClient() {
 
       {/* Current Question Card */}
       <div className={styles.questionCard}>
+        {/* Forward-Only Lock Banner */}
+        {isCurrentLocked && (
+          <div className={styles.lockedNotice}>
+            <Lock size={16} style={{ flexShrink: 0 }} />
+            <span>Câu hỏi này đã hoàn thành và khóa làm bài một chiều (Không thể chỉnh sửa sau khi đã chuyển sang câu tiếp theo).</span>
+          </div>
+        )}
+
         <div className={styles.badgeRow}>
           <span className={styles.badge}>{q.domain_name || "Chuyên ngành"}</span>
           <span className={`${styles.badge} ${styles.badgeRole}`}>
@@ -736,8 +808,9 @@ export default function PracticeWorkspaceClient() {
           <textarea
             className={styles.textarea}
             value={writtenText}
-            onChange={(e) => setWrittenText(e.target.value)}
-            placeholder="Soạn thảo câu trả lời của bạn tại đây theo phương pháp STAR (Tối thiểu 20 từ)..."
+            readOnly={isCurrentLocked}
+            onChange={(e) => !isCurrentLocked && setWrittenText(e.target.value)}
+            placeholder={isCurrentLocked ? "Câu hỏi đã bị khóa một chiều. Bạn không thể chỉnh sửa nội dung này." : "Soạn thảo câu trả lời của bạn tại đây theo phương pháp STAR (Tối thiểu 20 từ)..."}
           />
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
@@ -781,20 +854,32 @@ export default function PracticeWorkspaceClient() {
               ))}
             </div>
 
+            {/* VAD State indicator */}
+            <div style={{ fontSize: 12, fontWeight: 700, color: voiceRecorder.isRecording ? "#10b981" : "var(--ink-soft)", marginBottom: 8 }}>
+              {voiceRecorder.turnState === "calibrating" && "🎧 Đang hiệu chỉnh mức ồn sàn phòng..."}
+              {voiceRecorder.turnState === "listening" && "👂 Đang lắng nghe giọng nói của bạn..."}
+              {voiceRecorder.turnState === "speakingDetected" && "🎙️ Đang phát biểu (VAD Active)..."}
+              {voiceRecorder.turnState === "paused" && "⏸️ Tạm dừng phát biểu..."}
+              {voiceRecorder.turnState === "ready" && "✓ Bản ghi âm đã sẵn sàng"}
+              {voiceRecorder.turnState === "idle" && !recordedAudioUrl && "Nhấn micro để bắt đầu phát biểu"}
+            </div>
+
             <div style={{ display: "flex", gap: 12 }}>
-              {!isRecording ? (
+              {!voiceRecorder.isRecording ? (
                 <button
                   type="button"
-                  onClick={startVoiceRecording}
+                  disabled={isCurrentLocked}
+                  onClick={handleStartVoice}
                   className={styles.recordBtn}
+                  style={isCurrentLocked ? { opacity: 0.5, cursor: "not-allowed" } : {}}
                 >
                   <Mic size={18} />
-                  <span>{recordedAudioUrl ? "Ghi âm lại" : "Bắt đầu ghi âm"}</span>
+                  <span>{isCurrentLocked ? "Đã khóa ghi âm" : (recordedAudioUrl || voiceRecorder.recordedAudioUrl) ? "Ghi âm lại" : "Bắt đầu ghi âm"}</span>
                 </button>
               ) : (
                 <button
                   type="button"
-                  onClick={stopVoiceRecording}
+                  onClick={handleStopVoice}
                   className={`${styles.recordBtn} ${styles.recordBtnActive}`}
                 >
                   <Square size={18} fill="#ffffff" />
@@ -802,6 +887,15 @@ export default function PracticeWorkspaceClient() {
                 </button>
               )}
             </div>
+
+            {/* Live Transcript Preview */}
+            {(voiceRecorder.transcript || voiceRecorder.interimTranscript) && (
+              <div className={styles.transcriptBox}>
+                <strong>Nhận diện giọng nói trực tiếp: </strong>
+                <span>{voiceRecorder.transcript}</span>
+                <span style={{ color: "#d98236", fontStyle: "italic" }}> {voiceRecorder.interimTranscript}</span>
+              </div>
+            )}
 
             {recordedAudioUrl && (
               <div style={{ marginTop: 10, width: "100%", maxWidth: 360 }}>
@@ -853,6 +947,31 @@ export default function PracticeWorkspaceClient() {
                 <small>/100đ</small>
               </div>
             </div>
+
+            {/* Pipeline A Delivery Telemetry Summary */}
+            {(evaluation.delivery_metrics || voiceRecorder.deliveryMetrics) && (() => {
+              const dm = evaluation.delivery_metrics || voiceRecorder.deliveryMetrics;
+              return (
+                <div className={styles.deliveryBox}>
+                  <div style={{ fontWeight: 800, fontSize: 13, color: "var(--ink)", display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                    <Mic size={15} color="#d98236" />
+                    <span>Phân tích phát âm & Tốc độ nói (Beevibe Pipeline A)</span>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 12, color: "var(--ink-soft)" }}>
+                    <span>⏱️ Thời lượng: <strong>{formatTimer(Math.round((dm.durationMs || 0) / 1000))}</strong> (Nói liên tục: {Math.round((dm.activeSpeechMs || 0) / 1000)}s)</span>
+                    <span>• Tốc độ: <strong>{dm.activeSpeechWpm || 0} WPM</strong> {dm.activeSpeechWpm >= 110 && dm.activeSpeechWpm <= 165 ? "(Chuẩn)" : dm.activeSpeechWpm > 165 ? "(Nói nhanh)" : "(Cần nhanh hơn)"}</span>
+                    <span>• <strong>{dm.fillerCount || 0}</strong> từ đệm</span>
+                    <span>• <strong>{dm.longPauseCount || 0}</strong> ngắt quãng dài</span>
+                    <span>• <strong>{dm.repetitionCount || 0}</strong> lặp từ</span>
+                  </div>
+                  {dm.fillers && dm.fillers.length > 0 && (
+                    <div style={{ marginTop: 6, fontSize: 11.5, color: "var(--ink-muted)" }}>
+                      Từ đệm phát hiện: {dm.fillers.map((f: any) => `"${f.text}" ×${f.count}`).join(", ")}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* 3-Score Distribution Grid */}
             {mb && (

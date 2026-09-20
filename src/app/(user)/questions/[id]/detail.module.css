@@ -1136,3 +1136,39 @@
   font-weight: 900;
   color: var(--accent-deep);
 }
+
+/* Forward-only lock notice & Delivery Telemetry */
+.lockedNotice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 16px;
+  background: rgba(217, 130, 54, 0.1);
+  border: 1.5px solid rgba(217, 130, 54, 0.35);
+  color: #b45309;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
+.deliveryBox {
+  margin-top: 14px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(106, 72, 49, 0.14);
+}
+
+.transcriptBox {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(33, 25, 20, 0.03);
+  border: 1px dashed rgba(106, 72, 49, 0.2);
+  font-size: 12px;
+  color: var(--ink-soft, #5a4639);
+  line-height: 1.6;
+  max-height: 120px;
+  overflow-y: auto;
+}
