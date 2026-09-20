@@ -1,3 +1,10 @@
+"use client";
+
+
+import { useState, useRef, useCallback } from "react";
+import { catalogApi } from "@/services/catalogApi";
+import type { AIEvaluationResult } from "@/types/catalog";
+import type { DeliveryMetrics } from "@/types/delivery";
 
 function cleanCandidateText(raw?: string): { actualWords: number; cleanText: string } {
   if (!raw || !raw.trim()) return { actualWords: 0, cleanText: "" };
@@ -7,13 +14,6 @@ function cleanCandidateText(raw?: string): { actualWords: number; cleanText: str
   const words = stripped ? stripped.split(/\s+/).filter((w) => w.length > 0) : [];
   return { actualWords: words.length, cleanText: stripped };
 }
-
-"use client";
-
-import { useState, useRef, useCallback } from "react";
-import { catalogApi } from "@/services/catalogApi";
-import type { AIEvaluationResult } from "@/types/catalog";
-import type { DeliveryMetrics } from "@/types/delivery";
 
 export interface EnqueueQuestionPayload {
   question_id: number | string;
