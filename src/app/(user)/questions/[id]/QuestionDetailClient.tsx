@@ -379,6 +379,11 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
     });
   };
 
+  // Safe aliases for 100% backward-compatibility
+  const startRecording = handleStartVoiceRecording;
+  const stopRecording = handleStopVoiceRecording;
+  const isRecording = voiceRecorder.isRecording;
+
   // Final Evaluation of Entire Test when finishing:
   // - Multiple Choice: graded purely by answer key (no AI call)
   // - Written STAR text & Spoken voice: graded by AI
@@ -1255,6 +1260,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                   const isActive = idx === currentIdx;
                   const itemAns = answersMap[item.question_id];
                   const isDone = Boolean(evaluationsMap[item.question_id]) || Boolean(itemAns?.selectedOption || itemAns?.writtenText || itemAns?.recordedAudioUrl);
+                  const isLocked = lockedQuestionIds.has(item.question_id);
                   return (
                     <button
                       key={item.question_id}
@@ -1263,8 +1269,10 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                       className={`${styles.stepperCircle} ${
                         isActive ? styles.stepperCircleActive : ""
                       } ${isDone ? styles.stepperCircleDone : ""}`}
+                      title={isLocked ? `Câu #${idx + 1} (Đã khóa một chiều)` : `Câu #${idx + 1}`}
                     >
-                      {idx + 1}
+                      {isLocked ? <Lock size={10} style={{ marginRight: 2 }} /> : null}
+                      <span>{idx + 1}</span>
                     </button>
                   );
                 })}
@@ -1314,8 +1322,10 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                     <div
                       key={opt.id}
                       onClick={() => {
+                        if (isCurrentLocked) return;
                         updateCurrentAnswer({ selectedOption: opt.id });
                       }}
+                      style={isCurrentLocked ? { cursor: "not-allowed", opacity: isSelected ? 1 : 0.6 } : {}}
                       className={`${styles.quizOptionCard} ${isSelected ? styles.quizOptionSelected : ""}`}
                     >
                       <div
@@ -1364,29 +1374,37 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                 </span>
                 <button
                   type="button"
-                  onClick={() => updateCurrentAnswer({ writtenText: currentAns.writtenText + (currentAns.writtenText ? "\n\n" : "") + "• Tình huống (Situation): " })}
+                  disabled={isCurrentLocked}
+                  onClick={() => !isCurrentLocked && updateCurrentAnswer({ writtenText: currentAns.writtenText + (currentAns.writtenText ? "\n\n" : "") + "• Tình huống (Situation): " })}
                   className={styles.starPromptChip}
+                  style={isCurrentLocked ? { opacity: 0.5, cursor: "not-allowed" } : {}}
                 >
                   + Tình huống (S)
                 </button>
                 <button
                   type="button"
-                  onClick={() => updateCurrentAnswer({ writtenText: currentAns.writtenText + (currentAns.writtenText ? "\n\n" : "") + "• Nhiệm vụ (Task): " })}
+                  disabled={isCurrentLocked}
+                  onClick={() => !isCurrentLocked && updateCurrentAnswer({ writtenText: currentAns.writtenText + (currentAns.writtenText ? "\n\n" : "") + "• Nhiệm vụ (Task): " })}
                   className={styles.starPromptChip}
+                  style={isCurrentLocked ? { opacity: 0.5, cursor: "not-allowed" } : {}}
                 >
                   + Nhiệm vụ (T)
                 </button>
                 <button
                   type="button"
-                  onClick={() => updateCurrentAnswer({ writtenText: currentAns.writtenText + (currentAns.writtenText ? "\n\n" : "") + "• Hành động (Action): " })}
+                  disabled={isCurrentLocked}
+                  onClick={() => !isCurrentLocked && updateCurrentAnswer({ writtenText: currentAns.writtenText + (currentAns.writtenText ? "\n\n" : "") + "• Hành động (Action): " })}
                   className={styles.starPromptChip}
+                  style={isCurrentLocked ? { opacity: 0.5, cursor: "not-allowed" } : {}}
                 >
                   + Hành động (A)
                 </button>
                 <button
                   type="button"
-                  onClick={() => updateCurrentAnswer({ writtenText: currentAns.writtenText + (currentAns.writtenText ? "\n\n" : "") + "• Kết quả (Result): " })}
+                  disabled={isCurrentLocked}
+                  onClick={() => !isCurrentLocked && updateCurrentAnswer({ writtenText: currentAns.writtenText + (currentAns.writtenText ? "\n\n" : "") + "• Kết quả (Result): " })}
                   className={styles.starPromptChip}
+                  style={isCurrentLocked ? { opacity: 0.5, cursor: "not-allowed" } : {}}
                 >
                   + Kết quả (R)
                 </button>
@@ -1396,8 +1414,10 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                 <textarea
                   className={styles.answerTextarea}
                   value={currentAns.writtenText}
-                  onChange={(e) => updateCurrentAnswer({ writtenText: e.target.value })}
-                  placeholder={t.questions.detail.textPlaceholder}
+                  readOnly={isCurrentLocked}
+                  onChange={(e) => !isCurrentLocked && updateCurrentAnswer({ writtenText: e.target.value })}
+                  placeholder={isCurrentLocked ? "Câu hỏi này đã hoàn thành và khóa một chiều. Bạn chỉ có thể xem lại, không thể chỉnh sửa." : t.questions.detail.textPlaceholder}
+                  style={isCurrentLocked ? { background: "rgba(0, 0, 0, 0.03)", cursor: "not-allowed" } : {}}
                 />
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--ink-muted)", padding: "0 4px" }}>
                   <span>{currentWordCount} từ • {currentAns.writtenText.length} ký tự</span>
@@ -1432,18 +1452,28 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
               </div>
 
               <div className={styles.voiceBox}>
+                {/* VAD State indicator */}
+                <div style={{ fontSize: 12, fontWeight: 700, color: voiceRecorder.isRecording ? "#10b981" : "var(--ink-soft)", marginBottom: 8 }}>
+                  {voiceRecorder.turnState === "calibrating" && "🎧 Đang hiệu chỉnh mức ồn sàn phòng..."}
+                  {voiceRecorder.turnState === "listening" && "👂 Đang lắng nghe giọng nói của bạn..."}
+                  {voiceRecorder.turnState === "speakingDetected" && "🎙️ Đang phát biểu (VAD Active)..."}
+                  {voiceRecorder.turnState === "paused" && "⏸️ Tạm dừng phát biểu..."}
+                  {voiceRecorder.turnState === "ready" && "✓ Bản ghi âm đã sẵn sàng"}
+                  {voiceRecorder.turnState === "idle" && !currentAns.recordedAudioUrl && "Nhấn micro để bắt đầu phát biểu"}
+                </div>
+
                 <div style={{ fontSize: 26, fontWeight: 900, color: "var(--accent-deep)" }}>
-                  {formatTimerStr(currentAns.recordingSeconds)}
+                  {formatTimerStr(voiceRecorder.isRecording ? voiceRecorder.recordingSeconds : currentAns.recordingSeconds)}
                 </div>
 
                 <div className={styles.waveBars}>
                   {Array.from({ length: 14 }).map((_, i) => (
                     <span
                       key={i}
-                      className={`${styles.waveBar} ${isRecording ? styles.waveBarActive : ""}`}
+                      className={`${styles.waveBar} ${voiceRecorder.isRecording ? styles.waveBarActive : ""}`}
                       style={{
-                        height: isRecording
-                          ? `${10 + Math.sin(i + currentAns.recordingSeconds) * 26}px`
+                        height: voiceRecorder.isRecording
+                          ? `${8 + Math.round((voiceRecorder.volumeLevel / 100) * 32)}px`
                           : "8px",
                       }}
                     />
@@ -1451,19 +1481,21 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                 </div>
 
                 <div style={{ display: "flex", gap: 12 }}>
-                  {!isRecording ? (
+                  {!voiceRecorder.isRecording ? (
                     <button
                       type="button"
-                      onClick={startRecording}
+                      disabled={isCurrentLocked}
+                      onClick={handleStartVoiceRecording}
                       className={styles.recordBtn}
+                      style={isCurrentLocked ? { opacity: 0.5, cursor: "not-allowed" } : {}}
                     >
                       <Mic size={18} />
-                      <span>{currentAns.recordedAudioUrl ? "Ghi âm lại" : t.questions.detail.startRecording}</span>
+                      <span>{isCurrentLocked ? "Đã khóa ghi âm" : (currentAns.recordedAudioUrl || voiceRecorder.recordedAudioUrl) ? "Ghi âm lại" : t.questions.detail.startRecording}</span>
                     </button>
                   ) : (
                     <button
                       type="button"
-                      onClick={stopRecording}
+                      onClick={handleStopVoiceRecording}
                       className={`${styles.recordBtn} ${styles.recordBtnActive}`}
                     >
                       <Square size={18} fill="#ffffff" />
@@ -1472,9 +1504,18 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                   )}
                 </div>
 
-                {currentAns.recordedAudioUrl && (
+                {/* Live Transcript Preview */}
+                {(voiceRecorder.transcript || voiceRecorder.interimTranscript) && (
+                  <div className={styles.transcriptBox}>
+                    <strong>Nhận diện giọng nói trực tiếp: </strong>
+                    <span>{voiceRecorder.transcript}</span>
+                    <span style={{ color: "#d98236", fontStyle: "italic" }}> {voiceRecorder.interimTranscript}</span>
+                  </div>
+                )}
+
+                {(currentAns.recordedAudioUrl || voiceRecorder.recordedAudioUrl) && (
                   <div style={{ marginTop: 12, width: "100%", maxWidth: 360 }}>
-                    <audio src={currentAns.recordedAudioUrl} controls style={{ width: "100%" }} />
+                    <audio src={currentAns.recordedAudioUrl || voiceRecorder.recordedAudioUrl || undefined} controls style={{ width: "100%" }} />
                   </div>
                 )}
               </div>
@@ -1553,8 +1594,8 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
               ))}
             </div>
 
-            <p style={{ margin: 0, fontSize: 12, color: "var(--ink-muted)", fontStyle: "italic" }}>
-              Bạn có thể ở lại để hoàn thiện nhằm đạt điểm tối đa, hoặc vẫn tiếp tục chuyển câu (bạn có thể quay lại làm bổ sung bất cứ lúc nào trước khi nộp bài).
+            <p style={{ margin: 0, fontSize: 12.5, color: "#b45309", fontWeight: 700 }}>
+              ⚠️ Lưu ý quy tắc khóa một chiều: Sau khi chuyển sang câu tiếp theo, câu này sẽ bị KHÓA và bạn chỉ có thể xem lại, không thể chỉnh sửa đáp án được nữa.
             </p>
 
             <div className={styles.modalActions}>
