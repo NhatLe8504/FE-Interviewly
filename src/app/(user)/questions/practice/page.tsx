@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import QuestionDetailClient from "../[id]/QuestionDetailClient";
+import PracticeWorkspaceClient from "./PracticeWorkspaceClient";
 
 export const metadata: Metadata = {
   title: "Không gian Luyện tập & AI Chấm điểm | Interviewly",
@@ -17,7 +17,7 @@ export default function QuestionPracticeWorkspacePage() {
         </div>
       }
     >
-      <QuestionDetailClient />
+      <PracticeWorkspaceClient />
     </Suspense>
   );
 }
