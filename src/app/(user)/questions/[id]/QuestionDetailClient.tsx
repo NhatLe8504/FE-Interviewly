@@ -103,6 +103,8 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+
+
   // Candidate answers and final evaluations keyed by question_id
   const [answersMap, setAnswersMap] = useState<Record<number, QuestionAnswerRecord>>({});
   const [evaluationsMap, setEvaluationsMap] = useState<Record<number, AIEvaluationResult>>({});
@@ -408,23 +410,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
     return questionsList[currentIdx];
   }, [questionsList, currentIdx]);
 
-  const totalQuestions = questionsList.length;
 
-  // Exact Mathematical Scoring Constants:
-  // Total Exam Points = 100 points
-  // Each Question Max Points = 100 / N
-  // Quiz Max Points = 15 / N (15% of question)
-  // Text Max Points = 35 / N (35% of question)
-  // Voice Max Points = 50 / N (50% of question)
-  const scoreMultipliers = useMemo(() => {
-    const N = Math.max(1, totalQuestions);
-    return {
-      pointsPerQuestion: Number((100.0 / N).toFixed(2)),
-      quizMax: Number((15.0 / N).toFixed(2)),
-      textMax: Number((35.0 / N).toFixed(2)),
-      voiceMax: Number((50.0 / N).toFixed(2)),
-    };
-  }, [totalQuestions]);
 
   const currentQId = currentQuestion?.question_id || 0;
   const currentAns: QuestionAnswerRecord = useMemo(() => {
@@ -504,6 +490,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
       recordedAudioUrl: voiceRecorder.recordedAudioUrl,
       recordingSeconds: metrics ? Math.round(metrics.durationMs / 1000) : voiceRecorder.recordingSeconds,
       delivery_metrics: metrics,
+      transcript: voiceRecorder.transcript,
     });
   };
 
@@ -933,34 +920,124 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                   </div>
                 </div>
 
-                {/* 2. Text Review & AI Feedback */}
-                <div style={{ marginBottom: 14, padding: "14px 16px", borderRadius: "14px", background: "rgba(255, 255, 255, 0.85)", border: "1px solid rgba(106, 72, 49, 0.12)" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13, marginBottom: 6 }}>
-                    <FileText size={15} color="#d98236" />
-                    <span>Bài Tự luận STAR ({cleanWords} từ thực tế):</span>
-                    <span style={{ color: "#d98236", fontSize: 12 }}>{mb?.text_score || 0}/{scoreMultipliers.textMax}đ</span>
+                {/* 2. Text Review & AI Feedback with Improvements or Praise */}
+                <div style={{ marginBottom: 14, padding: "16px 18px", borderRadius: "14px", background: "rgba(255, 255, 255, 0.85)", border: "1px solid rgba(106, 72, 49, 0.12)" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13.5 }}>
+                      <FileText size={16} color="#d98236" />
+                      <span>Bài Tự luận STAR ({cleanWords} từ thực tế):</span>
+                      <span style={{ color: "#d98236", fontSize: 13 }}>{mb?.text_score || 0}/{scoreMultipliers.textMax}đ</span>
+                    </div>
                   </div>
-                  <p style={{ margin: "0 0 8px", fontSize: 12.5, color: cleanWords > 0 ? "var(--ink)" : "var(--ink-muted)", fontStyle: "italic", lineHeight: 1.6 }}>
+
+                  {/* Candidate text preview */}
+                  <p style={{ margin: "0 0 10px", fontSize: 12.5, color: cleanWords > 0 ? "var(--ink)" : "var(--ink-muted)", fontStyle: "italic", lineHeight: 1.6 }}>
                     {cleanWords > 0 ? `"${ans?.writtenText}"` : (ans?.writtenText ? `${ans.writtenText} (Chưa có nội dung thực tế)` : "(Chưa làm bài tự luận)")}
                   </p>
+
+                  {/* AI Short Feedback */}
                   {ev?.general_feedback && (
-                    <div style={{ fontSize: 12, color: "#8b4513", background: "rgba(217, 130, 54, 0.08)", padding: "8px 12px", borderRadius: "10px" }}>
+                    <div style={{ fontSize: 12.5, color: "#8b4513", background: "rgba(217, 130, 54, 0.08)", padding: "10px 14px", borderRadius: "10px", lineHeight: 1.6, marginBottom: 8 }}>
                       🤖 <strong>AI Nhận xét:</strong> {ev.general_feedback}
                     </div>
                   )}
+
+                  {/* Improvements OR Praise */}
+                  {cleanWords > 0 && ev?.improvements && ev.improvements.length > 0 && (mb?.text_score || 0) < (scoreMultipliers.textMax * 0.85) ? (
+                    <div style={{ padding: "10px 14px", borderRadius: "10px", background: "rgba(234, 88, 12, 0.08)", border: "1px solid rgba(234, 88, 12, 0.2)", marginTop: 8 }}>
+                      <div style={{ fontWeight: 800, fontSize: 12, color: "#9a3412", marginBottom: 4 }}>
+                        💡 Gợi ý cải thiện từ AI:
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: "#9a3412", lineHeight: 1.6 }}>
+                        {ev.improvements.map((im, i) => <li key={i}>{im}</li>)}
+                      </ul>
+                    </div>
+                  ) : cleanWords >= 15 ? (
+                    <div style={{ padding: "10px 14px", borderRadius: "10px", background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)", marginTop: 8 }}>
+                      <div style={{ fontWeight: 800, fontSize: 12, color: "#065f46", marginBottom: 4 }}>
+                        🌟 Lời khen ngợi từ AI:
+                      </div>
+                      <p style={{ margin: 0, fontSize: 12, color: "#065f46", lineHeight: 1.5 }}>
+                        {ev?.strengths && ev.strengths.length > 0
+                          ? ev.strengths.join(". ")
+                          : "Bài làm trả lời rất tốt, cấu trúc STAR rõ ràng, mạch lạc và có tính thuyết phục cao."}
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
 
-                {/* 3. Voice Review */}
-                <div style={{ padding: "14px 16px", borderRadius: "14px", background: "rgba(255, 255, 255, 0.85)", border: "1px solid rgba(106, 72, 49, 0.12)" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13, marginBottom: 6 }}>
-                    <Mic size={15} color="#d98236" />
-                    <span>Ghi âm giọng nói ({hasRecordedAudio ? `${ans?.recordingSeconds || 0}s` : "0s"}):</span>
-                    <span style={{ color: "#d98236", fontSize: 12 }}>{mb?.voice_score || 0}/{scoreMultipliers.voiceMax}đ</span>
+                {/* 3. Voice Review: STT Transcript, Disfluency Errors & AI Feedback */}
+                <div style={{ padding: "16px 18px", borderRadius: "14px", background: "rgba(255, 255, 255, 0.85)", border: "1px solid rgba(106, 72, 49, 0.12)" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13.5 }}>
+                      <Mic size={16} color="#d98236" />
+                      <span>Ghi âm giọng nói ({hasRecordedAudio ? `${ans?.recordingSeconds || 0}s` : "0s"}):</span>
+                      <span style={{ color: "#d98236", fontSize: 13 }}>{mb?.voice_score || 0}/{scoreMultipliers.voiceMax}đ</span>
+                    </div>
                   </div>
+
                   {hasRecordedAudio ? (
-                    <audio src={ans?.recordedAudioUrl || undefined} controls style={{ width: "100%", maxWidth: 360, height: 36, marginTop: 4 }} />
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {/* Audio Player */}
+                      <audio src={ans?.recordedAudioUrl || undefined} controls style={{ width: "100%", maxWidth: 420, height: 36 }} />
+
+                      {/* Candidate STT Transcript */}
+                      <div style={{ padding: "10px 14px", borderRadius: 12, background: "rgba(33, 25, 20, 0.03)", border: "1px solid rgba(106, 72, 49, 0.1)" }}>
+                        <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: "var(--ink-soft)", letterSpacing: "0.05em", marginBottom: 4 }}>
+                          📝 Nội dung bạn đã phát biểu (STT Transcript):
+                        </div>
+                        <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink)", fontStyle: "italic", lineHeight: 1.6 }}>
+                          {ans?.transcript || voiceRecorder.transcript || "(Đã ghi nhận bản ghi âm giọng nói)"}
+                        </p>
+                      </div>
+
+                      {/* Speech Disfluency & Telemetry Analysis */}
+                      {(() => {
+                        const dm = ans?.delivery_metrics || ev?.delivery_metrics || voiceRecorder.deliveryMetrics;
+                        if (!dm) return null;
+                        const fillers = dm.fillers || [];
+                        const longPauses = (dm.pauseDurationsMs || []).filter((p: number) => p >= 1200);
+
+                        return (
+                          <div style={{ padding: "12px 16px", borderRadius: 12, background: "#fffaf4", border: "1px solid rgba(217, 130, 54, 0.25)" }}>
+                            <div style={{ fontSize: 12.5, fontWeight: 800, color: "#8b4513", marginBottom: 6 }}>
+                              📊 Phân tích lỗi ngập ngừng & Tốc độ nói:
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 14, fontSize: 12, color: "var(--ink-soft)" }}>
+                              <span>• ⏱️ Tốc độ nói: <strong>{dm.activeSpeechWpm || 0} WPM</strong> {dm.activeSpeechWpm >= 110 && dm.activeSpeechWpm <= 165 ? "✓ (Chuẩn phỏng vấn)" : dm.activeSpeechWpm > 165 ? "⚠️ (Nói hơi nhanh)" : "⚠️ (Nói hơi chậm)"}</span>
+                              <span>• 🗣️ <strong>{dm.fillerCount || 0}</strong> lần ậm ừ/từ đệm</span>
+                              <span>• ⏸️ <strong>{dm.longPauseCount || 0}</strong> lần dừng lâu/suy nghĩ (&gt;1.2s)</span>
+                              <span>• 🔁 <strong>{dm.repetitionCount || 0}</strong> lần lặp từ</span>
+                            </div>
+
+                            {/* Details of filler words */}
+                            {fillers.length > 0 && (
+                              <div style={{ marginTop: 8, fontSize: 11.5, color: "#b45309", lineHeight: 1.5 }}>
+                                ⚠️ <strong>Từ đệm/ậm ừ phát hiện:</strong> {fillers.map((f: any) => `"${f.text}" (×${f.count})`).join(", ")}
+                              </div>
+                            )}
+
+                            {/* Details of long pauses */}
+                            {longPauses.length > 0 && (
+                              <div style={{ marginTop: 4, fontSize: 11.5, color: "#b45309", lineHeight: 1.5 }}>
+                                ⚠️ <strong>Các khoảng dừng suy nghĩ lâu:</strong> {longPauses.map((p: number) => `${(p / 1000).toFixed(1)}s`).join(", ")}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* AI Voice Feedback */}
+                      {ev?.general_feedback && (
+                        <div style={{ fontSize: 12, color: "#8b4513", background: "rgba(217, 130, 54, 0.08)", padding: "10px 14px", borderRadius: "10px", lineHeight: 1.6 }}>
+                          🤖 <strong>AI Nhận xét phát âm:</strong> {ev.general_feedback}
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    <span style={{ fontSize: 12, color: "var(--ink-muted)", fontStyle: "italic" }}>(Chưa ghi âm câu trả lời cho câu này)</span>
+                    <div style={{ fontSize: 12, color: "var(--ink-muted)", fontStyle: "italic", padding: "8px 0" }}>
+                      (Chưa thực hiện ghi âm câu trả lời cho câu này)
+                    </div>
                   )}
                 </div>
                   </>
