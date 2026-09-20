@@ -103,6 +103,24 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const totalQuestions = questionsList.length;
+
+  // Exact Mathematical Scoring Constants:
+  // Total Exam Points = 100 points
+  // Each Question Max Points = 100 / N
+  // Quiz Max Points = 15 / N (15% of question)
+  // Text Max Points = 35 / N (35% of question)
+  // Voice Max Points = 50 / N (50% of question)
+  const scoreMultipliers = useMemo(() => {
+    const N = Math.max(1, totalQuestions);
+    return {
+      pointsPerQuestion: Number((100.0 / N).toFixed(2)),
+      quizMax: Number((15.0 / N).toFixed(2)),
+      textMax: Number((35.0 / N).toFixed(2)),
+      voiceMax: Number((50.0 / N).toFixed(2)),
+    };
+  }, [totalQuestions]);
+
 
 
   // Candidate answers and final evaluations keyed by question_id
