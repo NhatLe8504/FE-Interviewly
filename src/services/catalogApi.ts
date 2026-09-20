@@ -605,6 +605,35 @@ export const catalogApi = {
     }
   },
 
+  filterFallbackQuestions(params: QuestionFilterParams = {}): QuestionPageOut {
+    let list: QuestionDetailOut[] = [...FALLBACK_QUESTIONS];
+    if (params.domain_id) {
+      list = list.filter((q) => q.domain_id === Number(params.domain_id));
+    }
+    if (params.role_id) {
+      list = list.filter((q) => q.role_id === Number(params.role_id));
+    }
+    if (params.level && params.level !== "all") {
+      list = list.filter((q) => q.experience_level === params.level);
+    }
+    if (params.type && params.type !== "all") {
+      list = list.filter((q) => q.question_type === params.type);
+    }
+    if (params.language && params.language !== "all") {
+      list = list.filter((q) => q.language === params.language);
+    }
+    if (params.search && params.search.trim()) {
+      const kw = params.search.trim().toLowerCase();
+      list = list.filter((q) => q.question_text.toLowerCase().includes(kw));
+    }
+    return {
+      items: list,
+      total: list.length,
+      limit: params.limit || 50,
+      offset: params.offset || 0,
+    };
+  },
+
   filterFallbackQuestionsByIds(ids: number[]): QuestionDetailOut[] {
     const allKnown: QuestionDetailOut[] = [...FALLBACK_QUESTIONS];
 
