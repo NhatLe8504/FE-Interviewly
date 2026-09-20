@@ -54,6 +54,16 @@ export interface QuestionAnswerRecord {
   delivery_metrics?: DeliveryMetrics | null;
 }
 
+
+function cleanCandidateText(raw?: string): { actualWords: number; cleanText: string } {
+  if (!raw || !raw.trim()) return { actualWords: 0, cleanText: "" };
+  const stripped = raw
+    .replace(/•?\s*(Tình huống|Nhiệm vụ|Hành động|Kết quả|Situation|Task|Action|Result)\s*(\([^)]*\))?:?/gi, "")
+    .trim();
+  const words = stripped ? stripped.split(/\s+/).filter((w) => w.length > 0) : [];
+  return { actualWords: words.length, cleanText: stripped };
+}
+
 export default function QuestionDetailClient({ questionId: propQuestionId }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -106,6 +116,54 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
 
   // Pipeline B: Pull MQ Hook
   const pullQueue = useEvaluationPullQueue();
+  // Scale evaluation result strictly based on pointsPerQuestion (100 / N)
+  const scaleEvaluationResult = useCallback(
+    (rawResult: AIEvaluationResult, ansRecord?: QuestionAnswerRecord, isCorrectQuiz?: boolean): AIEvaluationResult => {
+      const mb = rawResult.modal_breakdown;
+      const { actualWords } = cleanCandidateText(ansRecord?.writtenText);
+      const voiceSec = ansRecord?.recordingSeconds || 0;
+      const hasAudio = Boolean(ansRecord?.recordedAudioUrl && voiceSec >= 4);
+
+      // Raw percentages (0.0 to 1.0)
+      const rawTextScore = mb ? mb.text_score : (rawResult.score ? rawResult.score * 0.35 : 0);
+      const textPct = actualWords === 0 ? 0.0 : Math.max(0, Math.min(1.0, rawTextScore / 35.0));
+
+      const rawVoiceScore = mb ? mb.voice_score : (rawResult.score ? rawResult.score * 0.50 : 0);
+      const voicePct = !hasAudio ? 0.0 : Math.max(0, Math.min(1.0, rawVoiceScore / 50.0));
+
+      const quizPct = isCorrectQuiz ? 1.0 : 0.0;
+
+      // Scaled points strictly bounded by question's multipliers:
+      const qQuiz = Number((quizPct * scoreMultipliers.quizMax).toFixed(1));
+      const qText = Number((textPct * scoreMultipliers.textMax).toFixed(1));
+      const qVoice = Number((voicePct * scoreMultipliers.voiceMax).toFixed(1));
+      const qTotal = Number(Math.min(scoreMultipliers.pointsPerQuestion, qQuiz + qText + qVoice).toFixed(1));
+
+      let feedback = rawResult.general_feedback;
+      if (actualWords === 0 && !hasAudio && qQuiz === 0) {
+        feedback = "Bạn chưa hoàn thành các phần thi của câu hỏi này (chưa chọn đúng trắc nghiệm, chưa viết nội dung tự luận và chưa ghi âm giọng nói).";
+      } else if (actualWords === 0) {
+        feedback = "Chưa có nội dung câu trả lời tự luận (chỉ có các tiêu đề mẫu gợi ý). Cần bổ sung nội dung thực tế theo khung STAR.";
+      }
+
+      return {
+        ...rawResult,
+        score: Math.round(qTotal),
+        passed: qTotal >= Number((scoreMultipliers.pointsPerQuestion * 0.7).toFixed(1)),
+        general_feedback: feedback,
+        modal_breakdown: {
+          quiz_score: qQuiz,
+          quiz_max: scoreMultipliers.quizMax,
+          text_score: qText,
+          text_max: scoreMultipliers.textMax,
+          voice_score: qVoice,
+          voice_max: scoreMultipliers.voiceMax,
+          total_score: qTotal,
+        },
+      };
+    },
+    [scoreMultipliers]
+  );
 
 
 
@@ -483,7 +541,8 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
           role_name: currentQuestion?.role_name || "Software Engineer",
         },
         (result) => {
-          setEvaluationsMap((prev) => ({ ...prev, [currentQId]: result }));
+          const scaled = scaleEvaluationResult(result, currentAns, isCorrect);
+          setEvaluationsMap((prev) => ({ ...prev, [currentQId]: scaled }));
         }
       );
     }
@@ -535,7 +594,8 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
           audio_duration_seconds: durSec,
         },
         (result) => {
-          setEvaluationsMap((prev) => ({ ...prev, [currentQId]: result }));
+          const scaled = scaleEvaluationResult(result, currentAns, isCorrect);
+          setEvaluationsMap((prev) => ({ ...prev, [currentQId]: scaled }));
         }
       );
     }
@@ -781,8 +841,17 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
             const ev = evaluationsMap[item.question_id];
             const ans = answersMap[item.question_id];
             const mb = ev?.modal_breakdown;
-            const chosenOpt = item.quiz_data?.options.find((o) => o.id === ans?.selectedOption);
-            const correctOpt = item.quiz_data?.options.find((o) => o.is_correct);
+            const quizOptions = item.quiz_data?.options || [
+              { id: "A", text: "Vội vàng sửa code trực tiếp trên production server để dập lỗi nhanh nhất có thể.", is_correct: false, explanation: "Sửa trực tiếp trên production vi phạm quy trình release an toàn." },
+              { id: "B", text: "Áp dụng cấu trúc STAR: Nêu bối cảnh (S), làm rõ vai trò (T), hành động cụ thể (A) và dẫn chứng số liệu định lượng (R).", is_correct: true, explanation: "Cách tiếp cận chuẩn mực giúp câu trả lời logic và có tính thuyết phục cao." },
+              { id: "C", text: "Đổ lỗi cho hoàn cảnh hoặc đồng nghiệp để chứng minh bản thân luôn làm đúng.", is_correct: false, explanation: "Thái độ đổ lỗi là điểm trừ rất lớn trong phỏng vấn hành vi." },
+              { id: "D", text: "Chỉ trả lời một câu ngắn gọn và chờ người phỏng vấn tự hỏi tiếp.", is_correct: false, explanation: "Quá thụ động, không thể hiện được chiều sâu tư duy." },
+            ];
+            const chosenOpt = quizOptions.find((o) => o.id === ans?.selectedOption);
+            const correctOpt = quizOptions.find((o) => o.is_correct);
+            const isQuizCorrect = Boolean(chosenOpt && chosenOpt.is_correct);
+            const { actualWords: cleanWords } = cleanCandidateText(ans?.writtenText);
+            const hasRecordedAudio = Boolean(ans?.recordedAudioUrl && (ans.recordingSeconds || 0) >= 4);
 
             return (
               <div
@@ -847,7 +916,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                   <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13, marginBottom: 6 }}>
                     <CheckSquare size={15} color="#d98236" />
                     <span>Kết quả Trắc nghiệm:</span>
-                    {chosenOpt?.is_correct ? (
+                    {isQuizCorrect ? (
                       <span style={{ color: "#059669", fontSize: 12 }}>✓ Chính xác (+{scoreMultipliers.quizMax}đ)</span>
                     ) : (
                       <span style={{ color: "#dc2626", fontSize: 12 }}>✗ Chưa chính xác (0đ)</span>
@@ -868,11 +937,11 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                 <div style={{ marginBottom: 14, padding: "14px 16px", borderRadius: "14px", background: "rgba(255, 255, 255, 0.85)", border: "1px solid rgba(106, 72, 49, 0.12)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13, marginBottom: 6 }}>
                     <FileText size={15} color="#d98236" />
-                    <span>Bài Tự luận STAR ({ans?.writtenText?.trim().split(/\s+/).filter(Boolean).length || 0} từ):</span>
+                    <span>Bài Tự luận STAR ({cleanWords} từ thực tế):</span>
                     <span style={{ color: "#d98236", fontSize: 12 }}>{mb?.text_score || 0}/{scoreMultipliers.textMax}đ</span>
                   </div>
-                  <p style={{ margin: "0 0 8px", fontSize: 12.5, color: "var(--ink)", fontStyle: "italic", lineHeight: 1.6 }}>
-                    {ans?.writtenText ? `"${ans.writtenText}"` : "(Chưa làm bài tự luận)"}
+                  <p style={{ margin: "0 0 8px", fontSize: 12.5, color: cleanWords > 0 ? "var(--ink)" : "var(--ink-muted)", fontStyle: "italic", lineHeight: 1.6 }}>
+                    {cleanWords > 0 ? `"${ans?.writtenText}"` : (ans?.writtenText ? `${ans.writtenText} (Chưa có nội dung thực tế)` : "(Chưa làm bài tự luận)")}
                   </p>
                   {ev?.general_feedback && (
                     <div style={{ fontSize: 12, color: "#8b4513", background: "rgba(217, 130, 54, 0.08)", padding: "8px 12px", borderRadius: "10px" }}>
@@ -885,13 +954,13 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                 <div style={{ padding: "14px 16px", borderRadius: "14px", background: "rgba(255, 255, 255, 0.85)", border: "1px solid rgba(106, 72, 49, 0.12)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13, marginBottom: 6 }}>
                     <Mic size={15} color="#d98236" />
-                    <span>Ghi âm giọng nói ({ans?.recordingSeconds || 0}s):</span>
+                    <span>Ghi âm giọng nói ({hasRecordedAudio ? `${ans?.recordingSeconds || 0}s` : "0s"}):</span>
                     <span style={{ color: "#d98236", fontSize: 12 }}>{mb?.voice_score || 0}/{scoreMultipliers.voiceMax}đ</span>
                   </div>
-                  {ans?.recordedAudioUrl ? (
-                    <audio src={ans.recordedAudioUrl} controls style={{ width: "100%", maxWidth: 360, height: 36, marginTop: 4 }} />
+                  {hasRecordedAudio ? (
+                    <audio src={ans?.recordedAudioUrl || undefined} controls style={{ width: "100%", maxWidth: 360, height: 36, marginTop: 4 }} />
                   ) : (
-                    <span style={{ fontSize: 12, color: "var(--ink-muted)", fontStyle: "italic" }}>(Chưa ghi âm cho câu này)</span>
+                    <span style={{ fontSize: 12, color: "var(--ink-muted)", fontStyle: "italic" }}>(Chưa ghi âm câu trả lời cho câu này)</span>
                   )}
                 </div>
                   </>
