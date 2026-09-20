@@ -41,6 +41,7 @@ import { useEvaluationPullQueue } from "@/hooks/useEvaluationPullQueue";
 import { MOCK_QUESTION_SETS } from "@/mock/questionSetsMock";
 import { getDomainTheme } from "@/constants/domainThemes";
 import styles from "./detail.module.css";
+import { toast } from "@/components/user-component/toast";
 
 interface Props {
   questionId?: string;
@@ -166,11 +167,21 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
         feedback = "Chưa có nội dung câu trả lời tự luận (chỉ có các tiêu đề mẫu gợi ý). Cần bổ sung nội dung thực tế theo khung STAR.";
       }
 
+      const textFb = actualWords === 0
+        ? "Bạn chưa nhập nội dung câu trả lời cho phần tự luận (chỉ có các tiêu đề mẫu gợi ý). Hãy diễn giải chi tiết tình huống thực tế của bạn theo khung STAR để được chấm điểm."
+        : rawResult.text_feedback || rawResult.feedback || "Bài tự luận đã được phân tích theo khung STAR.";
+
+      const voiceFb = !hasAudio
+        ? "Chưa thực hiện ghi âm câu trả lời cho câu này (chiếm 50% số điểm câu hỏi). Hãy sử dụng micro để luyện tập phát biểu trực tiếp."
+        : rawResult.voice_feedback || rawResult.feedback || "Bản ghi âm giọng nói đã được phân tích nhịp điệu và ngữ nghĩa.";
+
       return {
         ...rawResult,
         score: Math.round(qTotal),
         passed: qTotal >= Number((scoreMultipliers.pointsPerQuestion * 0.7).toFixed(1)),
         general_feedback: feedback,
+        text_feedback: textFb,
+        voice_feedback: voiceFb,
         modal_breakdown: {
           quiz_score: qQuiz,
           quiz_max: scoreMultipliers.quizMax,
@@ -228,6 +239,10 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
           total_questions: questionsList.length,
           evaluated_questions: evaluatedPayload,
           language: questionsList[0]?.language || "vi",
+        }).then((synthesisRes) => {
+          if (synthesisRes) {
+            toast.success("🎉 AI Coach đã hoàn tất chấm điểm toàn diện bài thi của bạn!");
+          }
         });
 
         // Save Practice History to DB and localStorage
