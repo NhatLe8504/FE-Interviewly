@@ -146,21 +146,49 @@ export function useEvaluationPullQueue() {
         textScore = Math.min(35.0, Number((0.4 + (actualCandidateWords / 150.0) * 0.6) * 35.0).toFixed(1));
       }
 
-      // 2. Voice Score Strict Determination
+      // 2. Voice Score Strict Determination & Non-Answer Detection
       let voiceScore = 0.0;
+      let voiceFeedback = "";
+      let voiceImprovements: string[] = [];
+      let voiceStrengths: string[] = [];
+
       const voiceDurMs = delivery?.durationMs || 0;
       const voiceWords = delivery?.wordCount || (transcript ? transcript.split(/\s+/).filter(Boolean).length : 0);
+      const isNonAnswerVoice = Boolean(
+        /không biết|chưa biết|không hiểu|chịu|chịu thôi|không có kinh nghiệm|alo|thử mic|test|1 2 3|i don't know|no idea/i.test(transcript)
+        || (voiceWords < 5 && transcript.trim().length > 0)
+      );
 
       if (voiceDurMs < 3500 || (voiceWords === 0 && !transcript.trim())) {
         voiceScore = 0.0;
+        voiceFeedback = "Chưa thực hiện ghi âm câu trả lời bằng giọng nói (chiếm 50% số điểm câu hỏi).";
+        voiceImprovements = ["Hãy sử dụng micro để phát biểu trực tiếp ít nhất 15-30 giây để đạt điểm phần nói."];
+      } else if (isNonAnswerVoice) {
+        voiceScore = Math.min(4.0, Number((voiceWords * 0.4).toFixed(1)));
+        voiceFeedback = "Ứng viên chưa trả lời vào trọng tâm câu hỏi (phát biểu không biết cách trả lời hoặc thử mic). Cần tự tin chia sẻ trải nghiệm thực tế hoặc suy luận giải pháp.";
+        voiceImprovements = ["Hãy chủ động đưa ra hướng tiếp cận hoặc suy luận kỹ thuật cho câu hỏi thay vì từ chối trả lời."];
       } else if (voiceResult && typeof voiceResult.voice_score === "number") {
         voiceScore = voiceResult.voice_score;
+        voiceFeedback = voiceResult.feedback || "Phát biểu đã được ghi nhận.";
+        voiceImprovements = voiceResult.improvements || [];
+        voiceStrengths = voiceResult.strengths || [];
       } else if (voiceDurMs >= 5000) {
-        voiceScore = 35.0;
+        voiceScore = 32.0;
+        voiceFeedback = `Phát biểu ${Math.round(voiceDurMs / 1000)}s với tốc độ ${delivery?.activeSpeechWpm || 0} WPM.`;
+        voiceStrengths = [`Tốc độ phát âm ${delivery?.activeSpeechWpm || 0} WPM tự nhiên.`];
       }
 
       const totalScore = Math.min(100, Math.round(quizScore + textScore + voiceScore));
       const passed = totalScore >= 70;
+
+      // Pure text feedback & improvements
+      const textFeedback = textResult?.feedback || (actualCandidateWords === 0
+        ? "Chưa có nội dung câu trả lời tự luận (chỉ có các tiêu đề mẫu gợi ý). Cần bổ sung nội dung thực tế theo khung STAR."
+        : `Bài tự luận có ${actualCandidateWords} từ thực tế.`);
+      const textImprovements = textResult?.improvements || (actualCandidateWords < 15
+        ? ["Cần viết chi tiết hơn từ 100 - 300 từ theo khung STAR để làm rõ năng lực kỹ thuật."]
+        : []);
+      const textStrengths = textResult?.strengths || [];
 
       // General feedback
       let feedback = "";
@@ -170,18 +198,26 @@ export function useEvaluationPullQueue() {
         feedback = "Chưa có nội dung tự luận và chưa thực hiện ghi âm. Hãy bổ sung đầy đủ cả 3 phần để đạt điểm chuẩn.";
       } else if (textResult?.feedback) {
         feedback = textResult.feedback;
-      } else if (voiceResult?.feedback) {
-        feedback = voiceResult.feedback;
+      } else if (voiceFeedback) {
+        feedback = voiceFeedback;
       } else if (passed) {
         feedback = "Bài làm hoàn thành tốt các thành phần theo tiêu chuẩn đánh giá.";
       } else {
-        feedback = "Bài làm thể hiện sự cố gắng nhưng cần viết chi tiết hơn và luyện tập nói tự tin hơn.";
+        feedback = "Bài làm thể hiện sự cố gắng nhưng cần trình bày chi tiết và trả lời đúng trọng tâm hơn.";
       }
 
       const mergedResult: AIEvaluationResult = {
         score: totalScore,
         passed,
         general_feedback: feedback,
+        text_feedback: textFeedback,
+        text_improvements: textImprovements,
+        text_strengths: textStrengths,
+        voice_feedback: voiceFeedback,
+        voice_improvements: voiceImprovements,
+        voice_strengths: voiceStrengths,
+        transcript: transcript || undefined,
+        delivery_metrics: delivery || undefined,
         star_breakdown: textResult?.star_breakdown || (actualCandidateWords === 0 ? {
           situation_score: 0,
           situation_feedback: "Chưa nhập bối cảnh tình huống.",
