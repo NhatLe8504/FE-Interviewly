@@ -3,7 +3,7 @@ import { VADConfig } from "@/types/delivery";
 export const VAD_CONFIG: VADConfig = {
   calibrationMs: 300,
   minSpeechDurationMs: 400,
-  longPauseThresholdMs: 1200, // Khoảng lặng >= 1.2s được tính là 1 lần ngập ngừng dài
+  longPauseThresholdMs: 3000, // Khoảng lặng >= 3.0s được tính là 1 lần ngập ngừng dài
   endTurnSilenceMs: 2500,     // 2.5s im lặng sau khi đã phát biểu ➔ tự động báo kết thúc hoặc sẵn sàng
   hysteresisDebounceMs: 150,  // Khử nhiễu giật lag (150ms) khi chuyển giữa nói và im lặng
 };

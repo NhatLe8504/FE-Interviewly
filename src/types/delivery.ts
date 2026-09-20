@@ -14,7 +14,7 @@ export interface DeliveryMetrics {
   possibleFillerCount: number;
   fillerRatePer100Words: number;
   fillers: FillerOccurrence[];
-  longPauseCount: number;       // Số khoảng lặng dài (> 1200ms)
+  longPauseCount: number;       // Số khoảng lặng dài (> 3000ms)
   pauseDurationsMs: number[];   // Danh sách các khoảng lặng để phân tích
   maxPauseMs: number;
   averagePauseMs: number;
@@ -46,7 +46,7 @@ export interface VADConfig {
 export const DEFAULT_VAD_CONFIG: VADConfig = {
   calibrationMs: 300,
   minSpeechDurationMs: 400,
-  longPauseThresholdMs: 1200,
+  longPauseThresholdMs: 3000,
   endTurnSilenceMs: 2500,
   hysteresisDebounceMs: 150,
 };
