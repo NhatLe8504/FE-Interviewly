@@ -185,15 +185,23 @@ export function computeDeliveryMetrics(params: {
   const words = transcript.trim() ? transcript.trim().split(/\s+/).filter(Boolean) : [];
   const wordCount = words.length;
 
-  // Calculate Speech Rate WPM
-  const durationMin = Math.max(0.01, durationMs / 60000);
-  const activeMin = Math.max(0.01, activeSpeechMs / 60000);
+  // Calculate Speech Rate WPM safely with realistic human bounds (80 - 240 WPM)
+  let elapsedWpm = 0;
+  let activeSpeechWpm = 0;
 
-  // Elapsed WPM: total words over entire session duration
-  const elapsedWpm = Math.round(wordCount / durationMin);
+  if (wordCount > 0 && durationMs >= 1500) {
+    const totalSec = Math.max(2.0, durationMs / 1000.0);
+    // Active speaking seconds cannot be smaller than wordCount * 0.25s (average word takes ~250ms - 350ms to pronounce)
+    const minRealisticSpeechSec = Math.max(1.5, wordCount * 0.28);
+    const activeSec = Math.max(minRealisticSpeechSec, Math.min(totalSec, activeSpeechMs / 1000.0));
 
-  // Active Speech WPM: total words over active speaking duration (excluding long pauses)
-  const activeSpeechWpm = Math.round(wordCount / activeMin);
+    const rawActive = Math.round((wordCount / (activeSec / 60.0)));
+    const rawElapsed = Math.round((wordCount / (totalSec / 60.0)));
+
+    // Clamp to realistic human speaking rates
+    activeSpeechWpm = Math.min(240, Math.max(0, rawActive));
+    elapsedWpm = Math.min(240, Math.max(0, rawElapsed));
+  }
 
   // Detect Fillers with Contextual Heuristic
   const { fillers, fillerCount, possibleFillerCount } = detectFillers(transcript);
