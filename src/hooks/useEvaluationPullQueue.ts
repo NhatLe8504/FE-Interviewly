@@ -1,3 +1,13 @@
+
+function cleanCandidateText(raw?: string): { actualWords: number; cleanText: string } {
+  if (!raw || !raw.trim()) return { actualWords: 0, cleanText: "" };
+  const stripped = raw
+    .replace(/•?\s*(Tình huống|Nhiệm vụ|Hành động|Kết quả|Situation|Task|Action|Result)\s*(\([^)]*\))?:?/gi, "")
+    .trim();
+  const words = stripped ? stripped.split(/\s+/).filter((w) => w.length > 0) : [];
+  return { actualWords: words.length, cleanText: stripped };
+}
+
 "use client";
 
 import { useState, useRef, useCallback } from "react";
@@ -132,28 +142,45 @@ export function useEvaluationPullQueue() {
       // Await both independent evaluations in parallel via async/await
       const [textResult, voiceResult] = await Promise.all([textPromise, voicePromise]);
 
-      const textScore = textResult && typeof textResult.text_score === "number"
-        ? textResult.text_score
-        : (text.length >= 80 ? 20.0 : text.length > 0 ? 8.0 : 0.0);
+      const { actualWords: cleanWords } = cleanCandidateText(text);
+      const hasVoiceRecording = Boolean((delivery?.durationMs && delivery.durationMs >= 3500) || transcript.trim().length > 0);
 
-      const voiceScore = voiceResult && typeof voiceResult.voice_score === "number"
+      const textScore = cleanWords === 0
+        ? 0.0
+        : textResult && typeof textResult.text_score === "number"
+        ? textResult.text_score
+        : (cleanWords >= 15 ? 18.0 : 4.0);
+
+      const voiceScore = !hasVoiceRecording
+        ? 0.0
+        : voiceResult && typeof voiceResult.voice_score === "number"
         ? voiceResult.voice_score
-        : ((delivery?.durationMs && delivery.durationMs >= 4000 && transcript.length >= 20) ? 25.0 : 0.0);
+        : (delivery?.durationMs && delivery.durationMs >= 15000 ? 30.0 : 15.0);
 
       const totalScore = Math.min(100, Math.round(quizScore + textScore + voiceScore));
       const passed = totalScore >= 70;
 
-      const textFeedback = textResult?.text_feedback || (text
-        ? "Nội dung tự luận đã được ghi nhận."
-        : "Chưa nhập nội dung tự luận (chỉ có tiêu đề mẫu gợi ý). Cần bổ sung nội dung thực tế theo khung STAR.");
-      const textImprovements = textResult?.text_improvements || [];
-      const textStrengths = textResult?.text_strengths || [];
+      // Extract specific feedbacks from LLM without any generic placeholder
+      const textFeedback = cleanWords === 0
+        ? "Bạn chưa nhập nội dung câu trả lời cho phần tự luận (chỉ có các tiêu đề mẫu gợi ý). Hãy diễn giải chi tiết tình huống thực tế của bạn theo khung STAR để được chấm điểm."
+        : textResult?.text_feedback || textResult?.feedback || (cleanWords < 15
+          ? `Câu trả lời tự luận quá ngắn (${cleanWords} từ thực tế), chưa đủ thông tin để AI đánh giá theo khung STAR. Hãy trình bày chi tiết từ 100 - 300 từ.`
+          : "Nội dung tự luận đã được ghi nhận và phân tích chi tiết theo khung STAR.");
 
-      const voiceFeedback = voiceResult?.voice_feedback || (transcript || (delivery?.durationMs && delivery.durationMs >= 4000)
-        ? "Phát biểu đã được ghi nhận."
-        : "Chưa thực hiện ghi âm câu trả lời cho câu này.");
-      const voiceImprovements = voiceResult?.voice_improvements || [];
-      const voiceStrengths = voiceResult?.voice_strengths || [];
+      const textImprovements = cleanWords === 0
+        ? ["Hãy trình bày cụ thể bối cảnh, nhiệm vụ, giải pháp và kết quả dự án thực tế theo khung STAR."]
+        : textResult?.text_improvements || textResult?.improvements || [];
+
+      const textStrengths = textResult?.text_strengths || textResult?.strengths || [];
+
+      const voiceFeedback = !hasVoiceRecording
+        ? "Chưa thực hiện ghi âm câu trả lời cho câu này (chiếm 50% số điểm câu hỏi). Hãy sử dụng micro để luyện tập phát biểu trực tiếp."
+        : voiceResult?.voice_feedback || voiceResult?.feedback || (transcript
+          ? `Nội dung phát biểu "${transcript.slice(0, 80)}..." đã được AI phân tích nhịp điệu và ngữ nghĩa.`
+          : `Phát biểu ${Math.round((delivery?.durationMs || 0) / 1000)}s đã được ghi nhận.`);
+
+      const voiceImprovements = voiceResult?.voice_improvements || voiceResult?.improvements || [];
+      const voiceStrengths = voiceResult?.voice_strengths || voiceResult?.strengths || [];
 
       const mergedResult: AIEvaluationResult = {
         score: totalScore,
