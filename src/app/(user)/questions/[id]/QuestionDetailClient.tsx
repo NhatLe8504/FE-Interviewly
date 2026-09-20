@@ -268,6 +268,12 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
     };
   }, [propQuestionId, qParam, setParam, searchParams]);
 
+  // Automatically reset to Quiz mode (Part 1) and reset voice recorder on question change
+  useEffect(() => {
+    setPracticeType("quiz");
+    voiceRecorder.reset();
+  }, [currentIdx]);
+
   // Current Question
   const currentQuestion = useMemo(() => {
     if (questionsList.length === 0 || currentIdx < 0 || currentIdx >= questionsList.length) {
@@ -565,6 +571,10 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
         }
       );
     }
+
+    // Always reset to Quiz mode (Part 1) and reset voice recorder when navigating
+    setPracticeType("quiz");
+    voiceRecorder.reset();
 
     setCurrentIdx(targetIndex);
   };
@@ -1485,7 +1495,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                       style={isCurrentLocked ? { opacity: 0.5, cursor: "not-allowed" } : {}}
                     >
                       <Mic size={18} />
-                      <span>{isCurrentLocked ? "Đã khóa ghi âm" : (currentAns.recordedAudioUrl || voiceRecorder.recordedAudioUrl) ? "Ghi âm lại" : t.questions.detail.startRecording}</span>
+                      <span>{isCurrentLocked ? "Đã khóa ghi âm" : currentAns.recordedAudioUrl ? "Ghi âm lại" : t.questions.detail.startRecording}</span>
                     </button>
                   ) : (
                     <button
@@ -1501,9 +1511,9 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
 
 
 
-                {(currentAns.recordedAudioUrl || voiceRecorder.recordedAudioUrl) && (
+                {currentAns.recordedAudioUrl && (
                   <div style={{ marginTop: 12, width: "100%", maxWidth: 360 }}>
-                    <audio src={currentAns.recordedAudioUrl || voiceRecorder.recordedAudioUrl || undefined} controls style={{ width: "100%" }} />
+                    <audio src={currentAns.recordedAudioUrl} controls style={{ width: "100%" }} />
                   </div>
                 )}
               </div>
