@@ -1,4 +1,12 @@
-import { VADConfig, DEFAULT_VAD_CONFIG } from "@/types/delivery";
+import { VADConfig } from "@/types/delivery";
+
+export const VAD_CONFIG: VADConfig = {
+  calibrationMs: 300,
+  minSpeechDurationMs: 400,
+  longPauseThresholdMs: 1200, // Khoảng lặng >= 1.2s được tính là 1 lần ngập ngừng dài
+  endTurnSilenceMs: 2500,     // 2.5s im lặng sau khi đã phát biểu ➔ tự động báo kết thúc hoặc sẵn sàng
+  hysteresisDebounceMs: 150,  // Khử nhiễu giật lag (150ms) khi chuyển giữa nói và im lặng
+};
 
 export interface VADEventCallbacks {
   onSpeechStart?: () => void;
@@ -17,30 +25,28 @@ export class WebAudioVADAnalyzer {
   private config: VADConfig;
   private callbacks: VADEventCallbacks;
 
-  // Calibration state
+  // Noise floor calibration (300ms)
   private isCalibrating = false;
   private calibrationSamples: number[] = [];
   private noiseFloorRms = 0.015;
   private speechThresholdRms = 0.035;
 
-  // Speaking & Pause tracking
+  // State tracking
   private isSpeaking = false;
   private speechStartTime = 0;
   private lastSpeechEndTime = 0;
+  private lastStateChangeTime = 0;
   private totalActiveSpeechMs = 0;
   private pauseDurationsMs: number[] = [];
   private longPauseCount = 0;
   private startedSpeakingAtMs = 0;
 
-  // Hysteresis & silence debounce
-  private silenceConsecutiveFrames = 0;
-  private speechConsecutiveFrames = 0;
   private isRunning = false;
   private startTime = 0;
 
   constructor(callbacks: VADEventCallbacks = {}, config: Partial<VADConfig> = {}) {
     this.callbacks = callbacks;
-    this.config = { ...DEFAULT_VAD_CONFIG, ...config };
+    this.config = { ...VAD_CONFIG, ...config };
   }
 
   public async start(stream: MediaStream): Promise<void> {
@@ -64,6 +70,7 @@ export class WebAudioVADAnalyzer {
     this.sourceNode.connect(this.analyser);
 
     this.startTime = performance.now();
+    this.lastStateChangeTime = this.startTime;
     this.isRunning = true;
     this.isCalibrating = true;
     this.calibrationSamples = [];
@@ -82,7 +89,7 @@ export class WebAudioVADAnalyzer {
     const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
     this.analyser.getByteTimeDomainData(dataArray);
 
-    // Compute Root Mean Square (RMS) volume
+    // Calculate Root Mean Square (RMS)
     let sumSquares = 0;
     for (let i = 0; i < dataArray.length; i++) {
       const norm = (dataArray[i] - 128) / 128;
@@ -100,34 +107,33 @@ export class WebAudioVADAnalyzer {
         const avgNoise =
           this.calibrationSamples.reduce((a, b) => a + b, 0) /
           Math.max(1, this.calibrationSamples.length);
-        this.noiseFloorRms = Math.max(0.01, avgNoise);
-        // Adaptive threshold: noise floor + dynamic delta
-        this.speechThresholdRms = Math.max(0.03, this.noiseFloorRms * 2.2);
+        this.noiseFloorRms = Math.max(0.008, avgNoise);
+        // Adaptive threshold: noise floor + proportional headroom
+        this.speechThresholdRms = Math.max(0.025, this.noiseFloorRms * 2.2);
       }
       this.animationFrameId = requestAnimationFrame(this.loop);
       return;
     }
 
-    // Normalized volume percentage (0 - 100) for visualizers
-    const normVol = Math.min(100, Math.round((rms / (this.speechThresholdRms * 3.5)) * 100));
+    // Normalized volume (0 - 100) for real-time waveform animation
+    const normVol = Math.min(100, Math.round((rms / (this.speechThresholdRms * 3.2)) * 100));
     this.callbacks.onVolumeChange?.(rms, normVol);
 
-    // Voice Activity Detection with Hysteresis
+    // Hysteresis Voice Activity Detection with 150ms time-based debounce
     const isAboveThreshold = rms >= this.speechThresholdRms;
+    const timeSinceLastStateChange = now - this.lastStateChangeTime;
 
     if (isAboveThreshold) {
-      this.speechConsecutiveFrames++;
-      this.silenceConsecutiveFrames = 0;
-
-      // Transition silence -> speech
-      if (!this.isSpeaking && this.speechConsecutiveFrames >= 3) {
+      if (!this.isSpeaking && timeSinceLastStateChange >= this.config.hysteresisDebounceMs) {
         this.isSpeaking = true;
         this.speechStartTime = now;
+        this.lastStateChangeTime = now;
+
         if (this.startedSpeakingAtMs === 0) {
           this.startedSpeakingAtMs = elapsedSinceStart;
         }
 
-        // Calculate pause duration from last speaking event
+        // Record pause duration from previous speech end
         if (this.lastSpeechEndTime > 0) {
           const pauseDuration = now - this.lastSpeechEndTime;
           if (pauseDuration >= 300) {
@@ -140,13 +146,11 @@ export class WebAudioVADAnalyzer {
         this.callbacks.onSpeechStart?.();
       }
     } else {
-      this.silenceConsecutiveFrames++;
-      this.speechConsecutiveFrames = 0;
-
-      // Transition speech -> silence
-      if (this.isSpeaking && this.silenceConsecutiveFrames >= 8) {
+      if (this.isSpeaking && timeSinceLastStateChange >= this.config.hysteresisDebounceMs) {
         this.isSpeaking = false;
         this.lastSpeechEndTime = now;
+        this.lastStateChangeTime = now;
+
         const speechSegment = now - this.speechStartTime;
         if (speechSegment >= this.config.minSpeechDurationMs) {
           this.totalActiveSpeechMs += speechSegment;
@@ -154,7 +158,7 @@ export class WebAudioVADAnalyzer {
         this.callbacks.onSpeechEnd?.(now - this.lastSpeechEndTime);
       }
 
-      // Check auto-end turn after prolonged silence (endTurnSilenceMs)
+      // Check auto-finish detection after prolonged silence
       if (
         this.startedSpeakingAtMs > 0 &&
         this.lastSpeechEndTime > 0 &&
@@ -168,7 +172,6 @@ export class WebAudioVADAnalyzer {
   };
 
   public getStats(totalDurationMs: number) {
-    // If user is currently speaking when stopped, add remaining segment
     let activeMs = this.totalActiveSpeechMs;
     if (this.isSpeaking && this.speechStartTime > 0) {
       activeMs += Math.max(0, performance.now() - this.speechStartTime);
@@ -195,6 +198,8 @@ export class WebAudioVADAnalyzer {
       averagePauseMs: avgPause,
       startedSpeakingAtMs: Math.round(this.startedSpeakingAtMs),
       endSilenceMs: endSilence,
+      noiseFloorRms: Number(this.noiseFloorRms.toFixed(4)),
+      speechThresholdRms: Number(this.speechThresholdRms.toFixed(4)),
     };
   }
 
