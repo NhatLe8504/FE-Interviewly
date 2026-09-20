@@ -1,4 +1,6 @@
 import { request } from "./apiClient";
+import { MOCK_QUESTION_SETS } from "@/mock/questionSetsMock";
+import { MOCK_ADMIN_QUESTIONS } from "@/mock/adminQuestionsMock";
 import type {
   DomainOut,
   RoleOut,
@@ -556,14 +558,47 @@ export const catalogApi = {
   },
 
   filterFallbackQuestionsByIds(ids: number[]): QuestionDetailOut[] {
-    const map = new Map(FALLBACK_QUESTIONS.map((q) => [q.question_id, q]));
+    const allKnown: QuestionDetailOut[] = [...FALLBACK_QUESTIONS];
+
+    // 1. Recover from sessionStorage basket/custom questions
+    if (typeof window !== "undefined") {
+      try {
+        const rawBasket = sessionStorage.getItem("basket_questions") || sessionStorage.getItem("active_custom_questions");
+        if (rawBasket) {
+          const parsed = JSON.parse(rawBasket);
+          if (Array.isArray(parsed)) allKnown.push(...parsed);
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // 2. Recover from Curated Question Sets
+    try {
+      for (const s of MOCK_QUESTION_SETS) {
+        if (Array.isArray(s.questions)) {
+          allKnown.push(...s.questions);
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // 3. Recover from Mock Admin Questions
+    try {
+      allKnown.push(...(MOCK_ADMIN_QUESTIONS as any));
+    } catch {
+      // ignore
+    }
+
+    const map = new Map(allKnown.map((q) => [q.question_id, q]));
     const result: QuestionDetailOut[] = [];
     for (const id of ids) {
       const found = map.get(id);
       if (found) {
         result.push({
           ...found,
-          rubric_criteria: DEFAULT_RUBRIC_CRITERIA,
+          rubric_criteria: found.rubric_criteria || DEFAULT_RUBRIC_CRITERIA,
         });
       }
     }

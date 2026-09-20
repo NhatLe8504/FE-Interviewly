@@ -76,7 +76,33 @@ export function useQuestionPracticeSession() {
       setErrorMessage(null);
       setSkippedCount(0);
 
-      // PRIORITY 1: Comma-separated IDs in URL: ?q=1,4,7,999
+      // PRIORITY 1: Curated Question Set by ID: ?set=1 (or source=set)
+      if (setParam) {
+        const foundSet = MOCK_QUESTION_SETS.find((s) => String(s.set_id) === String(setParam));
+        if (foundSet && foundSet.questions && foundSet.questions.length > 0) {
+          const setQids = foundSet.questions.map((q) => q.question_id);
+          try {
+            const batch = await catalogApi.getQuestionsBatch(setQids);
+            if (!isMounted) return;
+            const valid = batch.length > 0 ? batch : foundSet.questions;
+            setQuestions(valid);
+            if (setQids.length > valid.length) {
+              setSkippedCount(setQids.length - valid.length);
+            }
+            setSessionTitle(customTitle ? decodeURIComponent(customTitle) : foundSet.title);
+            setIsLoading(false);
+            return;
+          } catch {
+            if (!isMounted) return;
+            setQuestions(foundSet.questions);
+            setSessionTitle(customTitle ? decodeURIComponent(customTitle) : foundSet.title);
+            setIsLoading(false);
+            return;
+          }
+        }
+      }
+
+      // PRIORITY 2: Comma-separated IDs in URL: ?q=1,4,7,999
       if (qParam && qParam.trim()) {
         const rawIds = qParam
           .split(",")
@@ -100,10 +126,6 @@ export function useQuestionPracticeSession() {
               setSessionTitle(customTitle ? decodeURIComponent(customTitle) : defaultTitle);
               setIsLoading(false);
               return;
-            } else {
-              setErrorMessage("Không tìm thấy câu hỏi nào hợp lệ từ liên kết. Các câu hỏi này có thể đã bị xóa hoặc ngưng kích hoạt.");
-              setIsLoading(false);
-              return;
             }
           } catch {
             // Fallback continues
@@ -111,88 +133,54 @@ export function useQuestionPracticeSession() {
         }
       }
 
-      // PRIORITY 2: Curated Question Set by ID: ?set=1
-      if (setParam) {
-        const foundSet = MOCK_QUESTION_SETS.find((s) => String(s.set_id) === String(setParam));
-        if (foundSet && foundSet.questions && foundSet.questions.length > 0) {
-          const setQids = foundSet.questions.map((q) => q.question_id);
-          try {
-            // Fetch fresh details for the set questions from API
-            const batch = await catalogApi.getQuestionsBatch(setQids);
-            if (!isMounted) return;
-            const valid = batch.length > 0 ? batch : foundSet.questions;
-            setQuestions(valid);
-            if (setQids.length > valid.length) {
-              setSkippedCount(setQids.length - valid.length);
-            }
-            setSessionTitle(customTitle ? decodeURIComponent(customTitle) : foundSet.title);
-            setIsLoading(false);
-            return;
-          } catch {
-            if (!isMounted) return;
-            setQuestions(foundSet.questions);
-            setSessionTitle(foundSet.title);
-            setIsLoading(false);
-            return;
-          }
-        }
-      }
-
-      // PRIORITY 3: Single Question: ?questionId=5
+      // PRIORITY 3: Single question ID: ?questionId=10
       if (singleQuestionId) {
         try {
-          const detail = await catalogApi.getQuestionDetail(singleQuestionId);
+          const single = await catalogApi.getQuestionDetail(singleQuestionId);
           if (!isMounted) return;
-          setQuestions([detail]);
-          setSessionTitle(detail.role_name ? `Luyện câu hỏi: ${detail.role_name}` : "Luyện câu hỏi đơn lẻ");
-          setIsLoading(false);
-          return;
-        } catch {
-          // Fallback
-        }
-      }
-
-      // PRIORITY 4: SessionStorage Basket Backup
-      try {
-        const raw = sessionStorage.getItem("basket_questions");
-        const activeTitle = sessionStorage.getItem("active_question_set_title");
-        if (raw) {
-          const list: QuestionDetailOut[] = JSON.parse(raw);
-          if (Array.isArray(list) && list.length > 0) {
-            if (!isMounted) return;
-            setQuestions(list);
-            setSessionTitle(activeTitle || `Giỏ đề tự chọn (${list.length} câu)`);
+          if (single && single.question_id) {
+            setQuestions([single]);
+            setSessionTitle(customTitle ? decodeURIComponent(customTitle) : `Luyện câu hỏi #${single.question_id}`);
             setIsLoading(false);
             return;
           }
+        } catch {
+          // Fallback continues
         }
-      } catch {
-        // Fallback
       }
 
-      // PRIORITY 5: Default live catalog questions
-      try {
-        const fallbackPage = await catalogApi.getQuestions({ limit: 4 });
-        if (!isMounted) return;
-        if (fallbackPage.items.length > 0) {
-          const details = await catalogApi.getQuestionsBatch(fallbackPage.items.map((i) => i.question_id));
-          if (!isMounted) return;
-          const valid = details.length > 0 ? details : fallbackPage.items.map((q) => ({
-            ...q,
-            star_template: null,
-            rubric_criteria: [],
-          }));
-          setQuestions(valid);
-          setSessionTitle("Đề luyện tập khởi đầu (Chọn lọc)");
-        } else {
-          setErrorMessage("Chưa có câu hỏi nào trong hệ thống. Vui lòng thử lại sau.");
+      // PRIORITY 4: Active Question Basket from sessionStorage
+      if (typeof window !== "undefined") {
+        try {
+          const raw = sessionStorage.getItem("basket_questions") || sessionStorage.getItem("active_custom_questions");
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setQuestions(parsed);
+              const storedTitle = sessionStorage.getItem("active_question_set_title");
+              setSessionTitle(customTitle ? decodeURIComponent(customTitle) : (storedTitle || `Giỏ câu hỏi thực hành (${parsed.length} câu)`));
+              setIsLoading(false);
+              return;
+            }
+          }
+        } catch {
+          // ignore
         }
-      } catch {
-        setErrorMessage("Không thể nạp dữ liệu câu hỏi từ máy chủ.");
-      } finally {
-        if (isMounted) setIsLoading(false);
       }
+
+      // PRIORITY 5: Default fallback to Question Set 1
+      const defaultFallback = MOCK_QUESTION_SETS[0]?.questions || [];
+      if (defaultFallback.length > 0) {
+        setQuestions(defaultFallback);
+        setSessionTitle(MOCK_QUESTION_SETS[0].title);
+        setIsLoading(false);
+        return;
+      }
+
+      setErrorMessage("Không tìm thấy câu hỏi nào trong phiên luyện tập. Vui lòng chọn câu hỏi từ Ngân hàng câu hỏi.");
+      setIsLoading(false);
     }
+
 
     initSession();
 
