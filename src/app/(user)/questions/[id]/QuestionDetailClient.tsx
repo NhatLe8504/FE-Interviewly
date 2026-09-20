@@ -1028,8 +1028,8 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                 {/* 3. Voice Review: STT Transcript, Disfluency Errors & AI Feedback */}
                 {(() => {
                   const displayTranscript = ans?.transcript || ev?.transcript || voiceRecorder.transcript;
-                  const voiceFeedback = ev?.voice_feedback || (hasRecordedAudio
-                    ? `Phát biểu ${ans?.recordingSeconds || 0}s với tốc độ đạt chuẩn.`
+                  const voiceFeedback = ev?.voice_feedback || ev?.feedback || (hasRecordedAudio
+                    ? `Phát biểu ${ans?.recordingSeconds || 0}s đã được AI ghi nhận và đánh giá.`
                     : "Chưa thực hiện ghi âm câu trả lời cho câu này.");
 
                   const voiceImps = (ev?.voice_improvements || ev?.improvements || []).filter(
@@ -1061,12 +1061,13 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                             </p>
                           </div>
 
-                          {/* Speech Disfluency & Telemetry Analysis */}
+                          {/* Speech Disfluency & Telemetry Analysis - Only list pauses > 3.0s */}
                           {(() => {
                             const dm = ans?.delivery_metrics || ev?.delivery_metrics || voiceRecorder.deliveryMetrics;
                             if (!dm) return null;
                             const fillers = dm.fillers || [];
-                            const longPauses = (dm.pauseDurationsMs || []).filter((p: number) => p >= 1200);
+                            // Strictly filter pauses >= 3000ms (> 3 seconds)
+                            const longPausesOver3s = (dm.pauseDurationsMs || []).filter((p: number) => p >= 3000);
 
                             return (
                               <div style={{ padding: "12px 16px", borderRadius: 12, background: "#fffaf4", border: "1px solid rgba(217, 130, 54, 0.25)" }}>
@@ -1074,9 +1075,9 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                                   📊 Phân tích lỗi ngập ngừng & Tốc độ nói:
                                 </div>
                                 <div style={{ display: "flex", flexWrap: "wrap", gap: 14, fontSize: 12, color: "var(--ink-soft)" }}>
-                                  <span>• ⏱️ Tốc độ nói: <strong>{dm.activeSpeechWpm || 0} WPM</strong> {dm.activeSpeechWpm >= 110 && dm.activeSpeechWpm <= 165 ? "✓ (Chuẩn phỏng vấn)" : dm.activeSpeechWpm > 165 ? "⚠️ (Nói hơi nhanh)" : "⚠️ (Nói hơi chậm)"}</span>
+                                  <span>• ⏱️ Tốc độ nói: <strong>{dm.activeSpeechWpm || 0} WPM</strong> {dm.activeSpeechWpm >= 110 && dm.activeSpeechWpm <= 165 ? "✓ (Chuẩn phỏng vấn)" : dm.activeSpeechWpm > 165 ? "⚠️ (Nói hơi nhanh)" : "⚠️ (Nói chậm/ngập ngừng)"}</span>
                                   <span>• 🗣️ <strong>{dm.fillerCount || 0}</strong> lần ậm ừ/từ đệm</span>
-                                  <span>• ⏸️ <strong>{dm.longPauseCount || 0}</strong> lần dừng lâu/suy nghĩ (&gt;1.2s)</span>
+                                  <span>• ⏸️ <strong>{longPausesOver3s.length}</strong> lần dừng suy nghĩ lâu (&gt;3s)</span>
                                   <span>• 🔁 <strong>{dm.repetitionCount || 0}</strong> lần lặp từ</span>
                                 </div>
 
@@ -1087,10 +1088,10 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                                   </div>
                                 )}
 
-                                {/* Details of long pauses */}
-                                {longPauses.length > 0 && (
+                                {/* Details of long pauses > 3s ONLY */}
+                                {longPausesOver3s.length > 0 && (
                                   <div style={{ marginTop: 4, fontSize: 11.5, color: "#b45309", lineHeight: 1.5 }}>
-                                    ⚠️ <strong>Các khoảng dừng suy nghĩ lâu:</strong> {longPauses.map((p: number) => `${(p / 1000).toFixed(1)}s`).join(", ")}
+                                    ⚠️ <strong>Các khoảng dừng suy nghĩ kéo dài (&gt;3s):</strong> {longPausesOver3s.map((p: number) => `${(p / 1000).toFixed(1)}s`).join(", ")}
                                   </div>
                                 )}
                               </div>
