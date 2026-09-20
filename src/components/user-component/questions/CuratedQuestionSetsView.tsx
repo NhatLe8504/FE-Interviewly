@@ -22,11 +22,34 @@ import {
   HelpCircle,
   Award,
   Users,
+  Trophy,
+  Crown,
+  Send,
+  ThumbsUp,
 } from "lucide-react";
-import type { QuestionSetItem } from "@/types/catalog";
+import type { QuestionSetItem, LeaderboardItem, QuestionSetReviewsPage } from "@/types/catalog";
+import { catalogApi } from "@/services/catalogApi";
 import { MOCK_QUESTION_SETS } from "@/mock/questionSetsMock";
 import { MOCK_DOMAINS_LIST } from "@/mock/adminQuestionsMock";
 import { getDomainTheme } from "@/constants/domainThemes";
+
+export function formatCompactNumber(num: number): string {
+  if (!num || isNaN(num)) return "0";
+  if (num >= 1_000_000_000_000) {
+    return (num / 1_000_000_000_000).toFixed(1).replace(/\.0$/, "") + "T";
+  }
+  if (num >= 1_000_000_000) {
+    return (num / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "B";
+  }
+  if (num >= 1_000_000) {
+    return (num / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  }
+  if (num >= 1_000) {
+    return (num / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
+  }
+  return num.toString();
+}
+
 
 interface CuratedQuestionSetsViewProps {
   activeTab?: "sets" | "individual";
@@ -42,6 +65,54 @@ export function CuratedQuestionSetsView({
   const [selectedDomain, setSelectedDomain] = useState<string>("all");
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [detailSet, setDetailSet] = useState<QuestionSetItem | null>(null);
+  const [modalTab, setModalTab] = useState<"questions" | "leaderboard" | "reviews">("questions");
+  const [leaderboard, setLeaderboard] = useState<LeaderboardItem[]>([]);
+  const [reviewsData, setReviewsData] = useState<QuestionSetReviewsPage | null>(null);
+  const [isLoadingTab, setIsLoadingTab] = useState(false);
+
+  // Review submit form state
+  const [newRating, setNewRating] = useState(5);
+  const [newComment, setNewComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
+
+  React.useEffect(() => {
+    if (!detailSet) return;
+    if (modalTab === "leaderboard") {
+      setIsLoadingTab(true);
+      catalogApi.getQuestionSetLeaderboard(detailSet.set_id).then((res) => {
+        setLeaderboard(res);
+        setIsLoadingTab(false);
+      });
+    } else if (modalTab === "reviews") {
+      setIsLoadingTab(true);
+      catalogApi.getQuestionSetReviews(detailSet.set_id).then((res) => {
+        setReviewsData(res);
+        setIsLoadingTab(false);
+      });
+    }
+  }, [modalTab, detailSet]);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!detailSet || !newComment.trim()) return;
+    setIsSubmittingReview(true);
+    const created = await catalogApi.submitQuestionSetReview(detailSet.set_id, {
+      rating: newRating,
+      comment: newComment.trim(),
+    });
+    if (created && reviewsData) {
+      setReviewsData({
+        ...reviewsData,
+        total_reviews: reviewsData.total_reviews + 1,
+        reviews: [created, ...reviewsData.reviews],
+      });
+      setNewComment("");
+      setReviewSuccess(true);
+      setTimeout(() => setReviewSuccess(false), 3000);
+    }
+    setIsSubmittingReview(false);
+  };
 
   // Filter logic
   const filteredSets = useMemo(() => {
@@ -310,41 +381,70 @@ export function CuratedQuestionSetsView({
                     ))}
                   </div>
 
-                  {/* Card Footer: Meta Info & Actions */}
-                  <div className="pt-2 border-t border-[rgba(106,72,49,0.1)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 text-[11px] text-[#8b4513]/70 font-semibold">
-                      <span className="flex items-center gap-1">
-                        <Clock className="size-3 text-[#d98236]" />
-                        ~{s.estimated_duration_minutes} phút
+                  {/* Card Footer: Meta Info & Actions (Compact, No Line Wrap) */}
+                  <div className="pt-2.5 border-t border-[rgba(106,72,49,0.1)] flex items-center justify-between gap-2">
+                    {/* Meta stats: Icons & Compact Numbers */}
+                    <div className="flex items-center gap-2 text-xs font-extrabold text-[#8b4513]/75 shrink-0">
+                      <span
+                        className="flex items-center gap-1 whitespace-nowrap bg-[#fffaf4] px-2 py-1 rounded-lg border border-[rgba(106,72,49,0.12)] cursor-default"
+                        title={`Thời lượng ước tính: ~${s.estimated_duration_minutes} phút`}
+                      >
+                        <Clock className="size-3.5 text-[#d98236] shrink-0" />
+                        <span>~{s.estimated_duration_minutes}'</span>
                       </span>
-                      <span>·</span>
-                      <span className="flex items-center gap-1">
-                        <BookOpen className="size-3 text-[#d98236]" />
-                        {s.question_count} câu hỏi
+
+                      <span
+                        className="flex items-center gap-1 whitespace-nowrap bg-[#fffaf4] px-2 py-1 rounded-lg border border-[rgba(106,72,49,0.12)] cursor-default"
+                        title={`Số lượng: ${s.question_count} câu hỏi`}
+                      >
+                        <BookOpen className="size-3.5 text-[#d98236] shrink-0" />
+                        <span>{s.question_count}</span>
                       </span>
-                      <span>·</span>
-                      <span className="flex items-center gap-1">
-                        <Users className="size-3 text-[#8b4513]" />
-                        {s.practice_count.toLocaleString("vi-VN")} lượt thi
+
+                      <span
+                        className="flex items-center gap-1 whitespace-nowrap bg-[#fffaf4] px-2 py-1 rounded-lg border border-[rgba(106,72,49,0.12)] cursor-default"
+                        title={`Lượt luyện tập: ${s.practice_count.toLocaleString("vi-VN")} lượt`}
+                      >
+                        <Users className="size-3.5 text-[#8b4513] shrink-0" />
+                        <span>{formatCompactNumber(s.practice_count)}</span>
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         type="button"
-                        onClick={() => setDetailSet(s)}
-                        className="px-3 py-1.5 rounded-full text-xs font-bold text-[#8b4513] hover:bg-stone-100 border border-[rgba(106,72,49,0.2)] transition-colors"
+                        onClick={() => {
+                          setDetailSet(s);
+                          setModalTab("leaderboard");
+                        }}
+                        className="px-2.5 py-1.5 rounded-full text-xs font-extrabold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap shadow-2xs"
+                        title="Bảng xếp hạng Top 10"
                       >
-                        Xem chi tiết
+                        <Trophy className="size-3 text-amber-500 shrink-0" />
+                        <span>Top 10</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDetailSet(s);
+                          setModalTab("questions");
+                        }}
+                        className="px-2.5 py-1.5 rounded-full text-xs font-bold text-[#8b4513] hover:bg-stone-100 border border-[rgba(106,72,49,0.2)] transition-colors whitespace-nowrap"
+                        title="Xem chi tiết bộ đề"
+                      >
+                        Chi tiết
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleStartSetPractice(s)}
-                        className="px-3.5 py-1.5 rounded-full text-xs font-bold text-white bg-gradient-to-r from-[#d98236] to-[#8b4513] hover:opacity-90 transition-opacity shadow-xs flex items-center gap-1.5 cursor-pointer"
+                        className="px-3 py-1.5 rounded-full text-xs font-extrabold text-white bg-gradient-to-r from-[#d98236] to-[#8b4513] hover:opacity-90 transition-opacity shadow-xs flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                        title="Bắt đầu luyện tập bộ đề ngay"
                       >
-                        <Play className="size-3 fill-current" />
-                        <span>Luyện tập ngay</span>
+                        <Play className="size-3 fill-current shrink-0" />
+                        <span>Luyện tập</span>
                       </button>
                     </div>
                   </div>
@@ -396,7 +496,50 @@ export function CuratedQuestionSetsView({
               </button>
             </div>
 
+            {/* Modal Navigation Tabs */}
+            <div className="flex items-center gap-2 px-5 pt-2 border-b border-[rgba(106,72,49,0.15)] bg-white/40">
+              <button
+                type="button"
+                onClick={() => setModalTab("questions")}
+                className={`px-3 py-2 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-all cursor-pointer ${
+                  modalTab === "questions"
+                    ? "border-[#d98236] text-[#d98236]"
+                    : "border-transparent text-stone-500 hover:text-stone-800"
+                }`}
+              >
+                <BookOpen size={13} />
+                <span>Câu hỏi ({detailSet.questions.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModalTab("leaderboard")}
+                className={`px-3 py-2 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-all cursor-pointer ${
+                  modalTab === "leaderboard"
+                    ? "border-[#d98236] text-[#d98236]"
+                    : "border-transparent text-stone-500 hover:text-stone-800"
+                }`}
+              >
+                <Trophy size={13} className="text-amber-500" />
+                <span>Bảng xếp hạng (Top 10)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModalTab("reviews")}
+                className={`px-3 py-2 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-all cursor-pointer ${
+                  modalTab === "reviews"
+                    ? "border-[#d98236] text-[#d98236]"
+                    : "border-transparent text-stone-500 hover:text-stone-800"
+                }`}
+              >
+                <Star size={13} className="text-amber-400" />
+                <span>Đánh giá & Nhận xét ({reviewsData?.total_reviews || 3})</span>
+              </button>
+            </div>
+
             {/* Modal Body: All Questions */}
+            {modalTab === "questions" && (
             <div className="p-5 space-y-3.5 flex-1 overflow-y-auto">
               <div className="space-y-1">
                 <span className="font-bold text-[#8b4513] uppercase tracking-wider text-[10.5px] block">
@@ -446,6 +589,193 @@ export function CuratedQuestionSetsView({
                 ))}
               </div>
             </div>
+            )}
+
+            {/* Modal Tab: Leaderboard */}
+            {modalTab === "leaderboard" && (
+              <div className="p-5 space-y-4 flex-1 overflow-y-auto">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-sm text-[#211914] flex items-center gap-1.5">
+                      <Trophy className="size-4 text-amber-500" />
+                      <span>Bảng Xếp Hạng Ứng Viên Xuất Sắc Nhất</span>
+                    </h3>
+                    <p className="text-[11px] text-[#8b4513]/70">
+                      Xếp hạng dựa trên Điểm tổng hợp (/100đ) và Thời gian làm bài hoàn thành bộ đề.
+                    </p>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200/60 flex items-center gap-1">
+                    <Sparkles className="size-3 text-amber-500" />
+                    Top 10 Danh Dự
+                  </span>
+                </div>
+
+                {isLoadingTab ? (
+                  <div className="py-12 text-center text-[#8b4513]">
+                    <Sparkles className="size-6 animate-spin mx-auto mb-2 text-[#d98236]" />
+                    <p className="font-semibold text-xs">Đang tải bảng xếp hạng...</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* PODIUM TOP 3 */}
+                    <div className="grid grid-cols-3 gap-2.5 pt-2 pb-1 items-end">
+                      {/* Rank 2 (Silver) */}
+                      {leaderboard[1] && (
+                        <div className="p-3 rounded-2xl bg-white/90 border border-stone-200 text-center flex flex-col items-center shadow-xs">
+                          <span className="text-xl">🥈</span>
+                          <span className="font-extrabold text-xs text-[#211914] mt-1 line-clamp-1">{leaderboard[1].user_name}</span>
+                          <span className="font-black text-sm text-[#d98236]">{leaderboard[1].score}<small className="text-[10px]">đ</small></span>
+                          <span className="text-[10px] text-stone-500">{Math.floor(leaderboard[1].duration_seconds / 60)}m {leaderboard[1].duration_seconds % 60}s</span>
+                          <span className="text-[9px] font-bold text-stone-600 bg-stone-100 px-2 py-0.5 rounded-full mt-1">Hạng 2</span>
+                        </div>
+                      )}
+
+                      {/* Rank 1 (Gold) */}
+                      {leaderboard[0] && (
+                        <div className="p-3.5 rounded-2xl bg-gradient-to-b from-amber-50 to-white border-2 border-amber-300 text-center flex flex-col items-center shadow-md -translate-y-1 relative">
+                          <span className="absolute -top-2.5 px-2 py-0.5 rounded-full bg-amber-500 text-white font-extrabold text-[9px] tracking-wider uppercase flex items-center gap-0.5">
+                            Quán Quân
+                          </span>
+                          <span className="text-2xl mt-1">🥇</span>
+                          <span className="font-extrabold text-xs text-[#211914] mt-1 line-clamp-1 flex items-center gap-1">
+                            {leaderboard[0].user_name}
+                            {leaderboard[0].is_pro && <Crown className="size-3 text-amber-500 fill-amber-400" />}
+                          </span>
+                          <span className="font-black text-base text-amber-600">{leaderboard[0].score}<small className="text-[10.5px]">đ</small></span>
+                          <span className="text-[10px] text-stone-500">{Math.floor(leaderboard[0].duration_seconds / 60)}m {leaderboard[0].duration_seconds % 60}s</span>
+                          <span className="text-[9px] font-extrabold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full mt-1">Hạng 1</span>
+                        </div>
+                      )}
+
+                      {/* Rank 3 (Bronze) */}
+                      {leaderboard[2] && (
+                        <div className="p-3 rounded-2xl bg-white/90 border border-amber-900/20 text-center flex flex-col items-center shadow-xs">
+                          <span className="text-xl">🥉</span>
+                          <span className="font-extrabold text-xs text-[#211914] mt-1 line-clamp-1">{leaderboard[2].user_name}</span>
+                          <span className="font-black text-sm text-[#d98236]">{leaderboard[2].score}<small className="text-[10px]">đ</small></span>
+                          <span className="text-[10px] text-stone-500">{Math.floor(leaderboard[2].duration_seconds / 60)}m {leaderboard[2].duration_seconds % 60}s</span>
+                          <span className="text-[9px] font-bold text-amber-900 bg-amber-100/60 px-2 py-0.5 rounded-full mt-1">Hạng 3</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* RANK 4 - 10 LIST */}
+                    <div className="rounded-2xl bg-white border border-[rgba(106,72,49,0.14)] overflow-hidden shadow-xs">
+                      <div className="divide-y divide-stone-100">
+                        {leaderboard.slice(3).map((item) => (
+                          <div key={item.rank} className="p-2.5 px-3 flex items-center justify-between hover:bg-stone-50/60 transition-colors">
+                            <div className="flex items-center gap-2.5">
+                              <span className="size-5 rounded-full bg-stone-100 font-extrabold text-[10px] flex items-center justify-center text-stone-600">
+                                #{item.rank}
+                              </span>
+                              <div>
+                                <span className="font-bold text-xs text-[#211914] flex items-center gap-1">
+                                  {item.user_name}
+                                  {item.is_pro && <Crown className="size-2.5 text-amber-500 fill-amber-400" />}
+                                </span>
+                                <span className="text-[10px] text-stone-400">
+                                  {Math.floor(item.duration_seconds / 60)}m {item.duration_seconds % 60}s
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-black text-xs text-[#d98236]">{item.score}đ</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Modal Tab: Reviews */}
+            {modalTab === "reviews" && (
+              <div className="p-5 space-y-4 flex-1 overflow-y-auto">
+                <div className="p-4 rounded-2xl bg-white border border-[rgba(106,72,49,0.14)] flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-2xl font-black text-[#d98236]">{reviewsData?.average_rating || 4.9}</span>
+                      <div className="flex items-center text-amber-400">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <Star key={i} className="size-3.5 fill-current" />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-[#8b4513]/80 mt-0.5">
+                      Đánh giá trung bình từ {reviewsData?.total_reviews || 3} ứng viên đã hoàn thành đề thi
+                    </p>
+                  </div>
+                </div>
+
+                {/* Form Submit Review */}
+                <form onSubmit={handleSubmitReview} className="p-4 rounded-2xl bg-white border border-[rgba(106,72,49,0.14)] space-y-3">
+                  <span className="font-bold text-xs text-[#211914] block">Gửi đánh giá của bạn về bộ đề này:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-[#8b4513]/80 font-semibold">Chất lượng đề:</span>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setNewRating(star)}
+                          className="p-0.5 text-amber-400 hover:scale-110 transition-transform"
+                        >
+                          <Star className={`size-4 ${star <= newRating ? "fill-current" : "text-stone-300"}`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Chia sẻ cảm nhận, độ khó và mức độ sát thực tế của bộ đề..."
+                    rows={2}
+                    className="w-full p-2.5 rounded-xl border border-[rgba(106,72,49,0.2)] bg-[#fdfaf6] text-xs text-[#211914] outline-none"
+                  />
+                  {reviewSuccess && (
+                    <div className="text-emerald-700 text-xs font-bold flex items-center gap-1">
+                      <CheckCircle2 size={13} />
+                      <span>Cảm ơn bạn! Đánh giá đã được ghi nhận thành công.</span>
+                    </div>
+                  )}
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={isSubmittingReview || !newComment.trim()}
+                      className="px-4 py-1.5 rounded-full text-xs font-bold text-white bg-gradient-to-r from-[#d98236] to-[#8b4513] hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Send size={12} />
+                      <span>Gửi nhận xét</span>
+                    </button>
+                  </div>
+                </form>
+
+                {/* Reviews List */}
+                <div className="space-y-2.5">
+                  {reviewsData?.reviews.map((rev) => (
+                    <div key={rev.review_id} className="p-3.5 rounded-2xl bg-white border border-[rgba(106,72,49,0.12)] space-y-1.5 shadow-xs">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-xs text-[#211914]">{rev.user_name}</span>
+                          {rev.is_pro && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-100 text-amber-800">PRO</span>
+                          )}
+                        </div>
+                        <div className="flex items-center text-amber-400">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star key={s} className={`size-2.5 ${s <= rev.rating ? "fill-current" : "text-stone-200"}`} />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-xs text-[#8b4513]/90 leading-relaxed">{rev.comment}</p>
+                      <span className="text-[10px] text-stone-400 block">{rev.created_at || "Gần đây"}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Modal Footer */}
             <div className="p-4 border-t border-[rgba(106,72,49,0.15)] bg-white/70 flex items-center justify-between gap-3">

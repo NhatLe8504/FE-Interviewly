@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   User,
+  Award,
   Mail,
   Phone,
   Briefcase,
@@ -35,6 +36,8 @@ import { useI18n } from "@/context/I18nContext";
 import { CrownAvatar } from "@/components/user-component/common";
 import { useUserSubscription } from "@/hooks/useUserSubscription";
 import { profileApi } from "@/services/profileApi";
+import { catalogApi } from "@/services/catalogApi";
+import type { PracticeHistoryItem } from "@/types/catalog";
 import { ApiError, request } from "@/services/apiClient";
 import { UserTooltip } from "@/components/user-component/common";
 import { toast } from "@/components/user-component/toast";
@@ -143,8 +146,27 @@ export default function ProfileClient() {
   const [profile, setProfile] = useState<ProfileOut | null>(null);
   const [isFetching, setIsFetching] = useState(true);
 
-  // Active tab: general | career | security | readiness
-  const [activeTab, setActiveTab] = useState<"general" | "career" | "security" | "readiness">("general");
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab");
+  // Active tab: general | career | security | readiness | history
+  const [activeTab, setActiveTab] = useState<"general" | "career" | "security" | "readiness" | "history">(
+    initialTab === "history" || initialTab === "career" || initialTab === "security" || initialTab === "readiness"
+      ? (initialTab as any)
+      : "general"
+  );
+  const [practiceHistory, setPracticeHistory] = useState<PracticeHistoryItem[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<PracticeHistoryItem | null>(null);
+
+  useEffect(() => {
+    if (activeTab === "history") {
+      setIsLoadingHistory(true);
+      catalogApi.getPracticeHistory().then((data) => {
+        setPracticeHistory(data);
+        setIsLoadingHistory(false);
+      });
+    }
+  }, [activeTab]);
 
   // General tab form state
   const [fullName, setFullName] = useState("");
@@ -849,6 +871,17 @@ export default function ProfileClient() {
           <Mic size={15} />
           {t.profile.tabs.readiness}
         </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "history"}
+            onClick={() => setActiveTab("history")}
+            className={`${styles.tabBtn} ${activeTab === "history" ? styles.tabBtnActive : ""}`}
+          >
+            <Award size={15} />
+            {t.profile.tabs.history}
+          </button>
       </div>
 
       {activeTab === "general" && (
@@ -1534,6 +1567,250 @@ export default function ProfileClient() {
         </div>
       )}
 
+      {activeTab === "history" && (
+        <div className={styles.card}>
+          <div className={styles.cardHeader}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%", flexWrap: "wrap", gap: 12 }}>
+              <div>
+                <h2 className={styles.cardTitle}>
+                  <Award size={18} />
+                  <span>Lịch sử luyện tập & Bài thi đã làm</span>
+                </h2>
+                <p className={styles.cardHint}>
+                  Theo dõi tiến độ, phân bổ điểm số đa thức (Trắc nghiệm 15%, Tự luận 35%, Giọng nói 50%) và đánh giá năng lực phỏng vấn của bạn.
+                </p>
+              </div>
+              <Link
+                href="/questions"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 18px",
+                  borderRadius: 12,
+                  background: "linear-gradient(135deg, #d98236, #8b4513)",
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                  textDecoration: "none",
+                }}
+              >
+                <Sparkles size={14} />
+                <span>Luyện tập thêm đề mới</span>
+              </Link>
+            </div>
+          </div>
+
+          {practiceHistory.length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 24 }}>
+              <div style={{ padding: "16px", borderRadius: 16, background: "rgba(255, 255, 255, 0.9)", border: "1px solid rgba(106, 72, 49, 0.14)" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 4 }}>Tổng bài đã luyện</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: "var(--ink)" }}>{practiceHistory.length} <span style={{ fontSize: 13, fontWeight: 600 }}>bài</span></div>
+              </div>
+              <div style={{ padding: "16px", borderRadius: 16, background: "rgba(255, 255, 255, 0.9)", border: "1px solid rgba(106, 72, 49, 0.14)" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 4 }}>Điểm trung bình</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: "#d98236" }}>
+                  {Math.round(practiceHistory.reduce((acc, h) => acc + h.average_score, 0) / practiceHistory.length)} <span style={{ fontSize: 13, fontWeight: 600 }}>/100đ</span>
+                </div>
+              </div>
+              <div style={{ padding: "16px", borderRadius: 16, background: "rgba(255, 255, 255, 0.9)", border: "1px solid rgba(106, 72, 49, 0.14)" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 4 }}>Tỉ lệ đạt chuẩn (&gt;= 70)</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: "#10b981" }}>
+                  {Math.round((practiceHistory.filter(h => h.average_score >= 70).length / practiceHistory.length) * 100)}%
+                </div>
+              </div>
+              <div style={{ padding: "16px", borderRadius: 16, background: "rgba(255, 255, 255, 0.9)", border: "1px solid rgba(106, 72, 49, 0.14)" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 4 }}>Tổng thời gian rèn luyện</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: "var(--ink)" }}>
+                  {Math.round(practiceHistory.reduce((acc, h) => acc + (h.duration_seconds || 0), 0) / 60)} <span style={{ fontSize: 13, fontWeight: 600 }}>phút</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isLoadingHistory ? (
+            <div style={{ textAlign: "center", padding: "40px 0" }}>
+              <Sparkles size={28} className="animate-spin" style={{ color: "var(--accent-warm)", margin: "0 auto 10px" }} />
+              <p style={{ fontSize: 13, color: "var(--ink-soft)" }}>Đang tải lịch sử bài làm...</p>
+            </div>
+          ) : practiceHistory.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "50px 20px", background: "rgba(255,255,255,0.6)", borderRadius: 20, border: "1px dashed rgba(106,72,49,0.2)" }}>
+              <Award size={40} color="#d98236" style={{ margin: "0 auto 12px" }} />
+              <h3 style={{ fontSize: 17, fontWeight: 800, margin: "0 0 6px" }}>Chưa có bản ghi luyện tập nào</h3>
+              <p style={{ fontSize: 13, color: "var(--ink-soft)", maxWidth: 420, margin: "0 auto 20px" }}>
+                Hãy bắt đầu rèn luyện từ Bộ đề tuyển dụng hoặc Giỏ đề tự bốc để xem đánh giá chuyên sâu và bảng phân bổ kỹ năng của bạn.
+              </p>
+              <Link
+                href="/questions"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "10px 22px",
+                  borderRadius: 12,
+                  background: "linear-gradient(135deg, #d98236, #8b4513)",
+                  color: "#fff",
+                  fontWeight: 800,
+                  fontSize: 13,
+                  textDecoration: "none",
+                }}
+              >
+                <Play size={14} />
+                <span>Bắt đầu luyện tập ngay</span>
+              </Link>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {practiceHistory.map((item, idx) => {
+                const isPassed = item.average_score >= 70;
+                const durationMins = Math.floor((item.duration_seconds || 0) / 60);
+                const durationSecs = (item.duration_seconds || 0) % 60;
+                const dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" }) : "Gần đây";
+
+                return (
+                  <div
+                    key={item.history_id || idx}
+                    style={{
+                      padding: 18,
+                      borderRadius: 18,
+                      background: "#ffffff",
+                      border: "1px solid rgba(106, 72, 49, 0.14)",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 12,
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, padding: "2px 8px", borderRadius: 8, background: item.source_type === "set" ? "rgba(217, 130, 54, 0.12)" : "rgba(59, 130, 246, 0.12)", color: item.source_type === "set" ? "#b45309" : "#1d4ed8", textTransform: "uppercase" }}>
+                            {item.source_type === "set" ? "Bộ đề chuẩn" : item.source_type === "basket" ? "Giỏ câu hỏi" : "Câu hỏi lẻ"}
+                          </span>
+                          <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>{dateStr}</span>
+                          <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>• {durationMins > 0 ? `${durationMins}m ${durationSecs}s` : `${durationSecs}s`}</span>
+                        </div>
+                        <h4 style={{ fontSize: 16, fontWeight: 800, margin: 0, color: "var(--ink)" }}>{item.session_title}</h4>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: 20, fontWeight: 900, color: isPassed ? "#10b981" : "#d98236" }}>
+                            {item.average_score}<small style={{ fontSize: 12 }}>/100đ</small>
+                          </div>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: isPassed ? "#065f46" : "#b45309" }}>
+                            {isPassed ? "Đạt chuẩn phỏng vấn" : "Cần cải thiện thêm"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, background: "rgba(33, 25, 20, 0.03)", padding: "10px 14px", borderRadius: 12 }}>
+                      <div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, fontWeight: 700, marginBottom: 2 }}>
+                          <span>Trắc nghiệm (15%)</span>
+                          <span style={{ color: "#d98236" }}>{item.quiz_score_avg ?? 0}/15đ</span>
+                        </div>
+                        <div style={{ height: 5, borderRadius: 3, background: "rgba(0,0,0,0.08)", overflow: "hidden" }}>
+                          <div style={{ width: `${Math.min(100, ((item.quiz_score_avg ?? 0) / 15) * 100)}%`, height: "100%", background: "#d98236" }} />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, fontWeight: 700, marginBottom: 2 }}>
+                          <span>Tự luận STAR (35%)</span>
+                          <span style={{ color: "#3b82f6" }}>{item.text_score_avg ?? 0}/35đ</span>
+                        </div>
+                        <div style={{ height: 5, borderRadius: 3, background: "rgba(0,0,0,0.08)", overflow: "hidden" }}>
+                          <div style={{ width: `${Math.min(100, ((item.text_score_avg ?? 0) / 35) * 100)}%`, height: "100%", background: "#3b82f6" }} />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, fontWeight: 700, marginBottom: 2 }}>
+                          <span>Ghi âm nói (50%)</span>
+                          <span style={{ color: "#10b981" }}>{item.voice_score_avg ?? 0}/50đ</span>
+                        </div>
+                        <div style={{ height: 5, borderRadius: 3, background: "rgba(0,0,0,0.08)", overflow: "hidden" }}>
+                          <div style={{ width: `${Math.min(100, ((item.voice_score_avg ?? 0) / 50) * 100)}%`, height: "100%", background: "#10b981" }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 2 }}>
+                      {item.questions_summary && item.questions_summary.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedHistoryItem(item)}
+                          className={styles.secondaryBtn}
+                          style={{ padding: "6px 14px", fontSize: 12 }}
+                        >
+                          <Eye size={13} />
+                          <span>Xem chi tiết ({item.evaluated_count}/{item.total_questions} câu)</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (item.source_id) {
+                            router.push(`/questions/practice?set=${item.source_id}&source=set`);
+                          } else if (item.questions_summary && item.questions_summary.length > 0) {
+                            const qids = item.questions_summary.map((q) => q.question_id).join(",");
+                            router.push(`/questions/practice?q=${qids}&source=basket`);
+                          } else {
+                            router.push("/questions");
+                          }
+                        }}
+                        className={styles.primaryBtn}
+                        style={{ padding: "6px 16px", fontSize: 12 }}
+                      >
+                        <RotateCcw size={13} />
+                        <span>Luyện lại đề này</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* MODAL VIEW HISTORY DETAIL */}
+      {selectedHistoryItem && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setSelectedHistoryItem(null)}>
+          <div style={{ width: "min(680px, 100%)", maxHeight: "85vh", overflowY: "auto", background: "#fff", borderRadius: 24, padding: 24, boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 900, margin: 0 }}>{selectedHistoryItem.session_title}</h3>
+                <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "4px 0 0" }}>Điểm trung bình: <strong>{selectedHistoryItem.average_score}/100đ</strong> • {selectedHistoryItem.evaluated_count}/{selectedHistoryItem.total_questions} câu đã chấm</p>
+              </div>
+              <button type="button" onClick={() => setSelectedHistoryItem(null)} style={{ border: "none", background: "none", cursor: "pointer", padding: 4 }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {selectedHistoryItem.questions_summary.map((q, idx) => (
+                <div key={q.question_id || idx} style={{ padding: 14, borderRadius: 14, background: "rgba(33, 25, 20, 0.03)", border: "1px solid rgba(106,72,49,0.1)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)" }}>Câu {idx + 1}: {q.question_text}</span>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: q.score >= 70 ? "#10b981" : "#d98236", whiteSpace: "nowrap" }}>{q.score}/100đ</span>
+                  </div>
+                  {(q.quiz_score !== undefined || q.text_score !== undefined || q.voice_score !== undefined) && (
+                    <div style={{ display: "flex", gap: 14, fontSize: 11.5, color: "var(--ink-soft)" }}>
+                      <span>🔘 Quiz: <strong>{q.quiz_score ?? 0}/15đ</strong></span>
+                      <span>📝 Text: <strong>{q.text_score ?? 0}/35đ</strong></span>
+                      <span>🎙️ Voice: <strong>{q.voice_score ?? 0}/50đ</strong></span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* REAL AVATAR UPLOAD MODAL - NO LINKS, NO MOCK DATA */}
       {isAvatarModalOpen && (
         <div
@@ -1682,3 +1959,5 @@ export default function ProfileClient() {
     </div>
   );
 }
+
+

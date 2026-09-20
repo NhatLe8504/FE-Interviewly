@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import QuestionDetailClient from "./QuestionDetailClient";
 
@@ -20,5 +21,9 @@ export default async function QuestionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <QuestionDetailClient questionId={id} />;
+  return (
+    <Suspense fallback={<div style={{ minHeight: "60vh", display: "grid", placeItems: "center" }}>Đang tải...</div>}>
+      <QuestionDetailClient questionId={id} />
+    </Suspense>
+  );
 }

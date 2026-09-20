@@ -15,6 +15,7 @@ export const profile = {
     career: "Experience & Goals",
     security: "Security & Password",
     readiness: "Device & Mic Check",
+    history: "Practice History & Exams",
   },
   generalTab: {
     title: "Candidate Information",

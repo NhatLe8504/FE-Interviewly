@@ -7,6 +7,68 @@ export type ExperienceLevel =
   | "senior"
   | "lead";
 
+
+export type QuestionCategory = "technical" | "soft_skills" | "introduction";
+
+export interface QuizOption {
+  id: string; // "A" | "B" | "C" | "D"
+  text: string;
+  is_correct: boolean;
+  explanation: string;
+}
+
+export interface QuizData {
+  options: QuizOption[];
+  explanation: string;
+}
+
+export interface MultiModalScoreBreakdown {
+  quiz_score: number;      // max 15
+  quiz_max: number;        // 15
+  text_score: number;      // max 35
+  text_max: number;        // 35
+  voice_score: number;     // max 50
+  voice_max: number;       // 50
+  total_score: number;     // max 100
+}
+
+export interface MultiModalQuestionAnswer {
+  quiz_option_id?: string | null;
+  is_quiz_correct?: boolean | null;
+  text_answer?: string;
+  text_word_count?: number;
+  voice_audio_url?: string | null;
+  voice_duration_seconds?: number;
+  submitted_at?: string;
+}
+
+export interface AIEvaluationResult {
+  score: number; // 0 - 100
+  passed: boolean;
+  general_feedback: string;
+  star_breakdown: {
+    situation_score: number;
+    situation_feedback: string;
+    task_score: number;
+    task_feedback: string;
+    action_score: number;
+    action_feedback: string;
+    result_score: number;
+    result_feedback: string;
+  };
+  rubric_scores: {
+    criterion_id: string;
+    criterion_name: string;
+    score: number;
+    max_score: number;
+    level_label: string;
+    feedback: string;
+  }[];
+  strengths: string[];
+  improvements: string[];
+  modal_breakdown?: MultiModalScoreBreakdown;
+}
+
 export type QuestionType = "behavioral" | "technical" | "situational";
 
 export type LanguageCode = "vi" | "en";
@@ -71,6 +133,7 @@ export interface QuestionOut {
   question_text: string;
   star_template_id: number | null;
   is_active: boolean;
+  category?: QuestionCategory | string;
   moderation_status?: QuestionModerationStatus;
   moderated_by?: number | null;
   moderated_at?: string | null;
@@ -90,6 +153,7 @@ export interface QuestionDetailOut extends QuestionOut {
   rubric_criteria?: RubricCriterion[];
   follow_up_questions?: string[];
   tips?: string[];
+  quiz_data?: QuizData | null;
 }
 
 export interface QuestionPageOut {
@@ -100,6 +164,7 @@ export interface QuestionPageOut {
 }
 
 export interface QuestionFilterParams {
+  category?: string | null;
   domain_id?: number | null;
   role_id?: number | null;
   level?: string | null;
@@ -162,4 +227,65 @@ export interface QuestionSetFilterParams {
   search?: string | null;
   limit?: number;
   offset?: number;
+}
+
+
+export interface PracticeHistoryQuestionSummary {
+  question_id: number;
+  question_text: string;
+  score: number;
+  passed: boolean;
+  quiz_score?: number;
+  text_score?: number;
+  voice_score?: number;
+}
+
+export interface PracticeHistoryItem {
+  history_id: number | string;
+  user_id?: number | null;
+  session_title: string;
+  source_type: "set" | "basket" | "single" | string;
+  source_id?: string | null;
+  domain_id?: number | null;
+  domain_name?: string | null;
+  role_name?: string | null;
+  total_questions: number;
+  evaluated_count: number;
+  average_score: number;
+  quiz_score_avg?: number | null;
+  text_score_avg?: number | null;
+  voice_score_avg?: number | null;
+  duration_seconds: number;
+  questions_summary: PracticeHistoryQuestionSummary[];
+  created_at?: string | null;
+}
+
+export interface LeaderboardItem {
+  rank: number;
+  user_id: number | string;
+  user_name: string;
+  avatar_url?: string | null;
+  is_pro: boolean;
+  score: number;
+  duration_seconds: number;
+  completed_at?: string | null;
+}
+
+export interface QuestionSetReviewItem {
+  review_id: number | string;
+  set_id: number | string;
+  user_id?: number | null;
+  user_name: string;
+  avatar_url?: string | null;
+  is_pro: boolean;
+  rating: number;
+  comment: string;
+  created_at?: string | null;
+}
+
+export interface QuestionSetReviewsPage {
+  set_id: number | string;
+  average_rating: number;
+  total_reviews: number;
+  reviews: QuestionSetReviewItem[];
 }
