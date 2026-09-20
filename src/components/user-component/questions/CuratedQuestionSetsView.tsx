@@ -142,18 +142,15 @@ export function CuratedQuestionSetsView({
 
   // 1-Click Practice Start
   const handleStartSetPractice = (set: QuestionSetItem) => {
-    const sid = `set-${set.set_id}-${Date.now().toString(36)}`;
+    const qids = (set.questions || []).map((q) => q.question_id).join(",");
     try {
-      sessionStorage.setItem("active_custom_questions", JSON.stringify(set.questions));
-      sessionStorage.setItem(`custom_questions_${sid}`, JSON.stringify(set.questions));
+      sessionStorage.setItem("basket_questions", JSON.stringify(set.questions || []));
       sessionStorage.setItem("active_question_set_title", set.title);
     } catch {
       // ignore
     }
 
-    router.push(
-      `/practice/${sid}?custom=1&domain=${set.domain_id}&role=${set.role_id}&level=${set.experience_level}`
-    );
+    router.push(`/questions/practice?set=${set.set_id}${qids ? `&q=${qids}` : ""}&source=set`);
   };
 
   return (
