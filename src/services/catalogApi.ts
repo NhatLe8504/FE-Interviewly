@@ -10,6 +10,9 @@ import type {
   QuestionPageOut,
   QuestionFilterParams,
   RubricCriterion,
+  QuestionSetOut,
+  QuestionSetPageOut,
+  QuestionSetDetailOut,
 } from "@/types/catalog";
 
 export const DEFAULT_RUBRIC_CRITERIA: RubricCriterion[] = [
@@ -420,6 +423,51 @@ export const FALLBACK_QUESTIONS: QuestionDetailOut[] = [
 ];
 
 export const catalogApi = {
+
+  /**
+   * Fetch Question Sets from Real Backend API (GET /api/v1/catalog/question-sets).
+   */
+  async getQuestionSets(params: { domain_id?: number | null; level?: string | null; search?: string | null; limit?: number; offset?: number } = {}): Promise<QuestionSetPageOut> {
+    try {
+      const searchParams = new URLSearchParams();
+      if (params.domain_id) searchParams.set("domain_id", String(params.domain_id));
+      if (params.level && params.level !== "all") searchParams.set("level", params.level);
+      if (params.search) searchParams.set("search", params.search);
+      if (params.limit) searchParams.set("limit", String(params.limit));
+      if (params.offset) searchParams.set("offset", String(params.offset));
+
+      const qStr = searchParams.toString() ? `?${searchParams.toString()}` : "";
+      const res = await request<QuestionSetPageOut>(`/api/v1/catalog/question-sets${qStr}`);
+      if (res && Array.isArray(res.items) && res.items.length > 0) {
+        return res;
+      }
+    } catch (err) {
+      console.warn("Fetch question sets failed, will fallback to seeded sets:", err);
+    }
+    return {
+      items: MOCK_QUESTION_SETS,
+      total: MOCK_QUESTION_SETS.length,
+      limit: params.limit || 50,
+      offset: params.offset || 0,
+    };
+  },
+
+  /**
+   * Fetch Detailed Question Set with full question list from Backend (GET /api/v1/catalog/question-sets/{id}).
+   */
+  async getQuestionSetDetail(setId: number | string): Promise<QuestionSetDetailOut | null> {
+    try {
+      const res = await request<QuestionSetDetailOut>(`/api/v1/catalog/question-sets/${setId}`);
+      if (res && res.set_id) {
+        return res;
+      }
+    } catch (err) {
+      console.warn("Fetch question set detail failed:", err);
+    }
+    const found = MOCK_QUESTION_SETS.find((s) => String(s.set_id) === String(setId));
+    return (found as any) || null;
+  },
+
   async getQuestionsForSelection(
     params: QuestionFilterParams = {}
   ): Promise<QuestionPageOut> {
