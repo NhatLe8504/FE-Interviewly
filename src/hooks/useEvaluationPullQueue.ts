@@ -128,28 +128,79 @@ export function useEvaluationPullQueue() {
       // Await both IO tasks asynchronously without blocking candidate UI
       const [textResult, voiceResult] = await Promise.all([textPromise, voicePromise]);
 
-      const textScore = textResult?.text_score ?? (text.length >= 80 ? 25.0 : text.length > 0 ? 12.0 : 0.0);
-      const voiceScore = voiceResult?.voice_score ?? (delivery?.durationMs && delivery.durationMs >= 5000 ? 38.0 : 0.0);
+      // Strip common STAR prompt headers to count ACTUAL candidate words
+      const cleanCandidateText = text
+        .replace(/•?\s*(Tình huống|Nhiệm vụ|Hành động|Kết quả|Situation|Task|Action|Result)\s*(\([^)]*\))?:?/gi, "")
+        .trim();
+      const actualCandidateWords = cleanCandidateText ? cleanCandidateText.split(/\s+/).filter(Boolean).length : 0;
+
+      // 1. Text Score Strict Determination
+      let textScore = 0.0;
+      if (actualCandidateWords === 0) {
+        textScore = 0.0;
+      } else if (textResult && typeof textResult.text_score === "number") {
+        textScore = textResult.text_score;
+      } else if (actualCandidateWords < 15) {
+        textScore = Number(((actualCandidateWords / 60.0) * 35.0).toFixed(1));
+      } else {
+        textScore = Math.min(35.0, Number((0.4 + (actualCandidateWords / 150.0) * 0.6) * 35.0).toFixed(1));
+      }
+
+      // 2. Voice Score Strict Determination
+      let voiceScore = 0.0;
+      const voiceDurMs = delivery?.durationMs || 0;
+      const voiceWords = delivery?.wordCount || (transcript ? transcript.split(/\s+/).filter(Boolean).length : 0);
+
+      if (voiceDurMs < 3500 || (voiceWords === 0 && !transcript.trim())) {
+        voiceScore = 0.0;
+      } else if (voiceResult && typeof voiceResult.voice_score === "number") {
+        voiceScore = voiceResult.voice_score;
+      } else if (voiceDurMs >= 5000) {
+        voiceScore = 35.0;
+      }
+
       const totalScore = Math.min(100, Math.round(quizScore + textScore + voiceScore));
       const passed = totalScore >= 70;
+
+      // General feedback
+      let feedback = "";
+      if (totalScore === 0) {
+        feedback = "Bạn chưa hoàn thành các phần thi của câu hỏi này (chưa chọn đúng trắc nghiệm, chưa viết nội dung tự luận và chưa ghi âm giọng nói).";
+      } else if (actualCandidateWords === 0 && voiceScore === 0) {
+        feedback = "Chưa có nội dung tự luận và chưa thực hiện ghi âm. Hãy bổ sung đầy đủ cả 3 phần để đạt điểm chuẩn.";
+      } else if (textResult?.feedback) {
+        feedback = textResult.feedback;
+      } else if (voiceResult?.feedback) {
+        feedback = voiceResult.feedback;
+      } else if (passed) {
+        feedback = "Bài làm hoàn thành tốt các thành phần theo tiêu chuẩn đánh giá.";
+      } else {
+        feedback = "Bài làm thể hiện sự cố gắng nhưng cần viết chi tiết hơn và luyện tập nói tự tin hơn.";
+      }
 
       const mergedResult: AIEvaluationResult = {
         score: totalScore,
         passed,
-        general_feedback:
-          textResult?.feedback ||
-          voiceResult?.feedback ||
-          (passed ? "Bài làm hoàn thành tốt các thành phần theo tiêu chuẩn." : "Cần hoàn thiện thêm các phần thi."),
-        star_breakdown: textResult?.star_breakdown || {
-          situation_score: text ? 8 : 5,
-          situation_feedback: text ? "Bối cảnh được mô tả rõ ràng." : "Cần nêu rõ bối cảnh ban đầu.",
-          task_score: text ? 8 : 5,
-          task_feedback: text ? "Nhiệm vụ cụ thể." : "Cần nêu rõ vai trò cá nhân.",
-          action_score: text ? 8 : 5,
-          action_feedback: text ? "Hành động logic." : "Nên đi sâu vào giải pháp kỹ thuật.",
-          result_score: text ? 8 : 5,
-          result_feedback: text ? "Có số liệu đo lường." : "Nên bổ sung số liệu kết quả.",
-        },
+        general_feedback: feedback,
+        star_breakdown: textResult?.star_breakdown || (actualCandidateWords === 0 ? {
+          situation_score: 0,
+          situation_feedback: "Chưa nhập bối cảnh tình huống.",
+          task_score: 0,
+          task_feedback: "Chưa nêu nhiệm vụ hoặc mục tiêu.",
+          action_score: 0,
+          action_feedback: "Chưa có hành động cụ thể.",
+          result_score: 0,
+          result_feedback: "Chưa có kết quả đo lường.",
+        } : {
+          situation_score: actualCandidateWords >= 15 ? 7 : 2,
+          situation_feedback: actualCandidateWords >= 15 ? "Bối cảnh rõ ràng." : "Nội dung quá ngắn.",
+          task_score: actualCandidateWords >= 15 ? 7 : 2,
+          task_feedback: actualCandidateWords >= 15 ? "Nhiệm vụ cụ thể." : "Cần nêu rõ vai trò cá nhân.",
+          action_score: actualCandidateWords >= 15 ? 7 : 2,
+          action_feedback: actualCandidateWords >= 15 ? "Hành động logic." : "Cần nêu rõ giải pháp kỹ thuật.",
+          result_score: actualCandidateWords >= 15 ? 6 : 1,
+          result_feedback: actualCandidateWords >= 15 ? "Có số liệu đo lường." : "Thiếu số liệu định lượng.",
+        }),
         rubric_scores: [
           {
             criterion_id: "quiz",
