@@ -125,6 +125,74 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
   const [incompleteIssues, setIncompleteIssues] = useState<string[]>([]);
   const [pendingTargetIdx, setPendingTargetIdx] = useState<number | null>(null);
 
+
+  // Automatically trigger AI Overall Synthesis when all questions are evaluated
+  const hasTriggeredSynthesisRef = useRef(false);
+  useEffect(() => {
+    if (isFinished && questionsList.length > 0 && !hasTriggeredSynthesisRef.current) {
+      const allEvaluated = questionsList.every((q) => Boolean(evaluationsMap[q.question_id]));
+      if (allEvaluated) {
+        hasTriggeredSynthesisRef.current = true;
+        const evaluatedPayload = questionsList.map((q) => {
+          const ev = evaluationsMap[q.question_id];
+          return {
+            question_id: q.question_id,
+            question_text: q.question_text,
+            quiz_score: ev?.modal_breakdown?.quiz_score || 0,
+            text_score: ev?.modal_breakdown?.text_score || 0,
+            voice_score: ev?.modal_breakdown?.voice_score || 0,
+            total_score: ev?.score || 0,
+          };
+        });
+
+        pullQueue.triggerOverallSynthesis({
+          session_title: sessionTitle,
+          total_questions: questionsList.length,
+          evaluated_questions: evaluatedPayload,
+          language: questionsList[0]?.language || "vi",
+        });
+
+        // Save Practice History to DB and localStorage
+        const scores = Object.values(evaluationsMap).map((e) => e.score);
+        const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+        const historyRecord = {
+          history_id: `h-${Date.now()}`,
+          session_title: sessionTitle,
+          source_type: searchParams.get("source") || (setParam ? "set" : "basket"),
+          source_id: setParam || null,
+          domain_id: questionsList[0]?.domain_id || null,
+          domain_name: questionsList[0]?.domain_name || null,
+          role_name: questionsList[0]?.role_name || null,
+          total_questions: questionsList.length,
+          evaluated_count: questionsList.length,
+          average_score: avgScore,
+          duration_seconds: elapsedSeconds,
+          questions_summary: questionsList.map((q) => {
+            const ev = evaluationsMap[q.question_id];
+            return {
+              question_id: q.question_id,
+              question_text: q.question_text,
+              score: ev?.score || 0,
+              passed: ev?.passed || false,
+            };
+          }),
+        };
+
+        if (typeof window !== "undefined") {
+          try {
+            const raw = localStorage.getItem("interviewly_practice_history");
+            const existing = raw ? JSON.parse(raw) : [];
+            existing.unshift(historyRecord);
+            localStorage.setItem("interviewly_practice_history", JSON.stringify(existing.slice(0, 50)));
+          } catch {
+            // ignore
+          }
+        }
+        catalogApi.savePracticeHistory(historyRecord).catch(() => {});
+      }
+    }
+  }, [isFinished, questionsList, evaluationsMap, sessionTitle, setParam, searchParams, elapsedSeconds, pullQueue]);
+
   // Timer effect
   useEffect(() => {
     if (!isFinished && questionsList.length > 0 && activeTab === "practice") {
@@ -386,142 +454,42 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
   const stopRecording = handleStopVoiceRecording;
   const isRecording = voiceRecorder.isRecording;
 
-  // Final Evaluation of Entire Test when finishing:
-  // - Multiple Choice: graded purely by answer key (no AI call)
-  // - Written STAR text & Spoken voice: graded by AI
-  // - Scaled according to formula: Quiz = 15/N, Text = 35/N, Voice = 50/N
-  const handleFinalSubmit = async () => {
-    setIsEvaluating(true);
-    try {
-      const newEvaluations: Record<number, AIEvaluationResult> = { ...evaluationsMap };
+  // Final Submission: Immediately opens Live Scorecard (0ms delay)
+  // and enqueues final question in the background via Pull MQ
+  const handleFinalSubmit = () => {
+    if (currentQId) {
+      setLockedQuestionIds((prev) => new Set(prev).add(currentQId));
 
-      for (let i = 0; i < questionsList.length; i++) {
-        const q = questionsList[i];
-        const qid = q.question_id;
-        const ans = answersMap[qid] || {
-          selectedOption: null,
-          isQuizChecked: false,
-          writtenText: "",
-          recordedAudioUrl: null,
-          recordingSeconds: 0,
-        };
-
-        // 1. Multiple Choice: pure deterministic check (NO AI CALL)
-        let isCorrect = false;
-        let quizPoints = 0;
-        if (ans.selectedOption) {
-          const opt = q.quiz_data?.options.find((o) => o.id === ans.selectedOption);
-          isCorrect = opt ? Boolean(opt.is_correct) : ans.selectedOption === "B";
-          quizPoints = isCorrect ? scoreMultipliers.quizMax : 0;
-        }
-
-        // 2. Text & Voice: evaluated by AI if provided
-        const text = (ans.writtenText || "").trim();
-        const words = text ? text.split(/\s+/).length : 0;
-        const voiceSec = ans.recordingSeconds || 0;
-
-        let textPoints = 0;
-        let voicePoints = 0;
-        let evalResult: AIEvaluationResult | null = null;
-
-        if (words > 0 || voiceSec > 0) {
-          try {
-            evalResult = await catalogApi.evaluateAnswer(qid, {
-              type: "quiz",
-              answer_text: text || q.sample_answer?.slice(0, 200) || "",
-              audio_duration_seconds: voiceSec,
-              selected_option_id: ans.selectedOption || undefined,
-              is_quiz_correct: isCorrect,
-              language: q.language || "vi",
-            });
-          } catch (err) {
-            console.warn("AI evaluation error for question", qid, err);
-          }
-        }
-
-        // Text scoring
-        if (words >= 20) {
-          const textPct = evalResult?.modal_breakdown?.text_score
-            ? Math.min(1.0, evalResult.modal_breakdown.text_score / 35.0)
-            : Math.min(1.0, 0.5 + (words / 150.0) * 0.5);
-          textPoints = Number((textPct * scoreMultipliers.textMax).toFixed(1));
-        } else if (words > 0) {
-          textPoints = Number(((words / 20.0) * 0.35 * scoreMultipliers.textMax).toFixed(1));
-        }
-
-        // Voice scoring
-        if (voiceSec >= 5) {
-          const voicePct = evalResult?.modal_breakdown?.voice_score
-            ? Math.min(1.0, evalResult.modal_breakdown.voice_score / 50.0)
-            : Math.min(1.0, 0.6 + Math.min(voiceSec, 60.0) / 150.0);
-          voicePoints = Number((voicePct * scoreMultipliers.voiceMax).toFixed(1));
-        } else if (voiceSec > 0) {
-          voicePoints = Number(((voiceSec / 5.0) * 0.3 * scoreMultipliers.voiceMax).toFixed(1));
-        }
-
-        const totalQScore = Number(Math.min(scoreMultipliers.pointsPerQuestion, quizPoints + textPoints + voicePoints).toFixed(1));
-
-        newEvaluations[qid] = {
-          score: Math.round(totalQScore),
-          passed: totalQScore >= Number((scoreMultipliers.pointsPerQuestion * 0.7).toFixed(1)),
-          general_feedback: evalResult?.general_feedback || (totalQScore > 0 ? "Bài làm đã được ghi nhận câu trả lời." : "Chưa hoàn thành bài làm cho câu này."),
-          star_breakdown: evalResult?.star_breakdown || {
-            situation_score: words >= 20 ? 8 : 5,
-            situation_feedback: words >= 20 ? "Bối cảnh rõ ràng." : "Nên bổ sung thêm bối cảnh tình huống.",
-            task_score: words >= 20 ? 8 : 5,
-            task_feedback: words >= 20 ? "Nhiệm vụ rõ ràng." : "Cần làm rõ trách nhiệm cá nhân.",
-            action_score: words >= 20 ? 8 : 5,
-            action_feedback: words >= 20 ? "Hành động cụ thể, logic." : "Cần nêu rõ các bước giải pháp.",
-            result_score: words >= 20 ? 8 : 5,
-            result_feedback: words >= 20 ? "Kết quả định lượng tốt." : "Cần bổ sung số liệu đo lường.",
-          },
-          rubric_scores: [
-            {
-              criterion_id: "quiz",
-              criterion_name: "Trắc nghiệm tình huống (15%)",
-              score: isCorrect ? 10 : 0,
-              max_score: 10,
-              level_label: `${quizPoints}/${scoreMultipliers.quizMax}đ`,
-              feedback: isCorrect ? "Lựa chọn phương án tối ưu." : "Chưa chọn phương án chính xác.",
-            },
-            {
-              criterion_id: "text",
-              criterion_name: "Tự luận khung STAR (35%)",
-              score: Math.min(10, Math.round((textPoints / (scoreMultipliers.textMax || 1)) * 10)),
-              max_score: 10,
-              level_label: `${textPoints}/${scoreMultipliers.textMax}đ`,
-              feedback: words >= 20 ? "Lập luận mạch lạc theo khung STAR." : (words > 0 ? "Bài tự luận quá ngắn (< 20 từ)." : "Chưa làm bài tự luận."),
-            },
-            {
-              criterion_id: "voice",
-              criterion_name: "Nói & Ghi âm trực tiếp (50%)",
-              score: Math.min(10, Math.round((voicePoints / (scoreMultipliers.voiceMax || 1)) * 10)),
-              max_score: 10,
-              level_label: `${voicePoints}/${scoreMultipliers.voiceMax}đ`,
-              feedback: voiceSec >= 5 ? "Phát biểu rõ ràng, thời lượng tốt." : (voiceSec > 0 ? "Bản ghi âm quá ngắn (< 5 giây)." : "Chưa thực hiện ghi âm nói."),
-            },
-          ],
-          strengths: evalResult?.strengths || ["Đã hoàn thành các phần thi của câu hỏi."],
-          improvements: evalResult?.improvements || ["Nên rèn luyện thêm phần nói và bổ sung số liệu thực tế cho phần tự luận."],
-          modal_breakdown: {
-            quiz_score: quizPoints,
-            quiz_max: scoreMultipliers.quizMax,
-            text_score: textPoints,
-            text_max: scoreMultipliers.textMax,
-            voice_score: voicePoints,
-            voice_max: scoreMultipliers.voiceMax,
-            total_score: totalQScore,
-          },
-        };
+      let isCorrect = false;
+      if (currentAns.selectedOption) {
+        const opt = currentQuestion?.quiz_data?.options.find((o) => o.id === currentAns.selectedOption);
+        isCorrect = opt ? Boolean(opt.is_correct) : currentAns.selectedOption === "B";
       }
 
-      setEvaluationsMap(newEvaluations);
-      setIsFinished(true);
-    } catch (err) {
-      console.error("Evaluation error:", err);
-    } finally {
-      setIsEvaluating(false);
+      const metrics = currentAns.delivery_metrics || voiceRecorder.deliveryMetrics;
+      const durSec = voiceRecorder.recordingSeconds || currentAns.recordingSeconds || 0;
+
+      pullQueue.enqueueQuestionEvaluation(
+        {
+          question_id: currentQId,
+          question_text: currentQuestion?.question_text,
+          quiz_answer: currentAns.selectedOption,
+          text_answer: currentAns.writtenText,
+          transcript: voiceRecorder.transcript,
+          delivery_metrics: metrics,
+          language: currentQuestion?.language || "vi",
+          is_quiz_correct: isCorrect,
+          audio_duration_seconds: durSec,
+          role_name: currentQuestion?.role_name || "Software Engineer",
+        },
+        (result) => {
+          setEvaluationsMap((prev) => ({ ...prev, [currentQId]: result }));
+        }
+      );
     }
+
+    // Immediately transition to Live Scorecard view
+    setIsFinished(true);
   };
 
   // Check incomplete parts for current question before transitioning
@@ -754,6 +722,55 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
           </div>
         </div>
 
+        {/* AI Overall Examination Synthesis Card */}
+        <div className={styles.contentCard} style={{ padding: "24px", marginBottom: "22px", background: "#ffffff", border: "1.5px solid rgba(217, 130, 54, 0.35)", borderRadius: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <Sparkles size={20} color="#d98236" />
+            <h3 style={{ fontSize: 17, fontWeight: 900, margin: 0, color: "var(--ink)" }}>
+              Nhận xét toàn diện từ AI Coach cho cả bài thi
+            </h3>
+          </div>
+
+          {pullQueue.overallSynthesis.status === "processing" || pullQueue.overallSynthesis.status === "queued" ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px", borderRadius: 14, background: "rgba(217, 130, 54, 0.08)", color: "#8b4513", fontWeight: 700, fontSize: 13 }}>
+              <Sparkles size={18} className="animate-spin" style={{ color: "#d98236", flexShrink: 0 }} />
+              <span>⏳ AI Coach đang tổng hợp nhận xét toàn diện cho toàn bộ {questionsList.length} câu hỏi...</span>
+            </div>
+          ) : pullQueue.overallSynthesis.result ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <p style={{ fontSize: 13.5, lineHeight: 1.65, color: "var(--ink-soft)", margin: 0, fontStyle: "italic", background: "rgba(33, 25, 20, 0.03)", padding: "12px 16px", borderRadius: 12 }}>
+                "{pullQueue.overallSynthesis.result.overall_feedback}"
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
+                <div style={{ padding: 14, borderRadius: 12, background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)" }}>
+                  <div style={{ fontWeight: 800, fontSize: 12.5, color: "#065f46", marginBottom: 6 }}>✓ Điểm mạnh tổng thể</div>
+                  <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, lineHeight: 1.6 }}>
+                    {pullQueue.overallSynthesis.result.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                  </ul>
+                </div>
+                <div style={{ padding: 14, borderRadius: 12, background: "rgba(234, 88, 12, 0.08)", border: "1px solid rgba(234, 88, 12, 0.2)" }}>
+                  <div style={{ fontWeight: 800, fontSize: 12.5, color: "#9a3412", marginBottom: 6 }}>💡 Điểm cần khắc phục</div>
+                  <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, lineHeight: 1.6 }}>
+                    {pullQueue.overallSynthesis.result.improvements.map((im, i) => <li key={i}>{im}</li>)}
+                  </ul>
+                </div>
+              </div>
+              {pullQueue.overallSynthesis.result.career_readiness_verdict && (
+                <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, fontWeight: 800, color: "#d98236" }}>
+                  <span>Đánh giá mức độ sẵn sàng:</span>
+                  <span style={{ padding: "3px 12px", borderRadius: 999, background: "rgba(217, 130, 54, 0.12)", color: "#8b4513" }}>
+                    {pullQueue.overallSynthesis.result.career_readiness_verdict}
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ fontSize: 12.5, color: "var(--ink-muted)", fontStyle: "italic" }}>
+              (Nhận xét tổng thể sẽ tự động hiển thị ngay khi tất cả các câu hỏi được chấm xong.)
+            </div>
+          )}
+        </div>
+
         {/* Question-by-Question Review List */}
         <h3 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 16px", color: "var(--ink)" }}>
           Xem lại đáp án & Báo cáo chấm điểm từng câu ({questionsList.length} câu)
@@ -794,6 +811,19 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                   </div>
                 </div>
 
+                {/* Live evaluating skeleton if question is still being processed by AI */}
+                {!ev ? (
+                  <div style={{ padding: "30px 20px", textAlign: "center", background: "rgba(217, 130, 54, 0.04)", borderRadius: 16, border: "1.5px dashed rgba(217, 130, 54, 0.35)", margin: "14px 0" }}>
+                    <Sparkles size={26} className="animate-spin" style={{ color: "#d98236", margin: "0 auto 8px" }} />
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#b45309" }}>
+                      ⏳ Đang chấm điểm...
+                    </div>
+                    <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--ink-soft)" }}>
+                      AI Coach đang phân tích cấu trúc STAR và giọng nói phát âm ngầm qua hàng đợi Pull MQ.
+                    </p>
+                  </div>
+                ) : (
+                  <>
                 {/* Sub-scores breakdown */}
                 {mb && (
                   <div className={styles.scoreGrid3} style={{ margin: "0 0 16px" }}>
@@ -864,6 +894,8 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                     <span style={{ fontSize: 12, color: "var(--ink-muted)", fontStyle: "italic" }}>(Chưa ghi âm cho câu này)</span>
                   )}
                 </div>
+                  </>
+                )}
               </div>
             );
           })}
@@ -1555,20 +1587,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
         </div>
       )}
 
-      {/* EVALUATING LOADING MODAL (WHEN SUBMITTING THE ENTIRE TEST) */}
-      {isEvaluating && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalCard} style={{ textAlign: "center", maxWidth: "440px" }}>
-            <Sparkles size={40} className="animate-spin" style={{ color: "var(--accent-warm)", margin: "0 auto 12px" }} />
-            <h3 style={{ fontSize: "18px", fontWeight: 800, margin: "0 0 6px" }}>
-              AI Coach đang chấm điểm bài thi...
-            </h3>
-            <p style={{ fontSize: "13px", color: "var(--ink-soft)", margin: 0, lineHeight: 1.6 }}>
-              Đang tự động chấm trắc nghiệm và sử dụng AI chấm bài tự luận STAR cùng kỹ năng nói cho {totalQuestions} câu hỏi.
-            </p>
-          </div>
-        </div>
-      )}
+
 
       {/* PRE-TRANSITION INCOMPLETE WARNING MODAL */}
       {showIncompleteModal && (

@@ -975,4 +975,95 @@ export const catalogApi = {
     }
   },
 
+
+  /**
+   * Decoupled Request: Enqueue Written Essay (35% STAR) to Background Pull MQ.
+   */
+  async enqueueTextEvaluation(payload: {
+    question_id: number | string;
+    question_text?: string;
+    answer_text: string;
+    role_name?: string;
+    language?: string;
+  }): Promise<{ task_id: string; status: string } | null> {
+    try {
+      return await request<{ task_id: string; status: string }>(
+        "/api/v1/catalog/evaluations/text-queue",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            question_id: Number(payload.question_id),
+            question_text: payload.question_text || null,
+            answer_text: payload.answer_text,
+            role_name: payload.role_name || "Software Engineer",
+            language: payload.language || "vi",
+          }),
+        }
+      );
+    } catch (err) {
+      console.warn("Enqueue text evaluation failed:", err);
+      return null;
+    }
+  },
+
+  /**
+   * Decoupled Request: Enqueue Spoken STT Transcript + Telemetry (50%) to Background Pull MQ.
+   */
+  async enqueueVoiceEvaluation(payload: {
+    question_id: number | string;
+    question_text?: string;
+    transcript: string;
+    delivery_metrics: any;
+    language?: string;
+  }): Promise<{ task_id: string; status: string } | null> {
+    try {
+      return await request<{ task_id: string; status: string }>(
+        "/api/v1/catalog/evaluations/voice-queue",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            question_id: Number(payload.question_id),
+            question_text: payload.question_text || null,
+            transcript: payload.transcript,
+            delivery_metrics: payload.delivery_metrics,
+            language: payload.language || "vi",
+          }),
+        }
+      );
+    } catch (err) {
+      console.warn("Enqueue voice evaluation failed:", err);
+      return null;
+    }
+  },
+
+  /**
+   * Final Overall Examination Synthesis: Summarizes all N evaluated questions into overarching assessment.
+   */
+  async enqueueOverallSynthesis(payload: {
+    session_title: string;
+    total_questions: number;
+    evaluated_questions: Array<{
+      question_id: number;
+      question_text?: string;
+      quiz_score?: number;
+      text_score?: number;
+      voice_score?: number;
+      total_score?: number;
+    }>;
+    language?: string;
+  }): Promise<{ task_id: string; status: string } | null> {
+    try {
+      return await request<{ task_id: string; status: string }>(
+        "/api/v1/catalog/evaluations/overall-synthesis",
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        }
+      );
+    } catch (err) {
+      console.warn("Enqueue overall synthesis failed:", err);
+      return null;
+    }
+  },
+
 };
