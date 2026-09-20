@@ -8,6 +8,7 @@ import type {
   QuestionDetailOut,
   AIEvaluationResult,
 } from "@/types/catalog";
+import type { DeliveryMetrics } from "@/types/delivery";
 
 export interface UserPracticeAnswer {
   mode: "quiz" | "text" | "voice" | "all";
@@ -15,6 +16,7 @@ export interface UserPracticeAnswer {
   written_text?: string;
   audio_url?: string | null;
   audio_duration_seconds?: number;
+  delivery_metrics?: DeliveryMetrics | null;
   submitted_at?: string;
 }
 
@@ -42,6 +44,11 @@ export function useQuestionPracticeSession() {
   const [answers, setAnswers] = useState<Record<number, UserPracticeAnswer>>({});
   const [evaluations, setEvaluations] = useState<Record<number, AIEvaluationResult>>({});
   const [isFinished, setIsFinished] = useState<boolean>(false);
+  const [lockedQuestionIds, setLockedQuestionIds] = useState<Set<number>>(new Set());
+
+  const lockQuestion = useCallback((qid: number) => {
+    setLockedQuestionIds((prev) => new Set(prev).add(qid));
+  }, []);
 
   // Timer
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
@@ -305,6 +312,7 @@ export function useQuestionPracticeSession() {
   const restartSession = useCallback(() => {
     setAnswers({});
     setEvaluations({});
+    setLockedQuestionIds(new Set());
     setCurrentIndex(0);
     setElapsedSeconds(0);
     setIsFinished(false);
@@ -358,6 +366,9 @@ export function useQuestionPracticeSession() {
     saveAnswer,
     saveEvaluation,
     finishSession,
+    lockedQuestionIds,
+    lockQuestion,
+    isQuestionLocked: (qid: number) => lockedQuestionIds.has(qid),
     restartSession,
   };
 }

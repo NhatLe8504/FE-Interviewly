@@ -833,5 +833,63 @@ export const catalogApi = {
       return null;
     }
   },
-};
 
+  /**
+   * Pipeline B: Enqueue question evaluation task into Backend Pull MQ (< 15ms latency).
+   */
+  async enqueueEvaluation(payload: {
+    question_id: number | string;
+    quiz_answer?: string | null;
+    text_answer?: string;
+    delivery_metrics?: any;
+    language?: string;
+    is_quiz_correct?: boolean | null;
+    audio_duration_seconds?: number;
+  }): Promise<{ task_id: string; status: string; quiz_score: number } | null> {
+    try {
+      const res = await request<{ task_id: string; status: string; quiz_score: number }>(
+        "/api/v1/catalog/evaluations/queue",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            question_id: Number(payload.question_id),
+            quiz_answer: payload.quiz_answer || null,
+            text_answer: payload.text_answer || "",
+            delivery_metrics: payload.delivery_metrics || null,
+            language: payload.language || "vi",
+            is_quiz_correct: payload.is_quiz_correct !== undefined ? payload.is_quiz_correct : null,
+            audio_duration_seconds: payload.audio_duration_seconds || null,
+          }),
+        }
+      );
+      return res;
+    } catch (err) {
+      console.warn("Enqueue evaluation failed, will fallback to sync evaluation:", err);
+      return null;
+    }
+  },
+
+  /**
+   * Pipeline B: Pull evaluation result from backend queue by task_id.
+   */
+  async pullEvaluation(taskId: string): Promise<{
+    task_id: string;
+    status: "queued" | "processing" | "completed" | "failed";
+    result?: AIEvaluationResult;
+    error?: string;
+  } | null> {
+    try {
+      const res = await request<{
+        task_id: string;
+        status: "queued" | "processing" | "completed" | "failed";
+        result?: AIEvaluationResult;
+        error?: string;
+      }>(`/api/v1/catalog/evaluations/pull/${taskId}`);
+      return res;
+    } catch (err) {
+      console.warn("Pull evaluation error for task", taskId, err);
+      return null;
+    }
+  },
+
+};

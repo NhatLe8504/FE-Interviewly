@@ -30,10 +30,14 @@ import {
   AlertTriangle,
   AlertCircle,
   Share2,
+  Lock,
 } from "lucide-react";
 import { catalogApi } from "@/services/catalogApi";
 import { useI18n } from "@/context/I18nContext";
 import type { QuestionDetailOut, AIEvaluationResult } from "@/types/catalog";
+import type { DeliveryMetrics } from "@/types/delivery";
+import { useDeliveryVoiceRecorder } from "@/hooks/useDeliveryVoiceRecorder";
+import { useEvaluationPullQueue } from "@/hooks/useEvaluationPullQueue";
 import { MOCK_QUESTION_SETS } from "@/mock/questionSetsMock";
 import { getDomainTheme } from "@/constants/domainThemes";
 import styles from "./detail.module.css";
@@ -47,6 +51,7 @@ export interface QuestionAnswerRecord {
   writtenText: string;
   recordedAudioUrl: string | null;
   recordingSeconds: number;
+  delivery_metrics?: DeliveryMetrics | null;
 }
 
 export default function QuestionDetailClient({ questionId: propQuestionId }: Props) {
@@ -80,6 +85,12 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
 
   // Active answer mode tab inside practice: quiz | text | voice
   const [practiceType, setPracticeType] = useState<"quiz" | "text" | "voice">("quiz");
+
+  // Forward-Only Progression Lock (Read-only on previous questions)
+  const [lockedQuestionIds, setLockedQuestionIds] = useState<Set<number>>(new Set());
+
+  // Pipeline B: Pull MQ Hook
+  const pullQueue = useEvaluationPullQueue();
 
   // Voice recording state
   const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -305,62 +316,25 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-  // Voice Recording
-  const startRecording = async () => {
-    if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-      alert("Trình duyệt chưa hỗ trợ ghi âm microphone.");
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioChunksRef.current = [];
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
+  // Pipeline A: Web Audio VAD & Delivery Telemetry Voice Recorder
+  const isCurrentLocked = Boolean(currentQId && lockedQuestionIds.has(currentQId));
 
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
-      };
+  const voiceRecorder = useDeliveryVoiceRecorder({
+    language: currentQuestion?.language === "en" ? "en-US" : "vi-VN",
+  });
 
-      recorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        const url = URL.createObjectURL(blob);
-        updateCurrentAnswer({ recordedAudioUrl: url });
-        stream.getTracks().forEach((track) => track.stop());
-      };
-
-      recorder.start();
-      setIsRecording(true);
-      updateCurrentAnswer({ recordingSeconds: 0 });
-      voiceTimerRef.current = setInterval(() => {
-        setAnswersMap((prev) => {
-          const rec = prev[currentQId];
-          const cur = rec ? rec.recordingSeconds || 0 : 0;
-          return {
-            ...prev,
-            [currentQId]: {
-              ...(rec || {
-                selectedOption: null,
-                isQuizChecked: false,
-                writtenText: "",
-                recordedAudioUrl: null,
-                recordingSeconds: 0,
-              }),
-              recordingSeconds: cur + 1,
-            },
-          };
-        });
-      }, 1000);
-    } catch {
-      alert("Không thể truy cập microphone. Vui lòng cấp quyền trong trình duyệt.");
-    }
+  const handleStartVoiceRecording = async () => {
+    if (isCurrentLocked) return;
+    await voiceRecorder.startRecording();
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (voiceTimerRef.current) clearInterval(voiceTimerRef.current);
-    }
+  const handleStopVoiceRecording = () => {
+    const metrics = voiceRecorder.stopRecording();
+    updateCurrentAnswer({
+      recordedAudioUrl: voiceRecorder.recordedAudioUrl,
+      recordingSeconds: metrics ? Math.round(metrics.durationMs / 1000) : voiceRecorder.recordingSeconds,
+      delivery_metrics: metrics,
+    });
   };
 
   // Final Evaluation of Entire Test when finishing:
@@ -518,10 +492,45 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
     return issues;
   };
 
+  const proceedToTargetQuestion = (targetIndex: number) => {
+    if (targetIndex > currentIdx && currentQId) {
+      // 1. Enforce Forward-Only Progression Lock
+      setLockedQuestionIds((prev) => new Set(prev).add(currentQId));
+
+      // 2. Trigger Pipeline B Background Enqueue (< 15ms latency)
+      let isCorrect = false;
+      if (currentAns.selectedOption) {
+        const opt = currentQuestion?.quiz_data?.options.find((o) => o.id === currentAns.selectedOption);
+        isCorrect = opt ? Boolean(opt.is_correct) : currentAns.selectedOption === "B";
+      }
+
+      const metrics = currentAns.delivery_metrics || voiceRecorder.deliveryMetrics;
+      const durSec = voiceRecorder.recordingSeconds || currentAns.recordingSeconds || 0;
+
+      pullQueue.enqueueQuestionEvaluation(
+        {
+          question_id: currentQId,
+          quiz_answer: currentAns.selectedOption,
+          text_answer: currentAns.writtenText,
+          delivery_metrics: metrics,
+          language: currentQuestion?.language || "vi",
+          is_quiz_correct: isCorrect,
+          audio_duration_seconds: durSec,
+        },
+        (result) => {
+          setEvaluationsMap((prev) => ({ ...prev, [currentQId]: result }));
+        }
+      );
+    }
+
+    setCurrentIdx(targetIndex);
+  };
+
   const handleAttemptNavigate = (targetIndex: number) => {
     if (targetIndex === currentIdx || targetIndex < 0 || targetIndex >= totalQuestions) return;
 
-    if (!isFinished) {
+    // Check completeness when moving forward
+    if (targetIndex > currentIdx && !isFinished && !isCurrentLocked) {
       const issues = checkCurrentIncomplete();
       if (issues.length > 0) {
         setIncompleteIssues(issues);
@@ -531,13 +540,13 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
       }
     }
 
-    setCurrentIdx(targetIndex);
+    proceedToTargetQuestion(targetIndex);
   };
 
   const handleConfirmSkip = () => {
     setShowIncompleteModal(false);
     if (pendingTargetIdx !== null) {
-      setCurrentIdx(pendingTargetIdx);
+      proceedToTargetQuestion(pendingTargetIdx);
       setPendingTargetIdx(null);
     }
   };
