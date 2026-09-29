@@ -101,15 +101,28 @@ export function QuestionSetDataTable({
   });
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+
   const handleOpenPreview = async (s: QuestionSetItem) => {
-    setPreviewSet(s);
+    setPreviewSet({
+      ...s,
+      questions: s.questions || [],
+      tech_stack: s.tech_stack || [],
+    });
+    setIsLoadingPreview(true);
     try {
       const detail = await questionAdminApi.getQuestionSetDetail(s.set_id);
       if (detail && detail.questions) {
-        setPreviewSet(detail as any);
+        setPreviewSet({
+          ...detail,
+          questions: detail.questions || [],
+          tech_stack: detail.tech_stack || [],
+        } as any);
       }
     } catch (e) {
       console.warn("Failed to load question set detail:", e);
+    } finally {
+      setIsLoadingPreview(false);
     }
   };
 
@@ -376,13 +389,13 @@ export function QuestionSetDataTable({
                         #{s.set_id}
                       </TableCell>
 
-                      <TableCell>
-                        <div className="space-y-1 py-1">
-                          <div className="flex items-center gap-2">
+                      <TableCell className="max-w-[300px] md:max-w-[360px] xl:max-w-[440px] overflow-hidden">
+                        <div className="space-y-1 py-1 overflow-hidden">
+                          <div className="flex items-center gap-2 overflow-hidden">
                             <p
-                              className="font-bold text-foreground hover:text-primary cursor-pointer leading-snug line-clamp-1"
-                              onClick={() => setPreviewSet(s)}
-                              title="Bấm để xem danh sách câu hỏi trong bộ đề"
+                              className="font-bold text-foreground hover:text-primary cursor-pointer leading-snug truncate"
+                              onClick={() => handleOpenPreview(s)}
+                              title={s.title}
                             >
                               {s.title}
                             </p>
@@ -392,20 +405,20 @@ export function QuestionSetDataTable({
                               </Badge>
                             )}
                           </div>
-                          <p className="text-[11px] text-muted-foreground line-clamp-1">
+                          <p className="text-[11px] text-muted-foreground truncate" title={s.description}>
                             {s.description}
                           </p>
                         </div>
                       </TableCell>
 
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-semibold text-foreground truncate">
+                      <TableCell className="max-w-[180px] overflow-hidden">
+                        <div className="space-y-1 overflow-hidden">
+                          <div className="font-semibold text-foreground truncate" title={s.role_name || ""}>
                             {s.role_name}
                           </div>
                           <div className="flex flex-wrap gap-1">
-                            {s.tech_stack.slice(0, 3).map((tech, idx) => (
-                              <span key={idx} className="text-[10px] bg-muted px-1.5 py-0.2 rounded text-muted-foreground">
+                            {(s.tech_stack || []).slice(0, 3).map((tech, idx) => (
+                              <span key={idx} className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground truncate max-w-[100px]">
                                 {tech}
                               </span>
                             ))}
@@ -531,58 +544,80 @@ export function QuestionSetDataTable({
       {/* Preview Question Set Drawer */}
       <Sheet open={!!previewSet} onOpenChange={(open) => !open && setPreviewSet(null)}>
         <SheetContent className="w-full sm:max-w-2xl overflow-y-auto p-0 text-xs">
-          {previewSet && (
-            <div className="flex flex-col h-full">
-              <SheetHeader className="p-6 pb-4 border-b bg-muted/20">
-                <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="outline" className="font-mono text-xs">#{previewSet.set_id}</Badge>
-                  <Badge variant="outline" className="capitalize">{previewSet.experience_level}</Badge>
-                  <Badge variant="secondary">{previewSet.questions.length} câu hỏi</Badge>
-                </div>
-                <SheetTitle className="text-base font-bold leading-snug">
-                  {previewSet.title}
-                </SheetTitle>
-                <SheetDescription className="text-xs">
-                  {previewSet.domain_name} · {previewSet.role_name} · Thời lượng: {previewSet.estimated_duration_minutes} phút
-                </SheetDescription>
-              </SheetHeader>
+          {previewSet && (() => {
+            const questionsList = previewSet.questions || [];
+            const techList = previewSet.tech_stack || [];
+            const qCount = previewSet.question_count || questionsList.length;
 
-              <div className="p-6 space-y-4 flex-1 overflow-y-auto">
-                <div className="space-y-1">
-                  <span className="font-bold text-foreground block">Công nghệ trọng tâm:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {previewSet.tech_stack.map((t, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-xs font-mono">{t}</Badge>
-                    ))}
+            return (
+              <div className="flex flex-col h-full">
+                <SheetHeader className="p-6 pb-4 border-b bg-muted/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant="outline" className="font-mono text-xs">#{previewSet.set_id}</Badge>
+                    <Badge variant="outline" className="capitalize">{previewSet.experience_level}</Badge>
+                    <Badge variant="secondary">{qCount} câu hỏi</Badge>
                   </div>
-                </div>
+                  <SheetTitle className="text-base font-bold leading-snug">
+                    {previewSet.title}
+                  </SheetTitle>
+                  <SheetDescription className="text-xs">
+                    {previewSet.domain_name} · {previewSet.role_name} · Thời lượng: {previewSet.estimated_duration_minutes} phút
+                  </SheetDescription>
+                </SheetHeader>
 
-                <Separator />
-
-                <div className="space-y-3">
-                  <span className="font-bold text-foreground block">
-                    Danh sách các câu hỏi trong bộ đề ({previewSet.questions.length} câu):
-                  </span>
-                  {previewSet.questions.map((q, idx) => (
-                    <div key={idx} className="p-3.5 rounded-xl border bg-card space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-primary">Câu #{idx + 1}</span>
-                        <Badge variant="outline" className="text-[10px] capitalize">{q.question_type}</Badge>
-                      </div>
-                      <p className="font-semibold text-foreground text-xs leading-relaxed">
-                        {q.question_text}
-                      </p>
-                      {q.intent && (
-                        <p className="text-[11px] text-muted-foreground">
-                          <strong>Mục tiêu:</strong> {q.intent}
-                        </p>
+                <div className="p-6 space-y-4 flex-1 overflow-y-auto">
+                  <div className="space-y-1">
+                    <span className="font-bold text-foreground block">Công nghệ trọng tâm:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {techList.length > 0 ? (
+                        techList.map((t, idx) => (
+                          <Badge key={idx} variant="secondary" className="text-xs font-mono">{t}</Badge>
+                        ))
+                      ) : (
+                        <span className="text-muted-foreground text-xs italic">Chưa cấu hình tag</span>
                       )}
                     </div>
-                  ))}
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <span className="font-bold text-foreground block">
+                      Danh sách các câu hỏi trong bộ đề ({qCount} câu):
+                    </span>
+
+                    {isLoadingPreview && questionsList.length === 0 ? (
+                      <div className="p-8 text-center text-muted-foreground flex items-center justify-center gap-2">
+                        <Sparkles className="size-4 animate-spin text-primary" />
+                        <span>Đang tải danh sách câu hỏi chi tiết từ máy chủ...</span>
+                      </div>
+                    ) : questionsList.length === 0 ? (
+                      <div className="p-6 text-center text-muted-foreground border rounded-xl bg-muted/10">
+                        Chưa có câu hỏi nào được gán vào bộ đề này.
+                      </div>
+                    ) : (
+                      questionsList.map((q, idx) => (
+                        <div key={idx} className="p-3.5 rounded-xl border bg-card space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-primary">Câu #{idx + 1}</span>
+                            <Badge variant="outline" className="text-[10px] capitalize">{q.question_type}</Badge>
+                          </div>
+                          <p className="font-semibold text-foreground text-xs leading-relaxed">
+                            {q.question_text}
+                          </p>
+                          {q.intent && (
+                            <p className="text-[11px] text-muted-foreground">
+                              <strong>Mục tiêu:</strong> {q.intent}
+                            </p>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </SheetContent>
       </Sheet>
 
