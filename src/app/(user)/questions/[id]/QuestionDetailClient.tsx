@@ -593,11 +593,61 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
             isCorrect
           );
           setEvaluationsMap((prev) => ({ ...prev, [currentQId]: scaled }));
+
+          // Save completed evaluation into sessionStorage for dedicated result page
+          try {
+            const completedData = {
+              questionId: currentQId,
+              questionsList: questionsList.length > 0 ? questionsList : (currentQuestion ? [currentQuestion] : []),
+              evaluationsMap: { ...evaluationsMap, [currentQId]: scaled },
+              answersMap: {
+                ...answersMap,
+                [currentQId]: {
+                  ...currentAns,
+                  recordedAudioUrl: finalVoiceUrl,
+                  recordingSeconds: finalVoiceSec,
+                  delivery_metrics: finalMetrics,
+                  transcript: finalTranscript,
+                },
+              },
+              elapsedSeconds,
+            };
+            sessionStorage.setItem(`question_eval_${currentQId}`, JSON.stringify(completedData));
+            sessionStorage.setItem("question_eval_latest", JSON.stringify(completedData));
+          } catch (e) {
+            console.warn("sessionStorage save error:", e);
+          }
         }
       );
+
+      // Save baseline state and immediately navigate to dedicated Result page
+      try {
+        const initialResult = {
+          questionId: currentQId,
+          questionsList: questionsList.length > 0 ? questionsList : (currentQuestion ? [currentQuestion] : []),
+          evaluationsMap: evaluationsMap,
+          answersMap: {
+            ...answersMap,
+            [currentQId]: {
+              ...currentAns,
+              recordedAudioUrl: finalVoiceUrl,
+              recordingSeconds: finalVoiceSec,
+              delivery_metrics: finalMetrics,
+              transcript: finalTranscript,
+            },
+          },
+          elapsedSeconds,
+        };
+        sessionStorage.setItem(`question_eval_${currentQId}`, JSON.stringify(initialResult));
+        sessionStorage.setItem("question_eval_latest", JSON.stringify(initialResult));
+      } catch (e) {
+        console.warn("sessionStorage save error:", e);
+      }
+
+      router.push(`/questions/${currentQId}/result`);
+      return;
     }
 
-    // Immediately transition to Live Scorecard view
     setIsFinished(true);
   };
 
