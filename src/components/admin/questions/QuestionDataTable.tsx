@@ -84,9 +84,13 @@ import { DEFAULT_RUBRIC_CRITERIA } from "@/services/catalogApi";
 export function QuestionDataTable({
   initialQuestions = [],
   onRefresh,
+  triggerCreate,
+  onTriggerCreateHandled,
 }: {
   initialQuestions: AdminQuestionItem[];
   onRefresh?: () => void;
+  triggerCreate?: boolean;
+  onTriggerCreateHandled?: () => void;
 }) {
   const [questions, setQuestions] = useState<AdminQuestionItem[]>(initialQuestions);
   const [search, setSearch] = useState("");
@@ -235,6 +239,13 @@ export function QuestionDataTable({
     setSelectedStatus("all");
     setPage(1);
   };
+
+  React.useEffect(() => {
+    if (triggerCreate) {
+      handleOpenCreate();
+      onTriggerCreateHandled?.();
+    }
+  }, [triggerCreate]);
 
   // Action: Toggle active
   const handleToggleActive = (questionId: number) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { questionAdminApi } from "@/services/admin/questionAdminApi";
+import { Separator } from "@/components/admin/ui/separator";
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
@@ -288,16 +289,7 @@ export function QuestionSetDataTable({
               <span>Xuất JSON</span>
             </Button>
 
-            <Button
-              asChild
-              size="sm"
-              className="h-9 gap-1.5 text-xs shadow-xs"
-            >
-              <Link href="/admin/questions/new">
-                <Plus className="size-3.5" />
-                <span>Tạo Bộ Câu Hỏi Mới</span>
-              </Link>
-            </Button>
+
           </div>
         </div>
 

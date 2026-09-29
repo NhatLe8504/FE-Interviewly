@@ -27,6 +27,8 @@ export default function AdminQuestionsPage() {
   const [questions, setQuestions] = useState<any[]>(MOCK_ADMIN_QUESTIONS);
   const [questionSets, setQuestionSets] = useState<any[]>(MOCK_QUESTION_SETS);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"sets" | "bank">("sets");
+  const [triggerCreateSingle, setTriggerCreateSingle] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -100,13 +102,28 @@ export default function AdminQuestionsPage() {
           </Button>
 
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setActiveTab("bank");
+              setTriggerCreateSingle(true);
+            }}
+            className="h-8 gap-1.5 text-xs border-primary/40 text-primary hover:bg-primary/10"
+            title="Mở form tạo một câu hỏi phỏng vấn đơn lẻ mới"
+          >
+            <HelpCircle className="size-3.5" />
+            <span>Tạo Câu Hỏi Lẻ</span>
+          </Button>
+
+          <Button
             asChild
             size="sm"
             className="h-8 gap-1.5 text-xs shadow-xs"
+            title="Mở trang thiết lập và tạo trọn vẹn bộ đề tuyển dụng mới"
           >
             <Link href="/admin/questions/new">
               <Plus className="size-3.5" />
-              <span>Tạo Bộ Câu Hỏi Mới</span>
+              <span>Tạo Bộ Đề Mới</span>
             </Link>
           </Button>
         </div>
@@ -124,7 +141,7 @@ export default function AdminQuestionsPage() {
 
         {/* View Mode Tabs: Question Sets vs Individual Questions */}
         <div className="px-4 lg:px-6">
-          <Tabs defaultValue="sets" className="space-y-4">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-4">
             <div className="flex items-center justify-between border-b pb-1">
               <TabsList className="h-9 p-1 bg-muted/60">
                 <TabsTrigger value="sets" className="text-xs gap-2 font-semibold">
@@ -157,6 +174,8 @@ export default function AdminQuestionsPage() {
                 key={`bank-${refreshKey}-${questions.length}`}
                 initialQuestions={questions}
                 onRefresh={handleRefresh}
+                triggerCreate={triggerCreateSingle}
+                onTriggerCreateHandled={() => setTriggerCreateSingle(false)}
               />
             </TabsContent>
           </Tabs>
