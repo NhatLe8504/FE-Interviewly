@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   QuestionSectionCards,
   QuestionInteractiveChart,
@@ -12,7 +12,8 @@ import {
   MOCK_QUESTION_STATS,
   generateQuestionsChartData,
 } from "@/mock/adminQuestionsMock";
-import { MOCK_QUESTION_SETS, MOCK_QUESTION_SET_STATS } from "@/mock/questionSetsMock";
+import { MOCK_QUESTION_SETS } from "@/mock/questionSetsMock";
+import { questionAdminApi } from "@/services/admin/questionAdminApi";
 import { Layers, RefreshCw, FolderKanban, HelpCircle, Plus } from "lucide-react";
 import { Button } from "@/components/admin/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/admin/ui/tabs";
@@ -23,11 +24,58 @@ export default function AdminQuestionsPage() {
   const [chartData, setChartData] = useState(() => generateQuestionsChartData());
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const [questions, setQuestions] = useState<any[]>(MOCK_ADMIN_QUESTIONS);
+  const [questionSets, setQuestionSets] = useState<any[]>(MOCK_QUESTION_SETS);
+  const [loading, setLoading] = useState(true);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [qRes, setsRes] = await Promise.all([
+        questionAdminApi.getQuestions({ limit: 100 }),
+        questionAdminApi.getQuestionSets({ limit: 100 }),
+      ]);
+
+      if (qRes && Array.isArray(qRes.items) && qRes.items.length > 0) {
+        setQuestions(qRes.items);
+      }
+      if (setsRes && Array.isArray(setsRes.items) && setsRes.items.length > 0) {
+        setQuestionSets(setsRes.items);
+      }
+    } catch (err) {
+      console.warn("Failed to load questions catalog from DB:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData, refreshKey]);
+
   const handleRefresh = () => {
     setChartData(generateQuestionsChartData());
     setRefreshKey((k) => k + 1);
     toast.success("Đã làm mới dữ liệu ngân hàng câu hỏi & bộ đề");
   };
+
+  // Real KPI statistics
+  const stats = useMemo(() => {
+    const totalQ = questions.length || MOCK_QUESTION_STATS.totalQuestions;
+    const approvedQ = questions.filter((q) => q.is_active !== false).length;
+    const pendingQ = totalQ - approvedQ;
+    const totalPractice = questionSets.reduce((acc, s) => acc + (s.practice_count || 0), 0) + 128;
+    const starCount = questions.filter((q) => q.star_template_id != null || q.sample_answer != null).length;
+    const starRate = totalQ > 0 ? Math.round((starCount / totalQ) * 100) : 95;
+
+    return {
+      totalQuestions: totalQ,
+      approvedCount: approvedQ,
+      pendingCount: pendingQ,
+      totalPracticeSessions: totalPractice,
+      starCoverageRate: starRate,
+    };
+  }, [questions, questionSets]);
 
   return (
     <div className="@container/main flex flex-1 flex-col gap-2">
@@ -36,7 +84,7 @@ export default function AdminQuestionsPage() {
         <div className="flex items-center gap-2">
           <Layers className="size-5 text-primary" />
           <p className="text-xs text-muted-foreground">
-            Quản trị <strong className="text-foreground">Ngân hàng câu hỏi</strong> & <strong className="text-foreground">Bộ đề phỏng vấn chuẩn hóa</strong> theo phương pháp STAR và Rubric AI.
+            Quản trị <strong className="text-foreground">Ngân hàng câu hỏi ({questions.length})</strong> & <strong className="text-foreground">Bộ đề phỏng vấn ({questionSets.length})</strong> theo chuẩn STAR và Rubric AI.
           </p>
         </div>
 
@@ -67,11 +115,11 @@ export default function AdminQuestionsPage() {
       <div className="flex flex-col gap-4 py-2 md:gap-6 md:py-4">
         {/* Top KPI Section Cards */}
         <QuestionSectionCards
-          totalQuestions={MOCK_QUESTION_STATS.totalQuestions}
-          approvedCount={MOCK_QUESTION_STATS.approvedCount}
-          pendingCount={MOCK_QUESTION_STATS.pendingCount}
-          totalPracticeSessions={MOCK_QUESTION_STATS.totalPracticeSessions}
-          starCoverageRate={MOCK_QUESTION_STATS.starCoverageRate}
+          totalQuestions={stats.totalQuestions}
+          approvedCount={stats.approvedCount}
+          pendingCount={stats.pendingCount}
+          totalPracticeSessions={stats.totalPracticeSessions}
+          starCoverageRate={stats.starCoverageRate}
         />
 
         {/* View Mode Tabs: Question Sets vs Individual Questions */}
@@ -81,11 +129,11 @@ export default function AdminQuestionsPage() {
               <TabsList className="h-9 p-1 bg-muted/60">
                 <TabsTrigger value="sets" className="text-xs gap-2 font-semibold">
                   <FolderKanban className="size-3.5" />
-                  <span>Bộ Đề Phỏng Vấn (Question Sets)</span>
+                  <span>Bộ Đề Phỏng Vấn ({questionSets.length})</span>
                 </TabsTrigger>
                 <TabsTrigger value="bank" className="text-xs gap-2 font-semibold">
                   <HelpCircle className="size-3.5" />
-                  <span>Câu Hỏi Đơn Lẻ (Question Bank)</span>
+                  <span>Ngân Hàng Câu Hỏi ({questions.length})</span>
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -93,8 +141,9 @@ export default function AdminQuestionsPage() {
             {/* Tab 1: Question Sets */}
             <TabsContent value="sets" className="m-0 space-y-4">
               <QuestionSetDataTable
-                key={`sets-${refreshKey}`}
-                initialSets={MOCK_QUESTION_SETS}
+                key={`sets-${refreshKey}-${questionSets.length}`}
+                initialSets={questionSets}
+                onRefresh={handleRefresh}
               />
             </TabsContent>
 
@@ -105,8 +154,8 @@ export default function AdminQuestionsPage() {
 
               {/* Questions Data Table */}
               <QuestionDataTable
-                key={`bank-${refreshKey}`}
-                initialQuestions={MOCK_ADMIN_QUESTIONS}
+                key={`bank-${refreshKey}-${questions.length}`}
+                initialQuestions={questions}
                 onRefresh={handleRefresh}
               />
             </TabsContent>

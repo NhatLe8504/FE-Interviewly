@@ -1,3 +1,4 @@
+import { questionAdminApi } from "@/services/admin/questionAdminApi";
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -104,6 +105,7 @@ export function QuestionDataTable({
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editItem, setEditItem] = useState<AdminQuestionItem | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form states for Create/Edit
   const [formData, setFormData] = useState({
@@ -266,12 +268,21 @@ export function QuestionDataTable({
   };
 
   // Action: Delete
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!deleteConfirmId) return;
-    setQuestions((prev) => prev.filter((q) => q.question_id !== deleteConfirmId));
-    setSelectedIds((prev) => prev.filter((id) => id !== deleteConfirmId));
-    toast.success(`Đã xóa câu hỏi #${deleteConfirmId} khỏi hệ thống`);
-    setDeleteConfirmId(null);
+    setIsSubmitting(true);
+    try {
+      await questionAdminApi.deleteQuestion(deleteConfirmId);
+      setQuestions((prev) => prev.filter((q) => q.question_id !== deleteConfirmId));
+      setSelectedIds((prev) => prev.filter((id) => id !== deleteConfirmId));
+      toast.success(`Đã xóa câu hỏi #${deleteConfirmId} khỏi hệ thống`);
+      onRefresh?.();
+    } catch (err: any) {
+      toast.error(`Xóa câu hỏi thất bại: ${err.message || "Lỗi server"}`);
+    } finally {
+      setIsSubmitting(false);
+      setDeleteConfirmId(null);
+    }
   };
 
   // Bulk actions
@@ -299,10 +310,20 @@ export function QuestionDataTable({
     setSelectedIds([]);
   };
 
-  const handleBulkDelete = () => {
-    setQuestions((prev) => prev.filter((q) => !selectedIds.includes(q.question_id)));
-    toast.success(`Đã xóa ${selectedIds.length} câu hỏi`);
-    setSelectedIds([]);
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setIsSubmitting(true);
+    try {
+      await Promise.all(selectedIds.map((id) => questionAdminApi.deleteQuestion(id)));
+      setQuestions((prev) => prev.filter((q) => !selectedIds.includes(q.question_id)));
+      toast.success(`Đã xóa ${selectedIds.length} câu hỏi thành công`);
+      setSelectedIds([]);
+      onRefresh?.();
+    } catch (err: any) {
+      toast.error(`Xóa hàng loạt thất bại: ${err.message || "Lỗi server"}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Export JSON
@@ -365,7 +386,7 @@ export function QuestionDataTable({
   };
 
   // Save Create or Edit
-  const handleSaveForm = (e: React.FormEvent) => {
+  const handleSaveForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.question_text.trim()) {
       toast.error("Vui lòng nhập nội dung câu hỏi");
@@ -375,86 +396,70 @@ export function QuestionDataTable({
     const domainObj = MOCK_DOMAINS_LIST.find((d) => d.domain_id === formData.domain_id);
     const roleObj = MOCK_ROLES_LIST.find((r) => r.role_id === formData.role_id);
 
-    if (editItem) {
-      // Update
-      setQuestions((prev) =>
-        prev.map((q) => {
-          if (q.question_id === editItem.question_id) {
-            return {
-              ...q,
-              question_text: formData.question_text,
-              domain_id: formData.domain_id,
-              domain_name: domainObj?.domain_name || q.domain_name,
-              role_id: formData.role_id,
-              role_name: roleObj?.role_name || q.role_name,
-              experience_level: formData.experience_level,
-              question_type: formData.question_type,
-              language: formData.language,
-              difficulty: formData.difficulty,
-              intent: formData.intent,
-              sample_answer: formData.sample_answer,
-              is_active: formData.is_active,
-              star_template: {
-                star_template_id: q.star_template?.star_template_id || 999,
-                title: `STAR Template cho ${roleObj?.role_name || "câu hỏi"}`,
-                situation_guide: formData.situation_guide,
-                task_guide: formData.task_guide,
-                action_guide: formData.action_guide,
-                result_guide: formData.result_guide,
-                language: formData.language,
-              },
-              updated_at: new Date().toISOString(),
-            };
-          }
-          return q;
-        })
-      );
-      toast.success(`Cập nhật câu hỏi #${editItem.question_id} thành công`);
-      setEditItem(null);
-    } else {
-      // Create
-      const newId = Math.max(100, ...questions.map((q) => q.question_id)) + 1;
-      const newQ: AdminQuestionItem = {
-        question_id: newId,
-        domain_id: formData.domain_id,
-        domain_name: domainObj?.domain_name || "Công nghệ thông tin (IT)",
-        role_id: formData.role_id,
-        role_name: roleObj?.role_name || "Backend Engineer",
-        experience_level: formData.experience_level,
-        question_type: formData.question_type,
-        language: formData.language,
-        question_text: formData.question_text,
-        star_template_id: newId,
-        is_active: formData.is_active,
-        moderation_status: "approved",
-        source: "admin_manual",
-        difficulty: formData.difficulty,
-        intent: formData.intent,
-        practice_count: 0,
-        avg_score: 80.0,
-        tags: ["Mới tạo", roleObj?.role_name || "Chuyên ngành"],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        star_template: {
-          star_template_id: newId,
-          title: `STAR Guide cho #${newId}`,
-          situation_guide: formData.situation_guide,
-          task_guide: formData.task_guide,
-          action_guide: formData.action_guide,
-          result_guide: formData.result_guide,
-          language: formData.language,
-        },
-        sample_answer: formData.sample_answer,
-        rubric_criteria: DEFAULT_RUBRIC_CRITERIA,
-        follow_up_questions: [
-          "Bạn có thể giải thích cụ thể hơn về bài học kinh nghiệm rút ra?",
-          "Nếu có cơ hội làm lại tình huống này, bạn sẽ thay đổi điều gì?",
-        ],
-        tips: [
-          "Giữ nhịp điệu trả lời tự tin, tốc độ 120-150 WPM.",
-          "Nêu số liệu định lượng cụ thể để tăng độ thuyết phục.",
-        ],
-      };
+    setIsSubmitting(true);
+    try {
+      if (editItem) {
+        // Real Update via Backend API
+        const updated = await questionAdminApi.updateQuestion(editItem.question_id, {
+          domain_id: formData.domain_id,
+          role_id: formData.role_id,
+          experience_level: formData.experience_level,
+          question_type: formData.question_type as any,
+          language: formData.language as any,
+          question_text: formData.question_text,
+          sample_answer: formData.sample_answer,
+          is_active: formData.is_active,
+        });
+
+        setQuestions((prev) =>
+          prev.map((q) => {
+            if (q.question_id === editItem.question_id) {
+              return {
+                ...q,
+                ...updated,
+                domain_name: domainObj?.domain_name || q.domain_name,
+                role_name: roleObj?.role_name || q.role_name,
+              };
+            }
+            return q;
+          })
+        );
+        toast.success(`Cập nhật câu hỏi #${editItem.question_id} thành công`);
+        setEditItem(null);
+        onRefresh?.();
+      } else {
+        // Real Create via Backend API
+        const created = await questionAdminApi.createQuestion({
+          domain_id: formData.domain_id,
+          role_id: formData.role_id,
+          experience_level: formData.experience_level,
+          question_type: formData.question_type as any,
+          language: formData.language as any,
+          question_text: formData.question_text,
+          sample_answer: formData.sample_answer,
+        });
+
+        setQuestions((prev) => [
+          {
+            ...created,
+            domain_name: domainObj?.domain_name || "Công nghệ thông tin (IT)",
+            role_name: roleObj?.role_name || "Backend Engineer",
+            practice_count: 0,
+            avg_score: 80.0,
+            moderation_status: "approved",
+          } as any,
+          ...prev,
+        ]);
+        toast.success(`Tạo câu hỏi mới #${created.question_id} thành công`);
+        setIsCreateOpen(false);
+        onRefresh?.();
+      }
+    } catch (err: any) {
+      toast.error(`Thao tác thất bại: ${err.message || "Lỗi server"}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
       setQuestions((prev) => [newQ, ...prev]);
       toast.success(`Tạo câu hỏi mới #${newId} thành công`);

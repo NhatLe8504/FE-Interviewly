@@ -1,3 +1,4 @@
+import { questionAdminApi } from "@/services/admin/questionAdminApi";
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -9,6 +10,7 @@ import {
   Download,
   Eye,
   Trash2,
+  Edit2,
   CheckCircle2,
   Clock,
   RotateCcw,
@@ -72,8 +74,10 @@ import { MOCK_DOMAINS_LIST } from "@/mock/adminQuestionsMock";
 
 export function QuestionSetDataTable({
   initialSets = [],
+  onRefresh,
 }: {
   initialSets: QuestionSetItem[];
+  onRefresh?: () => void;
 }) {
   const [sets, setSets] = useState<QuestionSetItem[]>(initialSets);
   const [search, setSearch] = useState("");
@@ -85,6 +89,72 @@ export function QuestionSetDataTable({
   // Modals state
   const [previewSet, setPreviewSet] = useState<QuestionSetItem | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [editSet, setEditSet] = useState<QuestionSetItem | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    title: "",
+    description: "",
+    experience_level: "junior",
+    target_difficulty: 3,
+    estimated_duration_minutes: 20,
+    is_active: true,
+  });
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+
+  const handleOpenPreview = async (s: QuestionSetItem) => {
+    setPreviewSet(s);
+    try {
+      const detail = await questionAdminApi.getQuestionSetDetail(s.set_id);
+      if (detail && detail.questions) {
+        setPreviewSet(detail as any);
+      }
+    } catch (e) {
+      console.warn("Failed to load question set detail:", e);
+    }
+  };
+
+  const handleOpenEdit = (s: QuestionSetItem) => {
+    setEditSet(s);
+    setEditFormData({
+      title: s.title,
+      description: s.description,
+      experience_level: s.experience_level || "junior",
+      target_difficulty: s.target_difficulty || 3,
+      estimated_duration_minutes: s.estimated_duration_minutes || 20,
+      is_active: s.is_active,
+    });
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editSet) return;
+    if (!editFormData.title.trim()) {
+      toast.error("Vui lòng nhập tên bộ đề");
+      return;
+    }
+
+    setIsSubmittingEdit(true);
+    try {
+      const updated = await questionAdminApi.updateQuestionSet(editSet.set_id, {
+        title: editFormData.title.trim(),
+        description: editFormData.description.trim(),
+        experience_level: editFormData.experience_level,
+        target_difficulty: editFormData.target_difficulty,
+        estimated_duration_minutes: editFormData.estimated_duration_minutes,
+        is_active: editFormData.is_active,
+      });
+
+      setSets((prev) =>
+        prev.map((s) => (s.set_id === editSet.set_id ? { ...s, ...updated } : s))
+      );
+      toast.success(`Cập nhật bộ đề #${editSet.set_id} thành công`);
+      setEditSet(null);
+      onRefresh?.();
+    } catch (err: any) {
+      toast.error(`Cập nhật bộ đề thất bại: ${err.message || "Lỗi server"}`);
+    } finally {
+      setIsSubmittingEdit(false);
+    }
+  };
 
   // Filter logic
   const filteredSets = useMemo(() => {
@@ -125,11 +195,18 @@ export function QuestionSetDataTable({
     setPage(1);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!deleteConfirmId) return;
-    setSets((prev) => prev.filter((s) => s.set_id !== deleteConfirmId));
-    toast.success(`Đã xóa bộ đề #${deleteConfirmId} khỏi hệ thống.`);
-    setDeleteConfirmId(null);
+    try {
+      await questionAdminApi.deleteQuestionSet(deleteConfirmId);
+      setSets((prev) => prev.filter((s) => s.set_id !== deleteConfirmId));
+      toast.success(`Đã xóa bộ đề #${deleteConfirmId} khỏi hệ thống.`);
+      onRefresh?.();
+    } catch (err: any) {
+      toast.error(`Xóa bộ đề thất bại: ${err.message || "Lỗi server"}`);
+    } finally {
+      setDeleteConfirmId(null);
+    }
   };
 
   const handleExportJSON = () => {
@@ -393,9 +470,13 @@ export function QuestionSetDataTable({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48 text-xs">
-                            <DropdownMenuItem onClick={() => setPreviewSet(s)}>
+                            <DropdownMenuItem onClick={() => handleOpenPreview(s)}>
                               <Eye className="size-3.5 mr-2" />
                               <span>Xem danh sách câu</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenEdit(s)}>
+                              <Edit2 className="size-3.5 mr-2" />
+                              <span>Chỉnh sửa bộ đề</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -525,6 +606,110 @@ export function QuestionSetDataTable({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+
+      {/* Edit Question Set Dialog */}
+      <Dialog open={editSet !== null} onOpenChange={(open) => !open && setEditSet(null)}>
+        <DialogContent className="sm:max-w-lg text-xs">
+          <form onSubmit={handleSaveEdit}>
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold">
+                Chỉnh Sửa Bộ Đề #{editSet?.set_id}
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Cập nhật thông tin tiêu đề, mô tả và cấu hình độ khó cho bộ đề phỏng vấn.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 py-3">
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold">Tên bộ đề phỏng vấn *</Label>
+                <Input
+                  required
+                  value={editFormData.title}
+                  onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                  placeholder="Ví dụ: Bộ đề Frontend React / Next.js - Senior"
+                  className="text-xs h-8"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold">Mô tả tóm tắt</Label>
+                <textarea
+                  value={editFormData.description}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                  rows={2}
+                  className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold">Cấp độ</Label>
+                  <Select
+                    value={editFormData.experience_level}
+                    onValueChange={(v) => setEditFormData({ ...editFormData, experience_level: v })}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fresher">Fresher</SelectItem>
+                      <SelectItem value="junior">Junior</SelectItem>
+                      <SelectItem value="mid">Mid-level</SelectItem>
+                      <SelectItem value="senior">Senior</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold">Thời lượng ước tính (phút)</Label>
+                  <Input
+                    type="number"
+                    min={5}
+                    max={180}
+                    value={editFormData.estimated_duration_minutes}
+                    onChange={(e) => setEditFormData({ ...editFormData, estimated_duration_minutes: Number(e.target.value) || 20 })}
+                    className="text-xs h-8"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t">
+                <span className="text-xs font-semibold">Trạng thái phát hành</span>
+                <Button
+                  type="button"
+                  variant={editFormData.is_active ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setEditFormData({ ...editFormData, is_active: !editFormData.is_active })}
+                  className="h-7 text-xs"
+                >
+                  {editFormData.is_active ? "Đang mở" : "Tạm dừng"}
+                </Button>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditSet(null)}
+                className="h-8 text-xs"
+              >
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmittingEdit}
+                className="h-8 text-xs gap-1.5"
+              >
+                <span>{isSubmittingEdit ? "Đang lưu..." : "Lưu thay đổi"}</span>
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
