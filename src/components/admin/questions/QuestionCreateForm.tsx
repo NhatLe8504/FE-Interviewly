@@ -1,3 +1,4 @@
+import { questionAdminApi } from "@/services/admin/questionAdminApi";
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -492,19 +493,79 @@ export function QuestionCreateForm() {
     toast.success("Đã thêm 1 câu hỏi mới.");
   };
 
-  // Save full set
-  const handleSaveSet = (publish = true) => {
+  // Save full set to Real Database
+  const handleSaveSet = async (publish = true) => {
     setIsSaving(true);
-    const count = activeMainTab === "ai_agent" ? aiQuestions.length : manualQuestions.length;
-    setTimeout(() => {
+    const questionsToSave = activeMainTab === "ai_agent" ? aiQuestions : manualQuestions;
+    if (questionsToSave.length === 0) {
+      toast.error("Bộ đề phải có ít nhất 1 câu hỏi");
       setIsSaving(false);
+      return;
+    }
+
+    try {
+      // 1. Create each question in question_bank
+      const createdIds: number[] = [];
+      for (const q of questionsToSave) {
+        try {
+          const res = await questionAdminApi.createQuestion({
+            domain_id: domainId,
+            role_id: roleId,
+            experience_level: level,
+            question_type: (q.question_type as any) || "behavioral",
+            language: (language as any) || "vi",
+            question_text: q.question_text,
+            sample_answer: q.sample_answer,
+            follow_up_questions: q.follow_up_questions,
+            tips: q.tips,
+          });
+          if (res && res.question_id) {
+            createdIds.push(res.question_id);
+          }
+        } catch (e) {
+          console.warn("Error creating question item in set:", e);
+        }
+      }
+
+      // 2. Create the QuestionSet in database
+      const tagsList = techStack
+        ? techStack.split(",").map((s) => s.trim()).filter(Boolean)
+        : ["Chuyên môn"];
+
+      const domainName = MOCK_DOMAINS_LIST.find((d) => d.domain_id === domainId)?.domain_name || "Chuyên ngành";
+      const roleName = MOCK_ROLES_LIST.find((r) => r.role_id === roleId)?.role_name || "Vị trí";
+
+      const title =
+        activeMainTab === "manual" && manualSetName.trim()
+          ? manualSetName.trim()
+          : `Bộ đề phỏng vấn ${roleName} - ${level.toUpperCase()} (${techStack.split(",")[0]?.trim() || "Chuyên ngành"})`;
+
+      await questionAdminApi.createQuestionSet({
+        title,
+        description: `Bộ đề tuyển dụng chuẩn hóa gồm ${createdIds.length} câu hỏi theo cấu trúc STAR và thang đo Rubric AI.`,
+        domain_id: domainId,
+        role_id: roleId,
+        experience_level: level,
+        tech_stack: tagsList,
+        language,
+        target_difficulty: targetDifficulty === "auto" ? 3 : Number(targetDifficulty) || 3,
+        estimated_duration_minutes: Math.max(15, createdIds.length * 6),
+        is_curated: true,
+        is_active: publish,
+        question_ids: createdIds,
+      });
+
       toast.success(
         publish
-          ? `Đã lưu và xuất bản bộ đề (${count} câu hỏi) vào Ngân hàng đề thi!`
-          : `Đã lưu bản nháp bộ đề (${count} câu hỏi).`
+          ? `Đã lưu và xuất bản bộ đề (${createdIds.length} câu hỏi) vào cơ sở dữ liệu thành công!`
+          : `Đã lưu bản nháp bộ đề (${createdIds.length} câu hỏi).`
       );
       router.push("/admin/questions");
-    }, 600);
+    } catch (err: any) {
+      toast.error(`Lưu bộ đề thất bại: ${err.message || "Lỗi server"}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
