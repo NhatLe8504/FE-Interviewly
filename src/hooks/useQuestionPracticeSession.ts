@@ -76,29 +76,28 @@ export function useQuestionPracticeSession() {
       setErrorMessage(null);
       setSkippedCount(0);
 
-      // PRIORITY 1: Curated Question Set by ID: ?set=1 (or source=set)
+      // PRIORITY 1: Curated Question Set by ID: ?set=1 (Fetch real DB set first)
       if (setParam) {
-        const foundSet = MOCK_QUESTION_SETS.find((s) => String(s.set_id) === String(setParam));
-        if (foundSet && foundSet.questions && foundSet.questions.length > 0) {
-          const setQids = foundSet.questions.map((q) => q.question_id);
-          try {
-            const batch = await catalogApi.getQuestionsBatch(setQids);
+        try {
+          const realSet = await catalogApi.getQuestionSetDetail(setParam);
+          if (realSet && realSet.questions && realSet.questions.length > 0) {
             if (!isMounted) return;
-            const valid = batch.length > 0 ? batch : foundSet.questions;
-            setQuestions(valid);
-            if (setQids.length > valid.length) {
-              setSkippedCount(setQids.length - valid.length);
-            }
-            setSessionTitle(customTitle ? decodeURIComponent(customTitle) : foundSet.title);
-            setIsLoading(false);
-            return;
-          } catch {
-            if (!isMounted) return;
-            setQuestions(foundSet.questions);
-            setSessionTitle(customTitle ? decodeURIComponent(customTitle) : foundSet.title);
+            setQuestions(realSet.questions);
+            setSessionTitle(customTitle ? decodeURIComponent(customTitle) : realSet.title);
             setIsLoading(false);
             return;
           }
+        } catch (err) {
+          console.warn("Fetch real question set failed, checking fallback:", err);
+        }
+
+        const foundSet = MOCK_QUESTION_SETS.find((s) => String(s.set_id) === String(setParam));
+        if (foundSet && foundSet.questions && foundSet.questions.length > 0) {
+          if (!isMounted) return;
+          setQuestions(foundSet.questions);
+          setSessionTitle(customTitle ? decodeURIComponent(customTitle) : foundSet.title);
+          setIsLoading(false);
+          return;
         }
       }
 

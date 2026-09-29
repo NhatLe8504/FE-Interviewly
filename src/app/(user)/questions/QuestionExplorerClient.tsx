@@ -39,7 +39,6 @@ import {
 } from "lucide-react";
 import { QuestionBasket } from "./QuestionBasket";
 import { CuratedQuestionSetsView } from "@/components/user-component/questions/CuratedQuestionSetsView";
-import { MOCK_QUESTION_SETS } from "@/mock/questionSetsMock";
 import { FolderKanban } from "lucide-react";
 import basketStyles from "./QuestionBasket.module.css";
 import styles from "./questions.module.css";
@@ -100,6 +99,7 @@ export default function QuestionExplorerClient() {
   const [domains, setDomains] = useState<DomainOut[]>([]);
   const [roles, setRoles] = useState<RoleOut[]>([]);
   const [questions, setQuestions] = useState<QuestionOut[]>([]);
+  const [questionSetsCount, setQuestionSetsCount] = useState<number>(3);
   const [isLoading, setIsLoading] = useState(true);
 
   // Question Basket State ("Giỏ bốc câu hỏi nằm ngổn ngang")
@@ -209,11 +209,16 @@ export default function QuestionExplorerClient() {
 
     async function loadCatalog() {
       try {
-        const [domainList, roleList, questionPage] = await Promise.all([
+        const [domainList, roleList, questionPage, setsPage] = await Promise.all([
           catalogApi.getDomains(),
           catalogApi.getRoles(null),
           catalogApi.getQuestions({ limit: 100 }),
+          catalogApi.getQuestionSets(),
         ]);
+
+        if (setsPage && typeof setsPage.total === "number") {
+          setQuestionSetsCount(setsPage.total || setsPage.items.length);
+        }
 
         if (!isMounted) return;
         setDomains(domainList);
@@ -419,7 +424,7 @@ export default function QuestionExplorerClient() {
               }`}
             >
               <FolderKanban size={13} />
-              <span>Bộ Đề Tuyển Dụng ({MOCK_QUESTION_SETS.length})</span>
+              <span>Bộ Đề Tuyển Dụng ({questionSetsCount})</span>
             </button>
             <button
               type="button"
