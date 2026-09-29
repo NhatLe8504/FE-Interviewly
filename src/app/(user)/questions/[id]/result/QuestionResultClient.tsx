@@ -122,7 +122,8 @@ export default function QuestionResultClient({ questionId }: QuestionResultClien
 
             const metricsVerbal = `Đánh giá chỉ số phát biểu & nhịp điệu:\n- Tốc độ nói: ${wpmText}\n- Quãng ngắt quãng: ${pauseText}\n- Từ đệm: ${fillerText}\n- Lặp từ: ${repText}`;
 
-            const hasSubstantive = /báo|sếp|lỗi|production|fix|bước|sửa|giải quyết|xử lý|code|khách hàng/i.test(tr);
+            const isNonsensical = /đức phật|sofa|học tiếp chơi|người dân giao/i.test(tr);
+            const hasSubstantive = !isNonsensical && /báo|sếp|lỗi|production|fix|bước|sửa|giải quyết|xử lý|code|khách hàng/i.test(tr);
             const isPureRefusal = cleanWords < 6 && /không biết|chịu|thử mic|alo|1 2 3/i.test(tr);
 
             if (isPureRefusal) {
@@ -197,40 +198,67 @@ export default function QuestionResultClient({ questionId }: QuestionResultClien
     }
   };
 
-  // Overall Stats across all evaluated questions
+  // Overall Stats across all N questions in the exam
   const totalStats = useMemo(() => {
     const qList = questionsList.length > 0 ? questionsList : [{ question_id: Number(questionId) }];
-    const totalCount = qList.length;
-    let sumScore = 0;
+    const totalCount = Math.max(1, qList.length);
+
+    let correctQuizCount = 0;
+    let sumTextScore = 0;
+    let sumVoiceScore = 0;
     let evalCount = 0;
-    let totalQuiz = 0;
-    let totalText = 0;
-    let totalVoice = 0;
 
     qList.forEach((q) => {
-      const ev = evaluationsMap[q.question_id as number];
+      const qid = q.question_id as number;
+      const ev = evaluationsMap[qid];
+      const ans = answersMap[qid];
+
       if (ev) {
         evalCount++;
-        sumScore += ev.score || 0;
-        if (ev.modal_breakdown) {
-          totalQuiz += ev.modal_breakdown.quiz_score || 0;
-          totalText += ev.modal_breakdown.text_score || 0;
-          totalVoice += ev.modal_breakdown.voice_score || 0;
+        const mb = ev.modal_breakdown;
+        if (mb) {
+          if (mb.quiz_score > 0) {
+            correctQuizCount++;
+          }
+          sumTextScore += mb.text_score || 0;
+          sumVoiceScore += mb.voice_score || 0;
+        }
+      } else if (ans) {
+        if (ans.selectedOption) {
+          const opt = q.quiz_data?.options?.find((o: any) => o.id === ans.selectedOption);
+          if (opt ? opt.is_correct : ans.selectedOption === "B") {
+            correctQuizCount++;
+          }
         }
       }
     });
 
-    const avgScore = evalCount > 0 ? Math.round(sumScore / evalCount) : 0;
+    // 1. Trắc nghiệm: Chiếm 15% tổng bài thi (Tối đa 15đ)
+    // Đúng k / N câu -> Điểm = (k / N) * 15.0đ
+    const totalQuiz = Number(((correctQuizCount / totalCount) * 15.0).toFixed(1));
+
+    // 2. Tự luận: Chiếm 35% tổng bài thi (Tối đa 35đ)
+    // Trung bình điểm tự luận của N câu
+    const totalText = Number((sumTextScore / totalCount).toFixed(1));
+
+    // 3. Giọng nói: Chiếm 50% tổng bài thi (Tối đa 50đ)
+    // Trung bình điểm giọng nói của N câu
+    const totalVoice = Number((sumVoiceScore / totalCount).toFixed(1));
+
+    // Tổng điểm toàn bài thi (Tối đa 100đ)
+    const totalScore = Math.min(100, Math.round(totalQuiz + totalText + totalVoice));
+
     return {
-      totalScore: avgScore,
-      isPassed: avgScore >= 70,
+      totalScore,
+      isPassed: totalScore >= 70,
       totalCount,
       evaluatedCount: evalCount,
-      totalQuiz: Number(totalQuiz.toFixed(1)),
-      totalText: Number(totalText.toFixed(1)),
-      totalVoice: Number(totalVoice.toFixed(1)),
+      correctQuizCount,
+      totalQuiz,
+      totalText,
+      totalVoice,
     };
-  }, [evaluationsMap, questionsList, questionId]);
+  }, [evaluationsMap, answersMap, questionsList, questionId]);
 
   if (loading) {
     return (
@@ -367,11 +395,14 @@ export default function QuestionResultClient({ questionId }: QuestionResultClien
         </p>
 
         {/* 3-Score Distribution Grid */}
-        <div className={styles.scoreGrid3} style={{ maxWidth: 640, margin: "22px auto 14px" }}>
+        <div className={styles.scoreGrid3} style={{ maxWidth: 660, margin: "22px auto 14px" }}>
           <div className={styles.scoreItem3}>
             <span className={styles.scoreItem3Title}>1. Trắc nghiệm tình huống</span>
             <span className={styles.scoreItem3Val} style={{ color: "#059669" }}>
               {totalStats.totalQuiz} / 15đ
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#059669", marginTop: 3, display: "block" }}>
+              Đúng {totalStats.correctQuizCount}/{totalStats.totalCount} câu (15%)
             </span>
           </div>
           <div className={styles.scoreItem3}>
@@ -379,11 +410,17 @@ export default function QuestionResultClient({ questionId }: QuestionResultClien
             <span className={styles.scoreItem3Val} style={{ color: "#2563eb" }}>
               {totalStats.totalText} / 35đ
             </span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#2563eb", marginTop: 3, display: "block" }}>
+              Trung bình {totalStats.totalCount} câu (35%)
+            </span>
           </div>
           <div className={styles.scoreItem3}>
             <span className={styles.scoreItem3Title}>3. Nói &amp; Ghi âm giọng nói</span>
             <span className={styles.scoreItem3Val} style={{ color: "#d98236" }}>
               {totalStats.totalVoice} / 50đ
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#d98236", marginTop: 3, display: "block" }}>
+              Trung bình {totalStats.totalCount} câu (50%)
             </span>
           </div>
         </div>
