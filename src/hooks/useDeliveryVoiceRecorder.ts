@@ -202,9 +202,15 @@ export function useDeliveryVoiceRecorder(options: UseDeliveryVoiceRecorderOption
       const waitStop = new Promise<{ url: string; blob: Blob }>((resolve) => {
         stopPromiseResolverRef.current = resolve;
       });
+      const timeoutStop = new Promise<{ url: string; blob: Blob }>((resolve) => {
+        setTimeout(() => {
+          const fallbackBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+          resolve({ url: recordedAudioUrl || "", blob: fallbackBlob });
+        }, 1200);
+      });
       try {
         mediaRecorderRef.current.stop();
-        const stopped = await waitStop;
+        const stopped = await Promise.race([waitStop, timeoutStop]);
         finalUrl = stopped.url;
         finalBlob = stopped.blob;
       } catch {

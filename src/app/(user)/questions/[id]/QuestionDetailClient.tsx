@@ -582,7 +582,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
       setIsEvaluating(true);
 
       try {
-        const rawResult = await pullQueue.enqueueQuestionEvaluation({
+        const evalPromise = pullQueue.enqueueQuestionEvaluation({
           question_id: currentQId,
           question_text: currentQuestion?.question_text,
           sample_answer: currentQuestion?.sample_answer || undefined,
@@ -595,6 +595,12 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
           audio_duration_seconds: finalVoiceSec,
           role_name: currentQuestion?.role_name || "Software Engineer",
         });
+
+        const timeoutPromise = new Promise<any>((resolve) => {
+          setTimeout(() => resolve(null), 10000);
+        });
+
+        const rawResult = await Promise.race([evalPromise, timeoutPromise]);
 
         const scaled = scaleEvaluationResult(
           rawResult,
