@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Interviewly - Tài liệu Đề xuất Dự án & Thiết kế Kiến trúc Hệ thống</title>
+<style>
+  @page {
+    size: A4;
+    margin: 16mm 14mm 16mm 14mm;
+    @bottom-right {
+      content: counter(page);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 8.5pt;
+      color: #8c705f;
+    }
+  }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #211914;
+    background: #ffffff;
+    line-height: 1.55;
+    font-size: 9.8pt;
+    margin: 0;
+    padding: 0;
+  }
+
+  h1 {
+    color: #b35919;
+    font-size: 17pt;
+    border-bottom: 2.5px solid #d98236;
+    padding-bottom: 5px;
+    margin-top: 18pt;
+    margin-bottom: 8pt;
+    page-break-after: avoid;
+  }
+
+  h2 {
+    color: #8b4513;
+    font-size: 13pt;
+    border-bottom: 1.5px solid #ebd2be;
+    padding-bottom: 3px;
+    margin-top: 14pt;
+    margin-bottom: 6pt;
+    page-break-after: avoid;
+  }
+
+  h3 {
+    color: #211914;
+    font-size: 11pt;
+    margin-top: 11pt;
+    margin-bottom: 4pt;
+    page-break-after: avoid;
+  }
+
+  h4 {
+    color: #6a4831;
+    font-size: 10pt;
+    margin-top: 8pt;
+    margin-bottom: 3pt;
+    page-break-after: avoid;
+  }
+
+  p, li {
+    text-align: justify;
+    margin-bottom: 5pt;
+  }
+
+  code {
+    background: #fdf6ee;
+    color: #b35919;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-family: 'Cascadia Code', Consolas, 'Courier New', monospace;
+    font-size: 8.8pt;
+    border: 1px solid rgba(217, 130, 54, 0.25);
+  }
+
+  pre {
+    background: #211914;
+    color: #fffaf4;
+    padding: 10px 13px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'Cascadia Code', Consolas, 'Courier New', monospace;
+    font-size: 7.8pt;
+    line-height: 1.38;
+    page-break-inside: avoid;
+    border-left: 4px solid #d98236;
+    margin: 8pt 0;
+  }
+
+  pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    border: none;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10pt 0;
+    page-break-inside: avoid;
+    font-size: 8.8pt;
+  }
+
+  th, td {
+    border: 1px solid #e0cebe;
+    padding: 6px 8px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #fcf4ec;
+    color: #8b4513;
+    font-weight: bold;
+    border-bottom: 2px solid #d98236;
+  }
+
+  tr:nth-child(even) {
+    background-color: #faf7f2;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid #ebd2be;
+    margin: 14pt 0;
+  }
+
+  .badge {
+    display: inline-block;
+    background: #d98236;
+    color: #ffffff;
+    font-size: 8pt;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8pt;
+  }
+</style>
+</head>
+<body>
+<div class="badge">Official Architecture & Proposal Document</div>
+<h1>TÀI LIỆU ĐỀ XUẤT GIẢI PHÁP & THIẾT KẾ KIẾN TRÚC HỆ THỐNG</h1>
+<h2>DỰ ÁN: INTERVIEWLY - NỀN TẢNG LUYỆN PHỎNG VẤN THÔNG MINH BẰNG GIỌNG NÓI THỜI GIAN THỰC (AI REAL-TIME INTERVIEW COACH)</h2>
+<hr />
+<ul><li><strong>Tên dự án:</strong> Interviewly - AI Real-Time Interview Coach Platform</li></ul>
+<ul><li><strong>Phiên bản tài liệu:</strong> 1.0.0 (Release Candidate)</li></ul>
+<ul><li><strong>Ngày phát hành:</strong> 19/09/2026</li></ul>
+<ul><li><strong>Chủ nhiệm dự án & Đội ngũ Kỹ thuật:</strong> Interviewly Engineering Team</li></ul>
+<ul><li><strong>Đối tượng tiếp nhận:</strong> Ban Giám đốc, Khách hàng Doanh nghiệp, Đối tác Đầu tư & Đội ngũ Kỹ thuật</li></ul>
+<ul><li><strong>Tình trạng dự án:</strong> Đã hoàn thiện toàn bộ mã nguồn Frontend (Next.js 14+) và Backend (FastAPI Clean Architecture)</li></ul>
+<hr />
+<h2>MỤC LỤC TỔNG QUAN</h2>
+<ol><li>[PHẦN 1: BÁO CÁO ĐỀ XUẤT DỰ ÁN (PROJECT PROPOSAL)](#phần-1-báo-cáo-đề-xuất-dự-án-project-proposal)</li></ol>
+<p>- 1.1. Bối cảnh thị trường & Vấn đề thực tế (Problem Statement)</p>
+<p>- 1.2. Tầm nhìn, Sứ mệnh & Mục tiêu giải pháp (Vision & Strategic Goals)</p>
+<p>- 1.3. Khách hàng mục tiêu & Chân dung người dùng (Target Audience)</p>
+<p>- 1.4. Đề xuất giá trị vượt trội (Unique Value Proposition - UVP)</p>
+<p>- 1.5. Mô hình kinh doanh & Kế hoạch định giá (Monetization & Pricing Strategy)</p>
+<p>- 1.6. Lộ trình phát triển sản phẩm (Product Roadmap)</p>
+<ol><li>[PHẦN 2: ĐẶC TẢ CHI TIẾT TOÀN BỘ CHỨC NĂNG HỆ THỐNG (FUNCTIONAL SPECIFICATIONS)](#phần-2-đặc-tả-chi-tiết-toàn-bộ-chức-năng-hệ-thống-functional-specifications)</li></ol>
+<p>- 2.1. Phân hệ Ứng viên (Candidate Portal)</p>
+<p>- 2.2. Phân hệ Quản trị viên (Admin Management Console)</p>
+<ol><li>[PHẦN 3: THIẾT KẾ KIẾN TRÚC HỆ THỐNG & 5 DESIGN PATTERNS (ARCHITECTURE & DESIGN PATTERNS)](#phần-3-thiết-kế-kiến-trúc-hệ-thống--5-design-patterns-architecture--design-patterns)</li></ol>
+<p>- 3.1. Tổng quan kiến trúc tổng thể (High-Level Architecture)</p>
+<p>- 3.2. Pattern 1: Clean Architecture (Hexagonal / Ports & Adapters)</p>
+<p>- 3.3. Pattern 2: Repository & Unit of Work Pattern</p>
+<p>- 3.4. Pattern 3: Strategy Pattern (AI Evaluation & Rubric Engine)</p>
+<p>- 3.5. Pattern 4: Observer / Pub-Sub Pattern (Realtime Voice & Presence Engine)</p>
+<p>- 3.6. Pattern 5: Factory Method / Abstract Factory Pattern (AI Voice Providers & IoC Container)</p>
+<ol><li>[PHẦN 4: TÀI LIỆU KỸ THUẬT, API & CƠ SỞ DỮ LIỆU (TECHNICAL SPECIFICATIONS & API CONTRACTS)](#phần-4-tài-liệu-kỹ-thuật-api--cơ-sở-dữ-liệu-technical-specifications--api-contracts)</li></ol>
+<p>- 4.1. Ngăn xếp Công nghệ (Full Technology Stack)</p>
+<p>- 4.2. Thiết kế Cơ sở Dữ liệu & Sơ đồ Thực thể Quan hệ (Database Schema & ERD)</p>
+<p>- 4.3. Danh mục API RESTful cốt lõi (Core REST API Endpoints)</p>
+<p>- 4.4. Giao thức WebSocket phòng phỏng vấn thời gian thực (Realtime Voice WS Protocol)</p>
+<p>- 4.5. Hướng dẫn cài đặt & Triển khai (Deployment Guide)</p>
+<ol><li>[PHẦN 5: TỔNG KẾT & CAM KẾT CHẤT LƯỢNG (CONCLUSION & QUALITY ASSURANCE)](#phần-5-tổng-kết--cam-kết-chất-lượng-conclusion--quality-assurance)</li></ol>
+<hr />
+<h1>PHẦN 1: BÁO CÁO ĐỀ XUẤT DỰ ÁN (PROJECT PROPOSAL)</h1>
+<h3>1.1. Bối cảnh thị trường & Nỗi đau thực tế (Market Context & Pain Points)</h3>
+<p>Trong thị trường tuyển dụng công nghệ và nhân sự tri thức hiện đại, buổi phỏng vấn là chướng ngại quyết định việc ứng viên có nhận được công việc mơ ước hay không. Tuy nhiên, thực tế thị trường đang tồn tại những rào cản nghiêm trọng:</p>
+<ol><li><strong>Áp lực tâm lý và thiếu môi trường cọ xát thực chiến:</strong></li></ol>
+<p>- Hơn 82% ứng viên trải qua cảm giác lo âu tột độ, mất phản xạ hoặc trả lời lan man khi đối diện với các câu hỏi phỏng vấn hóc búa, đặc biệt là các câu hỏi tình huống hành vi (Behavioral STAR) hoặc thiết kế hệ thống (System Design).</p>
+<p>- Tự luyện tập trước gương hoặc học thuộc lòng tài liệu không mang lại sự tự tin khi bước vào phòng phỏng vấn thật.</p>
+<ol><li><strong>Chi phí thuê chuyên gia Mock Interview quá đắt đỏ:</strong></li></ol>
+<p>- Để có một buổi phỏng vấn thử 45 phút với chuyên gia (Senior Engineer, Tech Lead, HR Director), ứng viên phải chi trả từ <strong>$50 đến $250 / buổi</strong> (1.200.000đ - 6.000.000đ).</p>
+<p>- Chi phí này là gánh nặng tài chính không tưởng đối với sinh viên mới ra trường, fresher hoặc những người đang trong giai đoạn thất nghiệp tìm việc.</p>
+<ol><li><strong>Thiếu phản hồi định lượng, có cấu trúc và hành động được (Actionable Feedback):</strong></li></ol>
+<p>- Khi phỏng vấn thất bại tại các công ty, ứng viên thường chỉ nhận được email từ chối theo mẫu chung ("chúng tôi chọn ứng viên phù hợp hơn"), không hề biết mình yếu ở đâu: thiếu kiến thức chuyên môn, cấu trúc câu trả lời lủng củng, hay giọng điệu thiếu tự tin?</p>
+<p>- Các công cụ AI dạng Text Chat thông thường chỉ trả về những đoạn văn bản dài dòng, thiếu ngữ điệu âm thanh thực tế và không mô phỏng được áp lực thời gian của một buổi phỏng vấn thực.</p>
+<ol><li><strong>Tổn thất của nhà tuyển dụng (Employer Resource Drain):</strong></li></ol>
+<p>- Bộ phận nhân sự và kỹ sư phỏng vấn của doanh nghiệp phải tiêu tốn hàng trăm giờ làm việc để phỏng vấn sơ loại những ứng viên có CV rất đẹp nhưng năng lực giao tiếp và phản xạ thực tế không đạt yêu cầu.</p>
+<hr />
+<h3>1.2. Tầm nhìn, Sứ mệnh & Mục tiêu giải pháp (Vision & Strategic Goals)</h3>
+<ul><li><strong>Tầm nhìn chiến lược (Vision):</strong></li></ul>
+<p>Xây dựng <strong>Interviewly</strong> trở thành nền tảng huấn luyện phỏng vấn AI thông minh đa phương thức số 1, đồng hành cùng hàng triệu ứng viên chinh phục thành công các kỳ phỏng vấn tại các tập đoàn công nghệ hàng đầu toàn cầu (Google, Meta, Amazon, Shopee, VNG, Techcombank,...).</p>
+<ul><li><strong>Sứ mệnh (Mission):</strong></li></ul>
+<p>Dân chủ hóa cơ hội tiếp cận môi trường luyện phỏng vấn đỉnh cao. Mọi ứng viên, không phân biệt hoàn cảnh hay điều kiện tài chính, đều có quyền được trang bị một Huấn luyện viên AI cá nhân hóa 24/7 để tối ưu hóa năng lực nghề nghiệp của mình.</p>
+<ul><li><strong>Mục tiêu kỹ thuật & kinh doanh cụ thể:</strong></li></ul>
+<p>1. *Độ trễ tương tác siêu thấp (Ultra-Low Latency):* Đạt tốc độ phản hồi âm thanh hai chiều dưới 1.2 giây qua WebSocket, mang lại cảm giác đối thoại mượt mà tự nhiên như nói chuyện với người thật.</p>
+<p>2. *Đánh giá chuẩn quốc tế (Standardized Rubric & STAR):* Chuẩn hóa khung đánh giá 5 chiều kết hợp giải mã cấu trúc STAR (Situation - Task - Action - Result), chỉ ra điểm mạnh, điểm yếu và câu trả lời mẫu tối ưu.</p>
+<p>3. *Cá nhân hóa theo lộ trình (Hyper-Personalized Roadmap):* Khảo sát Onboarding tự động xác định trình độ và mục tiêu nghề nghiệp để tùy biến nội dung câu hỏi cho từng ứng viên.</p>
+<p>4. *Tỷ lệ người dùng đỗ phỏng vấn cao:* Mục tiêu nâng cao tỷ lệ đỗ phỏng vấn của ứng viên sau khi luyện tập trên 5 phiên đạt trên <strong>94%</strong>.</p>
+<hr />
+<h3>1.3. Khách hàng mục tiêu & Chân dung người dùng (Target Audience)</h3>
+<p>Hệ thống được thiết kế hướng tới 4 nhóm khách hàng trọng tâm:</p>
+<ol><li><strong>Sinh viên năm cuối & Ứng viên Fresher (Entry-Level Candidates):</strong></li></ol>
+<p>- *Đặc điểm:* Chưa có nhiều kinh nghiệm thực tế, dễ mất bình tĩnh, cần làm quen với các câu hỏi phỏng vấn cơ bản và rèn luyện phong thái tự tin.</p>
+<p>- *Nhu cầu:* Luyện tập phản xạ không giới hạn với chi phí thấp, nhận feedback cấu trúc câu trả lời dễ hiểu.</p>
+<ol><li><strong>Kỹ sư Junior & Middle chuyển việc / thăng cấp (Career Switchers & Up-levelers):</strong></li></ol>
+<p>- *Đặc điểm:* Đã có từ 1 - 4 năm kinh nghiệm, mục tiêu thi tuyển vào các công ty lớn, công ty đa quốc gia với mức lương cao hơn.</p>
+<p>- *Nhu cầu:* Luyện tập các bộ câu hỏi kỹ thuật chuyên sâu (Technical Deep Dive) và các tình huống xử lý mâu thuẫn dự án theo chuẩn STAR.</p>
+<ol><li><strong>Các trường Đại học, Học viện Công nghệ & Bootcamp:</strong></li></ol>
+<p>- *Đặc điểm:* Cần công cụ hỗ trợ học viên chuẩn bị tốt nghiệp để nâng cao tỷ lệ sinh viên có việc làm ngay sau khi ra trường.</p>
+<p>- *Nhu cầu:* Tích hợp hệ thống luyện phỏng vấn vào chương trình đào tạo kỹ năng mềm.</p>
+<ol><li><strong>Bộ phận Tuyển dụng Doanh nghiệp & HR Tech (B2B Enterprise):</strong></li></ol>
+<p>- *Đặc điểm:* Cần tự động hóa vòng phỏng vấn sơ loại (First-Round Screening) để sàng lọc hàng nghìn hồ sơ ứng tuyển.</p>
+<p>- *Nhu cầu:* Thu thập báo cáo điểm số Rubric và video/audio phỏng vấn mẫu trước khi quyết định gọi ứng viên vào vòng gặp trực tiếp.</p>
+<hr />
+<h3>1.4. Đề xuất giá trị vượt trội (Unique Value Proposition - UVP)</h3>
+<table>
+<tr><th>Tiêu chí so sánh</th><th>Phỏng vấn thử truyền thống</th><th>Chatbot AI thông thường (ChatGPT)</th><th>Interviewly Platform</th></tr>
+<tr><td><strong>Phương thức tương tác</strong></td><td>Gặp trực tiếp / Video Call</td><td>Gõ bàn phím (Text only)</td><td><strong>Giọng nói thời gian thực hai chiều (Full-Duplex Real-Time Voice)</strong></td></tr>
+<tr><td><strong>Độ trễ & Trải nghiệm</strong></td><td>Tức thời nhưng khó sắp xếp lịch</td><td>Chờ đợi sinh văn bản (3-6s)</td><td><strong>Streaming âm thanh tức thì (< 1.2s), không ngắt quãng</strong></td></tr>
+<tr><td><strong>Tính sẵn sàng</strong></td><td>Phụ thuộc lịch chuyên gia</td><td>24/7 nhưng thụ động</td><td><strong>24/7 tức thì mọi lúc mọi nơi, không cần đặt lịch trước</strong></td></tr>
+<tr><td><strong>Cấu trúc phân tích</strong></td><td>Cảm tính, thiếu nhất quán</td><td>Nhận xét chung chung, dài dòng</td><td><strong>Chấm điểm Rubric 5 tiêu chí, bóc tách STAR, gợi ý câu mẫu tối ưu</strong></td></tr>
+<tr><td><strong>Chi phí</strong></td><td>1.200.000đ - 6.000.000đ / buổi</td><td>Miễn phí hoặc $20/tháng (chỉ text)</td><td><strong>Miễn phí khởi điểm + Gói Pro chỉ từ 49.000đ/tuần</strong></td></tr>
+<tr><td><strong>Cá nhân hóa</strong></td><td>Theo kinh nghiệm của từng người</td><td>Người dùng phải tự viết Prompt</td><td><strong>Khảo sát Onboarding tự động định hình lộ trình sự nghiệp</strong></td></tr>
+</table>
+<hr />
+<h3>1.5. Mô hình kinh doanh & Kế hoạch định giá (Monetization & Pricing Strategy)</h3>
+<p>Interviewly áp dụng mô hình kinh doanh <strong>Freemium kết hợp Subscription đa tầng (Tiered SaaS)</strong>:</p>
+<ol><li><strong>Gói Free Candidate (0 VNĐ):</strong></li></ol>
+<p>- 3 lượt phỏng vấn thử bằng giọng nói mỗi tuần.</p>
+<p>- Khảo sát định hướng nghề nghiệp và lưu trữ hồ sơ năng lực.</p>
+<p>- Báo cáo tổng quan điểm số cơ bản sau mỗi phiên.</p>
+<ol><li><strong>Gói VIP Pro Subscription:</strong></li></ol>
+<p>- <strong>Gói Tuần (Weekly Pass) - 49.000 VNĐ / tuần:</strong> Dành cho ứng viên chuẩn bị phỏng vấn gấp trong vòng 7 ngày.</p>
+<p>- <strong>Gói Tháng (Monthly Pro) - 149.000 VNĐ / tháng:</strong> Tiết kiệm 30%, lựa chọn tối ưu cho giai đoạn tìm việc 1 - 2 tháng.</p>
+<p>- <strong>Gói Năm (Annual Pro) - 990.000 VNĐ / năm:</strong> Tiết kiệm 60%, dành cho người đi làm rèn luyện kỹ năng liên tục.</p>
+<p>- *Quyền lợi VIP:*</p>
+<p>- Luyện tập phỏng vấn không giới hạn số lượng câu hỏi và số phiên.</p>
+<p>- Tùy chỉnh câu hỏi theo công ty mục tiêu (Google L5, Meta, Shopee, Techcombank,...).</p>
+<p>- Phân tích chi tiết từng câu trả lời, nhận diện từ đệm vô nghĩa và gợi ý câu trả lời đạt điểm tối đa.</p>
+<p>- Huy hiệu <strong>VIP Crown Avatar Frame</strong> hoàng gia độc quyền trên toàn bộ giao diện hồ sơ cá nhân.</p>
+<ol><li><strong>Cổng thanh toán tự động VietQR & xGate:</strong></li></ol>
+<p>- Tự động tạo mã VietQR động chứa mã giao dịch duy nhất.</p>
+<p>- Webhook đối soát tự động kích hoạt tài khoản VIP trong vòng <strong>3 giây</strong> ngay khi khách hàng chuyển khoản thành công, đi kèm âm thanh "ting-ting" và hiệu ứng chúc mừng sống động.</p>
+<hr />
+<h3>1.6. Lộ trình phát triển sản phẩm (Product Roadmap)</h3>
+<ul><li><strong>Giai đoạn 1 (Nền tảng cốt lõi - Đã hoàn thành):</strong> Xây dựng Authentication đa kênh (Google OAuth + Email OTP), Khảo sát Onboarding định hướng 5 bước, Phòng phỏng vấn giọng nói qua WebSocket, AI Rubric Scoring, Cổng thanh toán VietQR.</li></ul>
+<ul><li><strong>Giai đoạn 2 (Tối ưu hóa vận hành & Giám sát - Đã hoàn thành):</strong> Nâng cấp kiến trúc Clean Architecture, chuẩn hóa 5 Design Patterns, bổ sung hệ thống Route Audit Logs và Presence Manager giám sát trực tuyến thời gian thực.</li></ul>
+<ul><li><strong>Giai đoạn 3 (Nâng cao & Mở rộng thị trường - Q4/2026):</strong> Tích hợp Computer Vision phân tích biểu cảm khuôn mặt và ánh mắt (Eye Contact), hỗ trợ phỏng vấn viết Code trực tiếp (Live Coding Sandbox), và cung cấp gói Enterprise ATS cho doanh nghiệp.</li></ul>
+<h1>PHẦN 2: ĐẶC TẢ CHI TIẾT TOÀN BỘ CHỨC NĂNG HỆ THỐNG (FUNCTIONAL SPECIFICATIONS)</h1>
+<h2>2.1. Phân hệ Ứng viên (Candidate Portal)</h2>
+<h3>A. Xác thực & Bảo mật đa kênh (Authentication & Security)</h3>
+<ul><li><strong>Đăng nhập / Đăng ký truyền thống với OTP Email:</strong></li></ul>
+<p>- Hỗ trợ gửi mã OTP 6 chữ số xác thực email chống tài khoản ảo qua <code>/api/v1/auth/send-otp</code> và <code>/api/v1/auth/verify-otp</code>.</p>
+<p>- Cơ chế đếm ngược 60 giây chống spam mã xác thực.</p>
+<ul><li><strong>Đăng nhập một chạm với Google OAuth 2.0 (Google Identity Services - GSI):</strong></li></ul>
+<p>- Tích hợp thư viện bảo mật chính thức của Google (<code>accounts.google.com/gsi/client</code>).</p>
+<p>- Nút đăng nhập Google tiêu chuẩn kết hợp nút fallback mượt mà.</p>
+<ul><li><strong>Cưỡng bức thiết lập mật khẩu bảo mật (Force Password Setup):</strong></li></ul>
+<p>- Đối với tài khoản Google đăng nhập lần đầu hoặc tài khoản chưa thiết lập mật khẩu, hệ thống tự động phát hiện cờ <code>needs_password: true</code>.</p>
+<p>- Hiển thị Popup Modal <code>SetPasswordModal</code> với thiết kế kính mờ cao cấp (Glassmorphism), khóa toàn bộ tương tác nền (<code>canClose={false}</code>).</p>
+<p>- Bảng checklist thời gian thực kiểm tra độ dài tối thiểu 8 ký tự và xác nhận mật khẩu trùng khớp.</p>
+<p>- Sau khi lưu mật khẩu thành công qua <code>/api/v1/auth/set-initial-password</code>, ứng viên được chuyển tiếp mượt mà sang khảo sát Onboarding.</p>
+<h3>B. Khảo sát & Định hướng Nghề nghiệp Cá nhân hóa (Onboarding Survey Engine)</h3>
+<ul><li><strong>Luồng khảo sát 5 bước tương tác trực quan (<code>/onboarding</code>):</strong></li></ul>
+<p>- <strong>Bước 1: Ngôn ngữ ưu tiên:</strong> Lựa chọn Tiếng Việt (VI) hoặc Tiếng Anh (EN), tự động cập nhật hệ thống đa ngôn ngữ <code>I18nContext</code>.</p>
+<p>- <strong>Bước 2: Nguồn tiếp cận (Acquisition Channel):</strong> Thu thập kênh ứng viên biết đến nền tảng (Facebook, TikTok, YouTube, OpenAI, Google Search, Bạn bè giới thiệu,...).</p>
+<p>- <strong>Bước 3: Lĩnh vực chuyên môn (Career Domain):</strong> Chọn ngành nghề trọng tâm (Công nghệ thông tin - IT, Marketing & Truyền thông, Tài chính - Ngân hàng, Bán hàng & Chăm sóc khách hàng,...).</p>
+<p>- <strong>Bước 4: Kinh nghiệm & Vị trí hiện tại:</strong> Nhập chức danh công việc hiện tại (Current Job Title).</p>
+<p>- <strong>Bước 5: Vị trí & Cấp bậc mục tiêu:</strong> Chọn level (Intern, Fresher, Junior, Middle, Senior, Lead, Director) và chọn/nhập vai trò mục tiêu (Frontend Developer, DevOps Engineer, Product Manager,...).</p>
+<p>- <strong>Bước 6: Chúc mừng & Chuyển hướng:</strong> Hiệu ứng ăn mừng thành công, tự động chuyển về trang chủ và kích hoạt lộ trình phỏng vấn tương ứng.</p>
+<ul><li><strong>Bảo vệ luồng Onboarding (<code>UserOnboardingGuard</code>):</strong> Tự động chặn và chuyển hướng bất kỳ ứng viên nào chưa hoàn thành khảo sát (<code>is_onboarded === false</code>) vào trang Onboarding.</li></ul>
+<ul><li><strong>Chức năng Reset Onboarding Debug:</strong> Cung cấp nút đặt lại khảo sát nhanh chóng qua <code>/api/v1/onboarding/reset</code> phục vụ kiểm thử và thay đổi mục tiêu nghề nghiệp.</li></ul>
+<h3>C. Thiết lập phiên phỏng vấn (Interview Setup & Configuration)</h3>
+<ul><li>Lựa chọn bộ câu hỏi mục tiêu theo các công ty hàng đầu (Google L5 Frontend, Meta Software Engineer, Shopee Backend,...).</li></ul>
+<ul><li>Chọn chế độ phỏng vấn: Phỏng vấn bằng giọng nói (Voice Mode) hoặc Nhập liệu phản hồi (Text Mode).</li></ul>
+<ul><li>Chọn giai đoạn phỏng vấn (Interview Stage): Sơ loại HR, Kỹ thuật chuyên sâu (Technical), Tình huống hành vi (Behavioral STAR).</li></ul>
+<ul><li>Tùy chỉnh số lượng câu hỏi trong phiên (3, 5 hoặc 10 câu) và thời gian giới hạn cho mỗi câu trả lời.</li></ul>
+<h3>D. Phòng phỏng vấn giọng nói thời gian thực (Real-time Voice Interview Room)</h3>
+<ul><li><strong>Kết nối WebSocket song công:</strong> Thiết lập kênh truyền dữ liệu âm thanh trực tiếp giữa trình duyệt và máy chủ Backend qua giao thức <code>ws://host/api/v1/voice/ws/{session_id}</code>.</li></ul>
+<ul><li><strong>Nhận diện giọng nói siêu tốc (Speech-to-Text):</strong> Tích hợp công nghệ Whisper / Voice Recognition tự động chuyển giọng nói ứng viên thành văn bản theo luồng (streaming text).</li></ul>
+<ul><li><strong>Trợ lý phỏng vấn AI giọng nói tự nhiên (Text-to-Speech):</strong> AI phản hồi bằng giọng nói truyền cảm, chuẩn ngữ điệu tiếng Việt và tiếng Anh.</li></ul>
+<ul><li><strong>Bộ công cụ hỗ trợ STAR Live Drawer:</strong> Ngăn kéo ghi chú trực tiếp theo khung STAR (Tình huống, Nhiệm vụ, Hành động, Kết quả) giúp ứng viên cấu trúc câu trả lời trong lúc phỏng vấn.</li></ul>
+<ul><li><strong>Chỉ báo âm thanh trực quan (Visual Audio Waveform & Mic Level):</strong> Hiển thị sóng âm thanh động phản ánh chính xác cường độ mic và trạng thái lắng nghe của AI.</li></ul>
+<ul><li><strong>Điều khiển phiên linh hoạt:</strong> Cho phép Tạm dừng (Pause), Tiếp tục (Resume), Chuyển câu hỏi (Next Question) hoặc Kết thúc phiên sớm (Finish).</li></ul>
+<h3>E. Đánh giá, Chấm điểm Rubric & Báo cáo kết quả (Evaluation & Reporting)</h3>
+<ul><li><strong>Thang đo Rubric 5 tiêu chí chuẩn quốc tế:</strong></li></ul>
+<p>1. *Kỹ năng chuyên môn & Kiến thức nền tảng (Domain Expertise)*</p>
+<p>2. *Cấu trúc câu trả lời theo chuẩn STAR (STAR Methodology)*</p>
+<p>3. *Tư duy phản biện & Giải quyết vấn đề (Critical Thinking)*</p>
+<p>4. *Kỹ năng giao tiếp & Độ lưu loát (Fluency & Communication)*</p>
+<p>5. *Sự tự tin & Tác phong phỏng vấn (Confidence & Tone)*</p>
+<ul><li><strong>Báo cáo chi tiết từng câu hỏi:</strong> Điểm mạnh, điểm cần khắc phục, phát hiện các từ đệm vô nghĩa (filler words) và cung cấp câu trả lời mẫu tối ưu (Model Answer).</li></ul>
+<ul><li><strong>Xuất báo cáo kết quả:</strong> Cho phép tải báo cáo phỏng vấn hoàn chỉnh để theo dõi quá trình tiến bộ.</li></ul>
+<h3>F. Thư viện câu hỏi phỏng vấn (Question Bank & Catalog)</h3>
+<ul><li>Tra cứu hàng nghìn câu hỏi phỏng vấn phân loại theo Domain, Vai trò và Cấp bậc.</li></ul>
+<ul><li>Phân loại rõ ràng giữa câu hỏi Kỹ thuật (Technical) và câu hỏi Tình huống hành vi (Behavioral).</li></ul>
+<ul><li>Tích hợp khung gợi ý trả lời STAR và câu trả lời tham khảo được kiểm duyệt bởi các chuyên gia tuyển dụng.</li></ul>
+<h3>G. Hồ sơ cá nhân & Huy hiệu VIP Crown Avatar Frame</h3>
+<ul><li>Hiển thị thông tin người dùng, lịch sử tất cả các phiên phỏng vấn, biểu đồ radar kỹ năng.</li></ul>
+<ul><li><strong>Khung Avatar Hoàng gia (VIP Crown Frame):</strong></li></ul>
+<p>- Thiết kế độc quyền cho thành viên trả phí gói Pro.</p>
+<p>- Tỉ lệ đồng tâm tuyệt đối (Concentric Alignment) giữa ảnh đại diện và khung vương miện hoàng gia, tự động co giãn sắc nét trên mọi kích thước (sm, md, lg).</p>
+<p>- Tích hợp chấm trạng thái trực tuyến (Realtime Online Status Dot) kết nối với Socket server.</p>
+<h3>H. Thanh toán & Nâng cấp VIP (Billing & Checkout)</h3>
+<ul><li>Lựa chọn gói cước linh hoạt: Theo tuần, tháng, năm.</li></ul>
+<ul><li><strong>Tạo mã VietQR động:</strong> Tự động tạo mã QR chứa chính xác số tài khoản ngân hàng, tên chủ tài khoản, số tiền và mã nội dung chuyển khoản độc nhất (<code>INV...</code>).</li></ul>
+<ul><li><strong>Xử lý gạch nợ tức thì qua xGate Webhook:</strong> Hệ thống tự động lắng nghe callback từ ngân hàng, đối soát giao dịch và kích hoạt tài khoản Pro trong vòng vài giây.</li></ul>
+<ul><li><strong>Hiệu ứng chúc mừng (Celebration Checkout):</strong> Âm thanh "ting-ting" nhận tiền sống động cùng hiệu ứng pháo hoa chúc mừng thăng hạng VIP.</li></ul>
+<hr />
+<h2>2.2. Phân hệ Quản trị viên (Admin Management Console)</h2>
+<h3>A. Dashboard Tổng quan & Phân tích Vận hành</h3>
+<ul><li>Bảng điều khiển trung tâm hiển thị: Tổng số người dùng, tỷ lệ người dùng hoạt động hàng ngày (DAU), doanh thu theo thời gian thực, tổng số phiên phỏng vấn đã thực hiện.</li></ul>
+<ul><li>Biểu đồ biến động doanh thu, biểu đồ phân bổ ứng viên theo từng ngành nghề.</li></ul>
+<h3>B. Quản lý Ứng viên & Báo cáo Onboarding Analytics (`/admin/onboarding`)</h3>
+<ul><li><strong>Phân tích kênh tiếp thị (Acquisition Channel Analytics):</strong> Báo cáo trực quan tỷ lệ ứng viên đến từ Facebook Ads, TikTok Ads, YouTube, Google SEO, Bạn bè giới thiệu,...</li></ul>
+<ul><li><strong>Thống kê tỷ lệ chuyển đổi Onboarding:</strong> Số lượng ứng viên hoàn thành khảo sát định hướng, tỷ lệ chuyển đổi từ ứng viên Free sang VIP Pro theo từng kênh.</li></ul>
+<ul><li><strong>Bảng chi tiết hồ sơ ứng viên:</strong> Tìm kiếm, lọc theo vai trò mục tiêu, level, ngày đăng ký, xem chi tiết mục tiêu nghề nghiệp của từng ứng viên.</li></ul>
+<h3>C. Quản lý Giao dịch Thanh toán & Cổng VietQR (`/admin/payments`)</h3>
+<ul><li>Danh sách toàn bộ lịch sử giao dịch nạp tiền và mua gói dịch vụ.</li></ul>
+<ul><li>Hiển thị chi tiết ngân hàng gửi, số tài khoản người chuyển, số tiền, trạng thái giao dịch (Pending, Success, Failed).</li></ul>
+<ul><li>Tích hợp ảnh logo ngân hàng người chuyển với fallback avatar tinh tế.</li></ul>
+<ul><li>Công cụ đối soát thủ công (Manual Reconciliation) trong trường hợp giao dịch ngân hàng cần xác minh thêm.</li></ul>
+<h3>D. Quản lý Danh mục Nghề nghiệp & Ngân hàng Câu hỏi (`/admin/catalog`)</h3>
+<ul><li>Quản lý Domains (Lĩnh vực: IT, Marketing, Finance,...).</li></ul>
+<ul><li>Quản lý Roles (Vị trí công việc chi tiết kèm mô tả nghiệp vụ).</li></ul>
+<ul><li>Quản lý Ngân hàng Câu hỏi: Thêm mới, chỉnh sửa, xóa, gắn nhãn độ khó, thêm câu trả lời mẫu, hỗ trợ nhập/xuất dữ liệu hàng loạt (Bulk Import/Export).</li></ul>
+<h3>E. Giám sát Hệ thống, Route Audit Logs & Terminal Console (`/admin/audit-logs`)</h3>
+<ul><li><strong>HTTP Route Logging Middleware:</strong> Tự động ghi nhận mọi truy vấn HTTP vào hệ thống (Method, Path, Status Code, Latency, IP, User Agent).</li></ul>
+<ul><li><strong>Cơ chế lưu trữ Rolling Memory Buffer 10 phút:</strong> Giữ các bản ghi log trong 10 phút gần nhất, tối ưu hiệu năng không làm phình cơ sở dữ liệu.</li></ul>
+<ul><li><strong>Terminal Console thời gian thực:</strong> Giao diện mô phỏng cửa sổ dòng lệnh máy chủ trên trình duyệt, hiển thị live stream các sự kiện hệ thống.</li></ul>
+<h3>F. Giám sát trạng thái người dùng trực tuyến (Realtime Presence Manager)</h3>
+<ul><li>Hệ thống WebSocket Presence theo dõi chính xác số lượng và danh sách người dùng đang online trên hệ thống.</li></ul>
+<ul><li>Cập nhật tức thời trạng thái chấm xanh trên Avatar người dùng tại Header và Dashboard Admin.</li></ul>
+<h1>PHẦN 3: THIẾT KẾ KIẾN TRÚC HỆ THỐNG & 5 DESIGN PATTERNS (ARCHITECTURE & DESIGN PATTERNS)</h1>
+<h3>3.1. Tổng quan kiến trúc tổng thể (High-Level Architecture)</h3>
+<p>Hệ thống được thiết kế theo mô hình <strong>Phân tán Hướng Dịch vụ (Distributed Service-Oriented Architecture)</strong>, kết hợp giữa kiến trúc RESTful API và giao thức WebSocket song công thời gian thực:</p>
+<pre><code>
++-----------------------------------------------------------------------------------+
+|                                CLIENT APPLICATION                                 |
+|         Next.js 14+ (App Router) | React 18 | Redux Toolkit Query | Tailwind CSS   |
++----------------------------------------+------------------------------------------+
+                                         |
+                       HTTP / HTTPS (REST API) + WSS (WebSocket)
+                                         |
++----------------------------------------v------------------------------------------+
+|                              API GATEWAY / FASTAPI                                |
+|   CORS Middleware | JWT Auth Bearer | Route Audit Logger | Exception Handlers     |
++-----------------------------------------------------------------------------------+
+|                              CLEAN ARCHITECTURE CORE                              |
+|                                                                                   |
+|  [PRESENTATION LAYER]                                                             |
+|   - REST Routers: /auth, /onboarding, /interview, /evaluation, /billing, /admin   |
+|   - WebSocket Handlers: /voice/ws/{session_id}, /presence/ws                      |
+|   - Request/Response Schemas (Pydantic V2)                                        |
+|                                                                                   |
+|  [APPLICATION LAYER (Use Cases &amp; Ports)]                                          |
+|   - Services: AuthService, InterviewService, EvaluationService, BillingService     |
+|   - Ports (Interfaces): STTPort, TTSPort, LLMPort, PaymentPort, UserRepoPort      |
+|   - Commands &amp; Queries (CQRS-ready DTOs)                                          |
+|                                                                                   |
+|  [DOMAIN LAYER (Enterprise Business Rules)]                                       |
+|   - Entities: User, PracticeSession, Question, RubricScore, PaymentTransaction    |
+|   - Value Objects: Email, Role, SubscriptionTier, STARBreakdown                   |
+|   - Domain Exceptions &amp; Enums                                                     |
+|                                                                                   |
+|  [INFRASTRUCTURE LAYER (Adapters &amp; External Integrations)]                        |
+|   - Database: SQLAlchemy 2.0 ORM | Connection Pool (PostgreSQL / SQLite)          |
+|   - Repositories: UserRepository, SessionRepository, QuestionRepository           |
+|   - AI &amp; Speech Adapters: OpenAI GPT-4o, Whisper STT, Azure / Edge-TTS            |
+|   - Payment Adapter: xGate VietQR Banking Gateway                                 |
+|   - Cache &amp; Logging: Rolling Memory Buffer, Realtime Presence Manager             |
++-----------------------------------------------------------------------------------+
+</code></pre>
+<hr />
+<h3>3.2. Pattern 1: Clean Architecture (Hexagonal / Ports & Adapters Architecture)</h3>
+<h4>Khái niệm & Mục tiêu:</h4>
+<p>Clean Architecture (còn gọi là Kiến trúc Lục giác - Ports & Adapters) được áp dụng làm kiến trúc nền tảng cho toàn bộ hệ thống Backend. Quy tắc cốt lõi: <strong>Sự phụ thuộc chỉ được hướng vào trong (The Dependency Rule)</strong>. Tầng Domain nằm ở trung tâm và không phụ thuộc vào bất kỳ framework, thư viện ORM, hay dịch vụ bên ngoài nào.</p>
+<h4>Cấu trúc 4 tầng chi tiết trong mã nguồn:</h4>
+<ol><li><strong>Domain Layer (<code>app/domain/</code>):</strong></li></ol>
+<p>- Chứa các thực thể cốt lõi (<code>User</code>, <code>PracticeSession</code>, <code>QuestionBank</code>, <code>OnboardingResponse</code>) và quy tắc nghiệp vụ bất biến.</p>
+<p>- Định nghĩa các Business Exception chuyên biệt (<code>AuthError</code>, <code>NotFoundError</code>, <code>DomainRuleViolation</code>).</p>
+<p>- Hoàn toàn độc lập với FastAPI, SQLAlchemy hay bất kỳ công nghệ bên ngoài nào.</p>
+<ol><li><strong>Application Layer (<code>app/application/</code>):</strong></li></ol>
+<p>- Chứa các Use Cases thực thi quy trình nghiệp vụ: <code>AuthService</code>, <code>InterviewService</code>, <code>EvaluationService</code>, <code>BillingService</code>.</p>
+<p>- Định nghĩa các <strong>Ports (Giao diện trừu tượng)</strong>:</p>
+<p>- <code>GoogleTokenVerifierPort</code>: Xác thực credential Google.</p>
+<p>- <code>LLMPort</code>: Sinh câu hỏi và nhận xét từ mô hình ngôn ngữ lớn.</p>
+<p>- <code>STTPort</code> & <code>TTSPort</code>: Xử lý chuyển đổi giọng nói và tổng hợp âm thanh.</p>
+<p>- <code>PaymentGatewayPort</code>: Giao tiếp với cổng thanh toán ngân hàng.</p>
+<p>- Nhận các <code>Command</code> và <code>Query</code> làm dữ liệu đầu vào.</p>
+<ol><li><strong>Infrastructure Layer (<code>app/infrastructure/</code>):</strong></li></ol>
+<p>- Triển khai cụ thể các Ports (Adapters):</p>
+<p>- <code>GoogleOAuthAdapter</code>: Gọi Google TokenInfo API xác thực token.</p>
+<p>- <code>OpenAILLMAdapter</code>: Kết nối OpenAI API thực hiện prompt engineering.</p>
+<p>- <code>WhisperSTTAdapter</code> & <code>EdgeTTSAdapter</code>: Xử lý âm thanh thực tế.</p>
+<p>- <code>XGatePaymentAdapter</code>: Sinh mã VietQR động và tiếp nhận webhook.</p>
+<p>- SQLAlchemy ORM Models và Repositories tương tác với cơ sở dữ liệu.</p>
+<ol><li><strong>Presentation Layer (<code>app/presentation/</code>):</strong></li></ol>
+<p>- Chứa các FastAPI Router (<code>routers/auth.py</code>, <code>routers/onboarding.py</code>, <code>routers/voice_ws.py</code>).</p>
+<p>- Chuyển đổi dữ liệu HTTP Request thành Command/Query để chuyển vào tầng Application, và trả về Pydantic Response Schemas.</p>
+<h4>Lợi ích vượt trội:</h4>
+<ul><li>Dễ dàng thay thế công nghệ (ví dụ chuyển từ SQLite sang PostgreSQL hoặc đổi nhà cung cấp AI từ OpenAI sang Claude) mà không cần chạm vào logic nghiệp vụ.</li></ul>
+<ul><li>Khả năng kiểm thử (Testability) tối đa: Có thể viết Unit Test cho toàn bộ logic nghiệp vụ mà không cần bật cơ sở dữ liệu hay gọi API bên thứ ba.</li></ul>
+<hr />
+<h3>3.3. Pattern 2: Repository & Unit of Work Pattern</h3>
+<h4>Khái niệm & Mục tiêu:</h4>
+<p>Repository Pattern đóng vai trò là một tầng trừu tượng nằm giữa tầng Application và tầng lưu trữ dữ liệu (Database). Nó đóng gói toàn bộ các câu lệnh truy vấn SQL phức tạp, biến cơ sở dữ liệu thành một tập hợp collection trong bộ nhớ. Unit of Work quản lý vòng đời transaction, đảm bảo tính nguyên tử (Atomicity - ACID).</p>
+<h4>Triển khai trong mã nguồn:</h4>
+<p>Hệ thống triển khai các Repository chuyên biệt:</p>
+<ul><li><code>UserRepositoryPort</code> & <code>SqlAlchemyUserRepository</code>: Quản lý tìm kiếm người dùng theo email, ID, cập nhật mật khẩu, quyền hạn.</li></ul>
+<ul><li><code>SessionRepository</code>: Quản lý các phiên phỏng vấn, lưu trữ danh sách câu hỏi đã hỏi và câu trả lời của ứng viên.</li></ul>
+<ul><li><code>QuestionRepository</code>: Truy vấn câu hỏi theo domain, role, mức độ khó, hỗ trợ phân trang và tìm kiếm toàn văn.</li></ul>
+<ul><li><code>AdminRepository</code>: Truy vấn báo cáo tổng hợp, thống kê doanh thu và dữ liệu ứng viên.</li></ul>
+<h4>Minh họa mã nguồn (Code Implementation):</h4>
+<pre><code>
+# app/application/auth/ports.py - Khai báo Port trừu tượng
+class UserRepositoryPort(Protocol):
+    def find_by_email(self, session: Any, email: str) -&gt; User | None: ...
+    def find_by_id(self, session: Any, user_id: int) -&gt; User | None: ...
+    def add(self, session: Any, full_name: str, email: str, password_hash: str) -&gt; User: ...
+
+# app/infrastructure/persistence/user_repository.py - Adapter triển khai cụ thể
+class SqlAlchemyUserRepository(UserRepositoryPort):
+    def find_by_email(self, session: Session, email: str) -&gt; User | None:
+        return session.execute(
+            select(User).where(User.email == email.lower().strip())
+        ).scalar_one_or_none()
+
+    def add(self, session: Session, full_name: str, email: str, password_hash: str) -&gt; User:
+        new_user = User(
+            full_name=full_name,
+            email=email.lower().strip(),
+            password_hash=password_hash,
+            role=&quot;candidate&quot;,
+            status=&quot;active&quot;
+        )
+        session.add(new_user)
+        session.flush() # Lấy user_id trước khi commit
+        return new_user
+</code></pre>
+<h4>Lợi ích:</h4>
+<ul><li>Tách bạch hoàn toàn mã nguồn nghiệp vụ khỏi các câu lệnh SQL hay ORM API.</li></ul>
+<ul><li>Đảm bảo an toàn giao dịch: Khi có lỗi phát sinh trong quá trình tạo tài khoản và thiết lập khảo sát, toàn bộ thao tác được tự động <code>rollback</code>, không để lại dữ liệu rác.</li></ul>
+<hr />
+<h3>3.4. Pattern 3: Strategy Pattern (AI Evaluation & Rubric Engine)</h3>
+<h4>Khái niệm & Mục tiêu:</h4>
+<p>Strategy Pattern định nghĩa một họ các thuật toán đánh giá phỏng vấn, đóng gói từng thuật toán lại và làm cho chúng có thể hoán đổi linh hoạt cho nhau mà không làm thay đổi phía gọi (Client).</p>
+<h4>Ứng dụng trong hệ thống:</h4>
+<p>Mỗi loại phỏng vấn yêu cầu một tiêu chuẩn và khung đánh giá hoàn toàn khác nhau:</p>
+<ol><li><strong>STARScoringStrategy:</strong> Đánh giá các câu hỏi hành vi (Behavioral Interview) dựa trên 4 thành tố: Tình huống (Situation), Nhiệm vụ (Task), Hành động (Action), Kết quả (Result).</li></ol>
+<ol><li><strong>TechnicalRubricStrategy:</strong> Đánh giá các câu hỏi kỹ thuật chuyên sâu (System Design, Frontend, Backend) dựa trên: Tính chính xác kiến trúc, Độ tối ưu thuật toán, Khả năng mở rộng (Scalability), Xử lý trường hợp biên (Edge Cases).</li></ol>
+<ol><li><strong>GeneralHRStrategy:</strong> Đánh giá sự phù hợp văn hóa (Culture Fit), động lực làm việc, kỹ năng mềm và khả năng gắn bó.</li></ol>
+<h4>Sơ đồ cấu trúc:</h4>
+<pre><code>
+           +---------------------------------------------+
+           |       &lt;&lt;Interface&gt;&gt; EvaluationStrategy      |
+           +---------------------------------------------+
+           | + evaluate(answer: str, context: dict): Res |
+           +---------------------------------------------+
+                                  ^
+                                  |
+        +-------------------------+-------------------------+
+        |                                                   |
++-------+--------------------+            +-----------------+------------------+
+|    STARScoringStrategy     |            |     TechnicalRubricStrategy        |
++----------------------------+            +------------------------------------+
+| - prompt: &quot;Phân tích 4     |            | - prompt: &quot;Đánh giá kiến trúc,     |
+|   thành tố S-T-A-R...&quot;     |            |   hiệu năng, scalability...&quot;       |
+| + evaluate(...) -&gt; Result  |            | + evaluate(...) -&gt; Result          |
++----------------------------+            +------------------------------------+
+</code></pre>
+<h4>Minh họa mã nguồn:</h4>
+<pre><code>
+class EvaluationStrategy(Protocol):
+    def evaluate(self, question: str, answer: str, role: str) -&gt; EvaluationReport: ...
+
+class STARScoringStrategy:
+    def __init__(self, llm_port: LLMPort):
+        self.llm = llm_port
+
+    def evaluate(self, question: str, answer: str, role: str) -&gt; EvaluationReport:
+        prompt = f&#x27;&#x27;&#x27;
+        Đóng vai trò chuyên gia phỏng vấn vị trí {role}.
+        Đánh giá câu trả lời sau theo mô hình STAR:
+        Câu hỏi: {question}
+        Câu trả lời: {answer}
+        Yêu cầu trả về JSON gồm: situation_score, task_score, action_score, result_score, feedback, model_answer.
+        &#x27;&#x27;&#x27;
+        return self.llm.generate_structured_evaluation(prompt)
+
+class EvaluationContext:
+    def __init__(self, strategy: EvaluationStrategy):
+        self._strategy = strategy
+
+    def set_strategy(self, strategy: EvaluationStrategy):
+        self._strategy = strategy
+
+    def execute_evaluation(self, question: str, answer: str, role: str) -&gt; EvaluationReport:
+        return self._strategy.evaluate(question, answer, role)
+</code></pre>
+<h4>Lợi ích:</h4>
+<ul><li>Dễ dàng mở rộng thêm các chiến lược đánh giá mới (ví dụ: <code>CodingInterviewStrategy</code>, <code>EnglishFluencyStrategy</code>) mà không cần chỉnh sửa mã nguồn hiện tại (tuân thủ nguyên lý Open/Closed trong SOLID).</li></ul>
+<hr />
+<h3>3.5. Pattern 4: Observer / Pub-Sub Pattern (Realtime Voice & Presence Engine)</h3>
+<h4>Khái niệm & Mục tiêu:</h4>
+<p>Observer Pattern định nghĩa mối phụ thuộc một - nhiều giữa các đối tượng, sao cho khi một đối tượng thay đổi trạng thái, tất cả các đối tượng phụ thuộc của nó sẽ được thông báo và tự động cập nhật.</p>
+<h4>Ứng dụng trong hệ thống:</h4>
+<ol><li><strong>Realtime Voice Stream Processing:</strong></li></ol>
+<p>- Trong phòng phỏng vấn giọng nói WebSocket, luồng âm thanh đầu vào của ứng viên được chia nhỏ thành các audio chunks.</p>
+<p>- Khi một chunk âm thanh hoàn chỉnh được ghi nhận, các Observers liên quan sẽ nhận thông báo:</p>
+<p>- <code>VADObserver</code> (Voice Activity Detector): Xác định người dùng bắt đầu/ngừng nói.</p>
+<p>- <code>STTObserver</code>: Nhận audio chunk và gửi sang engine phiên âm văn bản.</p>
+<p>- <code>TranscriptStreamObserver</code>: Đẩy văn bản tức thời lên giao diện ứng viên qua WebSocket.</p>
+<p>- <code>LLMTriggerObserver</code>: Khi ứng viên hoàn tất câu trả lời, kích hoạt AI suy nghĩ và sinh phản hồi.</p>
+<ol><li><strong>Presence Manager (Trạng thái trực tuyến):</strong></li></ol>
+<p>- Quản lý tập trung toàn bộ các kết nối WebSocket đang hoạt động.</p>
+<p>- Khi một người dùng kết nối (<code>UserConnectedEvent</code>) hoặc ngắt kết nối (<code>UserDisconnectedEvent</code>), <code>PresenceManager</code> tự động phát sóng (Broadcast) sự kiện tới tất cả các Admin Dashboard đang theo dõi.</p>
+<h4>Minh họa mã nguồn:</h4>
+<pre><code>
+# app/infrastructure/websocket/presence_manager.py
+class PresenceManager:
+    def __init__(self):
+        self._active_connections: dict[int, set[WebSocket]] = {}
+        self._admin_connections: set[WebSocket] = set()
+
+    async def connect_user(self, user_id: int, websocket: WebSocket):
+        await websocket.accept()
+        if user_id not in self._active_connections:
+            self._active_connections[user_id] = set()
+        self._active_connections[user_id].add(websocket)
+        # Thông báo cho các quan sát viên (Admins)
+        await self._notify_observers(user_id=user_id, status=&quot;online&quot;)
+
+    async def disconnect_user(self, user_id: int, websocket: WebSocket):
+        if user_id in self._active_connections:
+            self._active_connections[user_id].discard(websocket)
+            if not self._active_connections[user_id]:
+                del self._active_connections[user_id]
+                await self._notify_observers(user_id=user_id, status=&quot;offline&quot;)
+
+    async def _notify_observers(self, user_id: int, status: str):
+        message = json.dumps({&quot;event&quot;: &quot;presence_change&quot;, &quot;user_id&quot;: user_id, &quot;status&quot;: status})
+        for admin_ws in list(self._admin_connections):
+            try:
+                await admin_ws.send_text(message)
+            except Exception:
+                self._admin_connections.discard(admin_ws)
+</code></pre>
+<h4>Lợi ích:</h4>
+<ul><li>Tách rời hoàn toàn nguồn phát sinh sự kiện (Websocket Audio / User Action) khỏi các thành phần xử lý (AI Engine, Admin Notification).</li></ul>
+<ul><li>Xử lý bất đồng bộ (Asynchronous) không gây tắc nghẽn I/O, đảm bảo độ trễ siêu thấp cho phiên phỏng vấn.</li></ul>
+<hr />
+<h3>3.6. Pattern 5: Factory Method / Abstract Factory Pattern (AI Voice Providers & Service Container)</h3>
+<h4>Khái niệm & Mục tiêu:</h4>
+<p>Factory Pattern cung cấp một giao diện để tạo lập các đối tượng liên quan hoặc phụ thuộc lẫn nhau mà không chỉ định rõ lớp cụ thể của chúng tại thời điểm gọi.</p>
+<h4>Ứng dụng trong hệ thống:</h4>
+<ol><li><strong>Speech Engine Factory (<code>SpeechEngineFactory</code>):</strong></li></ol>
+<p>- Tùy thuộc vào cấu hình môi trường (<code>.env</code>), hệ thống tự động khởi tạo engine nhận diện và phát giọng nói phù hợp:</p>
+<p>- Môi trường Development / Local: Sử dụng <code>WhisperLocalAdapter</code> và <code>EdgeTTSAdapter</code> (hoàn toàn miễn phí, không tốn chi phí API).</p>
+<p>- Môi trường Production / Cloud: Khởi tạo <code>AzureSpeechSTTAdapter</code> và <code>ElevenLabsTTSAdapter</code> (cho chất lượng giọng nói siêu thực và độ trễ cực thấp).</p>
+<ol><li><strong>Service Container (IoC Container / Dependency Injection):</strong></li></ol>
+<p>- File <code>bootstrap.py</code> đóng vai trò là một <strong>Abstract Factory</strong> tối cao, chịu trách nhiệm khởi tạo toàn bộ chuỗi phụ thuộc của ứng dụng và gom vào <code>ServiceContainer</code>.</p>
+<h4>Minh họa mã nguồn:</h4>
+<pre><code>
+# app/infrastructure/speech/factory.py
+class SpeechEngineFactory:
+    @staticmethod
+    def create_stt_adapter(config: Settings) -&gt; STTPort:
+        if config.speech_provider == &quot;azure&quot;:
+            return AzureSpeechSTTAdapter(api_key=config.azure_speech_key, region=config.azure_region)
+        elif config.speech_provider == &quot;openai&quot;:
+            return OpenAIWhisperAdapter(api_key=config.openai_api_key)
+        return LocalWhisperAdapter(model_size=&quot;base&quot;)
+
+    @staticmethod
+    def create_tts_adapter(config: Settings) -&gt; TTSPort:
+        if config.tts_provider == &quot;elevenlabs&quot;:
+            return ElevenLabsTTSAdapter(api_key=config.elevenlabs_key)
+        return EdgeTTSAdapter(default_voice=&quot;vi-VN-HoaiMyNeural&quot;)
+
+# app/bootstrap.py - Khởi tạo Service Container
+class ServiceContainer:
+    def __init__(
+        self,
+        auth_service: AuthService,
+        interview_service: InterviewService,
+        evaluation_service: EvaluationService,
+        billing_service: BillingService,
+        presence_manager: PresenceManager,
+    ):
+        self.auth_service = auth_service
+        self.interview_service = interview_service
+        self.evaluation_service = evaluation_service
+        self.billing_service = billing_service
+        self.presence_manager = presence_manager
+
+def build_container(settings: Settings) -&gt; ServiceContainer:
+    # 1. Khởi tạo Database &amp; Repositories
+    db_engine = create_db_engine(settings.database_url)
+    user_repo = SqlAlchemyUserRepository()
+    
+    # 2. Khởi tạo Adapters qua Factory
+    stt_adapter = SpeechEngineFactory.create_stt_adapter(settings)
+    tts_adapter = SpeechEngineFactory.create_tts_adapter(settings)
+    llm_adapter = OpenAILLMAdapter(api_key=settings.openai_api_key)
+    payment_adapter = XGatePaymentAdapter(settings.xgate_config)
+    
+    # 3. Khởi tạo Services
+    auth_service = AuthService(users=user_repo, tokens=JwtTokenService(settings.jwt_secret))
+    interview_service = InterviewService(stt=stt_adapter, tts=tts_adapter, llm=llm_adapter)
+    
+    return ServiceContainer(
+        auth_service=auth_service,
+        interview_service=interview_service,
+        evaluation_service=EvaluationService(llm=llm_adapter),
+        billing_service=BillingService(payment_gateway=payment_adapter),
+        presence_manager=PresenceManager(),
+    )
+</code></pre>
+<h4>Lợi ích:</h4>
+<ul><li>Mã nguồn độc lập hoàn toàn với nhà cung cấp thứ ba (Vendor-Agnostic), ngăn chặn nguy cơ bị khóa chặt vào một đơn vị cung cấp (Vendor Lock-in).</li></ul>
+<ul><li>Cấu hình linh hoạt theo biến môi trường, dễ dàng chuyển đổi chế độ chạy thử nghiệm và chạy thực tế mà không phải sửa lại code.</li></ul>
+<h1>PHẦN 4: TÀI LIỆU KỸ THUẬT, API & CƠ SỞ DỮ LIỆU (TECHNICAL SPECIFICATIONS & API CONTRACTS)</h1>
+<h3>4.1. Ngăn xếp Công nghệ (Full Technology Stack)</h3>
+<table>
+<tr><th>Thành phần</th><th>Công nghệ / Thư viện</th><th>Vai trò kỹ thuật</th></tr>
+<tr><td><strong>Frontend Core</strong></td><td>Next.js 14+ (App Router), React 18, TypeScript</td><td>Giao diện Single Page Application hiện đại, Server-Side Rendering tối ưu SEO</td></tr>
+<tr><td><strong>State Management</strong></td><td>Redux Toolkit (RTK) & RTK Query</td><td>Quản lý state toàn cục, caching dữ liệu API tự động, modularized slices</td></tr>
+<tr><td><strong>Styling & UI</strong></td><td>Tailwind CSS, CSS Modules, Lucide Icons</td><td>Giao diện Responsive, hỗ trợ chế độ Dark/Light Mode, glassmorphism cao cấp</td></tr>
+<tr><td><strong>Backend Core</strong></td><td>FastAPI (Python 3.11+ / 3.12+), Uvicorn ASGI</td><td>API Gateway hiệu năng cao, hỗ trợ Async I/O, tự động sinh tài liệu Swagger</td></tr>
+<tr><td><strong>Database & ORM</strong></td><td>PostgreSQL / SQLite, SQLAlchemy 2.0</td><td>Lưu trữ dữ liệu quan hệ, Connection Pooling, Migration dữ liệu an toàn</td></tr>
+<tr><td><strong>Realtime Stream</strong></td><td>WebSockets (RFC 6455), Asyncio Event Loop</td><td>Truyền phát luồng âm thanh song công (Full-duplex audio stream) và presence</td></tr>
+<tr><td><strong>Speech Processing</strong></td><td>OpenAI Whisper, Edge-TTS, PyAudio, Opus</td><td>Nhận diện giọng nói (STT) và tổng hợp âm thanh giọng đọc AI tự nhiên (TTS)</td></tr>
+<tr><td><strong>Payment Gateway</strong></td><td>VietQR Standard, xGate Banking API</td><td>Cổng thanh toán ngân hàng tự động, mã QR động, webhook đối soát thời gian thực</td></tr>
+<tr><td><strong>Security & Auth</strong></td><td>JWT (JSON Web Tokens), Google Identity (GSI), BCrypt</td><td>Mã hóa mật khẩu an toàn, xác thực phân quyền Role-Based Access Control (RBAC)</td></tr>
+</table>
+<hr />
+<h3>4.2. Thiết kế Cơ sở Dữ liệu & Sơ đồ Thực thể Quan hệ (Database Schema & ERD)</h3>
+<pre><code>
++-------------------+       1:N       +-------------------------+
+|      users        |----------------&lt;|   practice_sessions     |
++-------------------+                 +-------------------------+
+| user_id (PK)      |                 | session_id (PK)         |
+| email (Unique)    |                 | user_id (FK -&gt; users)   |
+| password_hash     |                 | role_id (FK -&gt; roles)   |
+| full_name         |                 | mode (voice/text)       |
+| role (admin/user) |                 | stage (tech/hr/star)    |
+| status            |                 | total_score (float)     |
+| is_onboarded (bool)                 | status (in_progress/..) |
+| created_at        |                 | created_at              |
++-------------------+                 +-------------------------+
+        | 1:1                                      | 1:N
+        |                                          v
+        |                             +-------------------------+
+        |                             |    session_answers      |
+        |                             +-------------------------+
+        |                             | answer_id (PK)          |
+        |                             | session_id (FK)         |
+        |                             | question_id (FK)        |
+        |                             | audio_url (nullable)    |
+        |                             | transcript (text)       |
+        |                             | ai_feedback (text)      |
+        |                             | rubric_scores (JSON)    |
+        |                             +-------------------------+
+        |
+        | 1:1                         +-------------------------+
+        +----------------------------&lt;|  onboarding_responses   |
+        |                             +-------------------------+
+        |                             | response_id (PK)        |
+        |                             | user_id (FK -&gt; users)   |
+        |                             | preferred_language (vi) |
+        |                             | acquisition_channel     |
+        |                             | current_domain          |
+        |                             | current_role            |
+        |                             | target_role             |
+        |                             | target_level            |
+        |                             | is_completed (bool)     |
+        |                             +-------------------------+
+        |
+        | 1:N                         +-------------------------+
+        +----------------------------&lt;|  payment_transactions   |
+                                      +-------------------------+
+                                      | transaction_id (PK)     |
+                                      | user_id (FK -&gt; users)   |
+                                      | amount (int)            |
+                                      | order_code (unique)     |
+                                      | plan_type (week/month)  |
+                                      | status (PENDING/PAID)   |
+                                      | sender_bank (string)    |
+                                      | sender_account (string) |
+                                      | paid_at                 |
+                                      +-------------------------+
+</code></pre>
+<hr />
+<h3>4.3. Danh mục API RESTful cốt lõi (Core REST API Endpoints)</h3>
+<table>
+<tr><th>Phân hệ</th><th>Method</th><th>Endpoint URL</th><th>Mục đích & Mô tả</th></tr>
+<tr><td><strong>Auth</strong></td><td><code>POST</code></td><td><code>/api/v1/auth/login</code></td><td>Đăng nhập tài khoản bằng Email & Mật khẩu, trả về Access Token và trạng thái <code>needs_password</code></td></tr>
+<tr><td><strong>Auth</strong></td><td><code>POST</code></td><td><code>/api/v1/auth/register</code></td><td>Đăng ký tài khoản mới kèm xác thực mã OTP email</td></tr>
+<tr><td><strong>Auth</strong></td><td><code>POST</code></td><td><code>/api/v1/auth/google</code></td><td>Đăng nhập bằng Google Credential, phát hiện tài khoản mới và cờ thiết lập mật khẩu</td></tr>
+<tr><td><strong>Auth</strong></td><td><code>POST</code></td><td><code>/api/v1/auth/set-initial-password</code></td><td>Bắt buộc thiết lập mật khẩu cho tài khoản Google trước khi vào Onboarding</td></tr>
+<tr><td><strong>Auth</strong></td><td><code>GET</code></td><td><code>/api/v1/auth/me</code></td><td>Lấy thông tin cá nhân của người dùng hiện tại kèm cờ <code>is_onboarded</code></td></tr>
+<tr><td><strong>Auth</strong></td><td><code>POST</code></td><td><code>/api/v1/auth/send-otp</code></td><td>Gửi mã OTP xác thực email qua dịch vụ thư điện tử</td></tr>
+<tr><td><strong>Onboarding</strong></td><td><code>POST</code></td><td><code>/api/v1/onboarding</code></td><td>Lưu trữ câu trả lời khảo sát định hướng nghề nghiệp 5 bước</td></tr>
+<tr><td><strong>Onboarding</strong></td><td><code>GET</code></td><td><code>/api/v1/onboarding/status</code></td><td>Kiểm tra trạng thái hoàn tất Onboarding của ứng viên</td></tr>
+<tr><td><strong>Onboarding</strong></td><td><code>POST</code></td><td><code>/api/v1/onboarding/reset</code></td><td>Đặt lại trạng thái Onboarding để ứng viên thực hiện khảo sát lại</td></tr>
+<tr><td><strong>Catalog</strong></td><td><code>GET</code></td><td><code>/api/v1/catalog/domains</code></td><td>Lấy danh sách các lĩnh vực nghề nghiệp (IT, Marketing, Sales,...)</td></tr>
+<tr><td><strong>Catalog</strong></td><td><code>GET</code></td><td><code>/api/v1/catalog/roles</code></td><td>Lấy danh sách vai trò công việc theo từng lĩnh vực</td></tr>
+<tr><td><strong>Catalog</strong></td><td><code>GET</code></td><td><code>/api/v1/catalog/questions</code></td><td>Tra cứu thư viện câu hỏi phỏng vấn theo vai trò và độ khó</td></tr>
+<tr><td><strong>Interview</strong></td><td><code>POST</code></td><td><code>/api/v1/interview/sessions</code></td><td>Khởi tạo phiên phỏng vấn mới (chọn mode, stage, số lượng câu)</td></tr>
+<tr><td><strong>Interview</strong></td><td><code>GET</code></td><td><code>/api/v1/interview/sessions/{id}</code></td><td>Lấy thông tin chi tiết phiên phỏng vấn và danh sách câu hỏi</td></tr>
+<tr><td><strong>Evaluation</strong></td><td><code>POST</code></td><td><code>/api/v1/evaluation/answers</code></td><td>Chấm điểm câu trả lời phỏng vấn theo thang Rubric 5 tiêu chí và STAR</td></tr>
+<tr><td><strong>Billing</strong></td><td><code>POST</code></td><td><code>/api/v1/billing/checkout</code></td><td>Tạo đơn hàng nâng cấp VIP và sinh mã VietQR động</td></tr>
+<tr><td><strong>Billing</strong></td><td><code>POST</code></td><td><code>/api/v1/billing/webhook/xgate</code></td><td>Tiếp nhận callback xác nhận chuyển khoản tự động từ cổng ngân hàng</td></tr>
+<tr><td><strong>Admin</strong></td><td><code>GET</code></td><td><code>/api/v1/admin/onboarding/stats</code></td><td>Thống kê số liệu khảo sát Onboarding và phân tích kênh tiếp thị</td></tr>
+<tr><td><strong>Admin</strong></td><td><code>GET</code></td><td><code>/api/v1/admin/payments</code></td><td>Danh sách lịch sử thanh toán VietQR và đối soát giao dịch</td></tr>
+<tr><td><strong>Admin</strong></td><td><code>GET</code></td><td><code>/api/v1/admin/server-logs</code></td><td>Truy xuất log hệ thống 10 phút gần nhất từ Rolling Memory Store</td></tr>
+</table>
+<hr />
+<h3>4.4. Giao thức WebSocket phòng phỏng vấn thời gian thực (Realtime Voice WS Protocol)</h3>
+<ul><li><strong>Endpoint:</strong> <code>ws://<host>/api/v1/voice/ws/{session_id}</code></li></ul>
+<ul><li><strong>Luồng bản tin Client -> Server:</strong></li></ul>
+<p>- <code>{"type": "start_session", "session_id": 123}</code>: Bắt đầu phiên phỏng vấn.</p>
+<p>- <code>{"type": "audio_chunk", "data": "<base64_encoded_pcm_or_webm>"}</code>: Luồng dữ liệu âm thanh người dùng nói.</p>
+<p>- <code>{"type": "stop_speaking"}</code>: Người dùng ngắt mic, kích hoạt AI xử lý.</p>
+<p>- <code>{"type": "next_question"}</code>: Chuyển tiếp sang câu hỏi tiếp theo.</p>
+<ul><li><strong>Luồng bản tin Server -> Client:</strong></li></ul>
+<p>- <code>{"type": "session_ready", "question": "Chào bạn, hãy giới thiệu về bản thân..."}</code>: Sẵn sàng phỏng vấn.</p>
+<p>- <code>{"type": "transcript_stream", "text": "Tôi là kỹ sư Frontend..."}</code>: Phiên âm tức thì lời nói người dùng.</p>
+<p>- <code>{"type": "ai_thinking"}</code>: AI đang phân tích và chuẩn bị câu trả lời.</p>
+<p>- <code>{"type": "audio_stream", "chunk": "<base64_audio>"}</code>: Luồng âm thanh giọng đọc của AI trả về loa.</p>
+<p>- <code>{"type": "question_evaluated", "scores": {"star": 8.5, "fluency": 9.0}}</code>: Đánh giá ngay sau mỗi câu.</p>
+<hr />
+<h3>4.5. Hướng dẫn cài đặt & Triển khai (Deployment Guide)</h3>
+<ol><li><strong>Yêu cầu môi trường hệ thống:</strong></li></ol>
+<p>- Node.js version 18+ (khuyên dùng Node 20 LTS).</p>
+<p>- Python version 3.11+ hoặc 3.12+.</p>
+<p>- Cơ sở dữ liệu PostgreSQL 15+ (hoặc SQLite cho môi trường phát triển local).</p>
+<p>- FFmpeg (phục vụ xử lý và nén audio đa định dạng).</p>
+<ol><li><strong>Cấu hình biến môi trường (<code>.env</code>):</strong></li></ol>
+<p><code></code>`env</p>
+<p># Database</p>
+<p>DATABASE_URL=postgresql://user:password@localhost:5432/interviewly_db</p>
+<p># Security & Authentication</p>
+<p>JWT_SECRET=super-secret-key-32-chars-long</p>
+<p>GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com</p>
+<p># AI & Cloud Speech</p>
+<p>OPENAI_API_KEY=sk-...</p>
+<p>SPEECH_PROVIDER=openai # hoặc azure</p>
+<p>TTS_PROVIDER=edge      # hoặc elevenlabs</p>
+<p># Banking & VietQR</p>
+<p>XGATE_API_KEY=xgate_live_api_key</p>
+<p>XGATE_MERCHANT_ID=your_merchant_id</p>
+<p><code></code>`</p>
+<ol><li><strong>Khởi chạy hệ thống:</strong></li></ol>
+<p>- <strong>Backend (FastAPI):</strong></p>
+<p><code></code>`bash</p>
+<p>cd BE</p>
+<p>uvicorn reference_app.app.main:app --host 0.0.0.0 --port 8000 --reload</p>
+<p><code></code>`</p>
+<p>- <strong>Frontend (Next.js):</strong></p>
+<p><code></code>`bash</p>
+<p>cd FE</p>
+<p>npm install</p>
+<p>npm run dev</p>
+<p><code></code>`</p>
+<hr />
+<h1>PHẦN 5: TỔNG KẾT & CAM KẾT CHẤT LƯỢNG (CONCLUSION & QUALITY ASSURANCE)</h1>
+<p>Nền tảng <strong>Interviewly (AI Real-Time Interview Coach)</strong> là sự kết hợp hoàn hảo giữa công nghệ Trí tuệ Nhân tạo hiện đại và chuẩn mực kiến trúc phần mềm quốc tế:</p>
+<ul><li><strong>Kiến trúc bền vững:</strong> 5 Design Patterns được ứng dụng đồng bộ (Clean Architecture, Repository, Strategy, Observer, Factory) mang lại khả năng mở rộng (Scalability), độ tin cậy cao và tính độc lập công nghệ.</li></ul>
+<ul><li><strong>Trải nghiệm người dùng đột phá:</strong> Khảo sát Onboarding cá nhân hóa kết hợp phòng phỏng vấn giọng nói độ trễ cực thấp (< 1.2s) tạo ra bước nhảy vọt so với các giải pháp truyền thống trên thị trường.</li></ul>
+<ul><li><strong>Tính thương mại hóa cao:</strong> Cổng thanh toán VietQR tự động, mô hình gói cước đa dạng và hệ thống quản trị vận hành toàn diện sẵn sàng cho việc tăng trưởng quy mô người dùng lớn.</li></ul>
+<p>Tài liệu này cam kết phản ánh chính xác 100% cấu trúc mã nguồn, tính năng và thiết kế kỹ thuật thực tế của hệ thống!</p>
+<hr />
+<p>*Tài liệu được phát hành và kiểm duyệt bởi Interviewly Engineering Team.*</p></body></html>
