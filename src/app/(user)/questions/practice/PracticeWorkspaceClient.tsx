@@ -158,17 +158,17 @@ export default function PracticeWorkspaceClient() {
     await voiceRecorder.startRecording();
   };
 
-  const handleStopVoice = () => {
-    const metrics = voiceRecorder.stopRecording();
+  const handleStopVoice = async () => {
+    const voiceRes = await voiceRecorder.stopRecording();
     if (session.currentQuestion) {
       const qid = session.currentQuestion.question_id;
       session.saveAnswer(qid, {
         mode: "voice",
         selected_option_id: selectedOption,
         written_text: writtenText,
-        audio_url: voiceRecorder.recordedAudioUrl,
-        audio_duration_seconds: metrics ? Math.round(metrics.durationMs / 1000) : voiceRecorder.recordingSeconds,
-        delivery_metrics: metrics,
+        audio_url: voiceRes.audioUrl || voiceRecorder.recordedAudioUrl,
+        audio_duration_seconds: voiceRes.recordingSeconds || voiceRecorder.recordingSeconds,
+        delivery_metrics: voiceRes.metrics,
         submitted_at: new Date().toISOString(),
       });
     }

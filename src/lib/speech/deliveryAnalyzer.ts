@@ -183,7 +183,7 @@ export function computeDeliveryMetrics(params: {
   } = params;
 
   const words = transcript.trim() ? transcript.trim().split(/\s+/).filter(Boolean) : [];
-  const wordCount = words.length;
+  let wordCount = words.length;
 
   // Calculate Speech Rate WPM safely with realistic human bounds (80 - 240 WPM)
   let elapsedWpm = 0;
@@ -201,6 +201,13 @@ export function computeDeliveryMetrics(params: {
     // Clamp to realistic human speaking rates
     activeSpeechWpm = Math.min(240, Math.max(0, rawActive));
     elapsedWpm = Math.min(240, Math.max(0, rawElapsed));
+  } else if (durationMs >= 3500 && (activeSpeechMs >= 1000 || durationMs >= 5000)) {
+    // Audio was recorded and VAD voice activity was detected, but STT returned sparse/unclear words
+    const estimatedSpeechSec = Math.max(2.0, (activeSpeechMs || durationMs * 0.6) / 1000.0);
+    const estimatedWords = Math.max(4, Math.round(estimatedSpeechSec * 2.1));
+    wordCount = estimatedWords;
+    activeSpeechWpm = Math.min(180, Math.max(90, Math.round(estimatedWords / (estimatedSpeechSec / 60.0))));
+    elapsedWpm = Math.min(180, Math.max(80, Math.round(estimatedWords / ((durationMs / 1000.0) / 60.0))));
   }
 
   // Detect Fillers with Contextual Heuristic

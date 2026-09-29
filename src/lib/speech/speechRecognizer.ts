@@ -49,14 +49,19 @@ export class BrowserSpeechRecognizer {
         const item = event.results[i];
         const transcriptChunk = item[0]?.transcript || "";
         if (item.isFinal) {
-          this.accumulatedFinal += (this.accumulatedFinal ? " " : "") + transcriptChunk.trim();
-          this.callbacks.onFinalTranscript?.(this.accumulatedFinal);
+          const chunk = transcriptChunk.trim();
+          if (chunk) {
+            this.accumulatedFinal = this.accumulatedFinal ? `${this.accumulatedFinal} ${chunk}` : chunk;
+            this.callbacks.onFinalTranscript?.(this.accumulatedFinal);
+          }
         } else {
           interim += transcriptChunk;
         }
       }
-      this.currentInterim = interim;
-      this.callbacks.onInterimTranscript?.(interim);
+      this.currentInterim = interim.trim();
+      if (this.currentInterim) {
+        this.callbacks.onInterimTranscript?.(this.currentInterim);
+      }
     };
 
     this.recognition.onerror = (event: any) => {
@@ -65,7 +70,6 @@ export class BrowserSpeechRecognizer {
     };
 
     this.recognition.onend = () => {
-      // If still supposed to be listening (e.g. Chrome automatic pause), restart if needed
       if (this.isListening && this.recognition) {
         try {
           this.recognition.start();
@@ -90,17 +94,38 @@ export class BrowserSpeechRecognizer {
     }
   }
 
-  public stop(): string {
+  public async stop(): Promise<string> {
     this.isListening = false;
-    if (this.recognition) {
+    if (!this.recognition) {
+      return this.getFullTranscript();
+    }
+
+    return new Promise<string>((resolve) => {
+      let resolved = false;
+      const finish = () => {
+        if (!resolved) {
+          resolved = true;
+          resolve(this.getFullTranscript());
+        }
+      };
+
+      // Flush window for pending speech recognition chunks
+      const timer = setTimeout(finish, 600);
+
+      const origOnEnd = this.recognition.onend;
+      this.recognition.onend = () => {
+        clearTimeout(timer);
+        if (origOnEnd) origOnEnd();
+        finish();
+      };
+
       try {
         this.recognition.stop();
       } catch {
-        // ignore
+        clearTimeout(timer);
+        finish();
       }
-    }
-    const full = (this.accumulatedFinal + " " + this.currentInterim).trim();
-    return full;
+    });
   }
 
   public abort(): void {
@@ -116,7 +141,12 @@ export class BrowserSpeechRecognizer {
     this.currentInterim = "";
   }
 
+  public getFullTranscript(): string {
+    const combined = `${this.accumulatedFinal} ${this.currentInterim}`.trim();
+    return combined;
+  }
+
   public getTranscript(): string {
-    return (this.accumulatedFinal + " " + this.currentInterim).trim();
+    return this.getFullTranscript();
   }
 }

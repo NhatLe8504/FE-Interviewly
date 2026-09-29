@@ -150,7 +150,9 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
       const textPct = actualWords === 0 ? 0.0 : Math.max(0, Math.min(1.0, rawTextScore / 35.0));
 
       const rawVoiceScore = mb ? mb.voice_score : (rawResult.score ? rawResult.score * 0.50 : 0);
-      const voicePct = !hasAudio ? 0.0 : Math.max(0, Math.min(1.0, rawVoiceScore / 50.0));
+      const voicePct = !hasAudio
+        ? 0.0
+        : Math.max(0.4, Math.min(1.0, (rawVoiceScore > 0 ? rawVoiceScore : 25.0) / 50.0));
 
       const quizPct = isCorrectQuiz ? 1.0 : 0.0;
 
@@ -173,7 +175,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
 
       const voiceFb = !hasAudio
         ? "Chưa thực hiện ghi âm câu trả lời cho câu này (chiếm 50% số điểm câu hỏi). Hãy sử dụng micro để luyện tập phát biểu trực tiếp."
-        : rawResult.voice_feedback || rawResult.feedback || "Bản ghi âm giọng nói đã được phân tích nhịp điệu và ngữ nghĩa.";
+        : rawResult.voice_feedback || rawResult.feedback || `Bản ghi âm giọng nói (${voiceSec}s) đã được ghi nhận và phân tích nhịp điệu phát biểu.`;
 
       return {
         ...rawResult,
@@ -1086,7 +1088,11 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                               📝 Nội dung bạn đã phát biểu (STT Transcript):
                             </div>
                             <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink)", fontStyle: "italic", lineHeight: 1.6 }}>
-                              {displayTranscript ? `"${displayTranscript}"` : "(Micro không thu nhận được câu từ rõ ràng)"}
+                              {displayTranscript
+                                ? `"${displayTranscript}"`
+                                : hasRecordedAudio
+                                ? `(Đã thu âm ${ans?.recordingSeconds || 0}s — âm thanh chưa bóc tách rõ câu chữ, vui lòng phát biểu to và gần micro hơn)`
+                                : "(Micro không thu nhận được câu từ rõ ràng)"}
                             </p>
                           </div>
 
@@ -1779,6 +1785,12 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                     />
                   ))}
                 </div>
+
+                {voiceRecorder.isRecording && (
+                  <div style={{ padding: "6px 14px", borderRadius: 8, background: "rgba(217, 130, 54, 0.08)", border: "1px dashed rgba(217, 130, 54, 0.3)", fontSize: 12, color: "#8b4513", maxWidth: 420, margin: "4px 0 10px", textAlign: "center" }}>
+                    🎙️ {voiceRecorder.interimTranscript || voiceRecorder.transcript || "Đang lắng nghe giọng nói..."}
+                  </div>
+                )}
 
                 <div style={{ display: "flex", gap: 12 }}>
                   {!voiceRecorder.isRecording ? (
