@@ -30,7 +30,7 @@ import {
 import type { QuestionSetItem, LeaderboardItem, QuestionSetReviewsPage } from "@/types/catalog";
 import { catalogApi } from "@/services/catalogApi";
 import { MOCK_QUESTION_SETS } from "@/mock/questionSetsMock";
-import { MOCK_DOMAINS_LIST } from "@/mock/adminQuestionsMock";
+import type { DomainOut } from "@/types/catalog";
 import { getDomainTheme } from "@/constants/domainThemes";
 
 export function formatCompactNumber(num: number): string {
@@ -64,19 +64,48 @@ export function CuratedQuestionSetsView({
   const [search, setSearch] = useState("");
   const [selectedDomain, setSelectedDomain] = useState<string>("all");
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
-  const [questionSets, setQuestionSets] = useState<QuestionSetItem[]>(MOCK_QUESTION_SETS);
+  const [domainsList, setDomainsList] = useState<DomainOut[]>([]);
+  const [questionSets, setQuestionSets] = useState<QuestionSetItem[]>([]);
   const [isLoadingSets, setIsLoadingSets] = useState<boolean>(false);
   const [detailSet, setDetailSet] = useState<QuestionSetItem | null>(null);
+  const [isLoadingDetail, setIsLoadingDetail] = useState<boolean>(false);
 
   React.useEffect(() => {
     setIsLoadingSets(true);
+    // 1. Fetch real domains from DB
+    catalogApi.getDomains().then((doms) => {
+      if (Array.isArray(doms) && doms.length > 0) {
+        setDomainsList(doms);
+      }
+    });
+
+    // 2. Fetch real question sets from DB
     catalogApi.getQuestionSets().then((res) => {
       if (res && res.items && res.items.length > 0) {
         setQuestionSets(res.items);
+      } else {
+        setQuestionSets(MOCK_QUESTION_SETS);
       }
       setIsLoadingSets(false);
     });
   }, []);
+
+  const handleOpenDetailSet = async (s: QuestionSetItem, initialTab: "questions" | "leaderboard" | "reviews" = "questions") => {
+    setModalTab(initialTab);
+    setDetailSet(s);
+    setIsLoadingDetail(true);
+
+    try {
+      const detailed = await catalogApi.getQuestionSetDetail(s.set_id);
+      if (detailed && detailed.set_id) {
+        setDetailSet(detailed as any);
+      }
+    } catch (err) {
+      console.warn("Failed to load real set detail:", err);
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  };
   const [modalTab, setModalTab] = useState<"questions" | "leaderboard" | "reviews">("questions");
   const [leaderboard, setLeaderboard] = useState<LeaderboardItem[]>([]);
   const [reviewsData, setReviewsData] = useState<QuestionSetReviewsPage | null>(null);
@@ -199,7 +228,7 @@ export function CuratedQuestionSetsView({
                 }`}
               >
                 <FolderKanban size={13} />
-                <span>Bộ Đề Tuyển Dụng ({MOCK_QUESTION_SETS.length})</span>
+                <span>Bộ Đề Tuyển Dụng ({questionSets.length || MOCK_QUESTION_SETS.length})</span>
               </button>
               <button
                 type="button"
@@ -267,7 +296,14 @@ export function CuratedQuestionSetsView({
               className="py-1 px-2.5 rounded-lg bg-white border border-[rgba(106,72,49,0.2)] text-xs text-[#211914] focus:outline-none"
             >
               <option value="all">Tất cả ngành nghề</option>
-              {MOCK_DOMAINS_LIST.map((d) => (
+              {(domainsList.length > 0 ? domainsList : [
+                { domain_id: 1, domain_name: "Công nghệ thông tin (IT)" },
+                { domain_id: 2, domain_name: "Tài chính & Ngân hàng (Finance)" },
+                { domain_id: 3, domain_name: "Marketing & Truyền thông" },
+                { domain_id: 4, domain_name: "Bán hàng & Kinh doanh (Sales)" },
+                { domain_id: 5, domain_name: "Quản trị Sản phẩm (Product)" },
+                { domain_id: 6, domain_name: "Quản trị Nhân sự (HR)" },
+              ]).map((d: any) => (
                 <option key={d.domain_id} value={String(d.domain_id)}>
                   {d.domain_name}
                 </option>
@@ -371,7 +407,7 @@ export function CuratedQuestionSetsView({
                   <div className="space-y-2">
                     <h3
                       className="font-extrabold text-sm sm:text-base text-[#211914] hover:text-[#d98236] cursor-pointer transition-colors leading-snug line-clamp-2"
-                      onClick={() => setDetailSet(s)}
+                      onClick={() => handleOpenDetailSet(s, "questions")}
                     >
                       {s.title}
                     </h3>
@@ -439,10 +475,7 @@ export function CuratedQuestionSetsView({
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         type="button"
-                        onClick={() => {
-                          setDetailSet(s);
-                          setModalTab("leaderboard");
-                        }}
+                        onClick={() => handleOpenDetailSet(s, "leaderboard")}
                         className="px-2.5 py-1.5 rounded-full text-xs font-extrabold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap shadow-2xs"
                         title="Bảng xếp hạng Top 10"
                       >
@@ -452,10 +485,7 @@ export function CuratedQuestionSetsView({
 
                       <button
                         type="button"
-                        onClick={() => {
-                          setDetailSet(s);
-                          setModalTab("questions");
-                        }}
+                        onClick={() => handleOpenDetailSet(s, "questions")}
                         className="px-2.5 py-1.5 rounded-full text-xs font-bold text-[#8b4513] hover:bg-stone-100 border border-[rgba(106,72,49,0.2)] transition-colors whitespace-nowrap"
                         title="Xem chi tiết bộ đề"
                       >

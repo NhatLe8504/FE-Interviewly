@@ -331,28 +331,30 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
         }
       }
 
-      // Source 2: Query param ?set=1 (Curated Question Set)
+      // Source 2: Query param ?set=1 (Curated Question Set - Fetch real DB set)
       if (setParam) {
-        const foundSet = MOCK_QUESTION_SETS.find((s) => String(s.set_id) === String(setParam));
-        if (foundSet && foundSet.questions && foundSet.questions.length > 0) {
-          const qids = foundSet.questions.map((q) => q.question_id);
-          try {
-            const batch = await catalogApi.getQuestionsBatch(qids);
+        try {
+          const realSet = await catalogApi.getQuestionSetDetail(setParam);
+          if (realSet && realSet.questions && realSet.questions.length > 0) {
             if (!isMounted) return;
-            const valid = batch.length > 0 ? batch : foundSet.questions;
-            setQuestionsList(valid);
-            setSessionTitle(foundSet.title);
-            setCurrentIdx(0);
-            setIsLoading(false);
-            return;
-          } catch {
-            if (!isMounted) return;
-            setQuestionsList(foundSet.questions);
-            setSessionTitle(foundSet.title);
+            setQuestionsList(realSet.questions);
+            setSessionTitle(realSet.title);
             setCurrentIdx(0);
             setIsLoading(false);
             return;
           }
+        } catch (err) {
+          console.warn("Failed to load real question set detail:", err);
+        }
+
+        const foundSet = MOCK_QUESTION_SETS.find((s) => String(s.set_id) === String(setParam));
+        if (foundSet && foundSet.questions && foundSet.questions.length > 0) {
+          if (!isMounted) return;
+          setQuestionsList(foundSet.questions);
+          setSessionTitle(foundSet.title);
+          setCurrentIdx(0);
+          setIsLoading(false);
+          return;
         }
       }
 
