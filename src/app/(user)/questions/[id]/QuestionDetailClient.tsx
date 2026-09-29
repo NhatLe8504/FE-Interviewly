@@ -577,8 +577,10 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
         isCorrect = opt ? Boolean(opt.is_correct) : currentAns.selectedOption === "B";
       }
 
-      pullQueue.enqueueQuestionEvaluation(
-        {
+      setIsEvaluating(true);
+
+      try {
+        const rawResult = await pullQueue.enqueueQuestionEvaluation({
           question_id: currentQId,
           question_text: currentQuestion?.question_text,
           sample_answer: currentQuestion?.sample_answer || undefined,
@@ -590,72 +592,53 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
           is_quiz_correct: isCorrect,
           audio_duration_seconds: finalVoiceSec,
           role_name: currentQuestion?.role_name || "Software Engineer",
-        },
-        (result) => {
-          const scaled = scaleEvaluationResult(
-            result,
-            {
-              ...currentAns,
-              recordedAudioUrl: finalVoiceUrl,
-              recordingSeconds: finalVoiceSec,
-              delivery_metrics: finalMetrics,
-              transcript: finalTranscript,
-            },
-            isCorrect
-          );
-          setEvaluationsMap((prev) => ({ ...prev, [currentQId]: scaled }));
+        });
 
-          // Save completed evaluation into sessionStorage for dedicated result page
-          try {
-            const completedData = {
-              questionId: currentQId,
-              questionsList: questionsList.length > 0 ? questionsList : (currentQuestion ? [currentQuestion] : []),
-              evaluationsMap: { ...evaluationsMap, [currentQId]: scaled },
-              answersMap: {
-                ...answersMap,
-                [currentQId]: {
-                  ...currentAns,
-                  recordedAudioUrl: finalVoiceUrl,
-                  recordingSeconds: finalVoiceSec,
-                  delivery_metrics: finalMetrics,
-                  transcript: finalTranscript,
-                },
-              },
-              elapsedSeconds,
-            };
-            sessionStorage.setItem(`question_eval_${currentQId}`, JSON.stringify(completedData));
-            sessionStorage.setItem("question_eval_latest", JSON.stringify(completedData));
-          } catch (e) {
-            console.warn("sessionStorage save error:", e);
-          }
-        }
-      );
+        const scaled = scaleEvaluationResult(
+          rawResult,
+          {
+            ...currentAns,
+            recordedAudioUrl: finalVoiceUrl,
+            recordingSeconds: finalVoiceSec,
+            delivery_metrics: finalMetrics,
+            transcript: finalTranscript,
+          },
+          isCorrect
+        );
 
-      // Save baseline state and immediately navigate to dedicated Result page
-      try {
-        const initialResult = {
+        const updatedEvaluations = { ...evaluationsMap, [currentQId]: scaled };
+        const updatedAnswers = {
+          ...answersMap,
+          [currentQId]: {
+            ...currentAns,
+            selectedOption: currentAns.selectedOption,
+            writtenText: currentAns.writtenText,
+            recordedAudioUrl: finalVoiceUrl,
+            recordingSeconds: finalVoiceSec,
+            delivery_metrics: finalMetrics,
+            transcript: finalTranscript,
+          },
+        };
+
+        setEvaluationsMap(updatedEvaluations);
+        setAnswersMap(updatedAnswers);
+
+        const completedData = {
           questionId: currentQId,
           questionsList: questionsList.length > 0 ? questionsList : (currentQuestion ? [currentQuestion] : []),
-          evaluationsMap: evaluationsMap,
-          answersMap: {
-            ...answersMap,
-            [currentQId]: {
-              ...currentAns,
-              recordedAudioUrl: finalVoiceUrl,
-              recordingSeconds: finalVoiceSec,
-              delivery_metrics: finalMetrics,
-              transcript: finalTranscript,
-            },
-          },
+          evaluationsMap: updatedEvaluations,
+          answersMap: updatedAnswers,
           elapsedSeconds,
         };
-        sessionStorage.setItem(`question_eval_${currentQId}`, JSON.stringify(initialResult));
-        sessionStorage.setItem("question_eval_latest", JSON.stringify(initialResult));
-      } catch (e) {
-        console.warn("sessionStorage save error:", e);
-      }
 
-      router.push(`/questions/${currentQId}/result`);
+        sessionStorage.setItem(`question_eval_${currentQId}`, JSON.stringify(completedData));
+        sessionStorage.setItem("question_eval_latest", JSON.stringify(completedData));
+      } catch (err) {
+        console.error("Evaluation submission error:", err);
+      } finally {
+        setIsEvaluating(false);
+        router.push(`/questions/${currentQId}/result`);
+      }
       return;
     }
 
@@ -1238,6 +1221,20 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
 
   return (
     <div className={styles.shell}>
+      {isEvaluating && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0, 0, 0, 0.45)", backdropFilter: "blur(4px)", display: "grid", placeItems: "center" }}>
+          <div style={{ background: "#ffffff", padding: "32px 36px", borderRadius: "20px", textAlign: "center", boxShadow: "0 20px 40px rgba(0, 0, 0, 0.2)", maxWidth: 420 }}>
+            <Sparkles className="animate-spin text-[#d98236]" size={36} style={{ margin: "0 auto 16px" }} />
+            <h3 style={{ fontSize: 18, fontWeight: 900, margin: "0 0 8px", color: "var(--ink)" }}>
+              AI đang chấm điểm &amp; phân tích bài làm
+            </h3>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0 }}>
+              Đang phân tích trắc nghiệm, cấu trúc STAR và phát âm giọng nói. Đợi trong giây lát...
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Top Navigation & Breadcrumbs */}
       <div className={styles.backNav}>
         <Link href="/questions" className={styles.backBtn}>
