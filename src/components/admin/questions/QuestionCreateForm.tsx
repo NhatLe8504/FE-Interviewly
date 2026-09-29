@@ -90,26 +90,160 @@ export interface GeneratedQuestionItem {
   status: "approved" | "pending" | "needs_edit";
 }
 
-const QUICK_TECH_CHIPS = [
-  "Java, Spring Boot, PostgreSQL",
-  "React, TypeScript, Next.js",
-  "Python, FastAPI, Redis",
-  "Node.js, Express, MongoDB",
-  "DevOps, Docker, Kubernetes, CI/CD",
-  ".NET Core, C#, SQL Server",
-  "Flutter, Dart, Mobile App",
-  "Data Engineer, Spark, Kafka",
-];
+export interface DomainSuggestionConfig {
+  chipsTitle: string;
+  fieldLabel: string;
+  fieldPlaceholder: string;
+  defaultSkills: string;
+  skillChips: string[];
+  promptPlaceholder: string;
+  promptSuggestions: string[];
+}
 
-const PROMPT_SUGGESTIONS = [
-  "🔥 Trọng tâm tối ưu hiệu năng, Concurrency & Caching",
-  "🛡️ Trọng tâm Bảo mật REST API, JWT & Authentication",
-  "⚡ Kiến trúc Microservices, Clean Architecture & Design Patterns",
-  "💼 Tình huống giải quyết bug Production & tư duy gỡ lỗi",
-];
+export const DOMAIN_SUGGESTIONS: Record<number, DomainSuggestionConfig> = {
+  1: {
+    chipsTitle: "Gợi ý Tech Stack công nghệ:",
+    fieldLabel: "Công nghệ trọng tâm (Tech Stack) / Ngôn ngữ",
+    fieldPlaceholder: "Ví dụ: Java, Spring Boot, PostgreSQL, React, Docker...",
+    defaultSkills: "Java, Spring Boot, PostgreSQL, React",
+    skillChips: [
+      "Java, Spring Boot, PostgreSQL",
+      "React, TypeScript, Next.js",
+      "Python, FastAPI, Redis",
+      "Node.js, Express, MongoDB",
+      "DevOps, Docker, Kubernetes, CI/CD",
+      ".NET Core, C#, SQL Server",
+      "Flutter, Dart, Mobile App",
+      "Data Engineer, Spark, Kafka",
+    ],
+    promptPlaceholder: "Ví dụ: Tập trung vào Java concurrency, Spring Boot Security, tối ưu hóa Hibernate N+1 và tình huống xử lý deadlock...",
+    promptSuggestions: [
+      "🔥 Trọng tâm tối ưu hiệu năng, Concurrency & Caching",
+      "🛡️ Trọng tâm Bảo mật REST API, JWT & Authentication",
+      "⚡ Kiến trúc Microservices, Clean Architecture & Design Patterns",
+      "💼 Tình huống giải quyết bug Production & tư duy gỡ lỗi",
+    ],
+  },
+  2: {
+    chipsTitle: "Gợi ý Kỹ năng & Nghiệp vụ Tài chính:",
+    fieldLabel: "Kỹ năng chuyên môn / Nghiệp vụ Tài chính - Ngân hàng",
+    fieldPlaceholder: "Ví dụ: Mô hình tài chính, Phân tích BCTC, IFRS, Quản trị rủi ro...",
+    defaultSkills: "Mô hình tài chính, Excel nâng cao, Phân tích BCTC, Quản trị rủi ro",
+    skillChips: [
+      "Mô hình hóa tài chính, Excel nâng cao",
+      "Định giá doanh nghiệp (DCF, P/E)",
+      "Quản trị rủi ro tín dụng & thanh khoản",
+      "Chuẩn mực kế toán VAS & IFRS",
+      "Phân tích báo cáo tài chính (BCTC)",
+      "Thẩm định dự án đầu tư & NPV/IRR",
+      "Kiểm toán & Soát xét nội bộ",
+      "Thị trường vốn, Chứng khoán & Trái phiếu",
+    ],
+    promptPlaceholder: "Ví dụ: Tập trung vào kỹ năng phân tích dòng tiền âm, định giá doanh nghiệp M&A, kiểm soát rủi ro nợ xấu ngân hàng...",
+    promptSuggestions: [
+      "📊 Trọng tâm Thẩm định dự án đầu tư và Phân tích BCTC",
+      "⚖️ Trọng tâm Quản trị rủi ro tín dụng và thanh khoản ngân hàng",
+      "📈 Xử lý tình huống dòng tiền âm và tái cấu trúc vốn",
+      "🏦 Tuân thủ chuẩn mực kế toán IFRS và kiểm soát thất thoát",
+    ],
+  },
+  3: {
+    chipsTitle: "Gợi ý Kỹ năng & Kênh Marketing:",
+    fieldLabel: "Kỹ năng chuyên môn / Kênh tiếp thị & Công cụ Marketing",
+    fieldPlaceholder: "Ví dụ: SEO, Performance Ads, Google Analytics 4, Brand Positioning...",
+    defaultSkills: "SEO, Performance Ads, Google Analytics 4, Content Strategy",
+    skillChips: [
+      "SEO & Content Marketing",
+      "Facebook Ads & Google Performance Max",
+      "Chiến lược định vị thương hiệu (Brand Positioning)",
+      "Tối ưu tỷ lệ chuyển đổi (CRO & Landing Page)",
+      "Google Analytics 4 & Data Tracking",
+      "Email Marketing & Marketing Automation",
+      "KOLs & Influencer Management",
+      "Social Media Growth & TikTok Video Strategy",
+    ],
+    promptPlaceholder: "Ví dụ: Tập trung vào xử lý khủng hoảng truyền thông viral, tối ưu chi phí CPA tăng vọt, chiến lược SEO Topic Cluster...",
+    promptSuggestions: [
+      "🎯 Tối ưu chi phí CPA, ROAS và chiến dịch Performance Marketing",
+      "🚀 Xử lý khủng hoảng truyền thông thương hiệu trên mạng xã hội",
+      "🔍 Chiến lược SEO cụm chủ đề (Topic Cluster) và giữ chân người dùng",
+      "💡 Lập kế hoạch ra mắt sản phẩm mới (Go-To-Market Strategy)",
+    ],
+  },
+  4: {
+    chipsTitle: "Gợi ý Kỹ năng & Phương pháp Bán hàng:",
+    fieldLabel: "Kỹ năng bán hàng / Phương pháp đàm phán & Công cụ CRM",
+    fieldPlaceholder: "Ví dụ: B2B Solution Selling, Đàm phán giá, CRM HubSpot, Sales Pipeline...",
+    defaultSkills: "B2B Solution Selling, Đàm phán giá, CRM HubSpot, Sales Pipeline",
+    skillChips: [
+      "B2B Solution Selling & SPIN Selling",
+      "Đàm phán & Chốt hợp đồng lớn (Enterprise Deal)",
+      "Quản lý phễu bán hàng (Sales Pipeline)",
+      "Hệ thống CRM (Salesforce, HubSpot)",
+      "Kỹ năng xử lý phản đối về giá và đối thủ",
+      "Khai phá khách hàng tiềm năng (Outbound Prospecting)",
+      "Phát triển thị trường & Đối tác chiến lược",
+      "Kỹ năng gia hạn hợp đồng & Up-selling",
+    ],
+    promptPlaceholder: "Ví dụ: Tập trung vào tình huống khách hàng chê giá đắt gấp đôi đối thủ, khôi phục doanh số khi thị trường suy giảm...",
+    promptSuggestions: [
+      "🤝 Tình huống xử lý từ chối giá đắt và đàm phán hợp đồng lớn",
+      "💼 Chiến lược chốt deal với khách hàng doanh nghiệp B2B khó tính",
+      "📈 Vực dậy doanh số khi thị trường suy giảm và đối thủ cạnh tranh gay gắt",
+      "🎯 Quản lý phễu bán hàng và tối ưu tỷ lệ chuyển đổi Lead-to-Win",
+    ],
+  },
+  5: {
+    chipsTitle: "Gợi ý Kỹ năng & Phương pháp Sản phẩm:",
+    fieldLabel: "Kỹ năng sản phẩm / Phương pháp quản trị & Công cụ thiết kế",
+    fieldPlaceholder: "Ví dụ: Product Discovery, Figma, Agile/Scrum, A/B Testing, PRD...",
+    defaultSkills: "Product Discovery, Figma, Agile/Scrum, A/B Testing, User Stories",
+    skillChips: [
+      "Product Discovery & User Journey Mapping",
+      "Figma, Wireframing & Prototyping",
+      "Design System & UI/UX Principles",
+      "Scrum, Agile & Sprint Planning",
+      "Đo lường chỉ số sản phẩm (Retention, Churn, NPS)",
+      "Thử nghiệm A/B Testing & Data-driven Product",
+      "Viết PRD & User Stories chuẩn hóa",
+      "Product Roadmap & Prioritization (RICE/MoSCoW)",
+    ],
+    promptPlaceholder: "Ví dụ: Tập trung vào quy trình ưu tiên tính năng theo RICE framework, giải quyết xung đột ý kiến giữa Designer và Tech Lead...",
+    promptSuggestions: [
+      "📱 Quy trình ra quyết định ưu tiên tính năng (Feature Prioritization)",
+      "🧪 Thiết kế thử nghiệm A/B Testing giải quyết sụt giảm Conversion Rate",
+      "🎨 Xây dựng Design System đồng nhất và tối ưu trải nghiệm người dùng",
+      "⏱️ Quản lý xung đột giữa Business, Design và Đội ngũ Kỹ thuật",
+    ],
+  },
+  6: {
+    chipsTitle: "Gợi ý Kỹ năng & Nghiệp vụ Nhân sự:",
+    fieldLabel: "Kỹ năng nhân sự / Luật lao động & Hệ thống quản trị HR",
+    fieldPlaceholder: "Ví dụ: Tuyển dụng Headhunting, C&B, Luật Lao động, KPI/OKRs...",
+    defaultSkills: "Tuyển dụng nhân tài, C&B, Luật Lao động, Đào tạo L&D",
+    skillChips: [
+      "Headhunting & Tuyển dụng nhân sự chủ chốt",
+      "Xây dựng hệ thống lương thưởng & Phúc lợi (C&B)",
+      "Luật Lao động Việt Nam & Tuân thủ pháp chế",
+      "Thiết lập khung năng lực, KPI & OKRs",
+      "Đào tạo & Phát triển nhân tài (L&D)",
+      "Văn hóa doanh nghiệp & Gắn kết nhân viên (Engagement)",
+      "Đánh giá hiệu suất nhân sự (360 Degree Review)",
+      "Xử lý kỷ luật & Tranh chấp lao động",
+    ],
+    promptPlaceholder: "Ví dụ: Tập trung vào tình huống săn Tech Lead trong thời gian gấp, giải quyết tranh chấp sa thải nhân viên đúng luật...",
+    promptSuggestions: [
+      "👥 Chiến lược săn nhân sự chủ chốt (Tech Lead/C-level) trong thời gian ngắn",
+      "⚖️ Xử lý tranh chấp lao động và sa thải nhân sự đúng luật",
+      "🌱 Xây dựng chính sách lương thưởng C&B cạnh tranh và giữ chân nhân tài",
+      "🏢 Thúc đẩy văn hóa gắn kết khi nhân viên làm việc Hybrid/Remote",
+    ],
+  },
+};
 
 // AI Agent intelligent generator factory
 function generateQuestionsByAgent({
+  domainId = 1,
   domainName,
   roleName,
   level,
@@ -120,6 +254,7 @@ function generateQuestionsByAgent({
   sourceType,
   sourceValue,
 }: {
+  domainId?: number;
   domainName: string;
   roleName: string;
   level: string;
@@ -279,6 +414,7 @@ export function QuestionCreateForm() {
 
   // Common Profile & Tech Configuration (Clean Grid)
   const [domainId, setDomainId] = useState<number>(1);
+  const currentDomainConfig = DOMAIN_SUGGESTIONS[domainId] || DOMAIN_SUGGESTIONS[1];
   const [roleId, setRoleId] = useState<number>(1);
   const [level, setLevel] = useState<string>("fresher");
   const [language, setLanguage] = useState<string>("vi");
@@ -658,7 +794,25 @@ export function QuestionCreateForm() {
                   const dId = Number(v);
                   setDomainId(dId);
                   const firstRole = MOCK_ROLES_LIST.find((r) => r.domain_id === dId);
+                  const newRoleName = firstRole?.role_name || "Chuyên ngành";
                   if (firstRole) setRoleId(firstRole.role_id);
+                  const newCfg = DOMAIN_SUGGESTIONS[dId] || DOMAIN_SUGGESTIONS[1];
+                  setTechStack(newCfg.defaultSkills);
+                  setManualSetName(`Bộ đề phỏng vấn ${newRoleName} - ${level.toUpperCase()} (Tự soạn)`);
+                  const domainObj = MOCK_DOMAINS_LIST.find((d) => d.domain_id === dId);
+                  setAiQuestions(
+                    generateQuestionsByAgent({
+                      domainId: dId,
+                      domainName: domainObj?.domain_name || "Chuyên ngành",
+                      roleName: newRoleName,
+                      level,
+                      techStack: newCfg.defaultSkills,
+                      questionDistribution,
+                      questionCount,
+                      customPrompt,
+                      sourceType,
+                    })
+                  );
                 }}
               >
                 <SelectTrigger className="h-9 text-xs">
@@ -682,7 +836,27 @@ export function QuestionCreateForm() {
               </Label>
               <Select
                 value={String(roleId)}
-                onValueChange={(v) => setRoleId(Number(v))}
+                onValueChange={(v) => {
+                  const rId = Number(v);
+                  setRoleId(rId);
+                  const foundRole = MOCK_ROLES_LIST.find((r) => r.role_id === rId);
+                  const newRoleName = foundRole?.role_name || "Chuyên ngành";
+                  setManualSetName(`Bộ đề phỏng vấn ${newRoleName} - ${level.toUpperCase()} (Tự soạn)`);
+                  const domainObj = MOCK_DOMAINS_LIST.find((d) => d.domain_id === domainId);
+                  setAiQuestions(
+                    generateQuestionsByAgent({
+                      domainId,
+                      domainName: domainObj?.domain_name || "Chuyên ngành",
+                      roleName: newRoleName,
+                      level,
+                      techStack,
+                      questionDistribution,
+                      questionCount,
+                      customPrompt,
+                      sourceType,
+                    })
+                  );
+                }}
               >
                 <SelectTrigger className="h-9 text-xs">
                   <SelectValue />
@@ -742,15 +916,17 @@ export function QuestionCreateForm() {
             <div className="lg:col-span-5 space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="tech_stack" className="text-xs font-semibold">
-                  Công nghệ / Kỹ năng trọng tâm (Tech Stack)
+                  {currentDomainConfig.fieldLabel}
                 </Label>
-                <span className="text-[11px] text-muted-foreground">Ví dụ: Java, Spring Boot, React...</span>
+                <span className="text-[11px] text-muted-foreground truncate max-w-[220px]" title={currentDomainConfig.fieldPlaceholder}>
+                  {currentDomainConfig.fieldPlaceholder}
+                </span>
               </div>
               <Input
                 id="tech_stack"
                 value={techStack}
                 onChange={(e) => setTechStack(e.target.value)}
-                placeholder="Nhập công nghệ cần phỏng vấn (cách nhau bởi dấu phẩy)..."
+                placeholder={currentDomainConfig.fieldPlaceholder}
                 className="h-9 text-xs"
               />
             </div>
@@ -810,10 +986,10 @@ export function QuestionCreateForm() {
           {/* Quick Tech Suggestion Chips */}
           <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t text-xs">
             <span className="text-muted-foreground text-[11px] font-medium mr-1 flex items-center gap-1">
-              <Code2 className="size-3 text-primary" />
-              Gợi ý Tech Stack:
+              <Sparkles className="size-3 text-primary" />
+              {currentDomainConfig.chipsTitle}
             </span>
-            {QUICK_TECH_CHIPS.map((chip, idx) => (
+            {currentDomainConfig.skillChips.map((chip, idx) => (
               <button
                 key={idx}
                 type="button"
@@ -929,14 +1105,14 @@ export function QuestionCreateForm() {
                       rows={3}
                       value={customPrompt}
                       onChange={(e) => setCustomPrompt(e.target.value)}
-                      placeholder="Ví dụ: Tập trung vào Java concurrency, Spring Boot Security, tối ưu hóa Hibernate N+1 và câu hỏi tình huống xử lý deadlock..."
+                      placeholder={currentDomainConfig.promptPlaceholder}
                       className="w-full rounded-md border border-input bg-background/90 p-2.5 text-xs leading-relaxed"
                       disabled={isAgentGenerating}
                     />
                   </div>
 
                   <div className="flex flex-wrap gap-1.5">
-                    {PROMPT_SUGGESTIONS.map((sug, idx) => (
+                    {currentDomainConfig.promptSuggestions.map((sug, idx) => (
                       <button
                         key={idx}
                         type="button"
