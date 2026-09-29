@@ -212,11 +212,11 @@ export function useDeliveryVoiceRecorder(options: UseDeliveryVoiceRecorderOption
       }
     }
 
-    // Stop Recognizer & get full transcript
+    // Stop Recognizer & await full flushed transcript
     let fullTranscript = "";
     let provider: "webkitSpeechRecognition" | "SpeechRecognition" | "none" = "none";
     if (speechRecognizerRef.current) {
-      fullTranscript = speechRecognizerRef.current.stop();
+      fullTranscript = await speechRecognizerRef.current.stop();
       provider = speechRecognizerRef.current.provider;
     }
     setTranscript(fullTranscript);

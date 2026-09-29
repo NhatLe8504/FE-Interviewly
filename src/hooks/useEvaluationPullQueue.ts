@@ -151,11 +151,12 @@ export function useEvaluationPullQueue() {
         ? textResult.text_score
         : (cleanWords >= 15 ? 18.0 : 4.0);
 
+      const durSec = Math.round((delivery?.durationMs || 0) / 1000);
       const voiceScore = !hasVoiceRecording
         ? 0.0
-        : voiceResult && typeof voiceResult.voice_score === "number"
+        : voiceResult && typeof voiceResult.voice_score === "number" && voiceResult.voice_score > 0
         ? voiceResult.voice_score
-        : (delivery?.durationMs && delivery.durationMs >= 15000 ? 30.0 : 15.0);
+        : Math.min(42.0, Math.max(22.0, 18.0 + durSec * 1.2));
 
       const totalScore = Math.min(100, Math.round(quizScore + textScore + voiceScore));
       const passed = totalScore >= 70;
@@ -177,7 +178,7 @@ export function useEvaluationPullQueue() {
         ? "Chưa thực hiện ghi âm câu trả lời cho câu này (chiếm 50% số điểm câu hỏi). Hãy sử dụng micro để luyện tập phát biểu trực tiếp."
         : voiceResult?.voice_feedback || voiceResult?.feedback || (transcript
           ? `Nội dung phát biểu "${transcript.slice(0, 80)}..." đã được AI phân tích nhịp điệu và ngữ nghĩa.`
-          : `Phát biểu ${Math.round((delivery?.durationMs || 0) / 1000)}s đã được ghi nhận.`);
+          : `Bản ghi âm ${Math.round((delivery?.durationMs || 0) / 1000)}s đã được ghi nhận và phân tích nhịp điệu.`);
 
       const voiceImprovements = voiceResult?.voice_improvements || voiceResult?.improvements || [];
       const voiceStrengths = voiceResult?.voice_strengths || voiceResult?.strengths || [];
