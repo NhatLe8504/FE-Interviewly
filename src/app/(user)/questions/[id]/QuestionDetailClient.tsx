@@ -113,14 +113,13 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
   // Text Max Points = 35 / N (35% of question)
   // Voice Max Points = 50 / N (50% of question)
   const scoreMultipliers = useMemo(() => {
-    const N = Math.max(1, totalQuestions);
     return {
-      pointsPerQuestion: Number((100.0 / N).toFixed(2)),
-      quizMax: Number((15.0 / N).toFixed(2)),
-      textMax: Number((35.0 / N).toFixed(2)),
-      voiceMax: Number((50.0 / N).toFixed(2)),
+      pointsPerQuestion: 100.0,
+      quizMax: 15.0,
+      textMax: 35.0,
+      voiceMax: 50.0,
     };
-  }, [totalQuestions]);
+  }, []);
 
 
 
@@ -143,30 +142,20 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
       const mb = rawResult.modal_breakdown;
       const { actualWords } = cleanCandidateText(ansRecord?.writtenText);
       const voiceSec = ansRecord?.recordingSeconds || 0;
-      const hasAudio = Boolean(ansRecord?.recordedAudioUrl && voiceSec >= 4);
+      const hasAudio = Boolean(ansRecord?.recordedAudioUrl && voiceSec >= 3);
 
-      // Raw percentages (0.0 to 1.0)
-      const rawTextScore = mb ? mb.text_score : (rawResult.score ? rawResult.score * 0.35 : 0);
-      const textPct = actualWords === 0 ? 0.0 : Math.max(0, Math.min(1.0, rawTextScore / 35.0));
+      const qQuiz = isCorrectQuiz ? 15.0 : 0.0;
+      const rawText = mb ? mb.text_score : (rawResult.score ? rawResult.score * 0.35 : 0);
+      const qText = actualWords === 0 ? 0.0 : Math.round(Math.max(0, Math.min(35.0, rawText)));
 
-      const rawVoiceScore = mb ? mb.voice_score : (rawResult.score ? rawResult.score * 0.50 : 0);
-      const voicePct = !hasAudio
-        ? 0.0
-        : Math.max(0.4, Math.min(1.0, (rawVoiceScore > 0 ? rawVoiceScore : 25.0) / 50.0));
+      const rawVoice = mb ? mb.voice_score : (rawResult.score ? rawResult.score * 0.50 : 0);
+      const qVoice = !hasAudio ? 0.0 : Math.round(Math.max(0, Math.min(50.0, rawVoice)));
 
-      const quizPct = isCorrectQuiz ? 1.0 : 0.0;
-
-      // Scaled points strictly bounded by question's multipliers:
-      const qQuiz = Number((quizPct * scoreMultipliers.quizMax).toFixed(1));
-      const qText = Number((textPct * scoreMultipliers.textMax).toFixed(1));
-      const qVoice = Number((voicePct * scoreMultipliers.voiceMax).toFixed(1));
-      const qTotal = Number(Math.min(scoreMultipliers.pointsPerQuestion, qQuiz + qText + qVoice).toFixed(1));
+      const qTotal = Math.min(100.0, Math.round(qQuiz + qText + qVoice));
 
       let feedback = rawResult.general_feedback;
       if (actualWords === 0 && !hasAudio && qQuiz === 0) {
-        feedback = "Bạn chưa hoàn thành các phần thi của câu hỏi này (chưa chọn đúng trắc nghiệm, chưa viết nội dung tự luận và chưa ghi âm giọng nói).";
-      } else if (actualWords === 0) {
-        feedback = "Chưa có nội dung câu trả lời tự luận (chỉ có các tiêu đề mẫu gợi ý). Cần bổ sung nội dung thực tế theo khung STAR.";
+        feedback = "Bạn chưa hoàn thành các phần thi của câu hỏi này (chưa chọn trắc nghiệm, chưa viết tự luận và chưa ghi âm giọng nói).";
       }
 
       const textFb = actualWords === 0
@@ -175,27 +164,27 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
 
       const voiceFb = !hasAudio
         ? "Chưa thực hiện ghi âm câu trả lời cho câu này (chiếm 50% số điểm câu hỏi). Hãy sử dụng micro để luyện tập phát biểu trực tiếp."
-        : rawResult.voice_feedback || rawResult.feedback || `Bản ghi âm giọng nói (${voiceSec}s) đã được ghi nhận và phân tích nhịp điệu phát biểu.`;
+        : rawResult.voice_feedback || rawResult.feedback || `Bản ghi âm giọng nói (${voiceSec}s) đã được phân tích nhịp điệu và ngữ nghĩa.`;
 
       return {
         ...rawResult,
-        score: Math.round(qTotal),
-        passed: qTotal >= Number((scoreMultipliers.pointsPerQuestion * 0.7).toFixed(1)),
+        score: qTotal,
+        passed: qTotal >= 70,
         general_feedback: feedback,
         text_feedback: textFb,
         voice_feedback: voiceFb,
         modal_breakdown: {
           quiz_score: qQuiz,
-          quiz_max: scoreMultipliers.quizMax,
+          quiz_max: 15.0,
           text_score: qText,
-          text_max: scoreMultipliers.textMax,
+          text_max: 35.0,
           voice_score: qVoice,
-          voice_max: scoreMultipliers.voiceMax,
+          voice_max: 50.0,
           total_score: qTotal,
         },
       };
     },
-    [scoreMultipliers]
+    []
   );
 
 
@@ -514,6 +503,18 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
     language: currentQuestion?.language === "en" ? "en-US" : "vi-VN",
   });
 
+  const voiceCaptureRef = useRef<{
+    audioUrl: string | null;
+    recordingSeconds: number;
+    metrics: any;
+    transcript: string;
+  }>({
+    audioUrl: null,
+    recordingSeconds: 0,
+    metrics: null,
+    transcript: "",
+  });
+
   const handleStartVoiceRecording = async () => {
     if (isCurrentLocked) return;
     await voiceRecorder.startRecording();
@@ -521,6 +522,12 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
 
   const handleStopVoiceRecording = async () => {
     const voiceRes = await voiceRecorder.stopRecording();
+    voiceCaptureRef.current = {
+      audioUrl: voiceRes.audioUrl,
+      recordingSeconds: voiceRes.recordingSeconds,
+      metrics: voiceRes.metrics,
+      transcript: voiceRes.transcript,
+    };
     updateCurrentAnswer({
       recordedAudioUrl: voiceRes.audioUrl,
       recordingSeconds: voiceRes.recordingSeconds,
@@ -540,18 +547,17 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
     if (currentQId) {
       setLockedQuestionIds((prev) => new Set(prev).add(currentQId));
 
-      // If user was actively recording, stop and capture audio & metrics immediately
-      let finalVoiceUrl = currentAns.recordedAudioUrl;
-      let finalVoiceSec = currentAns.recordingSeconds;
-      let finalMetrics = currentAns.delivery_metrics;
-      let finalTranscript = currentAns.transcript;
+      let voiceData = { ...voiceCaptureRef.current };
 
       if (voiceRecorder.isRecording) {
         const voiceRes = await voiceRecorder.stopRecording();
-        finalVoiceUrl = voiceRes.audioUrl;
-        finalVoiceSec = voiceRes.recordingSeconds;
-        finalMetrics = voiceRes.metrics;
-        finalTranscript = voiceRes.transcript;
+        voiceData = {
+          audioUrl: voiceRes.audioUrl,
+          recordingSeconds: voiceRes.recordingSeconds,
+          metrics: voiceRes.metrics,
+          transcript: voiceRes.transcript,
+        };
+        voiceCaptureRef.current = voiceData;
         updateCurrentAnswer({
           recordedAudioUrl: voiceRes.audioUrl,
           recordingSeconds: voiceRes.recordingSeconds,
@@ -559,6 +565,11 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
           transcript: voiceRes.transcript,
         });
       }
+
+      const finalVoiceUrl = voiceData.audioUrl || currentAns.recordedAudioUrl || voiceRecorder.recordedAudioUrl || null;
+      const finalVoiceSec = voiceData.recordingSeconds || currentAns.recordingSeconds || voiceRecorder.recordingSeconds || 0;
+      const finalMetrics = voiceData.metrics || currentAns.delivery_metrics || voiceRecorder.deliveryMetrics || null;
+      const finalTranscript = (voiceData.transcript || currentAns.transcript || voiceRecorder.transcript || "").trim();
 
       let isCorrect = false;
       if (currentAns.selectedOption) {
