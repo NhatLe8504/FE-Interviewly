@@ -24,8 +24,8 @@ import styles from "./Header.module.css";
 
 const NAV_ITEMS = [
   { href: "/", label: "HOME" },
-  { href: "/practice", label: "PRACTICE" },
-  { href: "/questions", label: "QUESTIONS" },
+  { href: "/practice", label: "MOCK INTERVIEW" },
+  { href: "/questions", label: "QUESTION BANK" },
   { href: "/pricing", label: "PRICING" },
 ];
 
@@ -50,8 +50,8 @@ export default function Header() {
   const navItems = useMemo(
     () => [
       { href: "/", label: lang === "vi" ? "TRANG CHỦ" : "HOME" },
-      { href: "/practice", label: lang === "vi" ? "LUYỆN TẬP" : "PRACTICE" },
-      { href: "/questions", label: lang === "vi" ? "CÂU HỎI" : "QUESTIONS" },
+      { href: "/practice", label: lang === "vi" ? "GIẢ LẬP PHỎNG VẤN" : "MOCK INTERVIEW" },
+      { href: "/questions", label: lang === "vi" ? "NGÂN HÀNG CÂU HỎI" : "QUESTION BANK" },
       { href: "/pricing", label: lang === "vi" ? "BẢNG GIÁ" : "PRICING" },
     ],
     [lang]
@@ -309,7 +309,7 @@ export default function Header() {
                 >
                   <span className={styles.dropdownItemLeft}>
                     <Sparkles size={14} className="text-[#d98236]" />
-                    {lang === "vi" ? "Luyện phỏng vấn ngay" : "Start Coaching"}
+                    {lang === "vi" ? "Vào phòng phỏng vấn thử (AI)" : "Start Mock Interview"}
                   </span>
                 </Link>
 

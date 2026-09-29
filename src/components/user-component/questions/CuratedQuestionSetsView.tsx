@@ -152,7 +152,7 @@ export function CuratedQuestionSetsView({
     });
   }, [search, selectedDomain, selectedLevel]);
 
-  // 1-Click Practice Start
+  // 1-Click Practice Start (Question Set Workspace)
   const handleStartSetPractice = (set: QuestionSetItem) => {
     const qids = (set.questions || []).map((q) => q.question_id).join(",");
     try {
@@ -163,6 +163,22 @@ export function CuratedQuestionSetsView({
     }
 
     router.push(`/questions/practice?set=${set.set_id}${qids ? `&q=${qids}` : ""}&source=set`);
+  };
+
+  // Mock Interview Simulation with this Set
+  const handleStartMockInterview = (set: QuestionSetItem) => {
+    const sid = `set-${set.set_id}-${Date.now().toString(36)}`;
+    try {
+      sessionStorage.setItem("active_custom_questions", JSON.stringify(set.questions));
+      sessionStorage.setItem(`custom_questions_${sid}`, JSON.stringify(set.questions));
+      sessionStorage.setItem("active_question_set_title", set.title);
+    } catch {
+      // ignore
+    }
+
+    router.push(
+      `/practice/${sid}?custom=1&domain=${set.domain_id}&role=${set.role_id}&level=${set.experience_level}`
+    );
   };
 
   return (
@@ -804,11 +820,22 @@ export function CuratedQuestionSetsView({
 
                 <button
                   type="button"
+                  onClick={() => handleStartMockInterview(detailSet)}
+                  className="px-4 py-2 rounded-full text-xs font-bold text-[#8b4513] bg-white hover:bg-amber-50/70 border border-[rgba(106,72,49,0.25)] transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  title="Mô phỏng phỏng vấn thử 1-1 với AI Interviewer"
+                >
+                  <Sparkles size={13} className="text-[#d98236]" />
+                  <span>Phỏng vấn thử AI</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => handleStartSetPractice(detailSet)}
                   className="px-5 py-2 rounded-full text-xs font-bold text-white bg-gradient-to-r from-[#d98236] to-[#8b4513] hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2 cursor-pointer"
+                  title="Luyện tập từng câu hỏi trong bộ đề & AI chấm điểm"
                 >
                   <Play size={13} className="fill-current" />
-                  <span>Bắt đầu luyện tập bộ đề</span>
+                  <span>Luyện tập bộ đề</span>
                 </button>
               </div>
             </div>

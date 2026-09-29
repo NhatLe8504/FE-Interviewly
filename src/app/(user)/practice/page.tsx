@@ -161,7 +161,7 @@ export default function PracticeOverviewPage() {
       <div className={styles.heroHeader}>
         <div className={styles.eyebrow}>
           <Sparkles size={13} />
-          <span>PHÒNG LUYỆN TẬP PHỎNG VẤN THỰC CHIẾN AI</span>
+          <span>PHÒNG GIẢ LẬP PHỎNG VẤN THỰC CHIẾN AI (MOCK INTERVIEW)</span>
         </div>
         <h1 className={styles.title}>
           Chinh phục phỏng vấn <em>Big Tech</em> &amp; JD thực chiến
