@@ -1,5 +1,6 @@
-import { questionAdminApi } from "@/services/admin/questionAdminApi";
 "use client";
+
+import { questionAdminApi } from "@/services/admin/questionAdminApi";
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
@@ -606,7 +607,6 @@ export function QuestionSetDataTable({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
 
       {/* Edit Question Set Dialog */}
       <Dialog open={editSet !== null} onOpenChange={(open) => !open && setEditSet(null)}>
