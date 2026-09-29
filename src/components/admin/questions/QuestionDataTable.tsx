@@ -1,5 +1,6 @@
-import { questionAdminApi } from "@/services/admin/questionAdminApi";
 "use client";
+
+import { questionAdminApi } from "@/services/admin/questionAdminApi";
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
@@ -458,12 +459,6 @@ export function QuestionDataTable({
       toast.error(`Thao tác thất bại: ${err.message || "Lỗi server"}`);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-      setQuestions((prev) => [newQ, ...prev]);
-      toast.success(`Tạo câu hỏi mới #${newId} thành công`);
-      setIsCreateOpen(false);
     }
   };
 
