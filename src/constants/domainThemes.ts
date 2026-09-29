@@ -97,17 +97,49 @@ export const DOMAIN_THEMES: Record<number, DomainTheme> = {
     badgeBg: "rgba(147, 51, 234, 0.14)",
     badgeColor: "#7e22ce",
   },
+  7: {
+    domainId: 7,
+    name: "Kỹ năng mềm (Soft Skills)",
+    nameEn: "Soft Skills & Interpersonal",
+    shortName: "Soft Skills",
+    shortNameEn: "Soft Skills",
+    imageUrl:
+      "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=700&auto=format&fit=crop&q=80",
+    localFallback: "/images/domains/hr.svg",
+    gradient: "linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(16, 185, 129, 0.7))",
+    accentColor: "#10b981",
+    badgeBg: "rgba(16, 185, 129, 0.14)",
+    badgeColor: "#059669",
+  },
+  8: {
+    domainId: 8,
+    name: "Giới thiệu bản thân",
+    nameEn: "Self-Introduction & Elevator Pitch",
+    shortName: "Giới thiệu bản thân",
+    shortNameEn: "Introduction",
+    imageUrl:
+      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=700&auto=format&fit=crop&q=80",
+    localFallback: "/images/domains/product.svg",
+    gradient: "linear-gradient(135deg, rgba(88, 28, 135, 0.85), rgba(217, 130, 54, 0.7))",
+    accentColor: "#d98236",
+    badgeBg: "rgba(217, 130, 54, 0.16)",
+    badgeColor: "#8b4513",
+  },
 };
 
 const DEFAULT_THEME: DomainTheme = DOMAIN_THEMES[1];
 
-export function getDomainTheme(domainId?: number | null, domainName?: string): DomainTheme {
+export function getDomainTheme(domainId?: number | null, domainName?: string, category?: string): DomainTheme {
+  if (category === "soft_skills") return DOMAIN_THEMES[7];
+  if (category === "introduction") return DOMAIN_THEMES[8];
   if (domainId && DOMAIN_THEMES[domainId]) {
     return DOMAIN_THEMES[domainId];
   }
 
   if (domainName) {
     const lower = domainName.toLowerCase();
+    if (lower.includes("kỹ năng mềm") || lower.includes("soft skill")) return DOMAIN_THEMES[7];
+    if (lower.includes("giới thiệu") || lower.includes("introduction") || lower.includes("elevator")) return DOMAIN_THEMES[8];
     if (lower.includes("marketing") || lower.includes("truyền thông")) return DOMAIN_THEMES[2];
     if (lower.includes("kinh doanh") || lower.includes("sales") || lower.includes("thị trường") || lower.includes("bán hàng"))
       return DOMAIN_THEMES[3];

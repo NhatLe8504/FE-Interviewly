@@ -145,6 +145,7 @@ export interface Translations {
       career: string;
       security: string;
       readiness: string;
+        history: string;
     };
     generalTab: {
       title: string;
@@ -402,6 +403,13 @@ export interface Translations {
       bilingual: string;
       bilingualSub: string;
     };
+    categoryLabel: string;
+    allCategories: string;
+    categories: {
+      technical: string;
+      soft_skills: string;
+      introduction: string;
+    };
     searchPlaceholder: string;
     domainLabel: string;
     allDomains: string;
@@ -442,6 +450,34 @@ export interface Translations {
       starTab: string;
       rubricTab: string;
       followupTab: string;
+      practiceTab: string;
+      practiceModes: {
+        quiz: string;
+        text: string;
+        voice: string;
+      };
+      quizTitle: string;
+      quizSubtitle: string;
+      quizCheckBtn: string;
+      quizCorrect: string;
+      quizIncorrect: string;
+      textTitle: string;
+      textSubtitle: string;
+      textPlaceholder: string;
+      voiceTitle: string;
+      voiceSubtitle: string;
+      startRecording: string;
+      stopRecording: string;
+      recording: string;
+      submitEvaluation: string;
+      evaluating: string;
+      evaluationTitle: string;
+      overallScore: string;
+      starBreakdown: string;
+      rubricBreakdown: string;
+      strengthsTitle: string;
+      improvementsTitle: string;
+      tryAgainBtn: string;
       starDefaultTitle: string;
       starExplanation: string;
       starS: string;

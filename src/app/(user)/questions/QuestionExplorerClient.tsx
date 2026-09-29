@@ -39,7 +39,6 @@ import {
 } from "lucide-react";
 import { QuestionBasket } from "./QuestionBasket";
 import { CuratedQuestionSetsView } from "@/components/user-component/questions/CuratedQuestionSetsView";
-import { MOCK_QUESTION_SETS } from "@/mock/questionSetsMock";
 import { FolderKanban } from "lucide-react";
 import basketStyles from "./QuestionBasket.module.css";
 import styles from "./questions.module.css";
@@ -90,6 +89,7 @@ export default function QuestionExplorerClient() {
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   // Pagination State (6 items per page)
   const [currentPage, setCurrentPage] = useState(1);
@@ -99,6 +99,7 @@ export default function QuestionExplorerClient() {
   const [domains, setDomains] = useState<DomainOut[]>([]);
   const [roles, setRoles] = useState<RoleOut[]>([]);
   const [questions, setQuestions] = useState<QuestionOut[]>([]);
+  const [questionSetsCount, setQuestionSetsCount] = useState<number>(3);
   const [isLoading, setIsLoading] = useState(true);
 
   // Question Basket State ("Giỏ bốc câu hỏi nằm ngổn ngang")
@@ -145,10 +146,15 @@ export default function QuestionExplorerClient() {
       return;
     }
 
+    const resolvedName =
+      question.domain_name ||
+      domains.find((d) => d.domain_id === question.domain_id)?.domain_name ||
+      `Ngành #${question.domain_id}`;
+
     // First question locks the domain
     if (lockedDomainId === null) {
       setLockedDomainId(question.domain_id);
-      setLockedDomainName(question.domain_name || `Ngành #${question.domain_id}`);
+      setLockedDomainName(resolvedName);
     }
 
     setSelectedQuestions((prev) => [...prev, question]);
@@ -185,24 +191,17 @@ export default function QuestionExplorerClient() {
       return;
     }
 
-    const sid = `custom-${Date.now().toString(36)}`;
     try {
-      sessionStorage.setItem("active_custom_questions", JSON.stringify(selectedQuestions));
-      sessionStorage.setItem(`custom_questions_${sid}`, JSON.stringify(selectedQuestions));
+      sessionStorage.setItem("basket_questions", JSON.stringify(selectedQuestions));
+      sessionStorage.setItem("active_question_set_title", `Giỏ đề tự chọn (${selectedQuestions.length} câu)`);
     } catch {
       // ignore
     }
 
-    const firstQ = selectedQuestions[0];
-    router.push(
-      `/practice/${sid}?custom=1&domain=${firstQ.domain_id || 1}&role=${firstQ.role_id || 1}&level=${firstQ.experience_level || "junior"}`
-    );
+    const qids = selectedQuestions.map((q) => q.question_id).join(",");
+    router.push(`/questions/practice?q=${qids}&source=basket`);
   };
 
-  // Quick Practice Modal State
-  const [practiceModalQuestion, setPracticeModalQuestion] = useState<QuestionOut | null>(null);
-  const [practiceMode, setPracticeMode] = useState<"text" | "voice">("text");
-  const [isStartingPractice, setIsStartingPractice] = useState(false);
 
   // Load Domains & Initial Questions on Mount
   useEffect(() => {
@@ -210,16 +209,26 @@ export default function QuestionExplorerClient() {
 
     async function loadCatalog() {
       try {
-        const [domainList, roleList, questionPage] = await Promise.all([
+        const [domainList, roleList, questionPage, setsPage] = await Promise.all([
           catalogApi.getDomains(),
           catalogApi.getRoles(null),
           catalogApi.getQuestions({ limit: 100 }),
+          catalogApi.getQuestionSets(),
         ]);
+
+        if (setsPage && typeof setsPage.total === "number") {
+          setQuestionSetsCount(setsPage.total || setsPage.items.length);
+        }
 
         if (!isMounted) return;
         setDomains(domainList);
         setRoles(roleList);
-        setQuestions(questionPage.items);
+        const enriched = (questionPage.items || []).map((q) => ({
+          ...q,
+          domain_name: q.domain_name || domainList.find((d) => d.domain_id === q.domain_id)?.domain_name || `Ngành #${q.domain_id}`,
+          role_name: q.role_name || roleList.find((r) => r.role_id === q.role_id)?.role_name,
+        }));
+        setQuestions(enriched);
       } catch {
         // Fallbacks are safely handled in catalogApi
       } finally {
@@ -338,35 +347,7 @@ export default function QuestionExplorerClient() {
 
 
 
-  // Launch Practice Handler
-  const handleLaunchPractice = async () => {
-    if (!practiceModalQuestion) return;
-    setIsStartingPractice(true);
-
-    try {
-      // Direct session start if authenticated, otherwise fallback to practice page
-      const session = await interviewApi.startSession({
-        domain_id: practiceModalQuestion.domain_id,
-        role_id: practiceModalQuestion.role_id || 1,
-        role_name: practiceModalQuestion.role_name || "Software Engineer",
-        level: practiceModalQuestion.experience_level || "junior",
-        language: practiceModalQuestion.language || "vi",
-        mode: practiceMode,
-      });
-
-      setPracticeModalQuestion(null);
-      router.push(`/practice/${session.session_id}`);
-    } catch {
-      // Fallback navigation with params
-      const q = practiceModalQuestion;
-      setPracticeModalQuestion(null);
-      router.push(
-        `/practice?domain=${q.domain_id}&role=${q.role_id || 1}&level=${q.experience_level || "junior"}&lang=${q.language || "vi"}`
-      );
-    } finally {
-      setIsStartingPractice(false);
-    }
-  };
+  
 
   // Helper Badge Color
   const getLevelBadgeClass = (level: string | null) => {
@@ -393,6 +374,8 @@ export default function QuestionExplorerClient() {
   return (
     <div className={styles.shell}>
       {/* Floating Tilted Question Basket ("Nút hình cái giỏ nằm ngổn ngang") */}
+      {/* Giỏ đề chỉ hiển thị khi ở tab câu hỏi lẻ */}
+      {activeTab === "individual" && (
       <QuestionBasket
         selectedQuestions={selectedQuestions}
         lockedDomainId={lockedDomainId}
@@ -405,6 +388,7 @@ export default function QuestionExplorerClient() {
         onClearBasket={handleClearBasket}
         onConfirmPractice={handleConfirmBasketPractice}
       />
+      )}
       {/* Header Eyebrow */}
       <div className={styles.eyebrow}>{t.questions.eyebrow}</div>
 
@@ -440,7 +424,7 @@ export default function QuestionExplorerClient() {
               }`}
             >
               <FolderKanban size={13} />
-              <span>Bộ Đề Tuyển Dụng ({MOCK_QUESTION_SETS.length})</span>
+              <span>Bộ Đề Tuyển Dụng ({questionSetsCount})</span>
             </button>
             <button
               type="button"
@@ -623,7 +607,8 @@ export default function QuestionExplorerClient() {
         <>
         <div className={styles.questionsGrid}>
           {paginatedQuestions.map((q) => {
-            const theme = getDomainTheme(q.domain_id, q.domain_name);
+            const actualDomainName = q.domain_name || domains.find((d) => d.domain_id === q.domain_id)?.domain_name || `Ngành #${q.domain_id}`;
+            const theme = getDomainTheme(q.domain_id, actualDomainName, q.category);
             return (
               <div key={q.question_id} className={styles.card}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -719,15 +704,14 @@ export default function QuestionExplorerClient() {
                     </button>
                   </UserTooltip>
 
-                  <button
-                    type="button"
+                  <Link
+                    href={`/questions/practice?q=${q.question_id}&source=single`}
                     className={styles.btnPractice}
-                    onClick={() => setPracticeModalQuestion(q)}
                   >
                     <Sparkles size={14} />
                     <span>{t.questions.practiceBtn}</span>
                     <ArrowRight size={13} />
-                  </button>
+                  </Link>
                 </div>
               </div>
             );
@@ -768,112 +752,10 @@ export default function QuestionExplorerClient() {
               </>
       )}
 
-      {/* Quick Practice Launch Modal */}
-      {practiceModalQuestion && (
-        <div
-          className={styles.modalOverlay}
-          onClick={() => setPracticeModalQuestion(null)}
-        >
-          <div
-            className={styles.modalContent}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>
-                <Sparkles size={20} style={{ color: "var(--accent-warm)" }} />
-                <span>{t.questions.modal.title}</span>
-              </h3>
-              <button
-                type="button"
-                className={styles.modalCloseBtn}
-                onClick={() => setPracticeModalQuestion(null)}
-                aria-label="Đóng"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className={styles.modalQuestionBox}>
-              &ldquo;{practiceModalQuestion.question_text}&rdquo;
-            </div>
-
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <span className={`${styles.badge} ${styles.badgeRole}`}>
-                {practiceModalQuestion.role_name ? getLocalizedRoleName({ role_name: practiceModalQuestion.role_name }, locale) : "Software Engineer"}
-              </span>
-              <span className={getLevelBadgeClass(practiceModalQuestion.experience_level)}>
-                {locale === "vi" ? "Cấp độ:" : "Level:"} {practiceModalQuestion.experience_level || "Junior"}
-              </span>
-              <span className={styles.badge}>
-                {locale === "vi" ? "Ngôn ngữ:" : "Language:"} {practiceModalQuestion.language === "vi" ? "Tiếng Việt" : "English"}
-              </span>
-            </div>
-
-            <div>
-              <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 800, color: "var(--ink)" }}>
-                {t.questions.modal.selectModeTitle}
-              </p>
-              <div className={styles.modeSelectGrid}>
-                <button
-                  type="button"
-                  onClick={() => setPracticeMode("text")}
-                  className={`${styles.modeOptionBtn} ${practiceMode === "text" ? styles.modeOptionBtnActive : ""}`}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13, color: "var(--ink)" }}>
-                    <Keyboard size={16} />
-                    <span>{t.common.textMode}</span>
-                  </div>
-                  <span style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.5 }}>
-                    {t.questions.modal.textModeDesc}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPracticeMode("voice")}
-                  className={`${styles.modeOptionBtn} ${practiceMode === "voice" ? styles.modeOptionBtnActive : ""}`}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13, color: "var(--ink)" }}>
-                    <Mic size={16} />
-                    <span>{t.common.voiceMode}</span>
-                  </div>
-                  <span style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.5 }}>
-                    {t.questions.modal.voiceModeDesc}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
-              <button
-                type="button"
-                className={styles.btnDetail}
-                onClick={() => setPracticeModalQuestion(null)}
-              >
-                {t.questions.modal.laterBtn}
-              </button>
-              <button
-                type="button"
-                className={styles.btnPractice}
-                onClick={handleLaunchPractice}
-                disabled={isStartingPractice}
-              >
-                {isStartingPractice ? (
-                  <span>{t.questions.modal.startingBtn}</span>
-                ) : (
-                  <>
-                    <CheckCircle2 size={14} />
-                    <span>{t.questions.modal.startBtn}</span>
-                  </>
-                )}
-              </button>
-            </div>
           </div>
-        </div>
-      )}
-    </div>
   );
 }
+
 
 
 

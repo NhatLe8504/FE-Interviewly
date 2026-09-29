@@ -15,6 +15,7 @@ export const profile = {
     career: "Kinh nghiệm & Mục tiêu",
     security: "Bảo mật & Mật khẩu",
     readiness: "Thiết bị & Kiểm tra Mic",
+    history: "Lịch sử luyện tập & Bài thi",
   },
   generalTab: {
     title: "Thông tin ứng viên",
