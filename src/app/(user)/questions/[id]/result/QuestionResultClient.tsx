@@ -122,14 +122,21 @@ export default function QuestionResultClient({ questionId }: QuestionResultClien
 
             const metricsVerbal = `Đánh giá chỉ số phát biểu & nhịp điệu:\n- Tốc độ nói: ${wpmText}\n- Quãng ngắt quãng: ${pauseText}\n- Từ đệm: ${fillerText}\n- Lặp từ: ${repText}`;
 
-            const isNonsensical = /đức phật|sofa|học tiếp chơi|người dân giao/i.test(tr);
-            const hasSubstantive = !isNonsensical && /báo|sếp|lỗi|production|fix|bước|sửa|giải quyết|xử lý|code|khách hàng/i.test(tr);
-            const isPureRefusal = cleanWords < 6 && /không biết|chịu|thử mic|alo|1 2 3/i.test(tr);
+            const wordsList = tr.split(/\s+/).filter(Boolean);
+            const testWords = new Set([
+              "alo", "test", "mic", "thử", "nghe", "rõ", "không", "biết", "chịu", "chưa", "học", "chơi",
+              "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín", "mười",
+              "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"
+            ]);
+            const testMatches = wordsList.filter((w) => /^\d+$/.test(w) || testWords.has(w)).length;
+            const testRatio = wordsList.length > 0 ? testMatches / wordsList.length : 1.0;
+            const hasSubstantive = /báo|sếp|lỗi|production|fix|bước|sửa|giải quyết|xử lý|code|khách hàng|hệ thống|database|server|incident|rollback/i.test(tr);
+            const isTestMicOrRefusal = wordsList.length === 0 || (testRatio >= 0.5 && !hasSubstantive) || (wordsList.length < 6 && !hasSubstantive);
 
-            if (isPureRefusal) {
-              voiceScore = 5.0;
-              voiceFeedback = `Ứng viên chưa trả lời vào trọng tâm câu hỏi (phát biểu không biết cách làm hoặc thử mic).\n\n${metricsVerbal}`;
-              voiceImps = ["Hãy chủ động đưa ra hướng tiếp cận hoặc suy luận kỹ thuật cho câu hỏi thay vì từ chối trả lời."];
+            if (isTestMicOrRefusal) {
+              voiceScore = 0.0;
+              voiceFeedback = `Nội dung phát biểu không đáp ứng yêu cầu câu hỏi: Ứng viên chỉ thực hiện kiểm tra micro hoặc đếm số ('Alo', số đếm...), hoàn toàn không chia sẻ tình huống sự cố thực tế hay quy trình xử lý kỹ thuật nào. Do đó điểm nội dung bằng 0.\n\n${metricsVerbal}\n\nLưu ý: Kỹ năng phát âm không được tính điểm khi ứng viên không trả lời vào câu hỏi phỏng vấn.`;
+              voiceImps = ["Cần trả lời trực tiếp vào câu hỏi phỏng vấn, không dùng thời gian thi để đếm số hoặc thử mic."];
             } else if (hasSubstantive) {
               voiceScore = Math.min(45.0, Math.max(22.0, 20.0 + Math.min(voiceSec, 30) * 0.4));
               voiceFeedback = `Nội dung trả lời: Bạn đã nêu được những bước xử lý ban đầu quan trọng khi gặp sự cố Production (báo cáo cấp trên và có ý thức sửa lỗi). Tuy nhiên phần mở đầu còn ngập ngừng thử mic, cần đi thẳng vào quy trình cô lập lỗi, rollback và điều tra nguyên nhân gốc rễ (RCA).\n\n${metricsVerbal}`;
