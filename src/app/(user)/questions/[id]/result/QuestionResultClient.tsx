@@ -93,17 +93,54 @@ export default function QuestionResultClient({ questionId }: QuestionResultClien
           let voiceScore = 0;
           let voiceFeedback = "Chưa thực hiện ghi âm câu trả lời cho câu này.";
           let voiceImps: string[] = [];
+          let voiceStrs: string[] = [];
 
           if (voiceSec >= 3 || tr) {
-            const isNonAnswer = /không biết|chưa biết|không hiểu|chịu|alo|thử mic|test|1 2 3/i.test(tr) || cleanWords < 5;
-            if (isNonAnswer) {
+            const dm = curAns.delivery_metrics || {};
+            const wpm = dm.activeSpeechWpm || 0;
+            const pauses = (dm.pauseDurationsMs || []).filter((p: number) => p >= 3000).length;
+            const fillers = dm.fillerCount || 0;
+            const reps = dm.repetitionCount || 0;
+
+            const wpmText = wpm >= 110 && wpm <= 165
+              ? `Tốc độ ${wpm} WPM đạt mức chuẩn mực (110 - 165 WPM), rõ ràng và dễ theo dõi.`
+              : wpm > 165
+              ? `Tốc độ ${wpm} WPM là khá nhanh, dễ tạo cảm giác hồi hộp hoặc vội vã. Nên điều tiết chậm rãi hơn (120 - 160 WPM).`
+              : `Tốc độ ${wpm} WPM còn hơi chậm, nên tăng sự lưu loát và tự tin.`;
+
+            const pauseText = pauses > 0
+              ? `Có ${pauses} lần dừng lâu trên 3 giây giữa các câu, làm gián đoạn luồng suy nghĩ. Hãy phác thảo nhanh ý chính trước khi nói.`
+              : `Mạch nói liền mạch, không bị ngắt quãng bất thường.`;
+
+            const fillerText = fillers > 0
+              ? `Xuất hiện ${fillers} từ đệm, nên thay thế bằng những khoảng dừng im lặng ngắn 0.5s.`
+              : `Kiểm soát ngôn từ tốt, không dùng từ đệm.`;
+
+            const repText = reps > 0
+              ? `Có ${reps} lần lặp từ ngữ, cần giữ bình tĩnh để diễn đạt dứt khoát ngay từ đầu.`
+              : `Phát biểu gãy gọn, không bị lặp từ ngữ.`;
+
+            const metricsVerbal = `Đánh giá chỉ số phát biểu & nhịp điệu:\n- Tốc độ nói: ${wpmText}\n- Quãng ngắt quãng: ${pauseText}\n- Từ đệm: ${fillerText}\n- Lặp từ: ${repText}`;
+
+            const hasSubstantive = /báo|sếp|lỗi|production|fix|bước|sửa|giải quyết|xử lý|code|khách hàng/i.test(tr);
+            const isPureRefusal = cleanWords < 6 && /không biết|chịu|thử mic|alo|1 2 3/i.test(tr);
+
+            if (isPureRefusal) {
               voiceScore = 5.0;
-              voiceFeedback = "Ứng viên chưa trả lời vào trọng tâm câu hỏi (phát biểu không biết cách trả lời hoặc thử mic). Cần tự tin chia sẻ trải nghiệm thực tế hoặc suy luận giải pháp theo khung STAR.";
+              voiceFeedback = `Ứng viên chưa trả lời vào trọng tâm câu hỏi (phát biểu không biết cách làm hoặc thử mic).\n\n${metricsVerbal}`;
               voiceImps = ["Hãy chủ động đưa ra hướng tiếp cận hoặc suy luận kỹ thuật cho câu hỏi thay vì từ chối trả lời."];
+            } else if (hasSubstantive) {
+              voiceScore = Math.min(45.0, Math.max(22.0, 20.0 + Math.min(voiceSec, 30) * 0.4));
+              voiceFeedback = `Nội dung trả lời: Bạn đã nêu được những bước xử lý ban đầu quan trọng khi gặp sự cố Production (báo cáo cấp trên và có ý thức sửa lỗi). Tuy nhiên phần mở đầu còn ngập ngừng thử mic, cần đi thẳng vào quy trình cô lập lỗi, rollback và điều tra nguyên nhân gốc rễ (RCA).\n\n${metricsVerbal}`;
+              voiceStrs = ["Có ý thức báo cáo lỗi kịp thời cho người quản lý.", "Phản xạ hành động giải quyết sự cố Production."];
+              voiceImps = [
+                "Giảm tốc độ nói về mức vừa phải (120 - 160 WPM) để trình bày trầm ổn, mạch lạc.",
+                "Hạn chế các khoảng lặng dài >3s bằng cách chuẩn bị dàn ý STAR trước khi bật mic."
+              ];
             } else {
-              voiceScore = Math.min(50.0, Math.max(25.0, 20.0 + Math.min(voiceSec, 30) * 0.8));
-              voiceFeedback = `Bản ghi âm giọng nói (${voiceSec}s) đã được AI ghi nhận và phân tích nhịp điệu phát biểu.`;
-              voiceImps = ["Duy trì phong thái tự tin và nhịp độ nói vừa phải."];
+              voiceScore = Math.min(35.0, Math.max(15.0, 15.0 + Math.min(voiceSec, 25) * 0.3));
+              voiceFeedback = `Nội dung phát biểu còn mang tính khái quát, cần chia sẻ tình huống và hành động cụ thể theo khung STAR.\n\n${metricsVerbal}`;
+              voiceImps = ["Trình bày đầy đủ 4 bước STAR cho phần phát biểu."];
             }
           }
 
@@ -506,8 +543,35 @@ export default function QuestionResultClient({ questionId }: QuestionResultClien
                   })()}
 
                   {ev?.voice_feedback && (
-                    <div style={{ fontSize: 12.5, color: "var(--ink)", background: "#fefcf8", padding: "10px 14px", borderRadius: 10, borderLeft: "3px solid #d98236", lineHeight: 1.5 }}>
-                      <strong>Đánh giá phát biểu:</strong> {ev.voice_feedback}
+                    <div style={{ fontSize: 12.5, color: "var(--ink)", background: "#fefcf8", padding: "14px 16px", borderRadius: 10, borderLeft: "3px solid #d98236", lineHeight: 1.65, whiteSpace: "pre-wrap" }}>
+                      <strong style={{ display: "block", marginBottom: 6, color: "#8b4513" }}>Đánh giá phát biểu:</strong>
+                      {ev.voice_feedback}
+                    </div>
+                  )}
+
+                  {/* Actionable Speech Commendations & Suggestions */}
+                  {((ev?.voice_strengths && ev.voice_strengths.length > 0) || (ev?.voice_improvements && ev.voice_improvements.length > 0)) && (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10, marginTop: 10 }}>
+                      {ev?.voice_strengths && ev.voice_strengths.length > 0 && (
+                        <div style={{ padding: "10px 14px", borderRadius: 8, background: "#f0fdf4", border: "1px solid #bbf7d0", fontSize: 12, color: "#166534" }}>
+                          <strong>✓ Điểm sáng phát âm:</strong>
+                          <ul style={{ margin: "4px 0 0", paddingLeft: 18, lineHeight: 1.55 }}>
+                            {ev.voice_strengths.map((s: string, idx: number) => (
+                              <li key={idx}>{s}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {ev?.voice_improvements && ev.voice_improvements.length > 0 && (
+                        <div style={{ padding: "10px 14px", borderRadius: 8, background: "#fffaf5", border: "1px solid #fed7aa", fontSize: 12, color: "#9a3412" }}>
+                          <strong>▲ Cần hoàn thiện:</strong>
+                          <ul style={{ margin: "4px 0 0", paddingLeft: 18, lineHeight: 1.55 }}>
+                            {ev.voice_improvements.map((im: string, idx: number) => (
+                              <li key={idx}>{im}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
