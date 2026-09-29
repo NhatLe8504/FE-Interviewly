@@ -372,7 +372,7 @@ export default function QuestionResultClient({ questionId }: QuestionResultClien
                     <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13.5 }}>
                       <FileText size={16} color="#2563eb" />
                       <span>Bài Tự luận STAR:</span>
-                      <span style={{ color: "#2563eb", fontSize: 13 }}>{mb?.text_score || 0}/35đ</span>
+                      <span style={{ color: "#2563eb", fontSize: 13 }}>{mb?.text_score ?? 0}/{mb?.text_max || 35}đ</span>
                     </div>
                   </div>
 
@@ -393,13 +393,13 @@ export default function QuestionResultClient({ questionId }: QuestionResultClien
                     <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13.5 }}>
                       <Mic size={16} color="#d98236" />
                       <span>Ghi âm giọng nói ({ans?.recordingSeconds ? `${ans.recordingSeconds}s` : "0s"}):</span>
-                      <span style={{ color: "#d98236", fontSize: 13 }}>{mb?.voice_score || 0}/50đ</span>
+                      <span style={{ color: "#d98236", fontSize: 13 }}>{mb?.voice_score ?? 0}/{mb?.voice_max || 50}đ</span>
                     </div>
                   </div>
 
-                  {hasRecordedAudio && (
+                  {hasRecordedAudio && ans?.recordedAudioUrl && (
                     <div style={{ marginBottom: 12 }}>
-                      <audio src={ans?.recordedAudioUrl || undefined} controls style={{ width: "100%", maxWidth: 460, height: 36 }} />
+                      <audio src={ans.recordedAudioUrl} controls preload="metadata" style={{ width: "100%", maxWidth: 460, height: 36 }} />
                     </div>
                   )}
 
