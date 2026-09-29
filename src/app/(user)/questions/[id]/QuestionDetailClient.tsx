@@ -662,33 +662,67 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
     return issues;
   };
 
-  const proceedToTargetQuestion = (targetIndex: number) => {
+  const proceedToTargetQuestion = async (targetIndex: number) => {
     if (targetIndex > currentIdx && currentQId) {
       // 1. Enforce Forward-Only Progression Lock
       setLockedQuestionIds((prev) => new Set(prev).add(currentQId));
 
-      // 2. Trigger Pipeline B Background Enqueue (< 15ms latency)
+      let voiceData = { ...voiceCaptureRef.current };
+      if (voiceRecorder.isRecording) {
+        const voiceRes = await voiceRecorder.stopRecording();
+        voiceData = {
+          audioUrl: voiceRes.audioUrl,
+          recordingSeconds: voiceRes.recordingSeconds,
+          metrics: voiceRes.metrics,
+          transcript: voiceRes.transcript,
+        };
+        voiceCaptureRef.current = voiceData;
+        updateCurrentAnswer({
+          recordedAudioUrl: voiceRes.audioUrl,
+          recordingSeconds: voiceRes.recordingSeconds,
+          delivery_metrics: voiceRes.metrics,
+          transcript: voiceRes.transcript,
+        });
+      }
+
+      const finalVoiceUrl = voiceData.audioUrl || currentAns.recordedAudioUrl || voiceRecorder.recordedAudioUrl || null;
+      const finalVoiceSec = voiceData.recordingSeconds || currentAns.recordingSeconds || voiceRecorder.recordingSeconds || 0;
+      const finalMetrics = voiceData.metrics || currentAns.delivery_metrics || voiceRecorder.deliveryMetrics || null;
+      const finalTranscript = (voiceData.transcript || currentAns.transcript || voiceRecorder.transcript || "").trim();
+
+      // 2. Trigger Pipeline B Background Enqueue with Full Transcript and Prompts
       let isCorrect = false;
       if (currentAns.selectedOption) {
         const opt = currentQuestion?.quiz_data?.options.find((o) => o.id === currentAns.selectedOption);
         isCorrect = opt ? Boolean(opt.is_correct) : currentAns.selectedOption === "B";
       }
 
-      const metrics = currentAns.delivery_metrics || voiceRecorder.deliveryMetrics;
-      const durSec = voiceRecorder.recordingSeconds || currentAns.recordingSeconds || 0;
-
       pullQueue.enqueueQuestionEvaluation(
         {
           question_id: currentQId,
+          question_text: currentQuestion?.question_text,
+          sample_answer: currentQuestion?.sample_answer || undefined,
+          role_name: currentQuestion?.role_name || "Software Engineer",
           quiz_answer: currentAns.selectedOption,
           text_answer: currentAns.writtenText,
-          delivery_metrics: metrics,
+          transcript: finalTranscript,
+          delivery_metrics: finalMetrics,
           language: currentQuestion?.language || "vi",
           is_quiz_correct: isCorrect,
-          audio_duration_seconds: durSec,
+          audio_duration_seconds: finalVoiceSec,
         },
         (result) => {
-          const scaled = scaleEvaluationResult(result, currentAns, isCorrect);
+          const scaled = scaleEvaluationResult(
+            result,
+            {
+              ...currentAns,
+              recordedAudioUrl: finalVoiceUrl,
+              recordingSeconds: finalVoiceSec,
+              delivery_metrics: finalMetrics,
+              transcript: finalTranscript,
+            },
+            isCorrect
+          );
           setEvaluationsMap((prev) => ({ ...prev, [currentQId]: scaled }));
         }
       );
@@ -697,11 +731,17 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
     // Always reset to Quiz mode (Part 1) and reset voice recorder when navigating
     setPracticeType("quiz");
     voiceRecorder.reset();
+    voiceCaptureRef.current = {
+      audioUrl: null,
+      recordingSeconds: 0,
+      metrics: null,
+      transcript: "",
+    };
 
     setCurrentIdx(targetIndex);
   };
 
-  const handleAttemptNavigate = (targetIndex: number) => {
+  const handleAttemptNavigate = async (targetIndex: number) => {
     if (targetIndex === currentIdx || targetIndex < 0 || targetIndex >= totalQuestions) return;
 
     // Check completeness when moving forward
@@ -715,13 +755,13 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
       }
     }
 
-    proceedToTargetQuestion(targetIndex);
+    await proceedToTargetQuestion(targetIndex);
   };
 
-  const handleConfirmSkip = () => {
+  const handleConfirmSkip = async () => {
     setShowIncompleteModal(false);
     if (pendingTargetIdx !== null) {
-      proceedToTargetQuestion(pendingTargetIdx);
+      await proceedToTargetQuestion(pendingTargetIdx);
       setPendingTargetIdx(null);
     }
   };
