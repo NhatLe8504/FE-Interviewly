@@ -18,19 +18,20 @@
 }
 
 /* =========================================================
-   1. TOP HEADER BAR (Header-module in hoc.html)
+   1. TOP HEADER BAR (Refined Luxury Theme - Light Warm Style)
 ========================================================= */
 .topHeader {
-  height: 52px;
-  background: #1c1917; /* Dark luxury header matching hoc.html */
-  color: #ffffff;
+  height: 56px;
+  background: #ffffff;
+  color: var(--ink);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 20px;
   flex-shrink: 0;
   z-index: 30;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(106, 72, 49, 0.14);
+  box-shadow: 0 2px 10px rgba(33, 25, 20, 0.03);
 }
 
 .headerLeft {
@@ -41,22 +42,24 @@
 }
 
 .backBtn {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  border: none;
+  background: rgba(245, 239, 230, 0.75);
+  color: var(--ink);
+  border: 1px solid rgba(106, 72, 49, 0.18);
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: all 0.15s ease;
   text-decoration: none;
   flex-shrink: 0;
 }
 
 .backBtn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(217, 130, 54, 0.15);
+  border-color: #d98236;
+  color: #8b4513;
 }
 
 .brandLogo {
@@ -65,7 +68,7 @@
   gap: 6px;
   font-size: 14px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--ink);
   text-decoration: none;
   flex-shrink: 0;
 }
@@ -77,10 +80,12 @@
 .courseHeaderTitle {
   font-size: 13.5px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding-left: 8px;
+  border-left: 1px solid rgba(106, 72, 49, 0.15);
 }
 
 @media (max-width: 768px) {
@@ -117,7 +122,7 @@
 }
 
 .progressCircleBg {
-  stroke: rgba(255, 255, 255, 0.15);
+  stroke: #e7e5e4;
 }
 
 .progressCircleActive {
@@ -130,33 +135,34 @@
   position: absolute;
   font-size: 9.5px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--ink);
 }
 
 .progressLessonsText {
-  font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  color: var(--ink-soft);
   font-weight: 600;
 }
 
 .headerActionBtn {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.8);
+  background: rgba(245, 239, 230, 0.6);
+  border: 1px solid rgba(106, 72, 49, 0.14);
+  color: var(--ink);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
   transition: all 0.15s ease;
 }
 
 .headerActionBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background: rgba(217, 130, 54, 0.12);
+  border-color: #d98236;
+  color: #8b4513;
 }
 
 /* =========================================================
@@ -180,18 +186,21 @@
   scroll-behavior: smooth;
 }
 
-/* Video Player Container */
+/* Video Player Container - Rounded with Top & Side Insets */
 .videoWrapper {
-  width: 100%;
+  width: min(1040px, calc(100% - 48px));
+  margin: 28px auto 0; /* Thụt xuống từ header */
+  border-radius: 24px; /* Bo tròn thẻ video */
+  overflow: hidden;
   background: #000000;
   position: relative;
+  border: 1.5px solid rgba(106, 72, 49, 0.2);
+  box-shadow: 0 16px 40px -12px rgba(33, 25, 20, 0.16);
 }
 
 .videoStage {
   position: relative;
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
   padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
   height: 0;
 }
@@ -207,21 +216,20 @@
 
 /* Non-video reading header */
 .readingHeroHeader {
-  width: 100%;
-  max-width: 960px;
-  margin: 36px auto 0;
-  padding: 32px 36px;
-  border-radius: 20px;
+  width: min(1040px, calc(100% - 48px));
+  margin: 28px auto 0;
+  padding: 36px 36px;
+  border-radius: 24px;
   background: #ffffff;
-  border: 1px solid rgba(106, 72, 49, 0.15);
-  box-shadow: 0 4px 20px rgba(33, 25, 20, 0.04);
+  border: 1.5px solid rgba(106, 72, 49, 0.18);
+  box-shadow: 0 8px 30px -10px rgba(33, 25, 20, 0.06);
 }
 
 /* Content Below Player */
 .textContent {
-  max-width: 960px;
+  width: min(1040px, calc(100% - 48px));
   margin: 0 auto;
-  padding: 32px 24px 64px;
+  padding: 28px 0 64px;
 }
 
 .lessonTitle {
