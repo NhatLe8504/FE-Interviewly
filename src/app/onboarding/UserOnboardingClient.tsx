@@ -20,6 +20,9 @@ import {
   Briefcase,
   Target,
   Award,
+  Search,
+  Brain,
+  Shield,
   Zap,
   Copy,
   RotateCcw,
@@ -56,7 +59,7 @@ export function UserOnboardingClient() {
     locale === "en" ? "en" : "vi"
   );
   const [selectedChannel, setSelectedChannel] = useState<string>("");
-  const [selectedDomain, setSelectedDomain] = useState<string>("it");
+  const [selectedDomain, setSelectedDomain] = useState<string>("swe");
   const [currentJobTitle, setCurrentJobTitle] = useState<string>("");
   const [targetRole, setTargetRole] = useState<string>("");
   const [targetLevel, setTargetLevel] = useState<string>("junior");
@@ -145,9 +148,30 @@ export function UserOnboardingClient() {
     [isVi]
   );
 
+  const [targetRoleFilterDomain, setTargetRoleFilterDomain] = useState<string>("all");
+  const [targetRoleSearch, setTargetRoleSearch] = useState<string>("");
+
   const availableRoles = useMemo(() => {
     return COMPREHENSIVE_ROLES.filter((r) => r.domainId === selectedDomain);
   }, [selectedDomain]);
+
+  const filteredTargetRoles = useMemo(() => {
+    return COMPREHENSIVE_ROLES.filter((r) => {
+      // 1. Domain filter
+      if (targetRoleFilterDomain !== "all" && r.domainId !== targetRoleFilterDomain) {
+        return false;
+      }
+      // 2. Search filter
+      if (targetRoleSearch.trim()) {
+        const kw = targetRoleSearch.trim().toLowerCase();
+        const inEn = r.titleEn.toLowerCase().includes(kw);
+        const inVi = r.titleVi.toLowerCase().includes(kw);
+        const inDesc = (r.descVi + " " + r.descEn).toLowerCase().includes(kw);
+        if (!inEn && !inVi && !inDesc) return false;
+      }
+      return true;
+    });
+  }, [targetRoleFilterDomain, targetRoleSearch]);
 
   const levels = useMemo(
     () => [
@@ -176,6 +200,7 @@ export function UserOnboardingClient() {
     } else if (currentStep === 4) {
       if (!currentJobTitle.trim()) return;
       if (!targetRole) setTargetRole(currentJobTitle);
+      setTargetRoleFilterDomain(selectedDomain || "all");
       setCurrentStep(5);
     } else if (currentStep === 5) {
       if (!targetRole.trim() || isSubmitting) return;
@@ -215,6 +240,8 @@ export function UserOnboardingClient() {
   const getDomainIcon = (iconType: string, color: string) => {
     switch (iconType) {
       case "code": return <Code size={18} style={{ color }} />;
+      case "brain": return <Brain size={18} style={{ color }} />;
+      case "shield": return <Shield size={18} style={{ color }} />;
       case "megaphone": return <Megaphone size={18} style={{ color }} />;
       case "landmark": return <Landmark size={18} style={{ color }} />;
       case "trending-up": return <TrendingUp size={18} style={{ color }} />;
@@ -635,7 +662,7 @@ export function UserOnboardingClient() {
             </div>
           )}
 
-          {/* STEP 5: TARGET ROLE & SENIORITY */}
+          {/* STEP 5: WHAT ROLE ARE YOU PREPARING FOR? */}
           {currentStep === 5 && (
             <div>
               <div className={styles.topIconBadge}>
@@ -643,55 +670,134 @@ export function UserOnboardingClient() {
               </div>
 
               <h2 className={styles.heading}>
-                {isVi ? "Vị trí bạn muốn theo đuổi & Cấp bậc?" : "Target role & seniority level?"}
+                {isVi ? "Vị trí bạn đang chuẩn bị phỏng vấn?" : "What role are you preparing for?"}
               </h2>
               <p className={styles.subheading}>
                 {isVi
-                  ? "AI sẽ hiệu chỉnh độ khó và phong cách phỏng vấn theo đúng mục tiêu của bạn."
-                  : "Our AI will calibrate questions and evaluation to your target position."}
+                  ? "Chọn chức danh chuyên môn hoặc lọc theo ngành nghề bên dưới để AI nạp bộ đề phỏng vấn sát thực tế nhất."
+                  : "Filter or select your target interview specialty from our 53 supported roles."}
               </p>
 
               {/* Seniority Level Pill Row */}
-              <div className={styles.levelRow}>
-                {levels.map((lvl) => {
-                  const isSelected = targetLevel === lvl.key;
+              <div className="space-y-1.5 mb-4">
+                <label className="text-xs font-bold text-gray-700 block">
+                  {isVi ? "Cấp bậc kinh nghiệm mục tiêu:" : "Target Seniority Level:"}
+                </label>
+                <div className={styles.levelRow}>
+                  {levels.map((lvl) => {
+                    const isSelected = targetLevel === lvl.key;
+                    return (
+                      <button
+                        key={lvl.key}
+                        type="button"
+                        className={`${styles.levelPill} ${
+                          isSelected ? styles.levelPillActive : ""
+                        }`}
+                        onClick={() => setTargetLevel(lvl.key)}
+                      >
+                        {lvl.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Filter for roles input (Matching User HTML Template) */}
+              <div className="relative mb-3">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-gray-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={targetRoleSearch}
+                  onChange={(e) => setTargetRoleSearch(e.target.value)}
+                  placeholder={isVi ? "Lọc chuyên môn (ví dụ: Product Manager, Software Engineer, Data, Security...)..." : "Filter for roles..."}
+                  className="text-sm rounded-xl border border-gray-300 bg-white hover:border-gray-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 pl-10 pr-9 py-2.5 w-full focus:outline-none text-gray-800 placeholder-gray-400 transition-all shadow-2xs"
+                />
+                {targetRoleSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setTargetRoleSearch("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 size-5 flex items-center justify-center rounded-full text-xs text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Domain Category Filter Tabs */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-3.5 scrollbar-none text-xs">
+                <button
+                  type="button"
+                  onClick={() => setTargetRoleFilterDomain("all")}
+                  className={`px-3 py-1.5 rounded-full font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                    targetRoleFilterDomain === "all"
+                      ? "bg-gray-900 text-white shadow-2xs"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {isVi ? "Tất cả ngành" : "All"} ({COMPREHENSIVE_ROLES.length})
+                </button>
+                {ONBOARDING_DOMAINS.map((dom) => {
+                  const count = COMPREHENSIVE_ROLES.filter((r) => r.domainId === dom.id).length;
+                  const isSelected = targetRoleFilterDomain === dom.id;
                   return (
                     <button
-                      key={lvl.key}
+                      key={dom.id}
                       type="button"
-                      className={`${styles.levelPill} ${
-                        isSelected ? styles.levelPillActive : ""
+                      onClick={() => setTargetRoleFilterDomain(dom.id)}
+                      className={`px-3 py-1.5 rounded-full font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-gray-900 text-white shadow-2xs"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                       }`}
-                      onClick={() => setTargetLevel(lvl.key)}
                     >
-                      {lvl.label}
+                      {isVi ? dom.nameVi.split(" (")[0] : dom.nameEn.split(" &")[0]} ({count})
                     </button>
                   );
                 })}
               </div>
 
-              {/* Target Role Selection Grid */}
-              <div className={styles.cardsGrid}>
-                {availableRoles.slice(0, 6).map((role) => {
+              {/* Roles Pill Buttons Grid (Exact User HTML Structure) */}
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-2.5 mb-5 max-h-[300px] overflow-y-auto pr-1">
+                {filteredTargetRoles.map((role) => {
                   const isSelected =
-                    targetRole.toLowerCase() === (isVi ? role.titleVi : role.titleEn).toLowerCase();
+                    targetRole.toLowerCase() === role.titleEn.toLowerCase() ||
+                    targetRole.toLowerCase() === role.titleVi.toLowerCase();
                   return (
-                    <div
+                    <button
                       key={role.id}
-                      className={`${styles.cardItem} ${
-                        isSelected ? styles.cardItemSelected : ""
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => setTargetRole(role.titleEn)}
+                      className={`flex items-center font-medium py-2 px-3.5 sm:px-4 border rounded-full cursor-pointer transition-all text-xs sm:text-sm select-none ${
+                        isSelected
+                          ? "bg-indigo-50 border-indigo-600 text-indigo-700 font-semibold shadow-xs ring-2 ring-indigo-500/20"
+                          : "bg-white border-gray-300 text-gray-800 hover:bg-gray-50 hover:border-gray-400"
                       }`}
-                      onClick={() => setTargetRole(isVi ? role.titleVi : role.titleEn)}
+                      title={isVi ? role.descVi : role.descEn}
                     >
-                      <div className={styles.cardIconBox} style={{ background: "#f3f4f6" }}>
-                        <Target size={16} color="#d98236" />
-                      </div>
-                      <h4 className={styles.cardTitle}>{isVi ? role.titleVi : role.titleEn}</h4>
-                      <p className={styles.cardDesc}>{isVi ? role.descVi : role.descEn}</p>
-                    </div>
+                      {role.titleEn}
+                    </button>
                   );
                 })}
+                {filteredTargetRoles.length === 0 && (
+                  <div className="text-xs text-muted-foreground italic py-4 w-full text-center">
+                    {isVi ? "Không tìm thấy vị trí phù hợp với từ khóa. Bạn có thể tự nhập bên dưới!" : "No matching roles found. Enter your custom role below!"}
+                  </div>
+                )}
               </div>
+
+              {/* Currently Selected Role Preview Badge */}
+              {targetRole && (
+                <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500 font-medium">{isVi ? "Đang chọn mục tiêu:" : "Selected:"}</span>
+                    <strong className="text-indigo-600 font-bold text-sm">{targetRole}</strong>
+                  </div>
+                  <span className="text-gray-400 text-[11px]">
+                    {targetLevel.toUpperCase()}
+                  </span>
+                </div>
+              )}
 
               {/* Custom Target Role Input */}
               <div className={styles.customInputBox}>
@@ -700,7 +806,7 @@ export function UserOnboardingClient() {
                   className={styles.customInput}
                   value={targetRole}
                   onChange={(e) => setTargetRole(e.target.value)}
-                  placeholder={isVi ? "Nhập vị trí mục tiêu cụ thể (ví dụ: Staff Engineer, Technical Director...)" : "Enter specific target role..."}
+                  placeholder={isVi ? "Hoặc tự nhập chức danh mục tiêu khác (ví dụ: Staff Engineer, Technical Director...)" : "Or enter custom target role..."}
                 />
               </div>
 
@@ -727,7 +833,7 @@ export function UserOnboardingClient() {
                         : "Saving..."
                       : isVi
                       ? "Hoàn tất khảo sát"
-                      : "Finish Setup"}
+                      : "Continue"}
                   </span>
                   <ArrowRight size={15} />
                 </button>

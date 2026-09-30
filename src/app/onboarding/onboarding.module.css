@@ -2,6 +2,7 @@
 /* FULL-SCREEN SPLIT LAYOUT (Untitled UI Reference Layout)   */
 /* ======================================================== */
 .layout {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   display: flex;
   flex-direction: row;
   width: 100vw;

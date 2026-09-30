@@ -26,6 +26,7 @@ const NAV_ITEMS = [
   { href: "/", label: "HOME" },
   { href: "/practice", label: "MOCK INTERVIEW" },
   { href: "/questions", label: "QUESTION BANK" },
+  { href: "/courses", label: "COURSES" },
   { href: "/pricing", label: "PRICING" },
 ];
 
@@ -52,6 +53,7 @@ export default function Header() {
       { href: "/", label: lang === "vi" ? "TRANG CHỦ" : "HOME" },
       { href: "/practice", label: lang === "vi" ? "GIẢ LẬP PHỎNG VẤN" : "MOCK INTERVIEW" },
       { href: "/questions", label: lang === "vi" ? "NGÂN HÀNG CÂU HỎI" : "QUESTION BANK" },
+      { href: "/courses", label: lang === "vi" ? "KHÓA HỌC" : "COURSES" },
       { href: "/pricing", label: lang === "vi" ? "BẢNG GIÁ" : "PRICING" },
     ],
     [lang]

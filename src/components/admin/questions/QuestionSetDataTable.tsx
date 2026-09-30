@@ -1,5 +1,8 @@
 "use client";
 
+import { questionAdminApi } from "@/services/admin/questionAdminApi";
+import { Separator } from "@/components/admin/ui/separator";
+
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import {
@@ -9,6 +12,7 @@ import {
   Download,
   Eye,
   Trash2,
+  Edit2,
   CheckCircle2,
   Clock,
   RotateCcw,
@@ -72,8 +76,10 @@ import { MOCK_DOMAINS_LIST } from "@/mock/adminQuestionsMock";
 
 export function QuestionSetDataTable({
   initialSets = [],
+  onRefresh,
 }: {
   initialSets: QuestionSetItem[];
+  onRefresh?: () => void;
 }) {
   const [sets, setSets] = useState<QuestionSetItem[]>(initialSets);
   const [search, setSearch] = useState("");
@@ -85,6 +91,85 @@ export function QuestionSetDataTable({
   // Modals state
   const [previewSet, setPreviewSet] = useState<QuestionSetItem | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [editSet, setEditSet] = useState<QuestionSetItem | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    title: "",
+    description: "",
+    experience_level: "junior",
+    target_difficulty: 3,
+    estimated_duration_minutes: 20,
+    is_active: true,
+  });
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+
+  const handleOpenPreview = async (s: QuestionSetItem) => {
+    setPreviewSet({
+      ...s,
+      questions: s.questions || [],
+      tech_stack: s.tech_stack || [],
+    });
+    setIsLoadingPreview(true);
+    try {
+      const detail = await questionAdminApi.getQuestionSetDetail(s.set_id);
+      if (detail && detail.questions) {
+        setPreviewSet({
+          ...detail,
+          questions: detail.questions || [],
+          tech_stack: detail.tech_stack || [],
+        } as any);
+      }
+    } catch (e) {
+      console.warn("Failed to load question set detail:", e);
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
+  const handleOpenEdit = (s: QuestionSetItem) => {
+    setEditSet(s);
+    setEditFormData({
+      title: s.title,
+      description: s.description,
+      experience_level: s.experience_level || "junior",
+      target_difficulty: s.target_difficulty || 3,
+      estimated_duration_minutes: s.estimated_duration_minutes || 20,
+      is_active: s.is_active,
+    });
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editSet) return;
+    if (!editFormData.title.trim()) {
+      toast.error("Vui lòng nhập tên bộ đề");
+      return;
+    }
+
+    setIsSubmittingEdit(true);
+    try {
+      const updated = await questionAdminApi.updateQuestionSet(editSet.set_id, {
+        title: editFormData.title.trim(),
+        description: editFormData.description.trim(),
+        experience_level: editFormData.experience_level,
+        target_difficulty: editFormData.target_difficulty,
+        estimated_duration_minutes: editFormData.estimated_duration_minutes,
+        is_active: editFormData.is_active,
+      });
+
+      setSets((prev) =>
+        prev.map((s) => (s.set_id === editSet.set_id ? { ...s, ...updated } : s))
+      );
+      toast.success(`Cập nhật bộ đề #${editSet.set_id} thành công`);
+      setEditSet(null);
+      onRefresh?.();
+    } catch (err: any) {
+      toast.error(`Cập nhật bộ đề thất bại: ${err.message || "Lỗi server"}`);
+    } finally {
+      setIsSubmittingEdit(false);
+    }
+  };
 
   // Filter logic
   const filteredSets = useMemo(() => {
@@ -125,11 +210,18 @@ export function QuestionSetDataTable({
     setPage(1);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!deleteConfirmId) return;
-    setSets((prev) => prev.filter((s) => s.set_id !== deleteConfirmId));
-    toast.success(`Đã xóa bộ đề #${deleteConfirmId} khỏi hệ thống.`);
-    setDeleteConfirmId(null);
+    try {
+      await questionAdminApi.deleteQuestionSet(deleteConfirmId);
+      setSets((prev) => prev.filter((s) => s.set_id !== deleteConfirmId));
+      toast.success(`Đã xóa bộ đề #${deleteConfirmId} khỏi hệ thống.`);
+      onRefresh?.();
+    } catch (err: any) {
+      toast.error(`Xóa bộ đề thất bại: ${err.message || "Lỗi server"}`);
+    } finally {
+      setDeleteConfirmId(null);
+    }
   };
 
   const handleExportJSON = () => {
@@ -197,16 +289,7 @@ export function QuestionSetDataTable({
               <span>Xuất JSON</span>
             </Button>
 
-            <Button
-              asChild
-              size="sm"
-              className="h-9 gap-1.5 text-xs shadow-xs"
-            >
-              <Link href="/admin/questions/new">
-                <Plus className="size-3.5" />
-                <span>Tạo Bộ Câu Hỏi Mới</span>
-              </Link>
-            </Button>
+
           </div>
         </div>
 
@@ -298,13 +381,13 @@ export function QuestionSetDataTable({
                         #{s.set_id}
                       </TableCell>
 
-                      <TableCell>
-                        <div className="space-y-1 py-1">
-                          <div className="flex items-center gap-2">
+                      <TableCell className="max-w-[300px] md:max-w-[360px] xl:max-w-[440px] overflow-hidden">
+                        <div className="space-y-1 py-1 overflow-hidden">
+                          <div className="flex items-center gap-2 overflow-hidden">
                             <p
-                              className="font-bold text-foreground hover:text-primary cursor-pointer leading-snug line-clamp-1"
-                              onClick={() => setPreviewSet(s)}
-                              title="Bấm để xem danh sách câu hỏi trong bộ đề"
+                              className="font-bold text-foreground hover:text-primary cursor-pointer leading-snug truncate"
+                              onClick={() => handleOpenPreview(s)}
+                              title={s.title}
                             >
                               {s.title}
                             </p>
@@ -314,20 +397,20 @@ export function QuestionSetDataTable({
                               </Badge>
                             )}
                           </div>
-                          <p className="text-[11px] text-muted-foreground line-clamp-1">
+                          <p className="text-[11px] text-muted-foreground truncate" title={s.description}>
                             {s.description}
                           </p>
                         </div>
                       </TableCell>
 
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-semibold text-foreground truncate">
+                      <TableCell className="max-w-[180px] overflow-hidden">
+                        <div className="space-y-1 overflow-hidden">
+                          <div className="font-semibold text-foreground truncate" title={s.role_name || ""}>
                             {s.role_name}
                           </div>
                           <div className="flex flex-wrap gap-1">
-                            {s.tech_stack.slice(0, 3).map((tech, idx) => (
-                              <span key={idx} className="text-[10px] bg-muted px-1.5 py-0.2 rounded text-muted-foreground">
+                            {(s.tech_stack || []).slice(0, 3).map((tech, idx) => (
+                              <span key={idx} className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground truncate max-w-[100px]">
                                 {tech}
                               </span>
                             ))}
@@ -393,9 +476,13 @@ export function QuestionSetDataTable({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48 text-xs">
-                            <DropdownMenuItem onClick={() => setPreviewSet(s)}>
+                            <DropdownMenuItem onClick={() => handleOpenPreview(s)}>
                               <Eye className="size-3.5 mr-2" />
                               <span>Xem danh sách câu</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenEdit(s)}>
+                              <Edit2 className="size-3.5 mr-2" />
+                              <span>Chỉnh sửa bộ đề</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -449,58 +536,80 @@ export function QuestionSetDataTable({
       {/* Preview Question Set Drawer */}
       <Sheet open={!!previewSet} onOpenChange={(open) => !open && setPreviewSet(null)}>
         <SheetContent className="w-full sm:max-w-2xl overflow-y-auto p-0 text-xs">
-          {previewSet && (
-            <div className="flex flex-col h-full">
-              <SheetHeader className="p-6 pb-4 border-b bg-muted/20">
-                <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="outline" className="font-mono text-xs">#{previewSet.set_id}</Badge>
-                  <Badge variant="outline" className="capitalize">{previewSet.experience_level}</Badge>
-                  <Badge variant="secondary">{previewSet.questions.length} câu hỏi</Badge>
-                </div>
-                <SheetTitle className="text-base font-bold leading-snug">
-                  {previewSet.title}
-                </SheetTitle>
-                <SheetDescription className="text-xs">
-                  {previewSet.domain_name} · {previewSet.role_name} · Thời lượng: {previewSet.estimated_duration_minutes} phút
-                </SheetDescription>
-              </SheetHeader>
+          {previewSet && (() => {
+            const questionsList = previewSet.questions || [];
+            const techList = previewSet.tech_stack || [];
+            const qCount = previewSet.question_count || questionsList.length;
 
-              <div className="p-6 space-y-4 flex-1 overflow-y-auto">
-                <div className="space-y-1">
-                  <span className="font-bold text-foreground block">Công nghệ trọng tâm:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {previewSet.tech_stack.map((t, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-xs font-mono">{t}</Badge>
-                    ))}
+            return (
+              <div className="flex flex-col h-full">
+                <SheetHeader className="p-6 pb-4 border-b bg-muted/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant="outline" className="font-mono text-xs">#{previewSet.set_id}</Badge>
+                    <Badge variant="outline" className="capitalize">{previewSet.experience_level}</Badge>
+                    <Badge variant="secondary">{qCount} câu hỏi</Badge>
                   </div>
-                </div>
+                  <SheetTitle className="text-base font-bold leading-snug">
+                    {previewSet.title}
+                  </SheetTitle>
+                  <SheetDescription className="text-xs">
+                    {previewSet.domain_name} · {previewSet.role_name} · Thời lượng: {previewSet.estimated_duration_minutes} phút
+                  </SheetDescription>
+                </SheetHeader>
 
-                <Separator />
-
-                <div className="space-y-3">
-                  <span className="font-bold text-foreground block">
-                    Danh sách các câu hỏi trong bộ đề ({previewSet.questions.length} câu):
-                  </span>
-                  {previewSet.questions.map((q, idx) => (
-                    <div key={idx} className="p-3.5 rounded-xl border bg-card space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-primary">Câu #{idx + 1}</span>
-                        <Badge variant="outline" className="text-[10px] capitalize">{q.question_type}</Badge>
-                      </div>
-                      <p className="font-semibold text-foreground text-xs leading-relaxed">
-                        {q.question_text}
-                      </p>
-                      {q.intent && (
-                        <p className="text-[11px] text-muted-foreground">
-                          <strong>Mục tiêu:</strong> {q.intent}
-                        </p>
+                <div className="p-6 space-y-4 flex-1 overflow-y-auto">
+                  <div className="space-y-1">
+                    <span className="font-bold text-foreground block">Công nghệ trọng tâm:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {techList.length > 0 ? (
+                        techList.map((t, idx) => (
+                          <Badge key={idx} variant="secondary" className="text-xs font-mono">{t}</Badge>
+                        ))
+                      ) : (
+                        <span className="text-muted-foreground text-xs italic">Chưa cấu hình tag</span>
                       )}
                     </div>
-                  ))}
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <span className="font-bold text-foreground block">
+                      Danh sách các câu hỏi trong bộ đề ({qCount} câu):
+                    </span>
+
+                    {isLoadingPreview && questionsList.length === 0 ? (
+                      <div className="p-8 text-center text-muted-foreground flex items-center justify-center gap-2">
+                        <Sparkles className="size-4 animate-spin text-primary" />
+                        <span>Đang tải danh sách câu hỏi chi tiết từ máy chủ...</span>
+                      </div>
+                    ) : questionsList.length === 0 ? (
+                      <div className="p-6 text-center text-muted-foreground border rounded-xl bg-muted/10">
+                        Chưa có câu hỏi nào được gán vào bộ đề này.
+                      </div>
+                    ) : (
+                      questionsList.map((q, idx) => (
+                        <div key={idx} className="p-3.5 rounded-xl border bg-card space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-primary">Câu #{idx + 1}</span>
+                            <Badge variant="outline" className="text-[10px] capitalize">{q.question_type}</Badge>
+                          </div>
+                          <p className="font-semibold text-foreground text-xs leading-relaxed">
+                            {q.question_text}
+                          </p>
+                          {q.intent && (
+                            <p className="text-[11px] text-muted-foreground">
+                              <strong>Mục tiêu:</strong> {q.intent}
+                            </p>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </SheetContent>
       </Sheet>
 
@@ -525,6 +634,109 @@ export function QuestionSetDataTable({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Question Set Dialog */}
+      <Dialog open={editSet !== null} onOpenChange={(open) => !open && setEditSet(null)}>
+        <DialogContent className="sm:max-w-lg text-xs">
+          <form onSubmit={handleSaveEdit}>
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold">
+                Chỉnh Sửa Bộ Đề #{editSet?.set_id}
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Cập nhật thông tin tiêu đề, mô tả và cấu hình độ khó cho bộ đề phỏng vấn.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 py-3">
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold">Tên bộ đề phỏng vấn *</Label>
+                <Input
+                  required
+                  value={editFormData.title}
+                  onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                  placeholder="Ví dụ: Bộ đề Frontend React / Next.js - Senior"
+                  className="text-xs h-8"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold">Mô tả tóm tắt</Label>
+                <textarea
+                  value={editFormData.description}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                  rows={2}
+                  className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold">Cấp độ</Label>
+                  <Select
+                    value={editFormData.experience_level}
+                    onValueChange={(v) => setEditFormData({ ...editFormData, experience_level: v })}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fresher">Fresher</SelectItem>
+                      <SelectItem value="junior">Junior</SelectItem>
+                      <SelectItem value="mid">Mid-level</SelectItem>
+                      <SelectItem value="senior">Senior</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold">Thời lượng ước tính (phút)</Label>
+                  <Input
+                    type="number"
+                    min={5}
+                    max={180}
+                    value={editFormData.estimated_duration_minutes}
+                    onChange={(e) => setEditFormData({ ...editFormData, estimated_duration_minutes: Number(e.target.value) || 20 })}
+                    className="text-xs h-8"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t">
+                <span className="text-xs font-semibold">Trạng thái phát hành</span>
+                <Button
+                  type="button"
+                  variant={editFormData.is_active ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setEditFormData({ ...editFormData, is_active: !editFormData.is_active })}
+                  className="h-7 text-xs"
+                >
+                  {editFormData.is_active ? "Đang mở" : "Tạm dừng"}
+                </Button>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditSet(null)}
+                className="h-8 text-xs"
+              >
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmittingEdit}
+                className="h-8 text-xs gap-1.5"
+              >
+                <span>{isSubmittingEdit ? "Đang lưu..." : "Lưu thay đổi"}</span>
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
