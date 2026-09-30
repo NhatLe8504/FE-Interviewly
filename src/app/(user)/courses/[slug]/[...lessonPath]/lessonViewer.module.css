@@ -1,201 +1,189 @@
 
 /* =========================================================
-   FULLSCREEN APP LEARNING LAYOUT (BASED ON HOC.HTML)
-   Applied with our system's Luxury Warm Cream & Amber theme
+   NATURAL IN-FLOW LESSON LEARNING LAYOUT
+   Respects Global Transparent Header (no fixed overlapping headers)
+   Theme: Luxury Warm Cream & Amber
 ========================================================= */
 
-.learningApp {
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: #ffffff;
+.pageShell {
+  width: min(1400px, calc(100% - 48px));
+  margin-inline: auto;
+  padding: 104px 0 80px; /* Space for the floating transparent global Header */
   color: var(--ink);
-  overflow: hidden;
-  position: fixed;
-  inset: 0;
-  z-index: 100;
+  min-height: 100vh;
 }
 
 /* =========================================================
-   1. TOP HEADER BAR (Refined Luxury Theme - Light Warm Style)
+   1. INLINE CONTEXT TOOLBAR (REPLACES FIXED TOP HEADER)
 ========================================================= */
-.topHeader {
-  height: 56px;
-  background: #ffffff;
-  color: var(--ink);
+.contextBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  flex-shrink: 0;
-  z-index: 30;
-  border-bottom: 1px solid rgba(106, 72, 49, 0.14);
-  box-shadow: 0 2px 10px rgba(33, 25, 20, 0.03);
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(106, 72, 49, 0.14);
+  box-shadow: 0 4px 18px -6px rgba(33, 25, 20, 0.05);
+  margin-bottom: 24px;
 }
 
-.headerLeft {
+.contextLeft {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
   min-width: 0;
 }
 
 .backBtn {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: rgba(245, 239, 230, 0.75);
-  color: var(--ink);
-  border: 1px solid rgba(106, 72, 49, 0.18);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8b4513;
   text-decoration: none;
-  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(217, 130, 54, 0.1);
+  border: 1px solid rgba(217, 130, 54, 0.2);
+  transition: all 0.15s ease;
 }
 
 .backBtn:hover {
-  background: rgba(217, 130, 54, 0.15);
+  background: rgba(217, 130, 54, 0.2);
+}
+
+.divider {
+  color: rgba(106, 72, 49, 0.25);
+  font-size: 12px;
+}
+
+.chapterBadge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.lessonIndexBadge {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink);
+  background: rgba(33, 25, 20, 0.04);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.contextRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.progressPill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f5efe6;
+  border: 1px solid rgba(106, 72, 49, 0.12);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.progressMiniRing {
+  font-weight: 800;
+  color: #10b981;
+}
+
+.toolBtn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(106, 72, 49, 0.16);
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 11.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toolBtn:hover {
+  background: rgba(217, 130, 54, 0.1);
   border-color: #d98236;
   color: #8b4513;
 }
 
-.brandLogo {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
+.completeBtn {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 11.5px;
   font-weight: 800;
-  color: var(--ink);
-  text-decoration: none;
-  flex-shrink: 0;
-}
-
-.brandSparkle {
-  color: #d98236;
-}
-
-.courseHeaderTitle {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--ink);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding-left: 8px;
-  border-left: 1px solid rgba(106, 72, 49, 0.15);
-}
-
-@media (max-width: 768px) {
-  .courseHeaderTitle {
-    display: none;
-  }
-}
-
-.headerRight {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-shrink: 0;
-}
-
-.progressMain {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.progressRingWrap {
-  width: 34px;
-  height: 34px;
-  position: relative;
-  display: grid;
-  place-items: center;
-}
-
-.progressRingSvg {
-  transform: rotate(-90deg);
-  width: 100%;
-  height: 100%;
-}
-
-.progressCircleBg {
-  stroke: #e7e5e4;
-}
-
-.progressCircleActive {
-  stroke: #10b981;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.4s ease;
-}
-
-.progressRingText {
-  position: absolute;
-  font-size: 9.5px;
-  font-weight: 800;
-  color: var(--ink);
-}
-
-.progressLessonsText {
-  font-size: 12px;
-  color: var(--ink-soft);
-  font-weight: 600;
-}
-
-.headerActionBtn {
-  background: rgba(245, 239, 230, 0.6);
-  border: 1px solid rgba(106, 72, 49, 0.14);
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 700;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: #ecfdf5;
+  color: #065f46;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 999px;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
 }
 
-.headerActionBtn:hover {
-  background: rgba(217, 130, 54, 0.12);
-  border-color: #d98236;
-  color: #8b4513;
+.completeBtn:hover {
+  background: #d1fae5;
+}
+
+.completeBtnDone {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.25);
 }
 
 /* =========================================================
-   2. MIDDLE LEARNING BODY (Content-module in hoc.html)
+   2. MAIN TWO-COLUMN SPLIT LAYOUT (CANVAS + SIDEBAR)
 ========================================================= */
-.mainBody {
-  flex: 1;
+.splitLayout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (min-width: 1080px) {
+  .splitLayoutWithSidebar {
+    grid-template-columns: 1fr 380px;
+  }
+}
+
+/* Main Content Area */
+.mainCanvas {
   display: flex;
-  flex-direction: row;
-  overflow: hidden;
-  position: relative;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
 }
 
-/* Left / Main Content Container */
-.contentWrapper {
-  flex: 1;
-  height: calc(100vh - 52px - 54px);
-  overflow-y: auto;
-  overflow-x: hidden;
-  background: #faf8f5; /* Warm system cream background */
-  scroll-behavior: smooth;
-}
-
-/* Video Player Container - Rounded with Top & Side Insets */
+/* Video Player Card */
 .videoWrapper {
-  width: min(1040px, calc(100% - 48px));
-  margin: 28px auto 0; /* Thụt xuống từ header */
-  border-radius: 24px; /* Bo tròn thẻ video */
+  width: 100%;
+  border-radius: 22px;
   overflow: hidden;
   background: #000000;
   position: relative;
   border: 1.5px solid rgba(106, 72, 49, 0.2);
-  box-shadow: 0 16px 40px -12px rgba(33, 25, 20, 0.16);
+  box-shadow: 0 16px 40px -12px rgba(33, 25, 20, 0.15);
 }
 
 .videoStage {
@@ -214,117 +202,149 @@
   border: none;
 }
 
-/* Non-video reading header */
+/* Reading Hero Header (for non-video lessons) */
 .readingHeroHeader {
-  width: min(1040px, calc(100% - 48px));
-  margin: 28px auto 0;
-  padding: 36px 36px;
-  border-radius: 24px;
+  width: 100%;
+  padding: 32px 32px;
+  border-radius: 22px;
   background: #ffffff;
-  border: 1.5px solid rgba(106, 72, 49, 0.18);
-  box-shadow: 0 8px 30px -10px rgba(33, 25, 20, 0.06);
+  border: 1px solid rgba(106, 72, 49, 0.16);
+  box-shadow: 0 8px 30px -10px rgba(33, 25, 20, 0.05);
 }
 
-/* Content Below Player */
-.textContent {
-  width: min(1040px, calc(100% - 48px));
-  margin: 0 auto;
-  padding: 28px 0 64px;
-}
-
-.lessonTitle {
-  font-size: clamp(22px, 3vw, 30px);
-  font-weight: 800;
-  color: var(--ink);
-  line-height: 1.3;
-  margin: 0 0 8px;
-}
-
-.lessonMeta {
-  font-size: 12.5px;
-  color: var(--ink-muted);
-  margin: 0 0 20px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-/* Quick Action Toolbar Below Title */
-.quickActionsRow {
+/* Tab Switcher */
+.tabBar {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
-  padding-bottom: 20px;
-  border-bottom: 1px solid rgba(106, 72, 49, 0.12);
-  margin-bottom: 24px;
+  border-bottom: 2px solid rgba(106, 72, 49, 0.1);
+  padding-bottom: 4px;
 }
 
-.actionPillBtn {
-  padding: 7px 14px;
+.tabBtn {
+  padding: 10px 18px;
+  border-radius: 12px 12px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.tabBtn:hover {
+  color: var(--ink);
+  background: rgba(245, 239, 230, 0.5);
+}
+
+.tabBtnActive {
+  color: #8b4513 !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(106, 72, 49, 0.15);
+  border-bottom: 2px solid #ffffff;
+  margin-bottom: -6px;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.03);
+}
+
+/* Content Card */
+.contentCard {
+  padding: 32px;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 1px solid rgba(106, 72, 49, 0.14);
+  box-shadow: 0 4px 20px -8px rgba(33, 25, 20, 0.05);
+  line-height: 1.7;
+  font-size: 13.5px;
+}
+
+/* Bottom In-flow Navigation Bar */
+.bottomNavBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(106, 72, 49, 0.14);
+  box-shadow: 0 4px 18px -6px rgba(33, 25, 20, 0.05);
+  margin-top: 12px;
+}
+
+.navStepBtn {
+  height: 38px;
+  padding: 0 18px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 700;
-  border: 1px solid rgba(106, 72, 49, 0.16);
-  background: #ffffff;
-  color: var(--ink);
+  font-weight: 800;
+  letter-spacing: 0.03em;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
+  border: 1px solid rgba(106, 72, 49, 0.2);
+  background: #ffffff;
+  color: var(--ink);
+  text-decoration: none;
 }
 
-.actionPillBtn:hover {
-  background: rgba(217, 130, 54, 0.08);
-  border-color: #d98236;
+.navStepBtn:hover:not(:disabled) {
+  background: #fafaf9;
+  border-color: #8b4513;
   color: #8b4513;
 }
 
-.actionPillActive {
-  background: #8b4513 !important;
-  color: #ffffff !important;
-  border-color: transparent !important;
+.navStepBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-/* Lesson Article Box */
-.articleCard {
-  background: #ffffff;
-  border-radius: 20px;
-  border: 1px solid rgba(106, 72, 49, 0.14);
-  padding: 32px;
-  box-shadow: 0 4px 20px -8px rgba(33, 25, 20, 0.05);
-  font-size: 14px;
-  line-height: 1.75;
-  color: var(--ink);
+.navStepBtnPrimary {
+  background: linear-gradient(135deg, #d98236, #8b4513) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 14px rgba(139, 69, 19, 0.25);
+}
+
+.navStepBtnPrimary:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
 }
 
 /* =========================================================
-   3. RIGHT TRACKS SIDEBAR (Tracks-module in hoc.html)
+   3. RIGHT TRACKS SIDEBAR (STICKY PLAYLIST - HOC.HTML)
 ========================================================= */
 .tracksSidebar {
-  width: 380px;
-  height: calc(100vh - 52px - 54px);
+  border-radius: 22px;
   background: #ffffff;
-  border-left: 1px solid rgba(106, 72, 49, 0.14);
+  border: 1px solid rgba(106, 72, 49, 0.16);
+  box-shadow: 0 8px 30px -10px rgba(33, 25, 20, 0.07);
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
-  z-index: 25;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: sticky;
+  top: 96px;
+  max-height: calc(100vh - 120px);
+  overflow: hidden;
 }
 
 .tracksHeader {
-  padding: 16px 20px;
+  padding: 16px 18px;
   border-bottom: 1px solid rgba(106, 72, 49, 0.12);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(245, 239, 230, 0.45);
+  background: rgba(245, 239, 230, 0.5);
 }
 
 .tracksHeading {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 800;
   color: var(--ink);
   margin: 0;
@@ -349,7 +369,7 @@
 }
 
 .tracksSearchBox {
-  padding: 10px 16px;
+  padding: 10px 14px;
   border-bottom: 1px solid rgba(106, 72, 49, 0.08);
   position: relative;
 }
@@ -373,18 +393,24 @@
 .tracksBody {
   flex: 1;
   overflow-y: auto;
-  padding: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   scrollbar-width: thin;
 }
 
 /* Chapter Accordion Group */
 .trackItemWrapper {
-  border-bottom: 1px solid rgba(106, 72, 49, 0.08);
+  border-radius: 12px;
+  border: 1px solid rgba(106, 72, 49, 0.1);
+  overflow: hidden;
+  background: #ffffff;
 }
 
 .trackItemHeader {
   width: 100%;
-  padding: 14px 16px;
+  padding: 12px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -425,12 +451,12 @@
 }
 
 .stepItem {
-  padding: 11px 16px 11px 24px;
+  padding: 10px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  border-top: 1px solid rgba(106, 72, 49, 0.05);
+  border-top: 1px solid rgba(106, 72, 49, 0.06);
   text-decoration: none;
   color: var(--ink);
   font-size: 12px;
@@ -452,7 +478,7 @@
 .stepItemLeft {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex: 1;
   min-width: 0;
 }
@@ -500,85 +526,4 @@
   color: var(--ink-muted);
   flex-shrink: 0;
   font-weight: 500;
-}
-
-/* =========================================================
-   4. BOTTOM ACTION BAR (ActionBar-module in hoc.html)
-========================================================= */
-.actionBarWrapper {
-  height: 54px;
-  background: #f5efe6;
-  border-top: 1px solid rgba(106, 72, 49, 0.16);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  flex-shrink: 0;
-  z-index: 30;
-}
-
-.actionBarBtnGroup {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 auto;
-}
-
-.actionNavBtn {
-  height: 36px;
-  padding: 0 18px;
-  border-radius: 999px;
-  font-size: 11.5px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  border: 1px solid rgba(106, 72, 49, 0.2);
-  background: #ffffff;
-  color: var(--ink);
-}
-
-.actionNavBtn:hover:not(:disabled) {
-  background: #fafaf9;
-  border-color: #8b4513;
-  color: #8b4513;
-}
-
-.actionNavBtn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.actionNavBtnPrimary {
-  background: linear-gradient(135deg, #d98236, #8b4513) !important;
-  color: #ffffff !important;
-  border-color: transparent !important;
-  box-shadow: 0 2px 10px rgba(139, 69, 19, 0.2);
-}
-
-.actionNavBtnPrimary:hover:not(:disabled) {
-  opacity: 0.92;
-  transform: translateY(-1px);
-}
-
-.toggleTracksBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #8b4513;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 8px;
-  transition: background 0.15s ease;
-}
-
-.toggleTracksBtn:hover {
-  background: rgba(217, 130, 54, 0.1);
 }
