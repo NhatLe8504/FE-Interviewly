@@ -4,6 +4,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  ArrowLeft,
+  ArrowRight,
   ChevronLeft,
   ChevronRight,
   Play,
@@ -24,11 +26,8 @@ import {
   Edit3,
   Lightbulb,
   AlertTriangle,
-  Menu,
   List,
-  Eye,
-  MessageSquare,
-  HelpCircle as QuestionIcon,
+  Compass,
 } from "lucide-react";
 import { resolveLesson, type LessonContext, type ResolvedLesson } from "@/data/lessonResolver";
 import styles from "./lessonViewer.module.css";
@@ -48,10 +47,13 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
 
   const { course, currentLesson, allSections, flattenedLessons, currentIndex, totalLessons, prevLesson, nextLesson } = context;
 
-  // Sidebar visibility (matching hoc.html tracks)
+  // Sidebar visibility
   const [showTracks, setShowTracks] = useState<boolean>(true);
   const [tracksSearch, setTracksSearch] = useState<string>("");
   const [openChapterId, setOpenChapterId] = useState<string>(currentLesson.chapterId);
+
+  // Active Tab: "guide" | "practice" | "notes"
+  const [activeTab, setActiveTab] = useState<"guide" | "practice" | "notes">("guide");
 
   // Completed Lessons State in localStorage
   const storageKey = `completed_lessons_${slug}`;
@@ -112,11 +114,6 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
   const progressPercent = Math.round((completedCount / Math.max(1, totalLessons)) * 100);
   const isCurrentCompleted = completedIds.has(currentLesson.id);
 
-  // SVG Circular progress radius & circumference
-  const radius = 14;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
-
   // Filtered tracks for sidebar
   const filteredSections = useMemo(() => {
     if (!tracksSearch.trim()) return allSections;
@@ -130,91 +127,92 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
   }, [allSections, tracksSearch]);
 
   return (
-    <div className={styles.learningApp}>
+    <div className={styles.pageShell}>
       {/* =========================================================
-          1. TOP HEADER (Header-module in hoc.html)
+          1. INLINE CONTEXT TOOLBAR (REPLACES FIXED TOP HEADER)
+             Seamlessly flows below the global transparent header
          ========================================================= */}
-      <header className={styles.topHeader}>
-        <div className={styles.headerLeft}>
+      <div className={styles.contextBar}>
+        <div className={styles.contextLeft}>
           <Link
             href={`/courses/${slug}`}
             className={styles.backBtn}
             title="Quay lại trang chi tiết khóa học"
           >
-            <ChevronLeft size={18} />
+            <ArrowLeft size={13} />
+            <span>Về Lộ Trình: {course.title.split(" (")[0]}</span>
           </Link>
 
-          <Link href="/" className={styles.brandLogo}>
-            <span className={styles.brandSparkle}>✦</span>
-            <span>interviewly</span>
-          </Link>
+          <span className={styles.divider}>/</span>
+          <span className={styles.chapterBadge}>
+            {currentLesson.chapterTitle.split(": ")[0]}
+          </span>
 
-          <div className={styles.courseHeaderTitle}>
-            <span>{course.title}</span>
-          </div>
+          <span className={styles.divider}>/</span>
+          <span className={styles.lessonIndexBadge}>
+            Bài {currentIndex} / {totalLessons}
+          </span>
         </div>
 
-        <div className={styles.headerRight}>
-          {/* Progress Circular Widget (Matches hoc.html) */}
-          <div className={styles.progressMain}>
-            <div className={styles.progressRingWrap}>
-              <svg className={styles.progressRingSvg} viewBox="0 0 34 34">
-                <circle
-                  className={styles.progressCircleBg}
-                  strokeWidth="3"
-                  fill="transparent"
-                  r={radius}
-                  cx="17"
-                  cy="17"
-                />
-                <circle
-                  className={styles.progressCircleActive}
-                  strokeWidth="3"
-                  fill="transparent"
-                  r={radius}
-                  cx="17"
-                  cy="17"
-                  style={{
-                    strokeDasharray: circumference,
-                    strokeDashoffset: strokeDashoffset,
-                  }}
-                />
-              </svg>
-              <span className={styles.progressRingText}>{progressPercent}%</span>
-            </div>
-            <span className={styles.progressLessonsText}>
-              <strong>{completedCount}</strong>/{totalLessons} bài học
-            </span>
+        <div className={styles.contextRight}>
+          {/* Progress Pill */}
+          <div className={styles.progressPill}>
+            <span className={styles.progressMiniRing}>{progressPercent}%</span>
+            <span>Đã học {completedCount}/{totalLessons} bài</span>
           </div>
 
-          {/* Notes Button (Ghi chú in hoc.html) */}
+          {/* Notes Button */}
           <button
             type="button"
             onClick={() => setShowNotesDrawer(true)}
-            className={styles.headerActionBtn}
+            className={styles.toolBtn}
+            title="Ghi chú cá nhân cho bài học này"
           >
-            <Edit3 size={15} />
+            <Edit3 size={13} color="#8b4513" />
             <span>Ghi chú</span>
           </button>
 
-          {/* Guide / Help Button (Hướng dẫn in hoc.html) */}
+          {/* Guide / Help Button */}
           <button
             type="button"
             onClick={() => setShowHelpModal(true)}
-            className={styles.headerActionBtn}
+            className={styles.toolBtn}
+            title="Hướng dẫn phương pháp học"
           >
-            <QuestionIcon size={15} />
+            <HelpCircle size={13} />
             <span>Hướng dẫn</span>
           </button>
+
+          {/* Mark Complete Button */}
+          <button
+            type="button"
+            onClick={toggleCompleteCurrent}
+            className={`${styles.completeBtn} ${isCurrentCompleted ? styles.completeBtnDone : ""}`}
+            title="Đánh dấu bài học này đã hoàn thành"
+          >
+            <Check size={13} />
+            <span>{isCurrentCompleted ? "✓ Đã hoàn thành" : "Đánh dấu đã học"}</span>
+          </button>
+
+          {/* Toggle Sidebar Button */}
+          <button
+            type="button"
+            onClick={() => setShowTracks(!showTracks)}
+            className={styles.toolBtn}
+            title={showTracks ? "Thu gọn mục lục bài học" : "Mở mục lục bài học"}
+          >
+            <List size={13} />
+            <span>{showTracks ? "Ẩn mục lục" : "Hiện mục lục"}</span>
+          </button>
         </div>
-      </header>
+      </div>
 
       {/* =========================================================
-          2. MIDDLE MAIN LEARNING BODY (Content + Tracks Sidebar)
+          2. MAIN TWO-COLUMN SPLIT LAYOUT (CANVAS + SIDEBAR)
          ========================================================= */}
-      <div className={styles.mainBody}>
-        {/* Left / Center Content Wrapper */}
-        <div className={styles.contentWrapper}>
+      <div className={`${styles.splitLayout} ${showTracks ? styles.splitLayoutWithSidebar : ""}`}>
+        {/* Left / Center Canvas */}
+        <div className={styles.mainCanvas}>
           {/* Video Player or Reading Hero */}
           {currentLesson.videoUrl ? (
             <div className={styles.videoWrapper}>
@@ -247,111 +245,118 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
             </div>
           )}
 
-          {/* Text Content Below Player (Video-module__content in hoc.html) */}
-          <div className={styles.textContent}>
-            <div style={{ marginBottom: 16 }}>
-              <h1 className={styles.lessonTitle}>{currentLesson.title}</h1>
-              <div className={styles.lessonMeta}>
-                <span>Cập nhật tháng 10 năm 2026</span>
-                <span>•</span>
-                <span>Thời lượng ~{currentLesson.durationMinutes} phút</span>
-                <span>•</span>
-                <span style={{ color: "#8b4513", fontWeight: 700 }}>
-                  {currentLesson.chapterTitle}
+          {/* Tab Switcher */}
+          <div className={styles.tabBar}>
+            <button
+              type="button"
+              onClick={() => setActiveTab("guide")}
+              className={`${styles.tabBtn} ${activeTab === "guide" ? styles.tabBtnActive : ""}`}
+            >
+              <BookOpen size={14} />
+              <span>Nội Dung &amp; Phân Tích</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("practice")}
+              className={`${styles.tabBtn} ${activeTab === "practice" ? styles.tabBtnActive : ""}`}
+            >
+              <Sparkles size={14} color="#d98236" />
+              <span>Thực Hành Cùng AI Coach</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("notes")}
+              className={`${styles.tabBtn} ${activeTab === "notes" ? styles.tabBtnActive : ""}`}
+            >
+              <Edit3 size={14} />
+              <span>Bóc Băng &amp; Ghi Chú</span>
+            </button>
+          </div>
+
+          {/* TAB 1: GUIDE */}
+          {activeTab === "guide" && (
+            <div className={styles.contentCard}>
+              <div style={{ marginBottom: 20 }}>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--ink)", margin: "0 0 6px" }}>
+                  {currentLesson.title}
+                </h2>
+                <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+                  Chương trình chuẩn hóa phỏng vấn quốc tế · Biên soạn bởi chuyên gia Big Tech
                 </span>
               </div>
 
-              {/* Quick Action Pill Buttons */}
-              <div className={styles.quickActionsRow}>
-                <button
-                  type="button"
-                  onClick={() => setShowNotesDrawer(true)}
-                  className={styles.actionPillBtn}
-                >
-                  <Edit3 size={13} color="#8b4513" />
-                  <span>Thêm ghi chú bài học</span>
-                </button>
+              {/* Core Breakdown */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <p style={{ margin: 0 }}>
+                  Trong bài học này, chúng ta sẽ tập trung vào phương pháp tiếp cận có hệ thống để trả lời các câu hỏi phỏng vấn hóc búa nhất. Các phỏng vấn viên cấp cao tại Google, Meta, Stripe không tìm kiếm một câu trả lời học vẹt, mà họ đánh giá <strong>tư duy giải quyết vấn đề (Problem-Solving Framework)</strong>, năng lực làm chủ tình huống và độ đĩnh đạc khi giao tiếp.
+                </p>
 
-                <Link
-                  href="/practice"
-                  className={styles.actionPillBtn}
-                  style={{ textDecoration: "none" }}
-                >
-                  <Mic size={13} color="#d98236" />
-                  <span>Bật mic thực hành AI Coach</span>
-                </Link>
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: "#8b4513", margin: "12px 0 6px" }}>
+                  1. Khung Tư Duy 3 Bước (3-Step Execution Framework)
+                </h3>
+                <ul style={{ paddingLeft: 20, margin: "0 0 8px", display: "flex", flexDirection: "column", gap: 8 }}>
+                  <li>
+                    <strong>Bước 1 (Clarify &amp; Scope):</strong> Đặt câu hỏi làm rõ các giả định và phạm vi trước khi đưa ra câu trả lời. Xác định rõ các giới hạn kỹ thuật (Constraints) và chỉ số thành công.
+                  </li>
+                  <li>
+                    <strong>Bước 2 (High-Level Architecture / Strategy):</strong> Trình bày bức tranh tổng thể và chiến lược tiếp cận trước khi đi vào chi tiết, chứng minh khả năng bao quát toàn diện.
+                  </li>
+                  <li>
+                    <strong>Bước 3 (Trade-offs &amp; Quantified Impact):</strong> Phân tích các đánh đổi (Trade-offs) giữa các phương án và dẫn chứng số liệu định lượng cụ thể.
+                  </li>
+                </ul>
 
-                <button
-                  type="button"
-                  onClick={toggleCompleteCurrent}
-                  className={`${styles.actionPillBtn} ${isCurrentCompleted ? styles.actionPillActive : ""}`}
-                >
-                  <Check size={13} />
-                  <span>{isCurrentCompleted ? "✓ Đã hoàn thành bài" : "Đánh dấu đã học xong"}</span>
-                </button>
+                {/* Key Takeaways Box */}
+                <div style={{ padding: "20px 24px", borderRadius: 16, background: "#f0fdf4", border: "1.5px solid #bbf7d0", margin: "20px 0" }}>
+                  <h4 style={{ margin: "0 0 8px", fontSize: 14.5, fontWeight: 800, color: "#166534", display: "flex", alignItems: "center", gap: 6 }}>
+                    <Lightbulb size={16} /> Điểm Mấu Chốt Cần Ghi Nhớ (Key Takeaways):
+                  </h4>
+                  <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "#14532d", lineHeight: 1.65 }}>
+                    {currentLesson.keyTakeaways?.map((item, idx) => (
+                      <li key={idx}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Pitfalls Box */}
+                <div style={{ padding: "20px 24px", borderRadius: 16, background: "#fffaf5", border: "1.5px solid #fed7aa", margin: "20px 0" }}>
+                  <h4 style={{ margin: "0 0 8px", fontSize: 14.5, fontWeight: 800, color: "#c2410c", display: "flex", alignItems: "center", gap: 6 }}>
+                    <AlertTriangle size={16} /> Các Lỗi Phổ Biến Cần Tránh (Common Pitfalls):
+                  </h4>
+                  <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "#7c2d12", lineHeight: 1.65 }}>
+                    {currentLesson.pitfalls?.map((item, idx) => (
+                      <li key={idx}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </div>
+          )}
 
-            {/* Lesson Article Card */}
-            <div className={styles.articleCard}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--ink)", margin: "0 0 14px" }}>
-                Hướng Dẫn Trọng Tâm &amp; Phân Tích Phương Pháp
-              </h3>
-
-              <p style={{ margin: "0 0 16px" }}>
-                Chào mừng bạn đến với bài học <strong>{currentLesson.title}</strong>. Trong bài học này, chúng ta sẽ phân tích sâu các tiêu chí cốt lõi mà các phỏng vấn viên cấp cao tại Google, Meta, Amazon và Stripe tìm kiếm khi đánh giá ứng viên. Thay vì học thuộc lòng kịch bản mẫu, bài học trang bị cho bạn tư duy giải quyết vấn đề có phương pháp (Structured Problem Solving).
-              </p>
-
-              <h4 style={{ fontSize: 16, fontWeight: 800, color: "#8b4513", margin: "20px 0 10px" }}>
-                1. Khung Tư Duy 3 Bước (3-Step Execution Framework)
-              </h4>
-              <ul style={{ paddingLeft: 22, margin: "0 0 18px", display: "flex", flexDirection: "column", gap: 8 }}>
-                <li>
-                  <strong>Bước 1 (Clarify &amp; Scope):</strong> Đặt câu hỏi làm rõ các giả định và phạm vi trước khi đưa ra câu trả lời. Xác định rõ các giới hạn kỹ thuật (Constraints) và chỉ số thành công.
-                </li>
-                <li>
-                  <strong>Bước 2 (High-Level Architecture / Strategy):</strong> Trình bày bức tranh tổng thể và chiến lược tiếp cận trước khi đi vào chi tiết, chứng minh khả năng bao quát toàn diện.
-                </li>
-                <li>
-                  <strong>Bước 3 (Trade-offs &amp; Quantified Impact):</strong> Phân tích các đánh đổi (Trade-offs) giữa các phương án và dẫn chứng số liệu định lượng cụ thể.
-                </li>
-              </ul>
-
-              {/* Key Takeaways Box */}
-              <div style={{ padding: "20px 24px", borderRadius: 16, background: "#f0fdf4", border: "1.5px solid #bbf7d0", margin: "24px 0" }}>
-                <h4 style={{ margin: "0 0 8px", fontSize: 14.5, fontWeight: 800, color: "#166534", display: "flex", alignItems: "center", gap: 6 }}>
-                  <Lightbulb size={16} /> Điểm Mấu Chốt Cần Ghi Nhớ (Key Takeaways):
-                </h4>
-                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "#14532d", lineHeight: 1.65 }}>
-                  {currentLesson.keyTakeaways?.map((item, idx) => (
-                    <li key={idx}>{item}</li>
-                  ))}
-                </ul>
+          {/* TAB 2: PRACTICE WITH AI */}
+          {activeTab === "practice" && (
+            <div className={styles.contentCard}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <Sparkles size={20} color="#d98236" />
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "var(--ink)" }}>
+                    Bài Tập Tình Huống Thực Chiến Cùng AI Coach
+                  </h3>
+                  <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)" }}>
+                    Áp dụng ngay kiến thức vừa học vào trả lời câu hỏi phỏng vấn chuẩn hóa.
+                  </p>
+                </div>
               </div>
 
-              {/* Pitfalls Box */}
-              <div style={{ padding: "20px 24px", borderRadius: 16, background: "#fffaf5", border: "1.5px solid #fed7aa", margin: "24px 0" }}>
-                <h4 style={{ margin: "0 0 8px", fontSize: 14.5, fontWeight: 800, color: "#c2410c", display: "flex", alignItems: "center", gap: 6 }}>
-                  <AlertTriangle size={16} /> Các Lỗi Phổ Biến Cần Tránh (Common Pitfalls):
-                </h4>
-                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "#7c2d12", lineHeight: 1.65 }}>
-                  {currentLesson.pitfalls?.map((item, idx) => (
-                    <li key={idx}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Practice Exercise & STAR Guidance */}
+              {/* Practice Prompt Card */}
               {currentLesson.practiceQuestion && (
-                <div style={{ marginTop: 28, padding: "24px", borderRadius: 18, background: "rgba(245, 239, 230, 0.5)", border: "1.5px solid rgba(106, 72, 49, 0.16)" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                    <Sparkles size={16} color="#d98236" />
-                    <span style={{ fontSize: 11, fontWeight: 800, color: "#8b4513", textTransform: "uppercase" }}>
-                      Bài Tập Tình Huống Kèm Khung STAR
-                    </span>
-                  </div>
-
-                  <h4 style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", margin: "0 0 8px" }}>
+                <div style={{ padding: 22, borderRadius: 18, background: "rgba(245, 239, 230, 0.45)", border: "1.5px solid rgba(106, 72, 49, 0.16)", marginBottom: 24 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 4, background: "rgba(217, 130, 54, 0.14)", color: "#8b4513", textTransform: "uppercase" }}>
+                    Đề Bài Phỏng Vấn Thực Tế
+                  </span>
+                  <h4 style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", margin: "8px 0 8px" }}>
                     {currentLesson.practiceQuestion.prompt}
                   </h4>
                   <p style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 16px", fontStyle: "italic" }}>
@@ -379,8 +384,8 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
 
                   <Link
                     href="/practice"
-                    className={styles.actionNavBtn}
-                    style={{ background: "linear-gradient(135deg, #d98236, #8b4513)", color: "#ffffff", border: "none", textDecoration: "none" }}
+                    className={styles.completeBtn}
+                    style={{ background: "linear-gradient(135deg, #d98236, #8b4513)", color: "#ffffff", textDecoration: "none", padding: "10px 20px" }}
                   >
                     <Mic size={14} />
                     <span>Luyện Phỏng Vấn Thử Câu Này Cùng AI Coach</span>
@@ -390,7 +395,7 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
 
               {/* In-lesson Quiz */}
               {currentLesson.quiz && (
-                <div style={{ marginTop: 24, padding: "22px", borderRadius: 18, background: "#ffffff", border: "1.5px solid rgba(106, 72, 49, 0.15)" }}>
+                <div style={{ padding: 22, borderRadius: 18, background: "#ffffff", border: "1.5px solid rgba(106, 72, 49, 0.15)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                     <HelpCircle size={16} color="#d98236" />
                     <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: "#8b4513" }}>
@@ -469,8 +474,8 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
                       type="button"
                       disabled={!selectedQuizOpt}
                       onClick={() => setIsQuizSubmitted(true)}
-                      className={styles.actionNavBtn}
-                      style={{ marginTop: 14, background: "#8b4513", color: "#ffffff", border: "none" }}
+                      className={styles.toolBtn}
+                      style={{ marginTop: 14, background: "#8b4513", color: "#ffffff", border: "none", padding: "8px 18px" }}
                     >
                       <span>Kiểm Tra Đáp Án</span>
                     </button>
@@ -478,29 +483,125 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
                 </div>
               )}
             </div>
+          )}
+
+          {/* TAB 3: TRANSCRIPT & NOTES */}
+          {activeTab === "notes" && (
+            <div className={styles.contentCard}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
+                {/* Transcript */}
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
+                    <FileText size={16} color="#d98236" />
+                    <span>Nội Dung Bóc Băng Bài Giảng</span>
+                  </h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {currentLesson.transcript?.map((t, idx) => (
+                      <div key={idx} style={{ padding: 12, borderRadius: 12, background: "#fafaf9", border: "1px solid #e7e5e4" }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: "#d98236", display: "inline-block", marginBottom: 4 }}>
+                          [{t.time}]
+                        </span>
+                        <p style={{ margin: "0 0 4px", fontSize: 12.5, color: "var(--ink)", lineHeight: 1.5 }}>
+                          {t.textVi}
+                        </p>
+                        <p style={{ margin: 0, fontSize: 11.5, color: "var(--ink-muted)", fontStyle: "italic" }}>
+                          {t.textEn}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Personal Notes */}
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8 }}>
+                    <Edit3 size={16} color="#d98236" />
+                    <span>Ghi Chú Cá Nhân Của Bạn</span>
+                  </h3>
+                  <textarea
+                    rows={12}
+                    value={personalNote}
+                    onChange={(e) => handleSaveNote(e.target.value)}
+                    placeholder="Ghi lại những ý tưởng hoặc câu trả lời đúc kết... (Tự động lưu vào trình duyệt)"
+                    style={{
+                      width: "100%",
+                      padding: 14,
+                      borderRadius: 12,
+                      border: "1px solid rgba(106, 72, 49, 0.2)",
+                      background: "#fafaf9",
+                      fontSize: 13,
+                      lineHeight: 1.6,
+                      outline: "none",
+                    }}
+                  />
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8, fontSize: 11, color: "var(--ink-muted)" }}>
+                    <span>✓ Tự động lưu tức thời</span>
+                    <button
+                      type="button"
+                      onClick={() => handleSaveNote("")}
+                      style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 11 }}
+                    >
+                      Xóa ghi chú
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Bottom In-Flow Navigation Bar */}
+          <div className={styles.bottomNavBar}>
+            <button
+              type="button"
+              disabled={!prevLesson}
+              onClick={() => prevLesson && router.push(prevLesson.href)}
+              className={styles.navStepBtn}
+            >
+              <ChevronLeft size={16} />
+              <span>BÀI TRƯỚC</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleCompleteCurrent}
+              className={`${styles.completeBtn} ${isCurrentCompleted ? styles.completeBtnDone : ""}`}
+            >
+              <Check size={14} />
+              <span>{isCurrentCompleted ? "✓ Đã hoàn thành bài này" : "Đánh dấu hoàn thành"}</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={!nextLesson}
+              onClick={() => nextLesson && router.push(nextLesson.href)}
+              className={`${styles.navStepBtn} ${styles.navStepBtnPrimary}`}
+            >
+              <span>BÀI TIẾP THEO</span>
+              <ChevronRight size={16} />
+            </button>
           </div>
         </div>
 
         {/* =========================================================
-            3. RIGHT TRACKS SIDEBAR (Tracks-module in hoc.html)
+            3. RIGHT TRACKS SIDEBAR (Course Playlist)
            ========================================================= */}
         {showTracks && (
           <aside className={styles.tracksSidebar}>
-            <header className={styles.tracksHeader}>
+            <div className={styles.tracksHeader}>
               <h2 className={styles.tracksHeading}>Nội dung khóa học</h2>
               <button
                 type="button"
                 onClick={() => setShowTracks(false)}
                 className={styles.closeTracksBtn}
-                title="Đóng nội dung khóa học"
+                title="Đóng thanh nội dung"
               >
                 <X size={15} />
               </button>
-            </header>
+            </div>
 
             {/* Search inside tracks */}
             <div className={styles.tracksSearchBox}>
-              <Search size={13} style={{ position: "absolute", left: 26, top: "50%", transform: "translateY(-50%)", color: "var(--ink-muted)" }} />
+              <Search size={13} style={{ position: "absolute", left: 24, top: "50%", transform: "translateY(-50%)", color: "var(--ink-muted)" }} />
               <input
                 type="text"
                 placeholder="Tìm bài học trong khóa..."
@@ -523,15 +624,15 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
                       onClick={() => setOpenChapterId(isOpen ? "" : sec.id)}
                       className={`${styles.trackItemHeader} ${isOpen ? styles.trackItemHeaderOpen : ""}`}
                     >
-                      <div style={{ flex: 1, paddingRight: 8 }}>
+                      <div style={{ flex: 1, paddingRight: 6 }}>
                         <div className={styles.trackItemTitle}>
                           {sec.title}
                         </div>
                         <div className={styles.trackItemStats}>
-                          {chapterDone}/{sec.lessons.length} | {sec.lessons.reduce((acc, l) => acc + l.durationMinutes, 0)} phút
+                          {chapterDone}/{sec.lessons.length} bài | {sec.lessons.reduce((acc, l) => acc + l.durationMinutes, 0)} phút
                         </div>
                       </div>
-                      {isOpen ? <ChevronUp size={16} color="#8b4513" /> : <ChevronDown size={16} color="#8b4513" />}
+                      {isOpen ? <ChevronUp size={15} color="#8b4513" /> : <ChevronDown size={15} color="#8b4513" />}
                     </button>
 
                     {isOpen && (
@@ -575,43 +676,6 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
           </aside>
         )}
       </div>
-
-      {/* =========================================================
-          4. BOTTOM FIXED ACTION BAR (ActionBar-module in hoc.html)
-         ========================================================= */}
-      <footer className={styles.actionBarWrapper}>
-        <div className={styles.actionBarBtnGroup}>
-          <button
-            type="button"
-            disabled={!prevLesson}
-            onClick={() => prevLesson && router.push(prevLesson.href)}
-            className={styles.actionNavBtn}
-          >
-            <ChevronLeft size={16} />
-            <span>BÀI TRƯỚC</span>
-          </button>
-
-          <button
-            type="button"
-            disabled={!nextLesson}
-            onClick={() => nextLesson && router.push(nextLesson.href)}
-            className={`${styles.actionNavBtn} ${styles.actionNavBtnPrimary}`}
-          >
-            <span>BÀI TIẾP THEO</span>
-            <ChevronRight size={16} />
-          </button>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setShowTracks(!showTracks)}
-          className={styles.toggleTracksBtn}
-          title="Mở / đóng thanh nội dung khóa học"
-        >
-          <span>{currentLesson.chapterTitle.split(": ")[0]}</span>
-          <Menu size={16} />
-        </button>
-      </footer>
 
       {/* Slide-over Notes Drawer */}
       {showNotesDrawer && (
@@ -682,7 +746,7 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
               <button
                 type="button"
                 onClick={() => setShowNotesDrawer(false)}
-                className={styles.actionNavBtn}
+                className={styles.toolBtn}
                 style={{ height: 32, fontSize: 11.5 }}
               >
                 Đóng
@@ -728,13 +792,13 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
               <li><strong>Xem video / đọc bài:</strong> Nắm chắc khung tư duy 3 bước và các mẫu câu hỏi phỏng vấn chuẩn hóa.</li>
               <li><strong>Thực hành STAR:</strong> Tại mỗi bài tập tình huống, hãy phác thảo nhanh 4 yếu tố: Bối cảnh, Nhiệm vụ, Hành động, Kết quả.</li>
               <li><strong>Phỏng vấn thử cùng AI:</strong> Bấm nút mic để vào phòng giả lập, trả lời trực tiếp bằng giọng nói để AI đo tốc độ WPM và chấm điểm Rubric.</li>
-              <li><strong>Đánh dấu hoàn thành:</strong> Bấm nút hoàn thành trên thanh điều hướng để hệ thống ghi nhận tiến độ vào chứng chỉ của bạn.</li>
+              <li><strong>Đánh dấu hoàn thành:</strong> Bấm nút hoàn thành trên thanh công cụ để hệ thống ghi nhận tiến độ vào chứng chỉ của bạn.</li>
             </ul>
             <button
               type="button"
               onClick={() => setShowHelpModal(false)}
-              className={styles.actionNavBtn}
-              style={{ width: "100%", justifyContent: "center", background: "#8b4513", color: "#ffffff", border: "none" }}
+              className={styles.toolBtn}
+              style={{ width: "100%", justifyContent: "center", background: "#8b4513", color: "#ffffff", border: "none", height: 38 }}
             >
               Đã hiểu, tiếp tục học
             </button>
