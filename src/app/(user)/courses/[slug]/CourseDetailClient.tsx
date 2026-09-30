@@ -25,15 +25,17 @@ import {
   Compass,
   ArrowRight,
   ShieldCheck,
-  Search,
-  Video,
-  Flame,
-  GraduationCap,
+  Plus,
+  Minus,
+  Play,
+  Monitor,
+  Calendar,
+  X,
 } from "lucide-react";
 import { COURSES_DATA } from "@/data/coursesData";
-import { EM_COURSE_SECTIONS } from "@/data/emCourseCurriculum";
+import { getCourseCurriculum, type CourseCurriculumSection, type ResolvedLesson } from "@/data/lessonResolver";
 import type { CourseItem } from "@/types/course";
-import styles from "../courses.module.css";
+import styles from "./courseDetail.module.css";
 
 interface CourseDetailClientProps {
   slug: string;
@@ -41,489 +43,402 @@ interface CourseDetailClientProps {
 
 export default function CourseDetailClient({ slug }: CourseDetailClientProps) {
   const router = useRouter();
-  const [copiedLink, setCopiedLink] = useState(false);
-  const [openModuleId, setOpenModuleId] = useState<string>("em-intro");
-  const [lessonSearch, setLessonSearch] = useState<string>("");
-  const [selectedSectionFilter, setSelectedSectionFilter] = useState<string>("all");
 
-  const course: CourseItem =
-    COURSES_DATA.find((c) => c.slug === slug) || COURSES_DATA[0];
+  // Load course and curriculum
+  const { course, sections, flattened } = useMemo(() => {
+    return getCourseCurriculum(slug);
+  }, [slug]);
 
-  const isEM = slug === "engineering-management";
+  // Video Preview Modal State
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
-  const handleCopy = () => {
-    if (typeof window !== "undefined") {
-      navigator.clipboard.writeText(window.location.href);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
+  // Accordion Expand/Collapse All
+  const [expandedChapterIds, setExpandedChapterIds] = useState<Set<string>>(() => {
+    return new Set(sections.map((s) => s.id));
+  });
+
+  const toggleChapter = (chapterId: string) => {
+    setExpandedChapterIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(chapterId)) {
+        next.delete(chapterId);
+      } else {
+        next.add(chapterId);
+      }
+      return next;
+    });
+  };
+
+  const isAllExpanded = expandedChapterIds.size === sections.length;
+  const toggleAllChapters = () => {
+    if (isAllExpanded) {
+      setExpandedChapterIds(new Set());
+    } else {
+      setExpandedChapterIds(new Set(sections.map((s) => s.id)));
     }
   };
 
-  // Filter lessons in EM course
-  const filteredSections = useMemo(() => {
-    if (!isEM) return [];
-    return EM_COURSE_SECTIONS.map((sec) => {
-      if (selectedSectionFilter !== "all" && sec.id !== selectedSectionFilter) {
-        return { ...sec, lessons: [] };
-      }
-      if (!lessonSearch.trim()) return sec;
-      const kw = lessonSearch.trim().toLowerCase();
-      const matched = sec.lessons.filter(
-        (l) => l.title.toLowerCase().includes(kw)
-      );
-      return { ...sec, lessons: matched };
-    }).filter((sec) => sec.lessons.length > 0);
-  }, [isEM, selectedSectionFilter, lessonSearch]);
+  // FAQ Accordion State
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
-  const totalFilteredLessons = useMemo(() => {
-    return filteredSections.reduce((acc, s) => acc + s.lessons.length, 0);
-  }, [filteredSections]);
+  // Related Courses
+  const relatedCourses = useMemo(() => {
+    return COURSES_DATA.filter((c) => c.slug !== slug).slice(0, 3);
+  }, [slug]);
+
+  const firstLesson = flattened[0];
+  const firstLessonUrl = firstLesson ? firstLesson.href : `/courses/${slug}`;
+
+  // Default "Bạn sẽ học được gì" items based on course
+  const defaultLearningOutcomes = [
+    `Nắm vững bản đồ các vòng phỏng vấn tuyển dụng ${course.role} tại các tập đoàn công nghệ hàng đầu (Google, Meta, OpenAI...).`,
+    "Làm chủ phương pháp trả lời STAR có cấu trúc chặt chẽ, tư duy phân tích rủi ro và giải pháp kỹ thuật tối ưu.",
+    "Bí quyết trả lời vòng thiết kế kiến trúc hệ thống (System Design) và đào sâu các đánh đổi (Trade-offs) thực tế.",
+    "Khắc phục triệt để các lỗi thường gặp: Nói ngập ngừng, lạm dụng từ đệm, nói lan man không có số liệu định lượng.",
+    "Tự tin trả lời vòng phỏng vấn văn hóa & hành vi (Behavioral Round) theo các tiêu chuẩn Leadership Principles.",
+    "Được chấm điểm trực tiếp và nhận feedback tức thì từ AI Coach theo thang điểm Rubric quốc tế.",
+  ];
+
+  const outcomes = course.highlights && course.highlights.length > 0 ? course.highlights : defaultLearningOutcomes;
+
+  const faqs = [
+    {
+      q: `Học xong khóa ${course.title} có cơ hội trúng tuyển Big Tech không?`,
+      a: `Hoàn toàn có thể. Khóa học được thiết kế bám sát các câu hỏi phỏng vấn thực tế và tiêu chí đánh giá của phỏng vấn viên cấp cao tại Google, Meta, Amazon và Stripe. Hàng nghìn học viên đã áp dụng thành công các khung tư duy và bài tập STAR trong khóa học để nhận offer mức lương hấp dẫn.`,
+    },
+    {
+      q: "Khóa học này phù hợp với đối tượng nào?",
+      a: `Khóa học được tối ưu cho các kỹ sư, chuyên viên từ trình độ ${course.levelLabel} đang chuẩn bị nhảy việc, chuyển đổi vai trò hoặc muốn nâng cấp tư duy phỏng vấn để đạt level Senior / Lead / Manager.`,
+    },
+    {
+      q: "Quy trình học và giả lập phỏng vấn cùng AI Coach hoạt động ra sao?",
+      a: "Bạn sẽ học lý thuyết và case study qua từng bài học. Sau đó, tại mỗi chuyên đề, bạn có thể bấm nút 'Thực hành cùng AI Coach' để bật micro trả lời thử, hệ thống AI sẽ phân tích nhịp nói (WPM), phát hiện từ đệm và chấm điểm chi tiết theo thang Rubric 100 điểm.",
+    },
+    {
+      q: "Tôi có được cấp chứng chỉ sau khi hoàn thành khóa học?",
+      a: "Có. Sau khi bạn hoàn thành 100% bài học và vượt qua các bài kiểm tra thực hành, hệ thống sẽ cấp Chứng chỉ Xác thực Hoàn thành Khóa học (Certificate of Completion) có mã định danh để bạn đính kèm vào CV và LinkedIn.",
+    },
+  ];
 
   return (
-    <div className={styles.pageShell}>
-      {/* Top Back Navigation */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
-        <Link
-          href="/courses"
-          className={styles.categoryPill}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
-        >
-          <ArrowLeft size={14} />
-          <span>Thư viện khóa học</span>
-        </Link>
+    <div className={styles.pageWrapper}>
+      <div className={styles.container}>
+        {/* 2-Column Responsive Grid (Matches chitiet.html exactly) */}
+        <div className={styles.detailGrid}>
+          {/* =========================================================
+              LEFT COLUMN: MAIN CONTENT (col-9 in chitiet.html)
+             ========================================================= */}
+          <main className={styles.mainContent}>
+            {/* Header Title & Meta */}
+            <div className={styles.headerSection}>
+              <h1 className={styles.courseTitle}>{course.title}</h1>
+              <p className={styles.courseSubtitle}>{course.description}</p>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button
-            type="button"
-            onClick={handleCopy}
-            className={styles.categoryPill}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-          >
-            {copiedLink ? <Check size={14} color="#10b981" /> : <Share2 size={14} />}
-            <span>{copiedLink ? "Đã sao chép!" : "Chia sẻ khóa học"}</span>
-          </button>
+              <div className={styles.metaRow}>
+                <span className={styles.metaRating}>
+                  <Star size={15} className={styles.starIcon} />
+                  <span>{course.rating}</span>
+                  <span style={{ color: "var(--ink-muted)", fontWeight: 500 }}>
+                    ({course.reviewCount} đánh giá)
+                  </span>
+                </span>
+                <span>•</span>
+                <span>{course.enrolledCount} học viên đã tham gia</span>
+                <span>•</span>
+                <span style={{ color: "#8b4513" }}>{course.levelLabel}</span>
+              </div>
+            </div>
+
+            {/* Section: Bạn sẽ học được gì? (What you will learn - chitiet.html) */}
+            <div className={styles.whatYouLearnBox}>
+              <h2 className={styles.sectionHeading} style={{ marginBottom: 16 }}>
+                Bạn sẽ học được gì?
+              </h2>
+              <div className={styles.learnGrid}>
+                {outcomes.map((item, idx) => (
+                  <div key={idx} className={styles.learnItem}>
+                    <Check size={16} className={styles.checkIcon} />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Section: Nội dung khóa học (Curriculum Accordion - chitiet.html) */}
+            <div className={styles.sectionBox}>
+              <h2 className={styles.sectionHeading}>Nội dung khóa học</h2>
+
+              <div className={styles.curriculumHeader}>
+                <div className={styles.curriculumStats}>
+                  <strong>{sections.length}</strong> chương <span>•</span>{" "}
+                  <strong>{flattened.length}</strong> bài học <span>•</span>{" "}
+                  Thời lượng <strong>{course.estimatedHours}</strong> giờ
+                </div>
+
+                <button
+                  type="button"
+                  onClick={toggleAllChapters}
+                  className={styles.expandAllBtn}
+                >
+                  {isAllExpanded ? "Thu nhỏ tất cả" : "Mở rộng tất cả"}
+                </button>
+              </div>
+
+              {/* Chapters Accordion List */}
+              <div className={styles.chapterList}>
+                {sections.map((sec, secIdx) => {
+                  const isExpanded = expandedChapterIds.has(sec.id);
+
+                  return (
+                    <div key={sec.id} className={styles.chapterCard}>
+                      <button
+                        type="button"
+                        onClick={() => toggleChapter(sec.id)}
+                        className={`${styles.chapterHeader} ${isExpanded ? styles.chapterHeaderActive : ""}`}
+                      >
+                        <div className={styles.chapterHeaderLeft}>
+                          <span className={styles.plusMinusIcon}>
+                            {isExpanded ? <Minus size={13} /> : <Plus size={13} />}
+                          </span>
+                          <span className={styles.chapterTitleText}>
+                            {sec.title}
+                          </span>
+                        </div>
+
+                        <span className={styles.chapterCountBadge}>
+                          {sec.lessons.length} bài học
+                        </span>
+                      </button>
+
+                      {isExpanded && (
+                        <div className={styles.lessonsWrapper}>
+                          {sec.lessons.map((lesson, lIdx) => (
+                            <Link
+                              key={lesson.id}
+                              href={lesson.href}
+                              className={styles.lessonRow}
+                            >
+                              <div className={styles.lessonRowLeft}>
+                                {lesson.isVideo ? (
+                                  <PlayCircle size={15} className={styles.lessonIcon} />
+                                ) : (
+                                  <FileText size={15} className={styles.lessonIcon} />
+                                )}
+                                <span className={styles.lessonTitle}>
+                                  {secIdx + 1}.{lIdx + 1} {lesson.title}
+                                </span>
+                                {lesson.isFree && (
+                                  <span className={styles.freeTag}>Học thử</span>
+                                )}
+                              </div>
+
+                              <span className={styles.lessonDuration}>
+                                {lesson.durationMinutes}p
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Section: Yêu cầu (Requirements - chitiet.html) */}
+            <div className={styles.sectionBox}>
+              <h2 className={styles.sectionHeading}>Yêu cầu</h2>
+              <div className={styles.requirementsBox}>
+                <ul className={styles.requirementList}>
+                  <li>Máy tính hoặc thiết bị di động có kết nối internet và micro ổn định để thực hành phỏng vấn trực tiếp.</li>
+                  <li>Kinh nghiệm nền tảng về chuyên môn kỹ thuật hoặc định hướng phát triển lên vai trò {course.role}.</li>
+                  <li>Tinh thần chủ động tự học, kiên trì luyện tập và cởi mở tiếp nhận các phản hồi đánh giá khách quan từ AI Coach.</li>
+                  <li>Không nóng vội, bình tĩnh hoàn thành bài thực hành tự luận và trả lời thử giọng nói sau mỗi bài học.</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Section: Mô tả khóa học & Hỏi đáp (Course FAQs - chitiet.html) */}
+            <div className={styles.sectionBox}>
+              <h2 className={styles.sectionHeading}>Mô tả khóa học</h2>
+              <div className={styles.faqAccordion}>
+                {faqs.map((faq, idx) => {
+                  const isOpen = openFaqIndex === idx;
+                  return (
+                    <div key={idx} className={styles.faqItem}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
+                        className={styles.faqQuestion}
+                      >
+                        <span>{faq.q}</span>
+                        {isOpen ? <ChevronUp size={16} color="#8b4513" /> : <ChevronDown size={16} color="#8b4513" />}
+                      </button>
+                      {isOpen && <div className={styles.faqAnswer}>{faq.a}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Section: Khóa học liên quan (Related Courses - chitiet.html) */}
+            <div className={styles.sectionBox}>
+              <h2 className={styles.sectionHeading}>Khóa học liên quan</h2>
+              <div className={styles.relatedGrid}>
+                {relatedCourses.map((rel) => (
+                  <Link key={rel.id} href={`/courses/${rel.slug}`} className={styles.relatedCard}>
+                    <div style={{ height: 130, overflow: "hidden", background: "#211914", position: "relative" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={rel.image} alt={rel.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    </div>
+                    <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 6, flex: 1, justifyContent: "space-between" }}>
+                      <div>
+                        <h4 style={{ fontSize: 13.5, fontWeight: 800, margin: "0 0 4px", color: "var(--ink)", lineClamp: 2 }}>
+                          {rel.title}
+                        </h4>
+                        <span style={{ fontSize: 11, color: "var(--ink-soft)" }}>
+                          {rel.role}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 6, borderTop: "1px solid rgba(106,72,49,0.1)", fontSize: 11, fontWeight: 700 }}>
+                        <span style={{ color: "#8b4513" }}>Miễn phí</span>
+                        <span style={{ color: "#f59e0b", display: "flex", alignItems: "center", gap: 3 }}>
+                          ★ {rel.rating}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </main>
+
+          {/* =========================================================
+              RIGHT COLUMN: STICKY PURCHASE BADGE (col-3 in chitiet.html)
+             ========================================================= */}
+          <aside className={styles.stickySidebar}>
+            {/* Preview Media Thumbnail */}
+            <div
+              className={styles.previewMedia}
+              onClick={() => setShowVideoModal(true)}
+              title="Xem video giới thiệu khóa học"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={course.image} alt={course.title} className={styles.previewImg} />
+              <div className={styles.previewOverlay}>
+                <div className={styles.playCircleBtn}>
+                  <Play size={24} fill="currentColor" style={{ marginLeft: 3 }} />
+                </div>
+                <span className={styles.previewText}>Xem giới thiệu khóa học</span>
+              </div>
+            </div>
+
+            {/* Sidebar Body */}
+            <div className={styles.sidebarBody}>
+              <div className={styles.priceBlock}>
+                <span className={styles.priceLabel}>Chi phí khóa học</span>
+                <h5 className={styles.priceValue}>Miễn phí</h5>
+              </div>
+
+              {/* Main Enroll Button (Links directly to the learning page in hoc.html format!) */}
+              <Link href={firstLessonUrl} className={styles.mainEnrollBtn}>
+                <span>ĐĂNG KÝ HỌC NGAY</span>
+                <ArrowRight size={15} />
+              </Link>
+
+              {/* Features List (Matches chitiet.html purchase badge features) */}
+              <ul className={styles.featuresList}>
+                <li className={styles.featureItem}>
+                  <Award size={16} className={styles.featureIcon} />
+                  <span>Trình độ: <strong>{course.levelLabel}</strong></span>
+                </li>
+
+                <li className={styles.featureItem}>
+                  <BookOpen size={16} className={styles.featureIcon} />
+                  <span>Tổng số: <strong>{flattened.length} bài học</strong></span>
+                </li>
+
+                <li className={styles.featureItem}>
+                  <Clock size={16} className={styles.featureIcon} />
+                  <span>Thời lượng: <strong>{course.estimatedHours} giờ học</strong></span>
+                </li>
+
+                <li className={styles.featureItem}>
+                  <ShieldCheck size={16} className={styles.featureIcon} />
+                  <span>Chứng chỉ hoàn thành khóa học</span>
+                </li>
+
+                <li className={styles.featureItem}>
+                  <Sparkles size={16} className={styles.featureIcon} />
+                  <span>Giả lập phỏng vấn 1-1 với AI Coach</span>
+                </li>
+
+                <li className={styles.featureItem}>
+                  <Monitor size={16} className={styles.featureIcon} />
+                  <span>Học mọi lúc, mọi nơi trên máy tính &amp; mobile</span>
+                </li>
+              </ul>
+            </div>
+          </aside>
         </div>
       </div>
 
-      {/* Hero Overview Card */}
-      <div
-        style={{
-          borderRadius: 28,
-          background: "linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 245, 235, 0.9))",
-          border: "1px solid rgba(106, 72, 49, 0.18)",
-          padding: "36px 32px",
-          boxShadow: "0 10px 30px -10px rgba(139, 69, 19, 0.08)",
-          marginBottom: 36,
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          gap: 32,
-          alignItems: "center",
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <span
+      {/* Video Preview Modal */}
+      {showVideoModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            background: "rgba(0,0,0,0.85)",
+            backdropFilter: "blur(6px)",
+            display: "grid",
+            placeItems: "center",
+            padding: 20,
+          }}
+          onClick={() => setShowVideoModal(false)}
+        >
+          <div
+            style={{
+              position: "relative",
+              width: "100%",
+              maxWidth: 800,
+              aspectRatio: "16/9",
+              background: "#000000",
+              borderRadius: 20,
+              overflow: "hidden",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setShowVideoModal(false)}
               style={{
-                fontSize: 11,
-                fontWeight: 800,
-                padding: "4px 12px",
-                borderRadius: 999,
-                background: "rgba(217, 130, 54, 0.12)",
-                color: "#8b4513",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
+                position: "absolute",
+                top: 12,
+                right: 12,
+                zIndex: 10,
+                width: 34,
+                height: 34,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.2)",
+                border: "none",
+                color: "#ffffff",
+                cursor: "pointer",
+                display: "grid",
+                placeItems: "center",
               }}
             >
-              <Compass size={12} />
-              <span>{course.type}</span>
-            </span>
-
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                padding: "4px 10px",
-                borderRadius: 999,
-                background: "#f3f4f6",
-                color: "#374151",
-              }}
-            >
-              {course.levelLabel}
-            </span>
-
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: "var(--ink-soft)",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
-              <Clock size={12} />
-              <span>~{course.estimatedHours} giờ học &amp; luyện tập</span>
-            </span>
-          </div>
-
-          <h1 style={{ fontSize: "clamp(24px, 3.5vw, 36px)", fontWeight: 800, color: "var(--ink)", margin: "0 0 10px", lineHeight: 1.25 }}>
-            {course.title}
-          </h1>
-
-          <p style={{ fontSize: 14, lineHeight: 1.65, color: "var(--ink-soft)", margin: "0 0 16px" }}>
-            {course.description}
-          </p>
-
-          {/* Companies Tag */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-muted)", display: "flex", alignItems: "center", gap: 4 }}>
-              <Building2 size={13} /> Phù hợp phỏng vấn tại:
-            </span>
-            {course.targetCompanies.map((comp, idx) => (
-              <span key={idx} className={styles.companyBadge} style={{ fontSize: 11, padding: "3px 9px" }}>
-                {comp}
-              </span>
-            ))}
-          </div>
-
-          {/* Action CTAs */}
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
-            <Link
-              href={isEM ? "/courses/engineering-management/em-intro/welcome-em" : `/courses/${slug}/m-1/l-1-1`}
-              className={styles.btnAction}
-              style={{ padding: "12px 26px", fontSize: 13, textDecoration: "none" }}
-            >
-              <PlayCircle size={15} />
-              <span>Bắt Đầu Học Bài Đầu Tiên</span>
-            </Link>
-
-            <Link
-              href="/practice"
-              className={styles.categoryPill}
-              style={{ padding: "11px 22px", fontSize: 13, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}
-            >
-              <Sparkles size={15} color="#d98236" />
-              <span>Phỏng Vấn Thử (AI Coach)</span>
-            </Link>
-
-            <Link
-              href="/questions"
-              className={styles.categoryPill}
-              style={{ padding: "11px 22px", fontSize: 13, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}
-            >
-              <BookOpen size={14} />
-              <span>Luyện Ngân Hàng Câu Hỏi</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Media Banner / Embedded Video */}
-        <div style={{ borderRadius: 20, overflow: "hidden", border: "1px solid rgba(106, 72, 49, 0.2)", position: "relative", height: 280, background: "#111827", boxShadow: "0 12px 28px -6px rgba(0,0,0,0.25)" }}>
-          {isEM ? (
+              <X size={18} />
+            </button>
             <iframe
-              src="https://www.youtube.com/embed/XStqtnUGgTc?autoplay=0&rel=0"
-              title="Welcome to our Engineering Management Interview Course"
+              src="https://www.youtube.com/embed/XStqtnUGgTc?autoplay=1&rel=0"
+              title="Course Intro Video"
               style={{ width: "100%", height: "100%", border: "none" }}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
-          ) : (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={course.image} alt={course.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)" }} />
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Featured Video Highlights (from course.html) */}
-      {isEM && (
-        <div style={{ marginBottom: 36 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-            <Flame size={18} color="#d98236" />
-            <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: "var(--ink)" }}>
-              Video Bài Học Nổi Bật Được Yêu Thích Nhất
-            </h3>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-            {[
-              {
-                title: "Stop Sounding Like a Robot",
-                desc: "Bí quyết trả lời phỏng vấn tự nhiên, truyền cảm hứng và tránh nói như đọc kịch bản mẫu.",
-                time: "12 phút video",
-                tag: "Giao tiếp đỉnh cao",
-              },
-              {
-                title: "Measuring Impact as an Engineering Manager",
-                desc: "Cách định lượng tầm ảnh hưởng lãnh đạo (Engineering Velocity, Retention, Team Productivity).",
-                time: "18 phút video",
-                tag: "People & OKRs",
-              },
-              {
-                title: "Demonstrating Ownership in Crisis",
-                desc: "Mổ xẻ ca sự cố Production nghiêm trọng: Tinh thần chịu trách nhiệm và bài học rút ra.",
-                time: "22 phút video",
-                tag: "Lãnh đạo thực chiến",
-              },
-            ].map((v, idx) => (
-              <div
-                key={idx}
-                style={{
-                  padding: "20px",
-                  borderRadius: 18,
-                  background: "#ffffff",
-                  border: "1px solid rgba(106, 72, 49, 0.12)",
-                  boxShadow: "0 4px 16px -8px rgba(0,0,0,0.05)",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  gap: 12,
-                }}
-              >
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                    <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 4, background: "rgba(217,130,54,0.12)", color: "#8b4513" }}>
-                      {v.tag}
-                    </span>
-                    <span style={{ fontSize: 11, color: "var(--ink-muted)", display: "flex", alignItems: "center", gap: 4 }}>
-                      <Clock size={11} /> {v.time}
-                    </span>
-                  </div>
-                  <h4 style={{ margin: "0 0 6px", fontSize: 15, fontWeight: 800, color: "var(--ink)" }}>
-                    {v.title}
-                  </h4>
-                  <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.5 }}>
-                    {v.desc}
-                  </p>
-                </div>
-
-                <Link
-                  href={
-                    idx === 0
-                      ? "/courses/engineering-management/eng-behavioral/sounding-like-robot"
-                      : idx === 1
-                      ? "/courses/engineering-management/people-management/how-do-you-consider-your-impact-as-an-engineering-manager"
-                      : "/courses/engineering-management/eng-behavioral/analysis-demonstrating-ownership"
-                  }
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: "#d98236",
-                    textDecoration: "none",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  <PlayCircle size={14} />
-                  <span>Xem bài giảng &amp; Thực hành</span>
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Dynamic Curriculum / Syllabus Accordion with Live Search & Tabs */}
-      <div style={{ marginBottom: 40 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
-          <div>
-            <h2 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px", color: "var(--ink)" }}>
-              Chương Trình Học &amp; Danh Mục Bài Học Chi Tiết ({isEM ? "132 bài học" : course.meta})
-            </h2>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0 }}>
-              Dựa trên tài liệu tuyển dụng chuẩn hóa từ Google, Meta, Slack và Amazon.
-            </p>
-          </div>
-
-          {/* Search bar inside curriculum */}
-          {isEM && (
-            <div style={{ position: "relative", minWidth: 260, maxWidth: 360, flex: 1 }}>
-              <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--ink-soft)" }} />
-              <input
-                type="text"
-                placeholder="Lọc bài học (System Design, 1:1, OKRs...)..."
-                value={lessonSearch}
-                onChange={(e) => setLessonSearch(e.target.value)}
-                style={{
-                  width: "100%",
-                  height: 38,
-                  padding: "0 12px 0 36px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(106, 72, 49, 0.2)",
-                  background: "#ffffff",
-                  fontSize: 12.5,
-                  outline: "none",
-                }}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Section Filter Pills for EM */}
-        {isEM && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 18, scrollbarWidth: "thin" }}>
-            <button
-              type="button"
-              onClick={() => setSelectedSectionFilter("all")}
-              className={`${styles.categoryPill} ${selectedSectionFilter === "all" ? styles.categoryPillActive : ""}`}
-            >
-              Tất cả các chương (132 bài)
-            </button>
-            {EM_COURSE_SECTIONS.map((sec) => (
-              <button
-                key={sec.id}
-                type="button"
-                onClick={() => setSelectedSectionFilter(sec.id)}
-                className={`${styles.categoryPill} ${selectedSectionFilter === sec.id ? styles.categoryPillActive : ""}`}
-              >
-                {sec.titleEn} ({sec.lessons.length})
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Modules Accordion List */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {filteredSections.map((m) => {
-            const isOpen = openModuleId === m.id || lessonSearch.trim().length > 0;
-            return (
-              <div
-                key={m.id}
-                style={{
-                  borderRadius: 20,
-                  border: "1px solid rgba(106, 72, 49, 0.15)",
-                  background: "#ffffff",
-                  overflow: "hidden",
-                  boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setOpenModuleId(isOpen ? "" : m.id)}
-                  style={{
-                    width: "100%",
-                    padding: "18px 24px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    background: isOpen ? "rgba(245, 239, 230, 0.5)" : "#ffffff",
-                    border: "none",
-                    cursor: "pointer",
-                    textAlign: "left",
-                  }}
-                >
-                  <div style={{ paddingRight: 16 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, padding: "2px 8px", borderRadius: 4, background: "rgba(217, 130, 54, 0.12)", color: "#8b4513" }}>
-                        {m.lessons.length} bài học
-                      </span>
-                      <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "var(--ink)" }}>
-                        {m.title}
-                      </h4>
-                    </div>
-                    <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)" }}>
-                      {m.description}
-                    </p>
-                  </div>
-                  {isOpen ? <ChevronUp size={18} color="#8b4513" /> : <ChevronDown size={18} color="#8b4513" />}
-                </button>
-
-                {isOpen && (
-                  <div style={{ padding: "14px 24px 20px", borderTop: "1px solid rgba(106, 72, 49, 0.1)", display: "flex", flexDirection: "column", gap: 8 }}>
-                    {m.lessons.map((lesson) => (
-                      <div
-                        key={lesson.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          padding: "10px 14px",
-                          borderRadius: 10,
-                          background: "#fafaf9",
-                          fontSize: 12.5,
-                          transition: "background 0.15s ease",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--ink)", flex: 1, paddingRight: 12 }}>
-                          {lesson.type === "video" && <PlayCircle size={15} color="#2563eb" style={{ flexShrink: 0 }} />}
-                          {lesson.type === "mock_simulation" && <Mic size={15} color="#9333ea" style={{ flexShrink: 0 }} />}
-                          {lesson.type === "reading" && <FileText size={15} color="#059669" style={{ flexShrink: 0 }} />}
-                          {lesson.type === "star_practice" && <Star size={15} color="#d98236" style={{ flexShrink: 0 }} />}
-                          <span style={{ fontWeight: 600 }}>{lesson.title}</span>
-                          {lesson.isFree && (
-                            <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 6px", borderRadius: 4, background: "#ecfdf5", color: "#059669", flexShrink: 0 }}>
-                              Học thử miễn phí
-                            </span>
-                          )}
-                        </div>
-
-                        <div style={{ display: "flex", alignItems: "center", gap: 14, color: "var(--ink-soft)", fontSize: 11.5, flexShrink: 0 }}>
-                          <span>{lesson.durationMinutes} phút</span>
-                          <Link
-                            href={lesson.href || `/courses/${slug}/${m.id}/${lesson.id}`}
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              color: "#d98236",
-                              textDecoration: "none",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 2,
-                            }}
-                          >
-                            <span>Học bài →</span>
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Student Feedback & Reviews from course.html */}
-      {isEM && (
-        <div style={{ padding: "32px 28px", borderRadius: 24, background: "#ffffff", border: "1px solid rgba(106, 72, 49, 0.12)", marginBottom: 36 }}>
-          <h3 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 16px", color: "var(--ink)", display: "flex", alignItems: "center", gap: 8 }}>
-            <Award size={18} color="#d98236" />
-            <span>Đánh Giá Từ Các Engineering Managers Đã Trúng Tuyển</span>
-          </h3>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-            {[
-              {
-                author: "Doug",
-                role: "Engineering Manager tại Slack",
-                quote: "Khóa học EM cực kỳ giá trị không chỉ ở lượng kiến thức cô đọng, mà còn ở các ví dụ mẫu câu hỏi và câu trả lời thực chiến đúng chuẩn Google và Meta.",
-              },
-              {
-                author: "Diego",
-                role: "Engineering Manager tại Amazon",
-                quote: "Hệ thống đã đúc kết được những điểm cốt lõi nhất của các vòng phỏng vấn EM thực tế, kèm các khuyến nghị bổ ích để chuẩn bị cho vòng Bar Raiser.",
-              },
-              {
-                author: "Vaibhav",
-                role: "Senior Lead tại Microsoft",
-                quote: "Các buổi mock interview và bài tập People Management giúp tôi tự tin trình bày tầm ảnh hưởng lãnh đạo của mình mà không bị ngập ngừng.",
-              },
-            ].map((rev, idx) => (
-              <div key={idx} style={{ padding: 18, borderRadius: 14, background: "#fafaf9", border: "1px solid #e7e5e4", fontSize: 12.5, lineHeight: 1.6 }}>
-                <p style={{ margin: "0 0 10px", fontStyle: "italic", color: "var(--ink)" }}>
-                  &ldquo;{rev.quote}&rdquo;
-                </p>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid #e7e5e4", paddingTop: 8 }}>
-                  <strong style={{ color: "#8b4513" }}>{rev.author}</strong>
-                  <span style={{ fontSize: 11, color: "var(--ink-muted)" }}>{rev.role}</span>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       )}
