@@ -92,49 +92,6 @@ export default function CourseLibraryClient() {
         </p>
       </div>
 
-      {/* KPI Stats Banner */}
-      <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <div className={styles.statIconWrap}>
-            <Compass size={20} />
-          </div>
-          <div>
-            <div className={styles.statVal}>12+ Lộ trình</div>
-            <div className={styles.statLabel}>Chuẩn hóa theo chuyên ngành</div>
-          </div>
-        </div>
-
-        <div className={styles.statCard}>
-          <div className={styles.statIconWrap}>
-            <BookOpen size={20} />
-          </div>
-          <div>
-            <div className={styles.statVal}>600+ Bài học</div>
-            <div className={styles.statLabel}>Lý thuyết &amp; Tình huống thực chiến</div>
-          </div>
-        </div>
-
-        <div className={styles.statCard}>
-          <div className={styles.statIconWrap}>
-            <Sparkles size={20} />
-          </div>
-          <div>
-            <div className={styles.statVal}>1-1 AI Coach</div>
-            <div className={styles.statLabel}>Chấm điểm Rubric &amp; Nhịp nói WPM</div>
-          </div>
-        </div>
-
-        <div className={styles.statCard}>
-          <div className={styles.statIconWrap}>
-            <Award size={20} />
-          </div>
-          <div>
-            <div className={styles.statVal}>96.4% Tỷ lệ đỗ</div>
-            <div className={styles.statLabel}>Ứng viên trúng tuyển Big Tech</div>
-          </div>
-        </div>
-      </div>
-
       {/* Filter & Search Bar */}
       <div className={styles.filterBar}>
         <div className={styles.searchRow}>
