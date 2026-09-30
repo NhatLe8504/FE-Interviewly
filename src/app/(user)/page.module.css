@@ -13,7 +13,7 @@
   overflow: hidden;
   background: linear-gradient(180deg, #f8f4ee 0%, #f7efe6 30%, #f7eadc 65%, #f5e7d7 100%);
   color: var(--ink);
-  font-family: inherit;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
 }
 
 .skipLink {
