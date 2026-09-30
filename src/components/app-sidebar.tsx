@@ -30,6 +30,7 @@ import {
   ShieldCheckIcon,
   GlobeIcon,
   CompassIcon,
+  GraduationCapIcon,
 } from "lucide-react"
 
 const data = {
@@ -48,6 +49,11 @@ const data = {
       title: "Question Bank",
       url: "/admin/questions",
       icon: <HelpCircleIcon />,
+    },
+    {
+      title: "Course Library",
+      url: "/admin/courses",
+      icon: <GraduationCapIcon />,
     },
     {
       title: "User Management",

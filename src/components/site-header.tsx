@@ -9,6 +9,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/admin": "Bảng Điều Khiển Tổng Quan",
   "/admin/users": "Quản Lý Người Dùng",
   "/admin/questions": "Ngân Hàng Câu Hỏi",
+  "/admin/courses": "Quản Lý Khóa Học & Lộ Trình",
   "/admin/questions/new": "Tạo Câu Hỏi Mới",
   "/admin/payments": "Thanh Toán & Doanh Thu",
   "/admin/subscriptions": "Gói Cước & Dịch Vụ",
