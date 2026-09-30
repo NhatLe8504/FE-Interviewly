@@ -317,7 +317,15 @@ export const courseAdminApi = {
       isVideo: data.type === "video" || Boolean(data.videoUrl),
       videoUrl: data.videoUrl?.trim(),
       contentHtml: data.contentHtml?.trim(),
-      practiceQuestion: data.practiceQuestion,
+      practiceQuestion: data.practiceQuestion ? {
+        prompt: data.practiceQuestion.prompt,
+        intent: data.practiceQuestion.intent || "",
+        starSituation: data.practiceQuestion.starSituation || "",
+        starTask: data.practiceQuestion.starTask || "",
+        starAction: data.practiceQuestion.starAction || "",
+        starResult: data.practiceQuestion.starResult || "",
+        sampleAnswer: data.practiceQuestion.sampleAnswer || "",
+      } : undefined,
       chapterId: sec.id,
       chapterTitle: sec.title,
     };
@@ -376,7 +384,15 @@ export const courseAdminApi = {
       lesson.contentHtml = data.contentHtml;
     }
     if (data.practiceQuestion !== undefined) {
-      lesson.practiceQuestion = data.practiceQuestion;
+      lesson.practiceQuestion = data.practiceQuestion ? {
+        prompt: data.practiceQuestion.prompt,
+        intent: data.practiceQuestion.intent || "",
+        starSituation: data.practiceQuestion.starSituation || "",
+        starTask: data.practiceQuestion.starTask || "",
+        starAction: data.practiceQuestion.starAction || "",
+        starResult: data.practiceQuestion.starResult || "",
+        sampleAnswer: data.practiceQuestion.sampleAnswer || "",
+      } : undefined;
     }
 
     if (data.targetChapterId && data.targetChapterId !== currentSec.id) {
