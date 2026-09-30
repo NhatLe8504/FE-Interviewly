@@ -102,17 +102,16 @@ export default function AdminQuestionsPage() {
           </Button>
 
           <Button
+            asChild
             variant="outline"
             size="sm"
-            onClick={() => {
-              setActiveTab("bank");
-              setTriggerCreateSingle(true);
-            }}
-            className="h-8 gap-1.5 text-xs border-primary/40 text-primary hover:bg-primary/10"
-            title="Mở form tạo một câu hỏi phỏng vấn đơn lẻ mới"
+            className="h-8 gap-1.5 text-xs border-primary/40 text-primary hover:bg-primary/10 shadow-2xs font-semibold"
+            title="Mở trang tạo một câu hỏi phỏng vấn đơn lẻ mới"
           >
-            <HelpCircle className="size-3.5" />
-            <span>Tạo Câu Hỏi Lẻ</span>
+            <Link href="/admin/questions/create">
+              <Plus className="size-3.5" />
+              <span>Tạo Câu Hỏi Lẻ</span>
+            </Link>
           </Button>
 
           <Button
@@ -174,8 +173,6 @@ export default function AdminQuestionsPage() {
                 key={`bank-${refreshKey}-${questions.length}`}
                 initialQuestions={questions}
                 onRefresh={handleRefresh}
-                triggerCreate={triggerCreateSingle}
-                onTriggerCreateHandled={() => setTriggerCreateSingle(false)}
               />
             </TabsContent>
           </Tabs>

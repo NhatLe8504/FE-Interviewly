@@ -852,12 +852,12 @@ export function QuestionCreateForm() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Row 1: 4 Balanced Columns */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {/* Domain */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold flex items-center justify-between">
+              <Label className="text-xs font-medium text-foreground flex items-center gap-1">
                 <span>Ngành nghề tuyển dụng</span>
-                <span className="text-destructive">*</span>
+                <span className="text-destructive font-bold">*</span>
               </Label>
               <Select
                 value={String(domainId)}
@@ -886,7 +886,7 @@ export function QuestionCreateForm() {
                   );
                 }}
               >
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-9 text-xs bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -901,9 +901,9 @@ export function QuestionCreateForm() {
 
             {/* Role */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold flex items-center justify-between">
+              <Label className="text-xs font-medium text-foreground flex items-center gap-1">
                 <span>Vị trí chuyên môn</span>
-                <span className="text-destructive">*</span>
+                <span className="text-destructive font-bold">*</span>
               </Label>
               <Select
                 value={String(roleId)}
@@ -929,7 +929,7 @@ export function QuestionCreateForm() {
                   );
                 }}
               >
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-9 text-xs bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -944,12 +944,12 @@ export function QuestionCreateForm() {
 
             {/* Level */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold flex items-center justify-between">
+              <Label className="text-xs font-medium text-foreground flex items-center gap-1">
                 <span>Cấp độ kinh nghiệm</span>
-                <span className="text-destructive">*</span>
+                <span className="text-destructive font-bold">*</span>
               </Label>
               <Select value={level} onValueChange={setLevel}>
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-9 text-xs bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -965,12 +965,12 @@ export function QuestionCreateForm() {
 
             {/* Language */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold flex items-center justify-between">
+              <Label className="text-xs font-medium text-foreground flex items-center gap-1">
                 <span>Ngôn ngữ phỏng vấn</span>
-                <span className="text-destructive">*</span>
+                <span className="text-destructive font-bold">*</span>
               </Label>
               <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-9 text-xs bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -982,50 +982,46 @@ export function QuestionCreateForm() {
           </div>
 
           {/* Row 2: Tech Stack, Distribution, Count, Difficulty */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 pt-1">
-            {/* Tech Stack (5 cols) */}
-            <div className="lg:col-span-5 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="tech_stack" className="text-xs font-semibold">
-                  {currentDomainConfig.fieldLabel}
-                </Label>
-                <span className="text-[11px] text-muted-foreground truncate max-w-[220px]" title={currentDomainConfig.fieldPlaceholder}>
-                  {currentDomainConfig.fieldPlaceholder}
-                </span>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 pt-1">
+            {/* Tech Stack (6 cols) */}
+            <div className="lg:col-span-6 space-y-1.5">
+              <Label htmlFor="tech_stack" className="text-xs font-medium text-foreground flex items-center gap-1">
+                <span>{currentDomainConfig.fieldLabel}</span>
+                <span className="text-destructive font-bold">*</span>
+              </Label>
               <Input
                 id="tech_stack"
                 value={techStack}
                 onChange={(e) => setTechStack(e.target.value)}
                 placeholder={currentDomainConfig.fieldPlaceholder}
-                className="h-9 text-xs"
+                className="h-9 text-xs bg-background"
               />
             </div>
 
-            {/* Question Distribution (3 cols) */}
-            <div className="lg:col-span-3 space-y-1.5">
-              <Label className="text-xs font-semibold">Phân bổ dạng câu hỏi</Label>
+            {/* Question Distribution (2 cols) */}
+            <div className="lg:col-span-2 space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">Phân bổ dạng câu</Label>
               <Select value={questionDistribution} onValueChange={setQuestionDistribution}>
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-9 text-xs bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="mixed">Kết hợp toàn diện (Mixed)</SelectItem>
-                  <SelectItem value="technical">Thuần Kỹ thuật (Technical)</SelectItem>
-                  <SelectItem value="situational">Xử lý Tình huống (Situational)</SelectItem>
-                  <SelectItem value="behavioral">Hành vi & Văn hóa (Behavioral)</SelectItem>
+                  <SelectItem value="mixed">Kết hợp (Mixed)</SelectItem>
+                  <SelectItem value="technical">Kỹ thuật (Tech)</SelectItem>
+                  <SelectItem value="situational">Tình huống (Situational)</SelectItem>
+                  <SelectItem value="behavioral">Hành vi (Behavioral)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Question Count (2 cols) */}
             <div className="lg:col-span-2 space-y-1.5">
-              <Label className="text-xs font-semibold">Số lượng câu hỏi</Label>
+              <Label className="text-xs font-medium text-foreground">Số lượng câu</Label>
               <Select
                 value={String(questionCount)}
                 onValueChange={(v) => setQuestionCount(Number(v))}
               >
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-9 text-xs bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1039,9 +1035,9 @@ export function QuestionCreateForm() {
 
             {/* Target Difficulty (2 cols) */}
             <div className="lg:col-span-2 space-y-1.5">
-              <Label className="text-xs font-semibold">Độ khó mục tiêu</Label>
+              <Label className="text-xs font-medium text-foreground">Độ khó mục tiêu</Label>
               <Select value={targetDifficulty} onValueChange={setTargetDifficulty}>
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-9 text-xs bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1055,25 +1051,27 @@ export function QuestionCreateForm() {
           </div>
 
           {/* Quick Tech Suggestion Chips */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t text-xs">
-            <span className="text-muted-foreground text-[11px] font-medium mr-1 flex items-center gap-1">
-              <Sparkles className="size-3 text-primary" />
-              {currentDomainConfig.chipsTitle}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-3 border-t text-xs">
+            <span className="text-muted-foreground text-xs font-semibold shrink-0 flex items-center gap-1.5">
+              <Sparkles className="size-3.5 text-primary" />
+              <span>{currentDomainConfig.chipsTitle}</span>
             </span>
-            {currentDomainConfig.skillChips.map((chip, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setTechStack(chip)}
-                className={`px-2 py-0.5 rounded-md text-[11px] transition-colors border ${
-                  techStack === chip
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-muted/50 hover:bg-muted text-muted-foreground border-transparent"
-                }`}
-              >
-                {chip}
-              </button>
-            ))}
+            <div className="flex flex-wrap items-center gap-1.5 flex-1">
+              {currentDomainConfig.skillChips.map((chip, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setTechStack(chip)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all border cursor-pointer ${
+                    techStack === chip
+                      ? "bg-primary text-primary-foreground border-primary shadow-2xs font-semibold"
+                      : "bg-muted/40 hover:bg-muted/80 text-muted-foreground hover:text-foreground border-border/60"
+                  }`}
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>

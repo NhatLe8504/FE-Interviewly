@@ -526,12 +526,14 @@ export function QuestionDataTable({
             </Button>
 
             <Button
+              asChild
               size="sm"
-              onClick={handleOpenCreate}
               className="h-9 gap-1.5 text-xs shadow-xs"
             >
-              <Plus className="size-3.5" />
-              <span>Tạo Câu Hỏi Mới</span>
+              <Link href="/admin/questions/create">
+                <Plus className="size-3.5" />
+                <span>Tạo Câu Hỏi Mới</span>
+              </Link>
             </Button>
           </div>
         </div>
@@ -964,9 +966,14 @@ export function QuestionDataTable({
                               <span>Xem chi tiết câu hỏi</span>
                             </DropdownMenuItem>
 
-                            <DropdownMenuItem onClick={() => handleOpenEdit(q)}>
-                              <Edit2 className="size-3.5 mr-2" />
-                              <span>Chỉnh sửa nội dung</span>
+                            <DropdownMenuItem asChild>
+                              <Link
+                                href={`/admin/questions/${q.question_id}/edit`}
+                                className="flex items-center cursor-pointer w-full"
+                              >
+                                <Edit2 className="size-3.5 mr-2" />
+                                <span>Chỉnh sửa nội dung</span>
+                              </Link>
                             </DropdownMenuItem>
 
                             <DropdownMenuSeparator />
@@ -1269,240 +1276,6 @@ export function QuestionDataTable({
           )}
         </SheetContent>
       </Sheet>
-
-      {/* Create / Edit Question Dialog */}
-      <Dialog
-        open={isCreateOpen || !!editItem}
-        onOpenChange={(open) => {
-          if (!open) {
-            setIsCreateOpen(false);
-            setEditItem(null);
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto text-xs">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold">
-              {editItem ? `Chỉnh Sửa Câu Hỏi #${editItem.question_id}` : "Thêm Câu Hỏi Phỏng Vấn Mới"}
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Điền đầy đủ thông tin phân loại, nội dung câu hỏi và hướng dẫn cấu trúc STAR.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSaveForm} className="space-y-4 pt-2">
-            {/* Question Text */}
-            <div className="space-y-1.5">
-              <Label htmlFor="q_text">Nội dung câu hỏi phỏng vấn *</Label>
-              <textarea
-                id="q_text"
-                rows={3}
-                value={formData.question_text}
-                onChange={(e) => setFormData({ ...formData, question_text: e.target.value })}
-                placeholder="Nhập nội dung câu hỏi rõ ràng, trọng tâm..."
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                required
-              />
-            </div>
-
-            {/* Domain & Role */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Ngành nghề tuyển dụng *</Label>
-                <Select
-                  value={String(formData.domain_id)}
-                  onValueChange={(v) => {
-                    const dId = Number(v);
-                    const firstRole = MOCK_ROLES_LIST.find((r) => r.domain_id === dId);
-                    setFormData({
-                      ...formData,
-                      domain_id: dId,
-                      role_id: firstRole ? firstRole.role_id : 1,
-                    });
-                  }}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MOCK_DOMAINS_LIST.map((d) => (
-                      <SelectItem key={d.domain_id} value={String(d.domain_id)}>
-                        {d.domain_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Vị trí chuyên môn *</Label>
-                <Select
-                  value={String(formData.role_id)}
-                  onValueChange={(v) => setFormData({ ...formData, role_id: Number(v) })}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {formRoles.map((r) => (
-                      <SelectItem key={r.role_id} value={String(r.role_id)}>
-                        {r.role_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Level, Type, Difficulty */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <Label>Cấp độ kinh nghiệm</Label>
-                <Select
-                  value={formData.experience_level}
-                  onValueChange={(v) => setFormData({ ...formData, experience_level: v })}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="intern">Intern</SelectItem>
-                    <SelectItem value="fresher">Fresher</SelectItem>
-                    <SelectItem value="junior">Junior</SelectItem>
-                    <SelectItem value="mid">Middle</SelectItem>
-                    <SelectItem value="senior">Senior</SelectItem>
-                    <SelectItem value="lead">Lead / Principal</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Dạng câu hỏi</Label>
-                <Select
-                  value={formData.question_type}
-                  onValueChange={(v) => setFormData({ ...formData, question_type: v })}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="behavioral">Hành vi (Behavioral)</SelectItem>
-                    <SelectItem value="technical">Kỹ thuật (Technical)</SelectItem>
-                    <SelectItem value="situational">Tình huống (Situational)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Độ khó (1 - 5 sao)</Label>
-                <Select
-                  value={String(formData.difficulty)}
-                  onValueChange={(v) => setFormData({ ...formData, difficulty: Number(v) })}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">★ 1 - Dễ</SelectItem>
-                    <SelectItem value="2">★★ 2 - Cơ bản</SelectItem>
-                    <SelectItem value="3">★★★ 3 - Trung bình</SelectItem>
-                    <SelectItem value="4">★★★★ 4 - Khó</SelectItem>
-                    <SelectItem value="5">★★★★★ 5 - Rất khó</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Intent */}
-            <div className="space-y-1.5">
-              <Label htmlFor="intent">Mục tiêu đánh giá của câu hỏi (Intent)</Label>
-              <Input
-                id="intent"
-                value={formData.intent}
-                onChange={(e) => setFormData({ ...formData, intent: e.target.value })}
-                placeholder="Ví dụ: Đo lường kỹ năng xử lý sự cố dưới áp lực cao..."
-                className="h-8 text-xs"
-              />
-            </div>
-
-            {/* Sample Answer */}
-            <div className="space-y-1.5">
-              <Label htmlFor="sample_answer">Câu trả lời mẫu xuất sắc (Sample Answer)</Label>
-              <textarea
-                id="sample_answer"
-                rows={3}
-                value={formData.sample_answer}
-                onChange={(e) => setFormData({ ...formData, sample_answer: e.target.value })}
-                placeholder="Mẫu câu trả lời có cấu trúc rõ ràng, số liệu định lượng..."
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
-
-            {/* STAR Template section */}
-            <div className="space-y-3 pt-2 border-t">
-              <span className="font-bold text-foreground block">Hướng dẫn phương pháp STAR:</span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div className="space-y-1">
-                  <Label className="text-[11px] text-emerald-600">S - Situation (Bối cảnh)</Label>
-                  <Input
-                    value={formData.situation_guide}
-                    onChange={(e) => setFormData({ ...formData, situation_guide: e.target.value })}
-                    placeholder="Mô tả bối cảnh phát sinh vấn đề..."
-                    className="h-8 text-xs"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-[11px] text-blue-600">T - Task (Nhiệm vụ)</Label>
-                  <Input
-                    value={formData.task_guide}
-                    onChange={(e) => setFormData({ ...formData, task_guide: e.target.value })}
-                    placeholder="Mục tiêu cần giải quyết..."
-                    className="h-8 text-xs"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-[11px] text-amber-600">A - Action (Hành động)</Label>
-                  <Input
-                    value={formData.action_guide}
-                    onChange={(e) => setFormData({ ...formData, action_guide: e.target.value })}
-                    placeholder="Các bước kỹ thuật đã triển khai..."
-                    className="h-8 text-xs"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-[11px] text-purple-600">R - Result (Kết quả)</Label>
-                  <Input
-                    value={formData.result_guide}
-                    onChange={(e) => setFormData({ ...formData, result_guide: e.target.value })}
-                    placeholder="Kết quả định lượng và bài học..."
-                    className="h-8 text-xs"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setIsCreateOpen(false);
-                  setEditItem(null);
-                }}
-                className="h-8 text-xs"
-              >
-                Hủy
-              </Button>
-              <Button type="submit" className="h-8 text-xs">
-                {editItem ? "Lưu Thay Đổi" : "Tạo Mới Câu Hỏi"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirm Dialog */}
       <Dialog
