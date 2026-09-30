@@ -1,0 +1,557 @@
+
+/* =========================================================
+   COURSE DETAIL PAGE - 2-COLUMN LAYOUT (BASED ON CHITIET.HTML)
+   Applied with our system's Luxury Warm Cream & Amber theme
+========================================================= */
+
+.pageWrapper {
+  width: 100%;
+  min-height: 100vh;
+  padding: 100px 0 90px;
+  color: var(--ink);
+  background: transparent;
+}
+
+.container {
+  width: min(1280px, calc(100% - 48px));
+  margin-inline: auto;
+}
+
+/* 2-Column Responsive Grid */
+.detailGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .detailGrid {
+    grid-template-columns: 1fr 380px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .detailGrid {
+    grid-template-columns: 1fr 400px;
+  }
+}
+
+/* =========================================================
+   LEFT MAIN CONTENT COLUMN
+========================================================= */
+.mainContent {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  min-width: 0;
+}
+
+/* Header Section */
+.headerSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.courseTitle {
+  font-size: clamp(28px, 3.5vw, 40px);
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.25;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.courseSubtitle {
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  padding-top: 4px;
+}
+
+.metaRating {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.starIcon {
+  color: #f59e0b;
+  fill: #f59e0b;
+}
+
+/* Section Box Common */
+.sectionBox {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sectionHeading {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* "Bạn sẽ học được gì?" Box (What you will learn) */
+.whatYouLearnBox {
+  padding: 24px 28px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid rgba(217, 130, 54, 0.22);
+  box-shadow: 0 4px 20px -8px rgba(139, 69, 19, 0.06);
+}
+
+.learnGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px 24px;
+}
+
+@media (min-width: 640px) {
+  .learnGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.learnItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.checkIcon {
+  color: #10b981;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+/* "Nội dung khóa học" Curriculum Section */
+.curriculumHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.curriculumStats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.expandAllBtn {
+  font-size: 13px;
+  font-weight: 700;
+  color: #d98236;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.expandAllBtn:hover {
+  background: rgba(217, 130, 54, 0.1);
+  color: #8b4513;
+}
+
+/* Chapter Accordion Group */
+.chapterList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chapterCard {
+  border-radius: 16px;
+  border: 1px solid rgba(106, 72, 49, 0.14);
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s ease;
+}
+
+.chapterCard:hover {
+  border-color: rgba(217, 130, 54, 0.35);
+}
+
+.chapterHeader {
+  width: 100%;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: none;
+  background: #fafaf9;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.chapterHeader:hover {
+  background: #f5f5f4;
+}
+
+.chapterHeaderActive {
+  background: rgba(245, 239, 230, 0.5) !important;
+}
+
+.chapterHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.plusMinusIcon {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(217, 130, 54, 0.12);
+  color: #8b4513;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.chapterTitleText {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.chapterCountBadge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+}
+
+/* Lessons inside chapter */
+.lessonsWrapper {
+  border-top: 1px solid rgba(106, 72, 49, 0.1);
+  padding: 8px 16px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.lessonRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--ink);
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+.lessonRow:hover {
+  background: rgba(217, 130, 54, 0.08);
+  color: #8b4513;
+}
+
+.lessonRowLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.lessonIcon {
+  color: #8b4513;
+  flex-shrink: 0;
+}
+
+.lessonTitle {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.freeTag {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #ecfdf5;
+  color: #065f46;
+  flex-shrink: 0;
+}
+
+.lessonDuration {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+}
+
+/* Requirements Box */
+.requirementsBox {
+  padding: 24px 28px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid rgba(106, 72, 49, 0.14);
+}
+
+.requirementList {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+/* Description / FAQs Deep-dive */
+.faqAccordion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.faqItem {
+  border-radius: 14px;
+  border: 1px solid rgba(106, 72, 49, 0.12);
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.faqQuestion {
+  width: 100%;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: none;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.faqAnswer {
+  padding: 0 20px 18px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--ink-soft);
+  border-top: 1px solid rgba(106, 72, 49, 0.08);
+  padding-top: 14px;
+}
+
+/* Related Courses Grid */
+.relatedGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px;
+}
+
+.relatedCard {
+  border-radius: 18px;
+  border: 1px solid rgba(106, 72, 49, 0.14);
+  background: #ffffff;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.relatedCard:hover {
+  transform: translateY(-3px);
+  border-color: #d98236;
+  box-shadow: 0 10px 26px -8px rgba(139, 69, 19, 0.15);
+}
+
+/* =========================================================
+   RIGHT STICKY SIDEBAR (PURCHASE / ACTION BOX - CHITIET.HTML)
+========================================================= */
+.stickySidebar {
+  position: sticky;
+  top: 96px;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 1.5px solid rgba(106, 72, 49, 0.18);
+  overflow: hidden;
+  box-shadow: 0 12px 36px -10px rgba(139, 69, 19, 0.12);
+  display: flex;
+  flex-direction: column;
+}
+
+.previewMedia {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background: #1c1917;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.previewImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.previewMedia:hover .previewImg {
+  transform: scale(1.05);
+}
+
+.previewOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.2) 60%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.playCircleBtn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  display: grid;
+  place-items: center;
+  color: #8b4513;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.previewMedia:hover .playCircleBtn {
+  transform: scale(1.1);
+  background: #ffffff;
+}
+
+.previewText {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* Sidebar Body */
+.sidebarBody {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.priceBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
+
+.priceLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.priceValue {
+  font-size: 28px;
+  font-weight: 900;
+  color: #8b4513;
+  margin: 0;
+}
+
+.mainEnrollBtn {
+  width: 100%;
+  height: 48px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #d98236, #8b4513);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  box-shadow: 0 6px 20px rgba(139, 69, 19, 0.25);
+  transition: all 0.2s ease;
+}
+
+.mainEnrollBtn:hover {
+  opacity: 0.94;
+  transform: translateY(-1.5px);
+  box-shadow: 0 10px 24px rgba(139, 69, 19, 0.35);
+}
+
+.featuresList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid rgba(106, 72, 49, 0.1);
+  padding-top: 18px;
+}
+
+.featureItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.featureIcon {
+  color: #8b4513;
+  flex-shrink: 0;
+}

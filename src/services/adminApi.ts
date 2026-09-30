@@ -1,12 +1,5 @@
-import { adminUserService } from "./admin/userApi";
-import { adminPaymentService } from "./admin/paymentApi";
-import { adminStatsService } from "./admin/statsApi";
-
-export const adminApi = {
-  ...adminUserService,
-  ...adminPaymentService,
-  ...adminStatsService,
-};
-
-export * from "@/redux/api/admin";
 export * from "./admin";
+export { adminUserService } from "./admin/userApi";
+export { adminPaymentService } from "./admin/paymentApi";
+export { adminStatsService } from "./admin/statsApi";
+export { questionAdminApi } from "./admin/questionAdminApi";

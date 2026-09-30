@@ -1,5 +1,7 @@
 "use client";
 
+import { questionAdminApi } from "@/services/admin/questionAdminApi";
+
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -11,6 +13,8 @@ import {
   Eye,
   BookOpen,
   Plus,
+  Search,
+  FolderKanban,
   Trash2,
   HelpCircle,
   CheckCircle2,
@@ -69,7 +73,6 @@ import { Separator } from "@/components/admin/ui/separator";
 import { toast } from "sonner";
 import { MOCK_DOMAINS_LIST, MOCK_ROLES_LIST } from "@/mock/adminQuestionsMock";
 import { DEFAULT_RUBRIC_CRITERIA } from "@/services/catalogApi";
-
 export interface GeneratedQuestionItem {
   id: string;
   question_text: string;
@@ -87,27 +90,160 @@ export interface GeneratedQuestionItem {
   is_active: boolean;
   status: "approved" | "pending" | "needs_edit";
 }
+export interface DomainSuggestionConfig {
+  chipsTitle: string;
+  fieldLabel: string;
+  fieldPlaceholder: string;
+  defaultSkills: string;
+  skillChips: string[];
+  promptPlaceholder: string;
+  promptSuggestions: string[];
+}
 
-const QUICK_TECH_CHIPS = [
-  "Java, Spring Boot, PostgreSQL",
-  "React, TypeScript, Next.js",
-  "Python, FastAPI, Redis",
-  "Node.js, Express, MongoDB",
-  "DevOps, Docker, Kubernetes, CI/CD",
-  ".NET Core, C#, SQL Server",
-  "Flutter, Dart, Mobile App",
-  "Data Engineer, Spark, Kafka",
-];
-
-const PROMPT_SUGGESTIONS = [
-  "🔥 Trọng tâm tối ưu hiệu năng, Concurrency & Caching",
-  "🛡️ Trọng tâm Bảo mật REST API, JWT & Authentication",
-  "⚡ Kiến trúc Microservices, Clean Architecture & Design Patterns",
-  "💼 Tình huống giải quyết bug Production & tư duy gỡ lỗi",
-];
+export const DOMAIN_SUGGESTIONS: Record<number, DomainSuggestionConfig> = {
+  1: {
+    chipsTitle: "Gợi ý Tech Stack công nghệ:",
+    fieldLabel: "Công nghệ trọng tâm (Tech Stack) / Ngôn ngữ",
+    fieldPlaceholder: "Ví dụ: Java, Spring Boot, PostgreSQL, React, Docker...",
+    defaultSkills: "Java, Spring Boot, PostgreSQL, React",
+    skillChips: [
+      "Java, Spring Boot, PostgreSQL",
+      "React, TypeScript, Next.js",
+      "Python, FastAPI, Redis",
+      "Node.js, Express, MongoDB",
+      "DevOps, Docker, Kubernetes, CI/CD",
+      ".NET Core, C#, SQL Server",
+      "Flutter, Dart, Mobile App",
+      "Data Engineer, Spark, Kafka",
+    ],
+    promptPlaceholder: "Ví dụ: Tập trung vào Java concurrency, Spring Boot Security, tối ưu hóa Hibernate N+1 và tình huống xử lý deadlock...",
+    promptSuggestions: [
+      "🔥 Trọng tâm tối ưu hiệu năng, Concurrency & Caching",
+      "🛡️ Trọng tâm Bảo mật REST API, JWT & Authentication",
+      "⚡ Kiến trúc Microservices, Clean Architecture & Design Patterns",
+      "💼 Tình huống giải quyết bug Production & tư duy gỡ lỗi",
+    ],
+  },
+  2: {
+    chipsTitle: "Gợi ý Kỹ năng & Nghiệp vụ Tài chính:",
+    fieldLabel: "Kỹ năng chuyên môn / Nghiệp vụ Tài chính - Ngân hàng",
+    fieldPlaceholder: "Ví dụ: Mô hình tài chính, Phân tích BCTC, IFRS, Quản trị rủi ro...",
+    defaultSkills: "Mô hình tài chính, Excel nâng cao, Phân tích BCTC, Quản trị rủi ro",
+    skillChips: [
+      "Mô hình hóa tài chính, Excel nâng cao",
+      "Định giá doanh nghiệp (DCF, P/E)",
+      "Quản trị rủi ro tín dụng & thanh khoản",
+      "Chuẩn mực kế toán VAS & IFRS",
+      "Phân tích báo cáo tài chính (BCTC)",
+      "Thẩm định dự án đầu tư & NPV/IRR",
+      "Kiểm toán & Soát xét nội bộ",
+      "Thị trường vốn, Chứng khoán & Trái phiếu",
+    ],
+    promptPlaceholder: "Ví dụ: Tập trung vào kỹ năng phân tích dòng tiền âm, định giá doanh nghiệp M&A, kiểm soát rủi ro nợ xấu ngân hàng...",
+    promptSuggestions: [
+      "📊 Trọng tâm Thẩm định dự án đầu tư và Phân tích BCTC",
+      "⚖️ Trọng tâm Quản trị rủi ro tín dụng và thanh khoản ngân hàng",
+      "📈 Xử lý tình huống dòng tiền âm và tái cấu trúc vốn",
+      "🏦 Tuân thủ chuẩn mực kế toán IFRS và kiểm soát thất thoát",
+    ],
+  },
+  3: {
+    chipsTitle: "Gợi ý Kỹ năng & Kênh Marketing:",
+    fieldLabel: "Kỹ năng chuyên môn / Kênh tiếp thị & Công cụ Marketing",
+    fieldPlaceholder: "Ví dụ: SEO, Performance Ads, Google Analytics 4, Brand Positioning...",
+    defaultSkills: "SEO, Performance Ads, Google Analytics 4, Content Strategy",
+    skillChips: [
+      "SEO & Content Marketing",
+      "Facebook Ads & Google Performance Max",
+      "Chiến lược định vị thương hiệu (Brand Positioning)",
+      "Tối ưu tỷ lệ chuyển đổi (CRO & Landing Page)",
+      "Google Analytics 4 & Data Tracking",
+      "Email Marketing & Marketing Automation",
+      "KOLs & Influencer Management",
+      "Social Media Growth & TikTok Video Strategy",
+    ],
+    promptPlaceholder: "Ví dụ: Tập trung vào xử lý khủng hoảng truyền thông viral, tối ưu chi phí CPA tăng vọt, chiến lược SEO Topic Cluster...",
+    promptSuggestions: [
+      "🎯 Tối ưu chi phí CPA, ROAS và chiến dịch Performance Marketing",
+      "🚀 Xử lý khủng hoảng truyền thông thương hiệu trên mạng xã hội",
+      "🔍 Chiến lược SEO cụm chủ đề (Topic Cluster) và giữ chân người dùng",
+      "💡 Lập kế hoạch ra mắt sản phẩm mới (Go-To-Market Strategy)",
+    ],
+  },
+  4: {
+    chipsTitle: "Gợi ý Kỹ năng & Phương pháp Bán hàng:",
+    fieldLabel: "Kỹ năng bán hàng / Phương pháp đàm phán & Công cụ CRM",
+    fieldPlaceholder: "Ví dụ: B2B Solution Selling, Đàm phán giá, CRM HubSpot, Sales Pipeline...",
+    defaultSkills: "B2B Solution Selling, Đàm phán giá, CRM HubSpot, Sales Pipeline",
+    skillChips: [
+      "B2B Solution Selling & SPIN Selling",
+      "Đàm phán & Chốt hợp đồng lớn (Enterprise Deal)",
+      "Quản lý phễu bán hàng (Sales Pipeline)",
+      "Hệ thống CRM (Salesforce, HubSpot)",
+      "Kỹ năng xử lý phản đối về giá và đối thủ",
+      "Khai phá khách hàng tiềm năng (Outbound Prospecting)",
+      "Phát triển thị trường & Đối tác chiến lược",
+      "Kỹ năng gia hạn hợp đồng & Up-selling",
+    ],
+    promptPlaceholder: "Ví dụ: Tập trung vào tình huống khách hàng chê giá đắt gấp đôi đối thủ, khôi phục doanh số khi thị trường suy giảm...",
+    promptSuggestions: [
+      "🤝 Tình huống xử lý từ chối giá đắt và đàm phán hợp đồng lớn",
+      "💼 Chiến lược chốt deal với khách hàng doanh nghiệp B2B khó tính",
+      "📈 Vực dậy doanh số khi thị trường suy giảm và đối thủ cạnh tranh gay gắt",
+      "🎯 Quản lý phễu bán hàng và tối ưu tỷ lệ chuyển đổi Lead-to-Win",
+    ],
+  },
+  5: {
+    chipsTitle: "Gợi ý Kỹ năng & Phương pháp Sản phẩm:",
+    fieldLabel: "Kỹ năng sản phẩm / Phương pháp quản trị & Công cụ thiết kế",
+    fieldPlaceholder: "Ví dụ: Product Discovery, Figma, Agile/Scrum, A/B Testing, PRD...",
+    defaultSkills: "Product Discovery, Figma, Agile/Scrum, A/B Testing, User Stories",
+    skillChips: [
+      "Product Discovery & User Journey Mapping",
+      "Figma, Wireframing & Prototyping",
+      "Design System & UI/UX Principles",
+      "Scrum, Agile & Sprint Planning",
+      "Đo lường chỉ số sản phẩm (Retention, Churn, NPS)",
+      "Thử nghiệm A/B Testing & Data-driven Product",
+      "Viết PRD & User Stories chuẩn hóa",
+      "Product Roadmap & Prioritization (RICE/MoSCoW)",
+    ],
+    promptPlaceholder: "Ví dụ: Tập trung vào quy trình ưu tiên tính năng theo RICE framework, giải quyết xung đột ý kiến giữa Designer và Tech Lead...",
+    promptSuggestions: [
+      "📱 Quy trình ra quyết định ưu tiên tính năng (Feature Prioritization)",
+      "🧪 Thiết kế thử nghiệm A/B Testing giải quyết sụt giảm Conversion Rate",
+      "🎨 Xây dựng Design System đồng nhất và tối ưu trải nghiệm người dùng",
+      "⏱️ Quản lý xung đột giữa Business, Design và Đội ngũ Kỹ thuật",
+    ],
+  },
+  6: {
+    chipsTitle: "Gợi ý Kỹ năng & Nghiệp vụ Nhân sự:",
+    fieldLabel: "Kỹ năng nhân sự / Luật lao động & Hệ thống quản trị HR",
+    fieldPlaceholder: "Ví dụ: Tuyển dụng Headhunting, C&B, Luật Lao động, KPI/OKRs...",
+    defaultSkills: "Tuyển dụng nhân tài, C&B, Luật Lao động, Đào tạo L&D",
+    skillChips: [
+      "Headhunting & Tuyển dụng nhân sự chủ chốt",
+      "Xây dựng hệ thống lương thưởng & Phúc lợi (C&B)",
+      "Luật Lao động Việt Nam & Tuân thủ pháp chế",
+      "Thiết lập khung năng lực, KPI & OKRs",
+      "Đào tạo & Phát triển nhân tài (L&D)",
+      "Văn hóa doanh nghiệp & Gắn kết nhân viên (Engagement)",
+      "Đánh giá hiệu suất nhân sự (360 Degree Review)",
+      "Xử lý kỷ luật & Tranh chấp lao động",
+    ],
+    promptPlaceholder: "Ví dụ: Tập trung vào tình huống săn Tech Lead trong thời gian gấp, giải quyết tranh chấp sa thải nhân viên đúng luật...",
+    promptSuggestions: [
+      "👥 Chiến lược săn nhân sự chủ chốt (Tech Lead/C-level) trong thời gian ngắn",
+      "⚖️ Xử lý tranh chấp lao động và sa thải nhân sự đúng luật",
+      "🌱 Xây dựng chính sách lương thưởng C&B cạnh tranh và giữ chân nhân tài",
+      "🏢 Thúc đẩy văn hóa gắn kết khi nhân viên làm việc Hybrid/Remote",
+    ],
+  },
+};
 
 // AI Agent intelligent generator factory
 function generateQuestionsByAgent({
+  domainId = 1,
   domainName,
   roleName,
   level,
@@ -118,6 +254,7 @@ function generateQuestionsByAgent({
   sourceType,
   sourceValue,
 }: {
+  domainId?: number;
   domainName: string;
   roleName: string;
   level: string;
@@ -268,15 +405,60 @@ function generateQuestionsByAgent({
 
   return generated.slice(0, questionCount);
 }
-
 export function QuestionCreateForm() {
   const router = useRouter();
+  // Mode Selection: "ai_agent", "bank_picker" or "manual"
+  const [activeMainTab, setActiveMainTab] = useState<"ai_agent" | "bank_picker" | "manual">("ai_agent");
+  // Bank Picker State (Bốc từ ngân hàng câu hỏi có sẵn)
+  const [bankQuestions, setBankQuestions] = useState<any[]>([]);
+  const [isLoadingBankQuestions, setIsLoadingBankQuestions] = useState<boolean>(false);
+  const [selectedBankQuestions, setSelectedBankQuestions] = useState<any[]>([]);
+  const [bankSearch, setBankSearch] = useState<string>("");
+  const [bankDomainFilter, setBankDomainFilter] = useState<string>("all");
+  const [bankLevelFilter, setBankLevelFilter] = useState<string>("all");
+  const [bankTypeFilter, setBankTypeFilter] = useState<string>("all");
+  React.useEffect(() => {
+    async function loadBank() {
+      setIsLoadingBankQuestions(true);
+      try {
+        const res = await questionAdminApi.getQuestions({ limit: 100 });
+        if (res && Array.isArray(res.items)) {
+          setBankQuestions(res.items);
+        }
+      } catch (err) {
+        console.warn("Failed to load bank questions:", err);
+      } finally {
+        setIsLoadingBankQuestions(false);
+      }
+    }
+    loadBank();
+  }, []);
 
-  // Mode Selection: "manual" or "ai_agent"
-  const [activeMainTab, setActiveMainTab] = useState<"manual" | "ai_agent">("ai_agent");
+  const toggleBankQuestionSelection = (q: any) => {
+    const isSelected = selectedBankQuestions.some((it) => it.question_id === q.question_id);
+    if (isSelected) {
+      setSelectedBankQuestions((prev) => prev.filter((it) => it.question_id !== q.question_id));
+    } else {
+      setSelectedBankQuestions((prev) => [...prev, q]);
+    }
+  };
 
-  // Common Profile & Tech Configuration (Clean Grid)
+  const removeSelectedBankQuestion = (questionId: number) => {
+    setSelectedBankQuestions((prev) => prev.filter((it) => it.question_id !== questionId));
+  };
+
+  const clearAllSelectedBankQuestions = () => {
+    setSelectedBankQuestions([]);
+  };
+
+  const pickAllVisibleBankQuestions = () => {
+    const existingIds = new Set(selectedBankQuestions.map((q) => q.question_id));
+    const newItems = filteredBankQuestions.filter((q) => !existingIds.has(q.question_id));
+    setSelectedBankQuestions((prev) => [...prev, ...newItems]);
+  };
+
   const [domainId, setDomainId] = useState<number>(1);
+  const currentDomainConfig = DOMAIN_SUGGESTIONS[domainId] || DOMAIN_SUGGESTIONS[1];
   const [roleId, setRoleId] = useState<number>(1);
   const [level, setLevel] = useState<string>("fresher");
   const [language, setLanguage] = useState<string>("vi");
@@ -284,7 +466,6 @@ export function QuestionCreateForm() {
   const [questionDistribution, setQuestionDistribution] = useState<string>("mixed");
   const [questionCount, setQuestionCount] = useState<number>(5);
   const [targetDifficulty, setTargetDifficulty] = useState<string>("auto");
-
   // Tab 2: AI Agent Generator State
   const [sourceType, setSourceType] = useState<"prompt" | "document" | "url">("prompt");
   const [customPrompt, setCustomPrompt] = useState<string>("");
@@ -292,10 +473,8 @@ export function QuestionCreateForm() {
   const [uploadedFileSize, setUploadedFileSize] = useState<string | null>(null);
   const [extractedDocText, setExtractedDocText] = useState<string>("");
   const [inputUrl, setInputUrl] = useState<string>("");
-
   const [isAgentGenerating, setIsAgentGenerating] = useState<boolean>(false);
   const [agentStep, setAgentStep] = useState<string>("");
-
   // AI Agent Review Board State
   const [aiQuestions, setAiQuestions] = useState<GeneratedQuestionItem[]>(() =>
     generateQuestionsByAgent({
@@ -309,10 +488,8 @@ export function QuestionCreateForm() {
       sourceType: "prompt",
     })
   );
-
   const [expandedId, setExpandedId] = useState<string>("gen-1");
   const [editingId, setEditingId] = useState<string | null>(null);
-
   // Tab 1: Manual Creator State
   const [manualSetName, setManualSetName] = useState<string>(
     "Bộ đề phỏng vấn Full Stack Java - Fresher (Tự soạn)"
@@ -336,19 +513,37 @@ export function QuestionCreateForm() {
       status: "approved",
     },
   ]);
-
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  // Filtered bank questions for picker
+  const filteredBankQuestions = useMemo(() => {
+    return bankQuestions.filter((q) => {
+      if (bankSearch.trim()) {
+        const kw = bankSearch.trim().toLowerCase();
+        const inText = (q.question_text || "").toLowerCase().includes(kw);
+        const inRole = (q.role_name || "").toLowerCase().includes(kw);
+        const inDomain = (q.domain_name || "").toLowerCase().includes(kw);
+        if (!inText && !inRole && !inDomain) return false;
+      }
+      if (bankDomainFilter !== "all" && String(q.domain_id) !== bankDomainFilter) {
+        return false;
+      }
+      if (bankLevelFilter !== "all" && q.experience_level !== bankLevelFilter) {
+        return false;
+      }
+      if (bankTypeFilter !== "all" && q.question_type !== bankTypeFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [bankQuestions, bankSearch, bankDomainFilter, bankLevelFilter, bankTypeFilter]);
 
-  // Dynamic roles based on domain
   const availableRoles = useMemo(() => {
     return MOCK_ROLES_LIST.filter((r) => r.domain_id === domainId);
   }, [domainId]);
-
   const currentDomainName =
     MOCK_DOMAINS_LIST.find((d) => d.domain_id === domainId)?.domain_name || "Công nghệ thông tin (IT)";
   const currentRoleName =
     MOCK_ROLES_LIST.find((r) => r.role_id === roleId)?.role_name || "Backend Engineer";
-
   // Simulate Document Upload
   const handleSimulateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -374,7 +569,6 @@ export function QuestionCreateForm() {
     }, 800);
   };
 
-  // Run AI Agent Generator
   const handleRunAgent = () => {
     setIsAgentGenerating(true);
     setAgentStep(
@@ -492,20 +686,99 @@ export function QuestionCreateForm() {
     toast.success("Đã thêm 1 câu hỏi mới.");
   };
 
-  // Save full set
-  const handleSaveSet = (publish = true) => {
+  // Save full set to Real Database
+  const handleSaveSet = async (publish = true) => {
     setIsSaving(true);
-    const count = activeMainTab === "ai_agent" ? aiQuestions.length : manualQuestions.length;
-    setTimeout(() => {
-      setIsSaving(false);
+    let createdIds: number[] = [];
+
+    try {
+      if (activeMainTab === "bank_picker") {
+        if (selectedBankQuestions.length === 0) {
+          toast.error("Vui lòng bốc ít nhất 1 câu hỏi từ ngân hàng câu hỏi vào bộ đề!");
+          setIsSaving(false);
+          return;
+        }
+        createdIds = selectedBankQuestions.map((q) => q.question_id);
+      } else {
+        const questionsToSave = activeMainTab === "ai_agent" ? aiQuestions : manualQuestions;
+        if (questionsToSave.length === 0) {
+          toast.error("Bộ đề phải có ít nhất 1 câu hỏi");
+          setIsSaving(false);
+          return;
+        }
+
+        // 1. Create each question in question_bank
+        for (const q of questionsToSave) {
+          try {
+            const res = await questionAdminApi.createQuestion({
+              domain_id: domainId,
+              role_id: roleId,
+              experience_level: level,
+              question_type: (q.question_type as any) || "behavioral",
+              language: (language as any) || "vi",
+              question_text: q.question_text,
+              sample_answer: q.sample_answer,
+              follow_up_questions: q.follow_up_questions,
+              tips: q.tips,
+            });
+            if (res && res.question_id) {
+              createdIds.push(res.question_id);
+            }
+          } catch (e) {
+            console.warn("Error creating question item in set:", e);
+          }
+        }
+      }
+
+      // 2. Create the QuestionSet in database
+      const tagsList = techStack
+        ? techStack.split(",").map((s) => s.trim()).filter(Boolean)
+        : ["Chuyên môn"];
+
+      const domainName = MOCK_DOMAINS_LIST.find((d) => d.domain_id === domainId)?.domain_name || "Chuyên ngành";
+      const roleName = MOCK_ROLES_LIST.find((r) => r.role_id === roleId)?.role_name || "Vị trí";
+
+      const title =
+        activeMainTab === "manual" && manualSetName.trim()
+          ? manualSetName.trim()
+          : activeMainTab === "bank_picker"
+          ? `Bộ đề tuyển chọn ${roleName} - ${level.toUpperCase()} (${createdIds.length} câu hỏi)`
+          : `Bộ đề phỏng vấn ${roleName} - ${level.toUpperCase()} (${techStack.split(",")[0]?.trim() || "Chuyên ngành"})`;
+
+      await questionAdminApi.createQuestionSet({
+        title,
+        description: `Bộ đề tuyển dụng chuẩn hóa gồm ${createdIds.length} câu hỏi theo cấu trúc STAR và thang đo Rubric AI.`,
+        domain_id: domainId,
+        role_id: roleId,
+        experience_level: level,
+        tech_stack: tagsList,
+        language,
+        target_difficulty: targetDifficulty === "auto" ? 3 : Number(targetDifficulty) || 3,
+        estimated_duration_minutes: Math.max(15, createdIds.length * 6),
+        is_curated: true,
+        is_active: publish,
+        question_ids: createdIds,
+      });
+
       toast.success(
         publish
-          ? `Đã lưu và xuất bản bộ đề (${count} câu hỏi) vào Ngân hàng đề thi!`
-          : `Đã lưu bản nháp bộ đề (${count} câu hỏi).`
+          ? `Đã lưu và xuất bản bộ đề (${createdIds.length} câu hỏi) vào cơ sở dữ liệu thành công!`
+          : `Đã lưu bản nháp bộ đề (${createdIds.length} câu hỏi).`
       );
       router.push("/admin/questions");
-    }, 600);
+    } catch (err: any) {
+      toast.error(`Lưu bộ đề thất bại: ${err.message || "Lỗi server"}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  const publishCount =
+    activeMainTab === "ai_agent"
+      ? aiQuestions.length
+      : activeMainTab === "bank_picker"
+      ? selectedBankQuestions.length
+      : manualQuestions.length;
 
   return (
     <div className="space-y-6 px-4 lg:px-6">
@@ -527,7 +800,7 @@ export function QuestionCreateForm() {
             Tạo Bộ Câu Hỏi Phỏng Vấn Chuyên Môn
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Tạo bộ đề theo ngành nghề, vị trí, công nghệ và cấp độ kinh nghiệm bằng AI Agent hoặc tự soạn thủ công.
+            Tạo bộ đề theo ngành nghề, vị trí, công nghệ và cấp độ kinh nghiệm bằng AI Agent, bốc từ kho câu hỏi hoặc tự soạn thủ công.
           </p>
         </div>
 
@@ -553,11 +826,7 @@ export function QuestionCreateForm() {
           >
             <Send className="size-3.5" />
             <span>
-              {isSaving
-                ? "Đang lưu..."
-                : `Lưu & Xuất Bản ${
-                    activeMainTab === "ai_agent" ? aiQuestions.length : manualQuestions.length
-                  } Câu Hỏi`}
+              {isSaving ? "Đang lưu..." : `Lưu & Xuất Bản ${publishCount} Câu Hỏi`}
             </span>
           </Button>
         </div>
@@ -583,12 +852,12 @@ export function QuestionCreateForm() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Row 1: 4 Balanced Columns */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {/* Domain */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold flex items-center justify-between">
+              <Label className="text-xs font-medium text-foreground flex items-center gap-1">
                 <span>Ngành nghề tuyển dụng</span>
-                <span className="text-destructive">*</span>
+                <span className="text-destructive font-bold">*</span>
               </Label>
               <Select
                 value={String(domainId)}
@@ -596,10 +865,28 @@ export function QuestionCreateForm() {
                   const dId = Number(v);
                   setDomainId(dId);
                   const firstRole = MOCK_ROLES_LIST.find((r) => r.domain_id === dId);
+                  const newRoleName = firstRole?.role_name || "Chuyên ngành";
                   if (firstRole) setRoleId(firstRole.role_id);
+                  const newCfg = DOMAIN_SUGGESTIONS[dId] || DOMAIN_SUGGESTIONS[1];
+                  setTechStack(newCfg.defaultSkills);
+                  setManualSetName(`Bộ đề phỏng vấn ${newRoleName} - ${level.toUpperCase()} (Tự soạn)`);
+                  const domainObj = MOCK_DOMAINS_LIST.find((d) => d.domain_id === dId);
+                  setAiQuestions(
+                    generateQuestionsByAgent({
+                      domainId: dId,
+                      domainName: domainObj?.domain_name || "Chuyên ngành",
+                      roleName: newRoleName,
+                      level,
+                      techStack: newCfg.defaultSkills,
+                      questionDistribution,
+                      questionCount,
+                      customPrompt,
+                      sourceType,
+                    })
+                  );
                 }}
               >
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-9 text-xs bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -614,15 +901,35 @@ export function QuestionCreateForm() {
 
             {/* Role */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold flex items-center justify-between">
+              <Label className="text-xs font-medium text-foreground flex items-center gap-1">
                 <span>Vị trí chuyên môn</span>
-                <span className="text-destructive">*</span>
+                <span className="text-destructive font-bold">*</span>
               </Label>
               <Select
                 value={String(roleId)}
-                onValueChange={(v) => setRoleId(Number(v))}
+                onValueChange={(v) => {
+                  const rId = Number(v);
+                  setRoleId(rId);
+                  const foundRole = MOCK_ROLES_LIST.find((r) => r.role_id === rId);
+                  const newRoleName = foundRole?.role_name || "Chuyên ngành";
+                  setManualSetName(`Bộ đề phỏng vấn ${newRoleName} - ${level.toUpperCase()} (Tự soạn)`);
+                  const domainObj = MOCK_DOMAINS_LIST.find((d) => d.domain_id === domainId);
+                  setAiQuestions(
+                    generateQuestionsByAgent({
+                      domainId,
+                      domainName: domainObj?.domain_name || "Chuyên ngành",
+                      roleName: newRoleName,
+                      level,
+                      techStack,
+                      questionDistribution,
+                      questionCount,
+                      customPrompt,
+                      sourceType,
+                    })
+                  );
+                }}
               >
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-9 text-xs bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -637,12 +944,12 @@ export function QuestionCreateForm() {
 
             {/* Level */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold flex items-center justify-between">
+              <Label className="text-xs font-medium text-foreground flex items-center gap-1">
                 <span>Cấp độ kinh nghiệm</span>
-                <span className="text-destructive">*</span>
+                <span className="text-destructive font-bold">*</span>
               </Label>
               <Select value={level} onValueChange={setLevel}>
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-9 text-xs bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -658,12 +965,12 @@ export function QuestionCreateForm() {
 
             {/* Language */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold flex items-center justify-between">
+              <Label className="text-xs font-medium text-foreground flex items-center gap-1">
                 <span>Ngôn ngữ phỏng vấn</span>
-                <span className="text-destructive">*</span>
+                <span className="text-destructive font-bold">*</span>
               </Label>
               <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-9 text-xs bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -675,48 +982,46 @@ export function QuestionCreateForm() {
           </div>
 
           {/* Row 2: Tech Stack, Distribution, Count, Difficulty */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 pt-1">
-            {/* Tech Stack (5 cols) */}
-            <div className="lg:col-span-5 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="tech_stack" className="text-xs font-semibold">
-                  Công nghệ / Kỹ năng trọng tâm (Tech Stack)
-                </Label>
-                <span className="text-[11px] text-muted-foreground">Ví dụ: Java, Spring Boot, React...</span>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 pt-1">
+            {/* Tech Stack (6 cols) */}
+            <div className="lg:col-span-6 space-y-1.5">
+              <Label htmlFor="tech_stack" className="text-xs font-medium text-foreground flex items-center gap-1">
+                <span>{currentDomainConfig.fieldLabel}</span>
+                <span className="text-destructive font-bold">*</span>
+              </Label>
               <Input
                 id="tech_stack"
                 value={techStack}
                 onChange={(e) => setTechStack(e.target.value)}
-                placeholder="Nhập công nghệ cần phỏng vấn (cách nhau bởi dấu phẩy)..."
-                className="h-9 text-xs"
+                placeholder={currentDomainConfig.fieldPlaceholder}
+                className="h-9 text-xs bg-background"
               />
             </div>
 
-            {/* Question Distribution (3 cols) */}
-            <div className="lg:col-span-3 space-y-1.5">
-              <Label className="text-xs font-semibold">Phân bổ dạng câu hỏi</Label>
+            {/* Question Distribution (2 cols) */}
+            <div className="lg:col-span-2 space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">Phân bổ dạng câu</Label>
               <Select value={questionDistribution} onValueChange={setQuestionDistribution}>
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-9 text-xs bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="mixed">Kết hợp toàn diện (Mixed)</SelectItem>
-                  <SelectItem value="technical">Thuần Kỹ thuật (Technical)</SelectItem>
-                  <SelectItem value="situational">Xử lý Tình huống (Situational)</SelectItem>
-                  <SelectItem value="behavioral">Hành vi & Văn hóa (Behavioral)</SelectItem>
+                  <SelectItem value="mixed">Kết hợp (Mixed)</SelectItem>
+                  <SelectItem value="technical">Kỹ thuật (Tech)</SelectItem>
+                  <SelectItem value="situational">Tình huống (Situational)</SelectItem>
+                  <SelectItem value="behavioral">Hành vi (Behavioral)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Question Count (2 cols) */}
             <div className="lg:col-span-2 space-y-1.5">
-              <Label className="text-xs font-semibold">Số lượng câu hỏi</Label>
+              <Label className="text-xs font-medium text-foreground">Số lượng câu</Label>
               <Select
                 value={String(questionCount)}
                 onValueChange={(v) => setQuestionCount(Number(v))}
               >
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-9 text-xs bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -730,9 +1035,9 @@ export function QuestionCreateForm() {
 
             {/* Target Difficulty (2 cols) */}
             <div className="lg:col-span-2 space-y-1.5">
-              <Label className="text-xs font-semibold">Độ khó mục tiêu</Label>
+              <Label className="text-xs font-medium text-foreground">Độ khó mục tiêu</Label>
               <Select value={targetDifficulty} onValueChange={setTargetDifficulty}>
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-9 text-xs bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -746,44 +1051,50 @@ export function QuestionCreateForm() {
           </div>
 
           {/* Quick Tech Suggestion Chips */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t text-xs">
-            <span className="text-muted-foreground text-[11px] font-medium mr-1 flex items-center gap-1">
-              <Code2 className="size-3 text-primary" />
-              Gợi ý Tech Stack:
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-3 border-t text-xs">
+            <span className="text-muted-foreground text-xs font-semibold shrink-0 flex items-center gap-1.5">
+              <Sparkles className="size-3.5 text-primary" />
+              <span>{currentDomainConfig.chipsTitle}</span>
             </span>
-            {QUICK_TECH_CHIPS.map((chip, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setTechStack(chip)}
-                className={`px-2 py-0.5 rounded-md text-[11px] transition-colors border ${
-                  techStack === chip
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-muted/50 hover:bg-muted text-muted-foreground border-transparent"
-                }`}
-              >
-                {chip}
-              </button>
-            ))}
+            <div className="flex flex-wrap items-center gap-1.5 flex-1">
+              {currentDomainConfig.skillChips.map((chip, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setTechStack(chip)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all border cursor-pointer ${
+                    techStack === chip
+                      ? "bg-primary text-primary-foreground border-primary shadow-2xs font-semibold"
+                      : "bg-muted/40 hover:bg-muted/80 text-muted-foreground hover:text-foreground border-border/60"
+                  }`}
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* SECTION 2: Hai Tab Lớn (AI Agent Generator vs Thêm Tay Thủ Công) */}
+      {/* SECTION 2: Ba Tab Lớn (AI Agent vs Bốc từ Ngân Hàng vs Thêm Tay) */}
       <Tabs
         value={activeMainTab}
-        onValueChange={(v) => setActiveMainTab(v as "manual" | "ai_agent")}
+        onValueChange={(v) => setActiveMainTab(v as any)}
         className="space-y-4"
       >
         <div className="flex items-center justify-between border-b pb-1">
           <TabsList className="h-10 p-1 bg-muted/60">
             <TabsTrigger value="ai_agent" className="text-xs gap-2 font-semibold data-[state=active]:shadow-xs">
               <Bot className="size-4 text-primary" />
-              <span>Tab 1: AI Agent Generator (Tự động & Kiểm duyệt)</span>
+              <span>Tab 1: AI Agent Generator (Tự động)</span>
+            </TabsTrigger>
+            <TabsTrigger value="bank_picker" className="text-xs gap-2 font-semibold data-[state=active]:shadow-xs">
+              <FolderPlus className="size-4 text-primary" />
+              <span>Tab 2: Bốc Từ Ngân Hàng Câu Hỏi ({selectedBankQuestions.length} đã chọn)</span>
             </TabsTrigger>
             <TabsTrigger value="manual" className="text-xs gap-2 font-semibold data-[state=active]:shadow-xs">
               <PenTool className="size-4 text-primary" />
-              <span>Tab 2: Thêm Tay Thủ Công (Manual Creator)</span>
+              <span>Tab 3: Soạn Thủ Công (Manual)</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -867,14 +1178,14 @@ export function QuestionCreateForm() {
                       rows={3}
                       value={customPrompt}
                       onChange={(e) => setCustomPrompt(e.target.value)}
-                      placeholder="Ví dụ: Tập trung vào Java concurrency, Spring Boot Security, tối ưu hóa Hibernate N+1 và câu hỏi tình huống xử lý deadlock..."
+                      placeholder={currentDomainConfig.promptPlaceholder}
                       className="w-full rounded-md border border-input bg-background/90 p-2.5 text-xs leading-relaxed"
                       disabled={isAgentGenerating}
                     />
                   </div>
 
                   <div className="flex flex-wrap gap-1.5">
-                    {PROMPT_SUGGESTIONS.map((sug, idx) => (
+                    {currentDomainConfig.promptSuggestions.map((sug, idx) => (
                       <button
                         key={idx}
                         type="button"
@@ -1017,7 +1328,14 @@ export function QuestionCreateForm() {
                 const isExpanded = expandedId === q.id;
                 const isEditing = editingId === q.id;
 
-                return (
+                const publishCount =
+    activeMainTab === "ai_agent"
+      ? aiQuestions.length
+      : activeMainTab === "bank_picker"
+      ? selectedBankQuestions.length
+      : manualQuestions.length;
+
+  return (
                   <Card
                     key={q.id}
                     className={`shadow-xs transition-all ${
@@ -1203,6 +1521,282 @@ export function QuestionCreateForm() {
         </TabsContent>
 
         {/* =========================================================
+            TAB CONTENT 2: BỐC TỪ NGÂN HÀNG CÂU HỎI (PICK FROM BANK)
+           ========================================================= */}
+        <TabsContent value="bank_picker" className="space-y-6 m-0">
+          <Card className="shadow-xs border-primary/30 bg-gradient-to-br from-primary/5 via-card to-card">
+            <CardHeader className="pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="space-y-0.5">
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-primary">
+                    <FolderPlus className="size-5 text-primary" />
+                    Bốc Câu Hỏi Sẵn Có Từ Ngân Hàng Đề Thi
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Tái sử dụng các câu hỏi chuẩn hóa có sẵn trong hệ thống (Next.js, Spring Boot, SQL, Behavior...) để gộp vào bộ đề ôn luyện này mà không cần tạo lại.
+                  </CardDescription>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs font-semibold px-2.5 py-1 bg-background/80">
+                    Đã bốc: <strong className="text-primary ml-1 font-bold">{selectedBankQuestions.length}</strong> câu
+                  </Badge>
+                  {selectedBankQuestions.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearAllSelectedBankQuestions}
+                      className="h-8 text-xs text-muted-foreground hover:text-destructive"
+                    >
+                      Bỏ chọn tất cả
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-4 pt-1">
+              {/* Filter Bar */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 p-3 rounded-xl bg-background/80 border text-xs">
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">Tìm kiếm nội dung / từ khóa</Label>
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Tìm câu hỏi, từ khóa, công nghệ..."
+                      value={bankSearch}
+                      onChange={(e) => setBankSearch(e.target.value)}
+                      className="pl-8 h-8 text-xs bg-background"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">Ngành nghề</Label>
+                  <Select value={bankDomainFilter} onValueChange={setBankDomainFilter}>
+                    <SelectTrigger className="h-8 text-xs bg-background">
+                      <SelectValue placeholder="Tất cả ngành" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tất cả ngành nghề</SelectItem>
+                      {MOCK_DOMAINS_LIST.map((d) => (
+                        <SelectItem key={d.domain_id} value={String(d.domain_id)}>
+                          {d.domain_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">Cấp độ</Label>
+                  <Select value={bankLevelFilter} onValueChange={setBankLevelFilter}>
+                    <SelectTrigger className="h-8 text-xs bg-background">
+                      <SelectValue placeholder="Tất cả cấp độ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tất cả cấp độ</SelectItem>
+                      <SelectItem value="intern">Intern</SelectItem>
+                      <SelectItem value="fresher">Fresher</SelectItem>
+                      <SelectItem value="junior">Junior</SelectItem>
+                      <SelectItem value="mid">Middle</SelectItem>
+                      <SelectItem value="senior">Senior</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">Dạng câu hỏi</Label>
+                  <Select value={bankTypeFilter} onValueChange={setBankTypeFilter}>
+                    <SelectTrigger className="h-8 text-xs bg-background">
+                      <SelectValue placeholder="Tất cả dạng" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tất cả dạng câu</SelectItem>
+                      <SelectItem value="technical">Kỹ thuật (Technical)</SelectItem>
+                      <SelectItem value="situational">Tình huống (Situational)</SelectItem>
+                      <SelectItem value="behavioral">Hành vi STAR (Behavioral)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* 2-Column Split Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-2 items-start">
+                {/* Left 8 Cols: Available Questions in Database */}
+                <div className="lg:col-span-8 space-y-3">
+                  <div className="flex items-center justify-between pb-1">
+                    <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <BookOpen className="size-4 text-primary" />
+                      Kho câu hỏi sẵn có ({filteredBankQuestions.length} câu phù hợp)
+                    </span>
+
+                    {filteredBankQuestions.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={pickAllVisibleBankQuestions}
+                        className="h-7 text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                      >
+                        <CheckSquare className="size-3.5" />
+                        <span>Bốc tất cả câu đang hiện</span>
+                      </Button>
+                    )}
+                  </div>
+
+                  {isLoadingBankQuestions ? (
+                    <div className="p-12 text-center text-muted-foreground border rounded-2xl bg-card flex flex-col items-center justify-center gap-2">
+                      <Sparkles className="size-6 animate-spin text-primary" />
+                      <span className="text-xs">Đang tải danh sách câu hỏi từ ngân hàng...</span>
+                    </div>
+                  ) : filteredBankQuestions.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground border rounded-2xl bg-card text-xs">
+                      Không tìm thấy câu hỏi nào phù hợp với bộ lọc hiện tại.
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5 max-h-[560px] overflow-y-auto pr-1">
+                      {filteredBankQuestions.map((q) => {
+                        const isPicked = selectedBankQuestions.some((it) => it.question_id === q.question_id);
+                        const publishCount =
+    activeMainTab === "ai_agent"
+      ? aiQuestions.length
+      : activeMainTab === "bank_picker"
+      ? selectedBankQuestions.length
+      : manualQuestions.length;
+
+  return (
+                          <div
+                            key={q.question_id}
+                            className={`p-3.5 rounded-xl border transition-all text-xs space-y-2 ${
+                              isPicked
+                                ? "bg-primary/5 border-primary/40 shadow-2xs"
+                                : "bg-card hover:bg-muted/30 border-border"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="space-y-1 flex-1">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <Badge variant="outline" className="font-mono text-[10px]">#{q.question_id}</Badge>
+                                  <Badge variant="secondary" className="text-[10px]">{q.domain_name || `Ngành #${q.domain_id}`}</Badge>
+                                  {q.role_name && <Badge variant="outline" className="text-[10px]">{q.role_name}</Badge>}
+                                  <Badge variant="outline" className="text-[10px] capitalize">{q.experience_level}</Badge>
+                                  <Badge variant="outline" className="text-[10px] text-muted-foreground capitalize">{q.question_type}</Badge>
+                                </div>
+                                <p className="font-bold text-foreground text-xs leading-relaxed pt-0.5">
+                                  {q.question_text}
+                                </p>
+                              </div>
+
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={isPicked ? "secondary" : "outline"}
+                                onClick={() => toggleBankQuestionSelection(q)}
+                                className={`h-8 px-3 text-xs shrink-0 gap-1.5 font-semibold transition-all ${
+                                  isPicked
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-300"
+                                    : "border-primary/40 text-primary hover:bg-primary/10"
+                                }`}
+                              >
+                                {isPicked ? (
+                                  <>
+                                    <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                                    <span>Đã Bốc</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="size-3.5" />
+                                    <span>Bốc Vào Đề</span>
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Right 4 Cols: Selected Basket for this Question Set */}
+                <div className="lg:col-span-4 sticky top-4 space-y-3">
+                  <div className="rounded-2xl border bg-card p-4 shadow-xs space-y-3">
+                    <div className="flex items-center justify-between pb-2 border-b">
+                      <div>
+                        <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          <FolderKanban className="size-4 text-primary" />
+                          Câu hỏi trong bộ đề
+                        </h4>
+                        <span className="text-[11px] text-muted-foreground">
+                          Thời lượng ước tính: ~{Math.max(15, selectedBankQuestions.length * 6)} phút
+                        </span>
+                      </div>
+
+                      <Badge variant="default" className="text-xs font-bold font-mono">
+                        {selectedBankQuestions.length} câu
+                      </Badge>
+                    </div>
+
+                    {selectedBankQuestions.length === 0 ? (
+                      <div className="py-10 text-center text-muted-foreground text-xs space-y-2">
+                        <FolderPlus className="size-8 mx-auto text-muted-foreground/40" />
+                        <p className="font-semibold text-foreground/80">Chưa bốc câu hỏi nào</p>
+                        <p className="text-[11px] leading-relaxed">
+                          Chọn từ danh sách bên trái để gom các câu hỏi liên quan vào bộ đề tuyển dụng này.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
+                        {selectedBankQuestions.map((q, idx) => (
+                          <div
+                            key={q.question_id}
+                            className="p-2.5 rounded-lg border bg-muted/20 text-xs flex items-start justify-between gap-2 group hover:bg-muted/40 transition-colors"
+                          >
+                            <div className="space-y-0.5 flex-1 overflow-hidden">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-primary text-[11px]">Câu #{idx + 1}</span>
+                                <span className="text-muted-foreground text-[10px] font-mono">#{q.question_id}</span>
+                              </div>
+                              <p className="text-foreground text-[11px] font-medium leading-snug line-clamp-2">
+                                {q.question_text}
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => removeSelectedBankQuestion(q.question_id)}
+                              className="size-6 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive flex items-center justify-center shrink-0 transition-colors"
+                              title="Bỏ câu hỏi này khỏi bộ đề"
+                            >
+                              <X className="size-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {selectedBankQuestions.length > 0 && (
+                      <div className="pt-2 border-t">
+                        <Button
+                          type="button"
+                          onClick={() => handleSaveSet(true)}
+                          disabled={isSaving}
+                          className="w-full h-9 text-xs font-bold gap-1.5 shadow-xs"
+                        >
+                          <Save className="size-3.5" />
+                          <span>Xuất Bản Bộ Đề ({selectedBankQuestions.length} Câu)</span>
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        {/* =========================================================
             TAB CONTENT 2: THÊM TAY THỦ CÔNG (MANUAL CREATOR)
            ========================================================= */}
         <TabsContent value="manual" className="space-y-6 m-0">
@@ -1361,11 +1955,7 @@ export function QuestionCreateForm() {
           >
             <Send className="size-3.5" />
             <span>
-              {isSaving
-                ? "Đang lưu..."
-                : `Lưu & Xuất Bản ${
-                    activeMainTab === "ai_agent" ? aiQuestions.length : manualQuestions.length
-                  } Câu Hỏi`}
+              {isSaving ? "Đang lưu..." : `Lưu & Xuất Bản ${publishCount} Câu Hỏi`}
             </span>
           </Button>
         </div>
