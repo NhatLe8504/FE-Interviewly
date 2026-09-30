@@ -190,12 +190,21 @@ export default function CourseDetailClient({ slug }: CourseDetailClientProps) {
           {/* Action CTAs */}
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
             <Link
-              href="/practice"
+              href={isEM ? "/courses/engineering-management/em-intro/welcome-em" : `/courses/${slug}/m-1/l-1-1`}
               className={styles.btnAction}
               style={{ padding: "12px 26px", fontSize: 13, textDecoration: "none" }}
             >
-              <Sparkles size={15} />
-              <span>Giả Lập Phỏng Vấn EM (AI Coach)</span>
+              <PlayCircle size={15} />
+              <span>Bắt Đầu Học Bài Đầu Tiên</span>
+            </Link>
+
+            <Link
+              href="/practice"
+              className={styles.categoryPill}
+              style={{ padding: "11px 22px", fontSize: 13, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
+              <Sparkles size={15} color="#d98236" />
+              <span>Phỏng Vấn Thử (AI Coach)</span>
             </Link>
 
             <Link
@@ -292,7 +301,13 @@ export default function CourseDetailClient({ slug }: CourseDetailClientProps) {
                 </div>
 
                 <Link
-                  href="/practice"
+                  href={
+                    idx === 0
+                      ? "/courses/engineering-management/eng-behavioral/sounding-like-robot"
+                      : idx === 1
+                      ? "/courses/engineering-management/people-management/how-do-you-consider-your-impact-as-an-engineering-manager"
+                      : "/courses/engineering-management/eng-behavioral/analysis-demonstrating-ownership"
+                  }
                   style={{
                     fontSize: 12,
                     fontWeight: 700,
@@ -449,7 +464,7 @@ export default function CourseDetailClient({ slug }: CourseDetailClientProps) {
                         <div style={{ display: "flex", alignItems: "center", gap: 14, color: "var(--ink-soft)", fontSize: 11.5, flexShrink: 0 }}>
                           <span>{lesson.durationMinutes} phút</span>
                           <Link
-                            href="/practice"
+                            href={lesson.href || `/courses/${slug}/${m.id}/${lesson.id}`}
                             style={{
                               fontSize: 11,
                               fontWeight: 700,
@@ -460,8 +475,7 @@ export default function CourseDetailClient({ slug }: CourseDetailClientProps) {
                               gap: 2,
                             }}
                           >
-                            <span>Luyện tập</span>
-                            <ArrowRight size={11} />
+                            <span>Học bài →</span>
                           </Link>
                         </div>
                       </div>
