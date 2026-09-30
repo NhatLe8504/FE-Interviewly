@@ -14,6 +14,34 @@ export const COURSE_CATEGORIES = [
 
 export const COURSES_DATA: CourseItem[] = [
   {
+    id: "c-0",
+    slug: "engineering-management",
+    title: "Engineering Management Interview Prep",
+    type: "Learning Path",
+    category: "swe",
+    role: "Engineering Manager (EM / Lead)",
+    level: "senior",
+    levelLabel: "Senior / Manager / Director",
+    meta: "5 Module · 132 Bài học & Video",
+    totalCoursesCount: 5,
+    totalLessonsCount: 132,
+    estimatedHours: 48,
+    rating: 4.96,
+    reviewCount: 384,
+    enrolledCount: 4520,
+    targetCompanies: ["Google", "Meta", "Amazon", "Slack", "Stripe", "Uber", "Apple"],
+    description: "Khóa học toàn diện nhất để làm chủ các vòng phỏng vấn Quản lý Kỹ thuật (Engineering Manager - EM). Học từ các câu hỏi quản lý con người (People Management), mổ xẻ dự án (Project Retrospective), thiết kế hệ thống cấp cao (System Design) và vòng phỏng vấn hành vi chuẩn hóa tại Google, Meta và Amazon.",
+    highlights: [
+      "Chiến lược vòng People Management: Họp 1:1, xử lý nhân sự kém hiệu quả, quản lý OKRs và giải quyết xung đột.",
+      "Cấu trúc Project Retrospective: Kể câu chuyện dự án phức tạp có số liệu định lượng theo chuẩn STAR.",
+      "Thiết kế Hệ thống phân tán cho EM: Tập trung vào kiến trúc tổng thể, độ sẵn sàng (Availability) và Trade-offs.",
+      "Tránh bẫy Downleveling: Cách thể hiện phong thái Senior/Staff+ Manager trong vòng phỏng vấn Onsite.",
+      "Thực hành giả lập phỏng vấn 1-1 với AI Coach chuyên sâu về lãnh đạo kỹ thuật."
+    ],
+    skills: ["People Management", "System Design", "Project Retro", "Conflict Resolution", "1:1s", "Team Execution", "OKRs", "STAR Framework"],
+    image: "https://images.ctfassets.net/x78yjrjc11pq/25mhKSvDOiCwC89lDj89Ah/9a5fbfacc8d93f05c238ab55baa4e5e5/fde.png?w=800&h=800&fm=webp&q=75",
+  },
+  {
     id: "c-1",
     slug: "ai-engineering",
     title: "AI Engineering Interview Prep",
