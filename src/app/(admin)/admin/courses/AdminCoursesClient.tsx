@@ -593,9 +593,13 @@ export default function AdminCoursesClient() {
                             className="size-12 rounded-lg object-cover border shrink-0 bg-muted"
                           />
                           <div className="space-y-0.5 overflow-hidden">
-                            <div className="font-bold text-foreground hover:text-primary leading-snug truncate max-w-[280px]">
+                            <Link
+                              href={`/admin/courses/${c.slug}`}
+                              className="font-bold text-foreground hover:text-primary leading-snug truncate max-w-[280px] block transition-colors cursor-pointer"
+                              title="Nhấp để vào trang quản lý chi tiết bài học"
+                            >
                               {c.title}
-                            </div>
+                            </Link>
                             <p className="text-[11px] text-muted-foreground truncate max-w-[320px]" title={c.description}>
                               {c.description}
                             </p>
@@ -660,9 +664,16 @@ export default function AdminCoursesClient() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-56 text-xs">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/admin/courses/${c.slug}`}>
+                                <Layers className="size-3.5 mr-2 text-primary" />
+                                <span className="font-bold">Quản lý chi tiết & bài học</span>
+                              </Link>
+                            </DropdownMenuItem>
+
                             <DropdownMenuItem onClick={() => handleManageCurriculum(c)}>
-                              <BookOpen className="size-3.5 mr-2 text-primary" />
-                              <span className="font-bold">Quản lý giáo trình bài học</span>
+                              <BookOpen className="size-3.5 mr-2 text-muted-foreground" />
+                              <span>Mở ngăn giáo trình nhanh</span>
                             </DropdownMenuItem>
 
                             <DropdownMenuItem onClick={() => handleOpenEditCourse(c)}>
