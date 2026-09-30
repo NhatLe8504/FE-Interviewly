@@ -37,6 +37,19 @@ export interface LessonCreateIn {
   type: "video" | "reading" | "star_practice" | "mock_simulation" | "quiz";
   isFree: boolean;
   videoUrl?: string;
+  videoFileName?: string;
+  videoSize?: string;
+  contentHtml?: string;
+  targetChapterId?: string;
+  practiceQuestion?: {
+    prompt: string;
+    intent?: string;
+    starSituation?: string;
+    starTask?: string;
+    starAction?: string;
+    starResult?: string;
+    sampleAnswer?: string;
+  };
 }
 
 // Helper: Get local saved courses or fallback to COURSES_DATA
@@ -303,6 +316,8 @@ export const courseAdminApi = {
       isFree: Boolean(data.isFree),
       isVideo: data.type === "video" || Boolean(data.videoUrl),
       videoUrl: data.videoUrl?.trim(),
+      contentHtml: data.contentHtml?.trim(),
+      practiceQuestion: data.practiceQuestion,
       chapterId: sec.id,
       chapterTitle: sec.title,
     };
@@ -328,14 +343,27 @@ export const courseAdminApi = {
     data: Partial<LessonCreateIn>
   ): Promise<ResolvedLesson> {
     const sections = getStoredCurriculum(slug);
-    const sec = sections.find((s) => s.id === chapterId);
-    if (!sec) throw new Error("Chương học không tồn tại");
-    const lesson = sec.lessons.find((l) => l.id === lessonId);
-    if (!lesson) throw new Error("Bài học không tồn tại");
+    let currentSec = sections.find((s) => s.id === chapterId);
+    let lessonIndex = currentSec ? currentSec.lessons.findIndex((l) => l.id === lessonId) : -1;
 
-    if (data.title) lesson.title = data.title.trim();
-    if (data.durationMinutes) lesson.durationMinutes = data.durationMinutes;
-    if (data.type) {
+    if (!currentSec || lessonIndex === -1) {
+      for (const s of sections) {
+        const idx = s.lessons.findIndex((l) => l.id === lessonId);
+        if (idx !== -1) {
+          currentSec = s;
+          lessonIndex = idx;
+          break;
+        }
+      }
+    }
+
+    if (!currentSec || lessonIndex === -1) throw new Error("Bài học không tồn tại");
+
+    const lesson = currentSec.lessons[lessonIndex];
+
+    if (data.title !== undefined) lesson.title = data.title.trim();
+    if (data.durationMinutes !== undefined) lesson.durationMinutes = data.durationMinutes;
+    if (data.type !== undefined) {
       lesson.type = data.type;
       lesson.isVideo = data.type === "video" || Boolean(data.videoUrl);
     }
@@ -344,9 +372,48 @@ export const courseAdminApi = {
       lesson.videoUrl = data.videoUrl.trim() || undefined;
       if (lesson.videoUrl) lesson.isVideo = true;
     }
+    if (data.contentHtml !== undefined) {
+      lesson.contentHtml = data.contentHtml;
+    }
+    if (data.practiceQuestion !== undefined) {
+      lesson.practiceQuestion = data.practiceQuestion;
+    }
+
+    if (data.targetChapterId && data.targetChapterId !== currentSec.id) {
+      const targetSec = sections.find((s) => s.id === data.targetChapterId);
+      if (targetSec) {
+        currentSec.lessons.splice(lessonIndex, 1);
+        lesson.chapterId = targetSec.id;
+        lesson.chapterTitle = targetSec.title;
+        targetSec.lessons.push(lesson);
+      }
+    }
 
     saveStoredCurriculum(slug, sections);
     return lesson;
+  },
+
+  async moveChapter(
+    slug: string,
+    chapterId: string,
+    direction: "up" | "down"
+  ): Promise<CourseCurriculumSection[]> {
+    const sections = getStoredCurriculum(slug);
+    const idx = sections.findIndex((s) => s.id === chapterId);
+    if (idx === -1) throw new Error("Chương học không tồn tại");
+
+    if (direction === "up" && idx > 0) {
+      const temp = sections[idx];
+      sections[idx] = sections[idx - 1];
+      sections[idx - 1] = temp;
+    } else if (direction === "down" && idx < sections.length - 1) {
+      const temp = sections[idx];
+      sections[idx] = sections[idx + 1];
+      sections[idx + 1] = temp;
+    }
+
+    saveStoredCurriculum(slug, sections);
+    return sections;
   },
 
   async deleteLesson(slug: string, chapterId: string, lessonId: string): Promise<void> {
@@ -363,5 +430,97 @@ export const courseAdminApi = {
       course.totalLessonsCount -= 1;
       saveStoredCourses(allCourses);
     }
+  },
+  // 6. Get Single Lesson with Chapter
+  async getLesson(slug: string, lessonId: string): Promise<{ lesson: ResolvedLesson; chapter: CourseCurriculumSection } | null> {
+    const sections = getStoredCurriculum(slug);
+    for (const sec of sections) {
+      const found = sec.lessons.find((l) => l.id === lessonId);
+      if (found) return { lesson: found, chapter: sec };
+    }
+    return null;
+  },
+
+  // 7. Move Lesson Up / Down within Chapter (Reorder)
+  async moveLesson(
+    slug: string,
+    chapterId: string,
+    lessonId: string,
+    direction: "up" | "down"
+  ): Promise<CourseCurriculumSection[]> {
+    const sections = getStoredCurriculum(slug);
+    const sec = sections.find((s) => s.id === chapterId);
+    if (!sec) throw new Error("Chương học không tồn tại");
+
+    const idx = sec.lessons.findIndex((l) => l.id === lessonId);
+    if (idx === -1) throw new Error("Bài học không tồn tại");
+
+    if (direction === "up" && idx > 0) {
+      const temp = sec.lessons[idx];
+      sec.lessons[idx] = sec.lessons[idx - 1];
+      sec.lessons[idx - 1] = temp;
+    } else if (direction === "down" && idx < sec.lessons.length - 1) {
+      const temp = sec.lessons[idx];
+      sec.lessons[idx] = sec.lessons[idx + 1];
+      sec.lessons[idx + 1] = temp;
+    }
+
+    saveStoredCurriculum(slug, sections);
+    return sections;
+  },
+
+  // 8. Move Lesson between chapters
+  async moveLessonBetweenChapters(
+    slug: string,
+    fromChapterId: string,
+    toChapterId: string,
+    lessonId: string
+  ): Promise<CourseCurriculumSection[]> {
+    const sections = getStoredCurriculum(slug);
+    const fromSec = sections.find((s) => s.id === fromChapterId);
+    const toSec = sections.find((s) => s.id === toChapterId);
+    if (!fromSec || !toSec) throw new Error("Chương học không hợp lệ");
+
+    const lessonIdx = fromSec.lessons.findIndex((l) => l.id === lessonId);
+    if (lessonIdx === -1) throw new Error("Bài học không tồn tại");
+
+    const [lesson] = fromSec.lessons.splice(lessonIdx, 1);
+    lesson.chapterId = toSec.id;
+    lesson.chapterTitle = toSec.title;
+    toSec.lessons.push(lesson);
+
+    saveStoredCurriculum(slug, sections);
+    return sections;
+  },
+
+  // 9. Upload Video File
+  async uploadVideo(file: File): Promise<{ url: string; fileName: string; size: string }> {
+    const sizeStr = (file.size / (1024 * 1024)).toFixed(1) + " MB";
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "interviewly/courses/videos");
+      formData.append("resource_type", "video");
+
+      const token = typeof window !== "undefined" ? localStorage.getItem("interviewly_token") : null;
+      const res = await fetch("http://127.0.0.1:8000/api/v1/upload", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.url) {
+          return { url: data.url, fileName: file.name, size: sizeStr };
+        }
+      }
+    } catch (err) {
+      console.warn("Upload to backend API failed, creating local blob preview URL:", err);
+    }
+
+    // Local fallback object URL so user can preview immediately!
+    const localUrl = URL.createObjectURL(file);
+    return { url: localUrl, fileName: file.name, size: sizeStr };
   },
 };
