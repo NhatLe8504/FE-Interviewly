@@ -96,7 +96,7 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
     initialQuestion?.quiz_data?.options?.find((o: any) => o.is_correct)?.id || "B"
   );
 
-  // Load Real Domains and Roles from Backend
+  // Load Real Domains and Roles from Backend & set valid defaults
   useEffect(() => {
     async function loadMetadata() {
       try {
@@ -104,18 +104,51 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
           questionAdminApi.getDomains(),
           questionAdminApi.getRoles(null),
         ]);
-        if (Array.isArray(domList) && domList.length > 0) setDomains(domList);
-        if (Array.isArray(roleList) && roleList.length > 0) setRoles(roleList);
+        const validDomains = Array.isArray(domList) && domList.length > 0 ? domList : MOCK_DOMAINS_LIST;
+        const validRoles = Array.isArray(roleList) && roleList.length > 0 ? roleList : MOCK_ROLES_LIST;
+
+        setDomains(validDomains as any);
+        setRoles(validRoles as any);
+
+        // Compute valid active domainId
+        const activeDom =
+          initialQuestion?.domain_id ||
+          (validDomains.some((d) => d.domain_id === domainId)
+            ? domainId
+            : validDomains[0]?.domain_id);
+
+        if (activeDom) setDomainId(activeDom);
+
+        // Compute valid active roleId for that domain
+        const matchingRoles = validRoles.filter((r) => r.domain_id === activeDom);
+        const activeRole =
+          initialQuestion?.role_id ||
+          (matchingRoles.some((r) => r.role_id === roleId)
+            ? roleId
+            : matchingRoles[0]?.role_id || validRoles[0]?.role_id);
+
+        if (activeRole) setRoleId(activeRole);
       } catch (e) {
         console.warn("Failed to load metadata:", e);
       }
     }
     loadMetadata();
-  }, []);
+  }, [initialQuestion]);
 
   const availableRoles = useMemo(() => {
-    return roles.filter((r) => r.domain_id === domainId);
+    if (!domainId) return roles;
+    const filtered = roles.filter((r) => r.domain_id === domainId);
+    return filtered.length > 0 ? filtered : roles;
   }, [roles, domainId]);
+
+  const handleDomainChange = (v: string) => {
+    const dId = Number(v);
+    setDomainId(dId);
+    const matchingRoles = roles.filter((r) => r.domain_id === dId);
+    if (matchingRoles.length > 0) {
+      setRoleId(matchingRoles[0].role_id);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -251,24 +284,20 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
         </CardHeader>
 
         <CardContent className="space-y-4">
+          {/* Row 1: 4 Equal Columns (25% each) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-            {/* Domain */}
+            {/* Col 1: Domain */}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-foreground flex items-center gap-1">
                 <span>Ngành nghề tuyển dụng</span>
                 <span className="text-destructive font-bold">*</span>
               </Label>
               <Select
-                value={String(domainId)}
-                onValueChange={(v) => {
-                  const dId = Number(v);
-                  setDomainId(dId);
-                  const firstRole = roles.find((r) => r.domain_id === dId);
-                  if (firstRole) setRoleId(firstRole.role_id);
-                }}
+                value={domainId ? String(domainId) : ""}
+                onValueChange={handleDomainChange}
               >
                 <SelectTrigger className="h-9 text-xs bg-background">
-                  <SelectValue />
+                  <SelectValue placeholder="Chọn ngành nghề..." />
                 </SelectTrigger>
                 <SelectContent>
                   {domains.map((d) => (
@@ -280,18 +309,18 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
               </Select>
             </div>
 
-            {/* Role */}
+            {/* Col 2: Role */}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-foreground flex items-center gap-1">
                 <span>Vị trí chuyên môn</span>
                 <span className="text-destructive font-bold">*</span>
               </Label>
               <Select
-                value={String(roleId)}
+                value={roleId ? String(roleId) : ""}
                 onValueChange={(v) => setRoleId(Number(v))}
               >
                 <SelectTrigger className="h-9 text-xs bg-background">
-                  <SelectValue />
+                  <SelectValue placeholder="Chọn vị trí..." />
                 </SelectTrigger>
                 <SelectContent>
                   {availableRoles.map((r) => (
@@ -303,7 +332,7 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
               </Select>
             </div>
 
-            {/* Level */}
+            {/* Col 3: Level */}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-foreground flex items-center gap-1">
                 <span>Cấp độ kinh nghiệm</span>
@@ -311,7 +340,7 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
               </Label>
               <Select value={experienceLevel} onValueChange={setExperienceLevel}>
                 <SelectTrigger className="h-9 text-xs bg-background">
-                  <SelectValue />
+                  <SelectValue placeholder="Chọn cấp độ..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="intern">Intern (Thực tập sinh)</SelectItem>
@@ -324,7 +353,7 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
               </Select>
             </div>
 
-            {/* Language */}
+            {/* Col 4: Language */}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-foreground flex items-center gap-1">
                 <span>Ngôn ngữ phỏng vấn</span>
@@ -332,7 +361,7 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
               </Label>
               <Select value={language} onValueChange={(v: any) => setLanguage(v)}>
                 <SelectTrigger className="h-9 text-xs bg-background">
-                  <SelectValue />
+                  <SelectValue placeholder="Chọn ngôn ngữ..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="vi">Tiếng Việt (VI)</SelectItem>
@@ -342,8 +371,9 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1 border-t">
-            {/* Question Type */}
+          {/* Row 2: Exactly 4 Equal Columns (25% each) - PERFECT ALIGNMENT with Row 1 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-3 border-t">
+            {/* Col 1: Question Type */}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-foreground flex items-center gap-1">
                 <span>Dạng câu hỏi phỏng vấn</span>
@@ -351,7 +381,7 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
               </Label>
               <Select value={questionType} onValueChange={(v: any) => setQuestionType(v)}>
                 <SelectTrigger className="h-9 text-xs bg-background">
-                  <SelectValue />
+                  <SelectValue placeholder="Chọn dạng câu hỏi..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="technical">Kỹ thuật chuyên môn (Technical)</SelectItem>
@@ -361,38 +391,63 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
               </Select>
             </div>
 
-            {/* Difficulty */}
+            {/* Col 2: Difficulty */}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-foreground">Độ khó (1 - 5 sao)</Label>
               <Select value={String(difficulty)} onValueChange={(v) => setDifficulty(Number(v))}>
                 <SelectTrigger className="h-9 text-xs bg-background">
-                  <SelectValue />
+                  <SelectValue placeholder="Chọn độ khó..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1">★ 1 - Nhận biết căn bản</SelectItem>
                   <SelectItem value="2">★★ 2 - Thông hiểu nghiệp vụ</SelectItem>
                   <SelectItem value="3">★★★ 3 - Áp dụng thực tế</SelectItem>
-                  <SelectItem value="4">★★★★ 4 - Phân tích &amp; Giải quyết sự cố</SelectItem>
-                  <SelectItem value="5">★★★★★ 5 - Tối ưu kiến trúc &amp; Lãnh đạo</SelectItem>
+                  <SelectItem value="4">★★★★ 4 - Xử lý sự cố</SelectItem>
+                  <SelectItem value="5">★★★★★ 5 - Nâng cao / Chuyên sâu</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Active Status */}
+            {/* Col 3: Active Status (Rendered as Select for identical height & styling) */}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-foreground">Trạng thái phát hành</Label>
-              <div className="flex items-center gap-2 pt-1">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={isActive ? "default" : "outline"}
-                  onClick={() => setIsActive(!isActive)}
-                  className="h-8 text-xs font-medium gap-1.5"
-                >
-                  <CheckCircle2 className={`size-3.5 ${isActive ? "text-emerald-400" : "text-muted-foreground"}`} />
-                  <span>{isActive ? "Đang kích hoạt (Hiển thị)" : "Tạm dừng (Ẩn)"}</span>
-                </Button>
-              </div>
+              <Select
+                value={isActive ? "active" : "inactive"}
+                onValueChange={(v) => setIsActive(v === "active")}
+              >
+                <SelectTrigger className="h-9 text-xs bg-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">
+                    <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <CheckCircle2 className="size-3.5 text-emerald-500" />
+                      <span>Đang kích hoạt (Hiển thị)</span>
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="inactive">
+                    <span className="flex items-center gap-1.5 text-muted-foreground font-medium">
+                      <span className="size-2 rounded-full bg-muted-foreground/60 mr-0.5" />
+                      <span>Tạm dừng (Ẩn)</span>
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Col 4: Target Duration (Makes it 4 columns exactly matching Row 1) */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">Thời lượng trả lời gợi ý</Label>
+              <Select defaultValue="3">
+                <SelectTrigger className="h-9 text-xs bg-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="2">~2 phút (Trả lời nhanh)</SelectItem>
+                  <SelectItem value="3">~3 phút (Chuẩn STAR)</SelectItem>
+                  <SelectItem value="5">~5 phút (Chuyên sâu)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>
