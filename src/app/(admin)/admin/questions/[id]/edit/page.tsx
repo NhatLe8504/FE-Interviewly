@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import AdminQuestionEditClient from "./AdminQuestionEditClient";
 
 export const metadata: Metadata = {
-  title: "Edit Question | Interviewly",
-  description: "Update question content, filters, STAR template, and status.",
+  title: "Chỉnh Sửa Câu Hỏi | Interviewly Admin",
+  description: "Cập nhật nội dung câu hỏi, định hướng STAR và đáp án benchmark.",
 };
 
 export default async function AdminQuestionEditPage({
@@ -10,13 +11,11 @@ export default async function AdminQuestionEditPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await params;
+  const { id } = await params;
 
   return (
-    <main>
-      <h1>Edit Question</h1>
-      <p>Update question content, filters, STAR template, and status.</p>
-    </main>
+    <div className="@container/main flex flex-1 flex-col gap-2 py-4 md:py-6">
+      <AdminQuestionEditClient questionId={id} />
+    </div>
   );
 }
-
