@@ -3,3 +3,4 @@ export { adminUserService } from "./admin/userApi";
 export { adminPaymentService } from "./admin/paymentApi";
 export { adminStatsService } from "./admin/statsApi";
 export { questionAdminApi } from "./admin/questionAdminApi";
+export { courseAdminApi } from "./admin/courseAdminApi";
