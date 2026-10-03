@@ -9,101 +9,123 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { TrendingUpIcon, TrendingDownIcon } from "lucide-react"
+import { useGetAdminStatsQuery } from "@/redux/api/admin/statsApi"
+import { TrendingUpIcon } from "lucide-react"
+
+function formatCount(value?: number) {
+  return typeof value === "number" ? value.toLocaleString("vi-VN") : "—"
+}
+
+function formatRevenue(value?: number) {
+  if (typeof value !== "number") return "—"
+
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(value)
+}
 
 export function SectionCards() {
+  const { data, isLoading, isError } = useGetAdminStatsQuery()
+  const activeRate =
+    data && data.total_users > 0
+      ? Math.round((data.active_users / data.total_users) * 100)
+      : 0
+  const completionRate =
+    data && data.total_sessions > 0
+      ? Math.round((data.completed_sessions / data.total_sessions) * 100)
+      : 0
+  const statusLabel = isLoading ? "Đang tải" : isError ? "Lỗi dữ liệu" : "Trực tiếp"
+
   return (
     <div className="grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Total Revenue</CardDescription>
+          <CardDescription>Tổng doanh thu</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            $1,250.00
+            {formatRevenue(data?.total_revenue)}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <TrendingUpIcon
-              />
-              +12.5%
+              <TrendingUpIcon />
+              {statusLabel}
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Trending up this month{" "}
+            Doanh thu giao dịch thành công{" "}
             <TrendingUpIcon className="size-4" />
           </div>
           <div className="text-muted-foreground">
-            Visitors for the last 6 months
+            Cập nhật từ hệ thống thanh toán
           </div>
         </CardFooter>
       </Card>
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>New Customers</CardDescription>
+          <CardDescription>Người dùng hoạt động</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            1,234
+            {formatCount(data?.active_users)}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <TrendingDownIcon
-              />
-              -20%
+              <TrendingUpIcon />
+              {isLoading || isError ? "—" : `${activeRate}%`}
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Down 20% this period{" "}
-            <TrendingDownIcon className="size-4" />
+            Tài khoản đang hoạt động{" "}
+            <TrendingUpIcon className="size-4" />
           </div>
           <div className="text-muted-foreground">
-            Acquisition needs attention
+            Tỷ lệ trên tổng số người dùng
           </div>
         </CardFooter>
       </Card>
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Active Accounts</CardDescription>
+          <CardDescription>Phiên phỏng vấn</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            45,678
+            {formatCount(data?.total_sessions)}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <TrendingUpIcon
-              />
-              +12.5%
+              <TrendingUpIcon />
+              {isLoading || isError ? "—" : `${completionRate}% hoàn tất`}
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Strong user retention{" "}
+            {formatCount(data?.completed_sessions)} phiên đã hoàn tất{" "}
             <TrendingUpIcon className="size-4" />
           </div>
-          <div className="text-muted-foreground">Engagement exceed targets</div>
+          <div className="text-muted-foreground">Theo dõi hoạt động luyện tập</div>
         </CardFooter>
       </Card>
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Growth Rate</CardDescription>
+          <CardDescription>Tổng người dùng</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            4.5%
+            {formatCount(data?.total_users)}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <TrendingUpIcon
-              />
-              +4.5%
+              <TrendingUpIcon />
+              {formatCount(data?.total_questions)} câu hỏi
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Steady performance increase{" "}
+            Kho nội dung đang vận hành{" "}
             <TrendingUpIcon className="size-4" />
           </div>
-          <div className="text-muted-foreground">Meets growth projections</div>
+          <div className="text-muted-foreground">Số liệu được lấy trực tiếp từ hệ thống</div>
         </CardFooter>
       </Card>
     </div>
