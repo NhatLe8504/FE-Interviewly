@@ -516,7 +516,7 @@ export default function AdminCoursesClient() {
                 <SelectTrigger className="h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper">
                   {COURSE_CATEGORIES.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
                   ))}
@@ -530,7 +530,7 @@ export default function AdminCoursesClient() {
                 <SelectTrigger className="h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper">
                   <SelectItem value="all">Tất cả hình thức</SelectItem>
                   <SelectItem value="Learning Path">Lộ trình (Learning Path)</SelectItem>
                   <SelectItem value="Course">Khóa học lẻ (Course)</SelectItem>
@@ -544,7 +544,7 @@ export default function AdminCoursesClient() {
                 <SelectTrigger className="h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper">
                   <SelectItem value="all">Tất cả cấp độ</SelectItem>
                   <SelectItem value="fresher">Fresher / Junior</SelectItem>
                   <SelectItem value="mid">Middle</SelectItem>
@@ -558,7 +558,7 @@ export default function AdminCoursesClient() {
         {/* Courses Data Table */}
         <div className="rounded-2xl border bg-card shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
-            <Table className="table-fixed">
+            <Table className="">
               <TableHeader className="bg-muted/40 text-[11px] uppercase tracking-wider">
                 <TableRow>
                   <TableHead className="w-[5%]">Mã</TableHead>
@@ -746,7 +746,7 @@ export default function AdminCoursesClient() {
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="popper">
                       <SelectItem value="Learning Path">Lộ trình toàn diện (Learning Path)</SelectItem>
                       <SelectItem value="Course">Khóa học chuyên sâu (Course)</SelectItem>
                       <SelectItem value="Workshop">Workshop thực chiến</SelectItem>
@@ -763,7 +763,7 @@ export default function AdminCoursesClient() {
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="popper">
                       {COURSE_CATEGORIES.filter((cat) => cat.id !== "all").map((cat) => (
                         <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
                       ))}
@@ -792,7 +792,7 @@ export default function AdminCoursesClient() {
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="popper">
                       <SelectItem value="fresher">Fresher / Mới tốt nghiệp</SelectItem>
                       <SelectItem value="junior">Junior (1 - 2 năm)</SelectItem>
                       <SelectItem value="mid">Middle (2 - 4 năm)</SelectItem>
@@ -1120,7 +1120,7 @@ export default function AdminCoursesClient() {
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="popper">
                       <SelectItem value="video">Video bài giảng</SelectItem>
                       <SelectItem value="reading">Tài liệu đọc</SelectItem>
                       <SelectItem value="star_practice">Thực hành STAR</SelectItem>
@@ -1206,3 +1206,4 @@ export default function AdminCoursesClient() {
     </div>
   );
 }
+

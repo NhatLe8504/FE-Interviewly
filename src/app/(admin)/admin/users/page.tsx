@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
@@ -318,7 +318,7 @@ export default function AdminUsersPage() {
               <SelectTrigger className="h-9 w-[170px] text-xs">
                 <SelectValue placeholder="Tất cả vai trò" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper">
                 <SelectItem value="all">Tất cả vai trò</SelectItem>
                 <SelectItem value="candidate">Ứng viên</SelectItem>
                 <SelectItem value="admin">Quản trị viên</SelectItem>
@@ -329,7 +329,7 @@ export default function AdminUsersPage() {
               <SelectTrigger className="h-9 w-[170px] text-xs">
                 <SelectValue placeholder="Tất cả trạng thái" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper">
                 <SelectItem value="all">Tất cả trạng thái</SelectItem>
                 <SelectItem value="active">Đang hoạt động</SelectItem>
                 <SelectItem value="suspended">Tạm khóa</SelectItem>
@@ -738,7 +738,7 @@ export default function AdminUsersPage() {
                   <SelectTrigger id="create-lang">
                     <SelectValue placeholder="Chọn ngôn ngữ" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper">
                     <SelectItem value="vi">Tiếng Việt (VI)</SelectItem>
                     <SelectItem value="en">English (EN)</SelectItem>
                   </SelectContent>
@@ -756,7 +756,7 @@ export default function AdminUsersPage() {
                   <SelectTrigger id="create-role">
                     <SelectValue placeholder="Chọn vai trò" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper">
                     <SelectItem value="candidate">Ứng viên</SelectItem>
                     <SelectItem value="admin">Quản trị viên</SelectItem>
                   </SelectContent>
@@ -772,7 +772,7 @@ export default function AdminUsersPage() {
                   <SelectTrigger id="create-status">
                     <SelectValue placeholder="Chọn trạng thái" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper">
                     <SelectItem value="active">Đang hoạt động</SelectItem>
                     <SelectItem value="suspended">Tạm khóa</SelectItem>
                   </SelectContent>
@@ -897,3 +897,4 @@ export default function AdminUsersPage() {
     </div>
   );
 }
+
