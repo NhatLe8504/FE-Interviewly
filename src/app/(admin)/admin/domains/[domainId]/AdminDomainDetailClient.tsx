@@ -184,9 +184,84 @@ export default function AdminDomainDetailClient({ domainId }: { domainId: number
 
       </div>
 
-      <Dialog open={formMode !== null} onOpenChange={(open) => !open && setFormMode(null)}><DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle>{formMode === "edit" ? "Chỉnh sửa role" : "Tạo role mới"}</DialogTitle><DialogDescription>Role sẽ được gắn trong domain {domain?.domain_name}.</DialogDescription></DialogHeader><form onSubmit={handleSubmit} className="space-y-4"><div className="space-y-2"><Label htmlFor="role-name">Tên role <span className="text-destructive">*</span></Label><Input id="role-name" value={form.role_name} onChange={(event) => setForm((current) => ({ ...current, role_name: event.target.value }))} placeholder="Ví dụ: Engineering Manager" autoFocus /></div><div className="space-y-2"><Label htmlFor="role-description">Mô tả</Label><textarea id="role-description" value={form.description || ""} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} placeholder="Mô tả ngắn về phạm vi công việc..." rows={4} className="flex min-h-24 w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" /></div><DialogFooter><Button type="button" variant="outline" onClick={() => setFormMode(null)}>Hủy</Button><Button type="submit" disabled={submitting}>{submitting ? "Đang lưu..." : formMode === "edit" ? "Lưu thay đổi" : "Tạo role"}</Button></DialogFooter></form></DialogContent></Dialog>
+      <Dialog open={formMode !== null} onOpenChange={(open) => !open && setFormMode(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{formMode === "edit" ? "Chỉnh sửa role" : "Tạo role mới"}</DialogTitle>
+            <DialogDescription>Role sẽ được gắn trong domain {domain?.domain_name}.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="role-name">
+                Tên role <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="role-name"
+                value={form.role_name}
+                onChange={(event) => setForm((current) => ({ ...current, role_name: event.target.value }))}
+                placeholder="Ví dụ: Engineering Manager"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="role-description">Mô tả</Label>
+              <textarea
+                id="role-description"
+                value={form.description || ""}
+                onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+                placeholder="Mô tả ngắn về phạm vi công việc..."
+                rows={4}
+                className="flex min-h-24 w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setFormMode(null)}>
+                Hủy
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Đang lưu..." : formMode === "edit" ? "Lưu thay đổi" : "Tạo role"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-      <Dialog open={confirmTarget !== null} onOpenChange={(open) => !open && setConfirmTarget(null)}><DialogContent className="sm:max-w-md"><DialogHeader><div className="flex items-start gap-3"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400"><TriangleAlert className="size-5" /></div><div className="space-y-1"><DialogTitle>{confirmTarget?.isActive ? `Lưu trữ ${confirmTarget.kind === "domain" ? "domain" : "role"}?` : `Khôi phục ${confirmTarget.kind === "domain" ? "domain" : "role"}?`}</DialogTitle><DialogDescription>{confirmTarget?.name}</DialogDescription></div></div></DialogHeader><p className="text-sm leading-relaxed text-muted-foreground">{confirmTarget?.isActive ? "Mục này sẽ ẩn khỏi catalog public và các bộ lọc câu hỏi. Dữ liệu liên quan vẫn được giữ nguyên." : "Mục này sẽ xuất hiện lại trong các khu vực đang sử dụng catalog."}</p><DialogFooter><Button variant="outline" onClick={() => setConfirmTarget(null)}>Hủy</Button><Button onClick={() => void handleStatusChange()} disabled={statusUpdating}>{statusUpdating ? "Đang cập nhật..." : confirmTarget?.isActive ? "Lưu trữ" : "Khôi phục"}</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={confirmTarget !== null} onOpenChange={(open) => !open && setConfirmTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <TriangleAlert className="size-5" />
+              </div>
+              <div className="space-y-1">
+                <DialogTitle>
+                  {confirmTarget?.isActive
+                    ? `Lưu trữ ${confirmTarget?.kind === "domain" ? "domain" : "role"}?`
+                    : `Khôi phục ${confirmTarget?.kind === "domain" ? "domain" : "role"}?`}
+                </DialogTitle>
+                <DialogDescription>{confirmTarget?.name}</DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {confirmTarget?.isActive
+              ? "Mục này sẽ ẩn khỏi catalog public và các bộ lọc câu hỏi. Dữ liệu liên quan vẫn được giữ nguyên."
+              : "Mục này sẽ xuất hiện lại trong các khu vực đang sử dụng catalog."}
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmTarget(null)}>
+              Hủy
+            </Button>
+            <Button onClick={() => void handleStatusChange()} disabled={statusUpdating}>
+              {statusUpdating
+                ? "Đang cập nhật..."
+                : confirmTarget?.isActive
+                ? "Lưu trữ"
+                : "Khôi phục"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
