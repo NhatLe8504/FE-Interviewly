@@ -3,8 +3,8 @@
 import Link from "next/link"
 import { ArrowUpRightIcon, RefreshCwIcon } from "lucide-react"
 
-import { useGetAuditLogsQuery } from "@/redux/api/admin/auditApi"
-import type { AuditLogOut } from "@/types/admin"
+import { useGetPaymentsQuery } from "@/redux/api/admin/paymentApi"
+import type { PaymentAdminOut } from "@/types/admin"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -24,6 +24,14 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+function formatPrice(amount: number, currency = "VND") {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: currency === "VND" ? "VND" : "USD",
+    maximumFractionDigits: currency === "VND" ? 0 : 2,
+  }).format(amount)
+}
+
 function formatDate(value?: string | null) {
   if (!value) return "—"
 
@@ -36,44 +44,73 @@ function formatDate(value?: string | null) {
   }).format(new Date(value))
 }
 
-function getAction(action: AuditLogOut["action"]) {
-  switch (action?.toUpperCase()) {
-    case "CREATE":
-      return { label: "Tạo mới", className: "text-emerald-600 border-emerald-200 bg-emerald-50" }
-    case "UPDATE":
-    case "STATUS_CHANGE":
-      return { label: "Cập nhật", className: "text-sky-600 border-sky-200 bg-sky-50" }
-    case "DELETE":
-      return { label: "Xóa", className: "text-destructive border-destructive/20 bg-destructive/5" }
-    case "LOGIN":
-      return { label: "Đăng nhập", className: "text-violet-600 border-violet-200 bg-violet-50" }
-    default:
-      return { label: action || "Hoạt động", className: "text-muted-foreground border-border bg-muted/40" }
+type TopUser = {
+  key: string
+  userId?: number | null
+  name: string
+  email: string
+  transactionCount: number
+  totalSpent: number
+  latestPlan: string
+  lastPayment?: string | null
+}
+
+function getUserLabel(transaction: PaymentAdminOut) {
+  return transaction.user_name || transaction.user_email || `Người dùng #${transaction.user_id ?? "—"}`
+}
+
+function getTopUsers(transactions: PaymentAdminOut[]): TopUser[] {
+  const users = new Map<string, TopUser>()
+
+  for (const transaction of transactions) {
+    if (transaction.status?.toLowerCase() !== "success") continue
+
+    const key = transaction.user_id
+      ? `id:${transaction.user_id}`
+      : `email:${transaction.user_email || transaction.transaction_id}`
+    const current = users.get(key)
+    const transactionDate = transaction.paid_at || transaction.created_at
+
+    if (!current) {
+      users.set(key, {
+        key,
+        userId: transaction.user_id,
+        name: getUserLabel(transaction),
+        email: transaction.user_email || "",
+        transactionCount: 1,
+        totalSpent: transaction.amount,
+        latestPlan: transaction.plan_name || "Gói Interviewly",
+        lastPayment: transactionDate,
+      })
+      continue
+    }
+
+    current.transactionCount += 1
+    current.totalSpent += transaction.amount
+    if (
+      transactionDate &&
+      (!current.lastPayment || new Date(transactionDate).getTime() > new Date(current.lastPayment).getTime())
+    ) {
+      current.lastPayment = transactionDate
+      current.latestPlan = transaction.plan_name || current.latestPlan
+    }
   }
-}
 
-function getActorLabel(log: AuditLogOut) {
-  return log.user_id ? `Người dùng #${log.user_id}` : "Hệ thống"
-}
-
-function getEventCategory(action: AuditLogOut["action"]) {
-  const securityActions = ["LOGIN", "LOGOUT", "PASSWORD_CHANGE", "ROLE_ASSIGN"]
-
-  return securityActions.includes(action?.toUpperCase())
-    ? { label: "Bảo mật", className: "text-violet-600 border-violet-200 bg-violet-50" }
-    : { label: "Dữ liệu", className: "text-slate-600 border-slate-200 bg-slate-50" }
+  return Array.from(users.values())
+    .sort((first, second) => second.totalSpent - first.totalSpent)
+    .slice(0, 10)
 }
 
 export function AdminTransactionsTable() {
-  const { data, isLoading, isFetching, isError, refetch } = useGetAuditLogsQuery({ limit: 10 })
-  const auditLogs = data?.items ?? []
+  const { data, isLoading, isFetching, isError, refetch } = useGetPaymentsQuery({ limit: 100 })
+  const topUsers = getTopUsers(data?.items ?? [])
 
   return (
     <Card className="overflow-hidden">
       <CardHeader>
-        <CardTitle>Hoạt động quản trị gần đây</CardTitle>
+        <CardTitle>Top người dùng theo chi tiêu</CardTitle>
         <CardDescription>
-          10 thay đổi dữ liệu mới nhất trong hệ thống{data?.total ? ` · ${data.total} sự kiện` : ""}.
+          Xếp hạng theo tổng giao dịch thanh toán thành công gần đây.
         </CardDescription>
         <CardAction className="flex items-center gap-2">
           <Button
@@ -87,7 +124,7 @@ export function AdminTransactionsTable() {
             <span className="hidden sm:inline">Làm mới</span>
           </Button>
           <Button variant="outline" size="sm" asChild className="gap-1.5">
-            <Link href="/admin/audit-logs">
+            <Link href="/admin/users">
               <span className="hidden sm:inline">Xem tất cả</span>
               <ArrowUpRightIcon className="size-4" />
             </Link>
@@ -99,10 +136,10 @@ export function AdminTransactionsTable() {
           <Table>
             <TableHeader className="bg-muted/40">
               <TableRow>
-                <TableHead className="min-w-[180px]">Hoạt động</TableHead>
-                <TableHead className="min-w-[170px]">Module / bản ghi</TableHead>
-                <TableHead className="min-w-[150px]">Người thực hiện</TableHead>
-                <TableHead>Loại sự kiện</TableHead>
+                <TableHead className="min-w-[220px]">Người dùng</TableHead>
+                <TableHead className="text-center">Giao dịch</TableHead>
+                <TableHead className="min-w-[150px]">Gói gần nhất</TableHead>
+                <TableHead className="text-right">Tổng chi tiêu</TableHead>
                 <TableHead className="text-right">Thời gian</TableHead>
               </TableRow>
             </TableHeader>
@@ -110,54 +147,54 @@ export function AdminTransactionsTable() {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    Đang tải hoạt động...
+                    Đang tải dữ liệu người dùng...
                   </TableCell>
                 </TableRow>
               ) : isError ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    Không tải được nhật ký hoạt động.
+                    Không tải được dữ liệu thanh toán.
                   </TableCell>
                 </TableRow>
-              ) : auditLogs.length === 0 ? (
+              ) : topUsers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    Chưa có hoạt động quản trị nào.
+                    Chưa có giao dịch thành công để xếp hạng người dùng.
                   </TableCell>
                 </TableRow>
               ) : (
-                auditLogs.map((log) => {
-                  const action = getAction(log.action)
-                  const category = getEventCategory(log.action)
+                topUsers.map((user, index) => {
 
                   return (
-                    <TableRow key={log.audit_id}>
+                    <TableRow key={user.key}>
                       <TableCell>
-                        <div className="min-w-0">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                            {index + 1}
+                          </span>
+                          <div className="min-w-0">
                           <p className="max-w-[240px] truncate font-medium text-foreground">
-                            {action.label} bản ghi
+                            {user.name}
                           </p>
                           <p className="max-w-[240px] truncate text-xs text-muted-foreground">
-                            Audit #{log.audit_id}
+                            {user.email || `ID #${user.userId ?? "—"}`}
                           </p>
+                          </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <p className="text-sm font-medium text-foreground">{log.table_name || "—"}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Bản ghi #{log.record_id ?? "—"}
-                        </p>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {getActorLabel(log)}
+                      <TableCell className="text-center font-semibold tabular-nums">
+                        {user.transactionCount}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={category.className}>
-                          {category.label}
+                        <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">
+                          {user.latestPlan}
                         </Badge>
                       </TableCell>
+                      <TableCell className="text-right font-semibold tabular-nums">
+                        {formatPrice(user.totalSpent)}
+                      </TableCell>
                       <TableCell className="whitespace-nowrap text-right text-xs text-muted-foreground">
-                        {formatDate(log.created_at)}
+                        {formatDate(user.lastPayment)}
                       </TableCell>
                     </TableRow>
                   )
