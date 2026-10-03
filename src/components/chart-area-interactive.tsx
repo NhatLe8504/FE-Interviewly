@@ -4,7 +4,7 @@ import * as React from "react"
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 
 import { useIsMobile } from "@/hooks/use-mobile"
-import { useGetPaymentsQuery } from "@/redux/api/admin/paymentApi"
+import { useGetServerLogsQuery } from "@/redux/api/admin/auditApi"
 import {
   Card,
   CardAction,
@@ -28,85 +28,89 @@ import {
 } from "@/components/ui/select"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
-type RevenuePoint = {
-  date: string
-  revenue: number
+type TrafficPoint = {
+  minute: string
+  requests: number
+  errors: number
 }
 
 const chartConfig = {
-  revenue: {
-    label: "Doanh thu",
+  requests: {
+    label: "Requests",
     color: "var(--primary)",
+  },
+  errors: {
+    label: "Lỗi response",
+    color: "var(--destructive)",
   },
 } satisfies ChartConfig
 
-function getDateKey(date: Date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  const day = String(date.getDate()).padStart(2, "0")
-  return `${year}-${month}-${day}`
+function getMinuteKey(date: Date) {
+  date.setSeconds(0, 0)
+  return date.getTime().toString()
 }
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(value)
-}
-
-function formatDateLabel(value: string) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
+function formatMinuteLabel(value: string) {
+  return new Date(Number(value)).toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
   })
+}
+
+function formatCount(value: number) {
+  return value.toLocaleString("vi-VN")
 }
 
 export function ChartAreaInteractive() {
   const isMobile = useIsMobile()
-  const [timeRange, setTimeRange] = React.useState("90d")
-  const { data: paymentsData, isLoading, isError } = useGetPaymentsQuery({ limit: 100 })
+  const [timeRange, setTimeRange] = React.useState("10m")
+  const { data: serverLogsData, isLoading, isError } = useGetServerLogsQuery({ limit: 100 })
 
   React.useEffect(() => {
-    if (isMobile) setTimeRange("7d")
+    if (isMobile) setTimeRange("5m")
   }, [isMobile])
 
-  const filteredData = React.useMemo<RevenuePoint[]>(() => {
-    const daysToInclude = timeRange === "30d" ? 30 : timeRange === "7d" ? 7 : 90
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const revenueByDate = new Map<string, number>()
+  const filteredData = React.useMemo<TrafficPoint[]>(() => {
+    const minutesToInclude = timeRange === "1m" ? 1 : timeRange === "5m" ? 5 : 10
+    const latestMinute = new Date()
+    latestMinute.setSeconds(0, 0)
+    const requestsByMinute = new Map<string, TrafficPoint>()
 
-    for (let index = daysToInclude - 1; index >= 0; index -= 1) {
-      const date = new Date(today)
-      date.setDate(today.getDate() - index)
-      revenueByDate.set(getDateKey(date), 0)
+    for (let index = minutesToInclude - 1; index >= 0; index -= 1) {
+      const minute = new Date(latestMinute)
+      minute.setMinutes(latestMinute.getMinutes() - index)
+      const key = getMinuteKey(minute)
+      requestsByMinute.set(key, { minute: key, requests: 0, errors: 0 })
     }
 
-    for (const transaction of paymentsData?.items ?? []) {
-      if (transaction.status?.toLowerCase() !== "success") continue
-      const transactionDate = transaction.paid_at || transaction.created_at
-      if (!transactionDate) continue
+    for (const route of serverLogsData?.routes ?? []) {
+      const routeDate = new Date(route.timestamp)
+      if (Number.isNaN(routeDate.getTime())) continue
 
-      const key = getDateKey(new Date(transactionDate))
-      if (revenueByDate.has(key)) {
-        revenueByDate.set(key, (revenueByDate.get(key) || 0) + transaction.amount)
+      const key = getMinuteKey(routeDate)
+      const point = requestsByMinute.get(key)
+      if (!point) continue
+
+      point.requests += 1
+      if (route.status_code >= 400 || route.status === "failure" || route.level === "ERROR") {
+        point.errors += 1
       }
     }
 
-    return Array.from(revenueByDate, ([date, revenue]) => ({ date, revenue }))
-  }, [paymentsData?.items, timeRange])
+    return Array.from(requestsByMinute.values())
+  }, [serverLogsData?.routes, timeRange])
 
-  const rangeRevenue = filteredData.reduce((total, point) => total + point.revenue, 0)
-  const rangeLabel = timeRange === "30d" ? "30 ngày qua" : timeRange === "7d" ? "7 ngày qua" : "3 tháng qua"
+  const requestCount = filteredData.reduce((total, point) => total + point.requests, 0)
+  const errorCount = filteredData.reduce((total, point) => total + point.errors, 0)
+  const rangeLabel = timeRange === "1m" ? "1 phút qua" : timeRange === "5m" ? "5 phút qua" : "10 phút qua"
 
   return (
     <Card className="@container/card">
       <CardHeader>
-        <CardTitle>Doanh thu theo thời gian</CardTitle>
+        <CardTitle>Lưu lượng API và lỗi response</CardTitle>
         <CardDescription>
           <span className="hidden @[540px]/card:block">
-            Giao dịch thành công trong {rangeLabel.toLowerCase()}
+            Hoạt động server trong {rangeLabel.toLowerCase()}
           </span>
           <span className="@[540px]/card:hidden">{rangeLabel}</span>
         </CardDescription>
@@ -118,9 +122,9 @@ export function ChartAreaInteractive() {
             variant="outline"
             className="hidden *:data-[slot=toggle-group-item]:px-4! @[767px]/card:flex"
           >
-            <ToggleGroupItem value="90d">3 tháng qua</ToggleGroupItem>
-            <ToggleGroupItem value="30d">30 ngày qua</ToggleGroupItem>
-            <ToggleGroupItem value="7d">7 ngày qua</ToggleGroupItem>
+            <ToggleGroupItem value="10m">10 phút qua</ToggleGroupItem>
+            <ToggleGroupItem value="5m">5 phút qua</ToggleGroupItem>
+            <ToggleGroupItem value="1m">1 phút qua</ToggleGroupItem>
           </ToggleGroup>
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger
@@ -128,48 +132,58 @@ export function ChartAreaInteractive() {
               size="sm"
               aria-label="Chọn khoảng thời gian"
             >
-              <SelectValue placeholder="3 tháng qua" />
+              <SelectValue placeholder="10 phút qua" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
-              <SelectItem value="90d" className="rounded-lg">3 tháng qua</SelectItem>
-              <SelectItem value="30d" className="rounded-lg">30 ngày qua</SelectItem>
-              <SelectItem value="7d" className="rounded-lg">7 ngày qua</SelectItem>
+              <SelectItem value="10m" className="rounded-lg">10 phút qua</SelectItem>
+              <SelectItem value="5m" className="rounded-lg">5 phút qua</SelectItem>
+              <SelectItem value="1m" className="rounded-lg">1 phút qua</SelectItem>
             </SelectContent>
           </Select>
         </CardAction>
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
         <div className="mb-3 flex items-center justify-between gap-3 px-2 text-sm sm:px-0">
-          <span className="text-muted-foreground">Tổng trong kỳ</span>
-          <span className="font-semibold tabular-nums">
-            {isLoading ? "Đang tải..." : isError ? "Không tải được dữ liệu" : formatCurrency(rangeRevenue)}
-          </span>
+          <div className="flex items-center gap-4">
+            <span className="text-muted-foreground">Tổng request</span>
+            <span className="font-semibold tabular-nums">
+              {isLoading ? "Đang tải..." : isError ? "Không tải được dữ liệu" : formatCount(requestCount)}
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-muted-foreground">Response lỗi</span>
+            <span className="font-semibold tabular-nums text-destructive">{formatCount(errorCount)}</span>
+          </div>
         </div>
         <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
           <AreaChart data={filteredData}>
             <defs>
-              <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-revenue)" stopOpacity={0.85} />
-                <stop offset="95%" stopColor="var(--color-revenue)" stopOpacity={0.08} />
+              <linearGradient id="fillRequests" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--color-requests)" stopOpacity={0.85} />
+                <stop offset="95%" stopColor="var(--color-requests)" stopOpacity={0.08} />
+              </linearGradient>
+              <linearGradient id="fillErrors" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--color-errors)" stopOpacity={0.65} />
+                <stop offset="95%" stopColor="var(--color-errors)" stopOpacity={0.05} />
               </linearGradient>
             </defs>
             <CartesianGrid vertical={false} />
             <XAxis
-              dataKey="date"
+              dataKey="minute"
               tickLine={false}
               axisLine={false}
               tickMargin={8}
               minTickGap={32}
-              tickFormatter={formatDateLabel}
+              tickFormatter={formatMinuteLabel}
             />
             <ChartTooltip
               cursor={false}
               content={
                 <ChartTooltipContent
-                  labelFormatter={(value) => formatDateLabel(String(value))}
-                  formatter={(value) => (
+                  labelFormatter={(value) => formatMinuteLabel(String(value))}
+                  formatter={(value, name) => (
                     <span className="font-mono font-medium tabular-nums">
-                      {formatCurrency(Number(value))}
+                      {formatCount(Number(value))} {name === "errors" ? "lỗi" : "requests"}
                     </span>
                   )}
                   indicator="dot"
@@ -177,10 +191,18 @@ export function ChartAreaInteractive() {
               }
             />
             <Area
-              dataKey="revenue"
+              dataKey="requests"
               type="natural"
-              fill="url(#fillRevenue)"
-              stroke="var(--color-revenue)"
+              fill="url(#fillRequests)"
+              stroke="var(--color-requests)"
+              strokeWidth={2}
+              activeDot={{ r: 4 }}
+            />
+            <Area
+              dataKey="errors"
+              type="natural"
+              fill="url(#fillErrors)"
+              stroke="var(--color-errors)"
               strokeWidth={2}
               activeDot={{ r: 4 }}
             />
