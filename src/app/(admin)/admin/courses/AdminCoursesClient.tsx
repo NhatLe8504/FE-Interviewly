@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
@@ -391,9 +391,10 @@ export default function AdminCoursesClient() {
   };
 
   return (
-    <div className="@container/main flex min-w-0 flex-1 flex-col gap-2">
+    <div className="@container/main flex flex-1 flex-col gap-2">
+      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
       {/* Top Banner Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6 pt-4 gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6 gap-3">
         <div className="flex items-center gap-2">
           <Layers className="size-5 text-primary" />
           <p className="text-xs text-muted-foreground">
@@ -423,7 +424,7 @@ export default function AdminCoursesClient() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 py-2 md:gap-6 md:py-4 px-4 lg:px-6">
+      <div className="flex flex-col gap-4 md:gap-6 px-4 lg:px-6">
         {/* Top KPI Section Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
           <div className="p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5">
@@ -509,11 +510,11 @@ export default function AdminCoursesClient() {
           </div>
 
           {/* Filters Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t text-xs">
-            <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Lĩnh vực chuyên môn</Label>
+          <div className="flex flex-wrap items-center gap-3 pt-3 border-t text-xs">
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">Lĩnh vực:</Label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-8 w-[180px] text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent position="popper">
@@ -524,10 +525,10 @@ export default function AdminCoursesClient() {
               </Select>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Hình thức đào tạo</Label>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">Hình thức:</Label>
               <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-8 w-[160px] text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent position="popper">
@@ -538,10 +539,10 @@ export default function AdminCoursesClient() {
               </Select>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">Cấp độ mục tiêu</Label>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">Cấp độ:</Label>
               <Select value={selectedLevel} onValueChange={setSelectedLevel}>
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-8 w-[160px] text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent position="popper">
@@ -709,6 +710,7 @@ export default function AdminCoursesClient() {
         </div>
       </div>
 
+      </div>
       {/* =========================================================
           CREATE / EDIT COURSE DIALOG
          ========================================================= */}
@@ -1206,4 +1208,5 @@ export default function AdminCoursesClient() {
     </div>
   );
 }
+
 

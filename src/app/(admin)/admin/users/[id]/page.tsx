@@ -150,7 +150,8 @@ export default function AdminUserDetailPage({
   };
 
   return (
-    <div className="@container/main flex min-w-0 flex-1 flex-col gap-6 px-4 py-4 md:py-6 lg:px-6">
+    <div className="@container/main flex flex-1 flex-col gap-2">
+      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
       {/* Reusable Admin Page Header with back link */}
       <AdminPageHeader
         title={user ? `Hồ Sơ Người Dùng #${user.user_id}` : "Chi Tiết Người Dùng"}
@@ -763,6 +764,8 @@ export default function AdminUserDetailPage({
       )}
 
       {/* SHADCN CONFIRMATION DIALOG */}
+      </div>
+
       <Dialog open={confirmModal.isOpen} onOpenChange={(open) => !open && setConfirmModal({ isOpen: false, type: "role" })}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

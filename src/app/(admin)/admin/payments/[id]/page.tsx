@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { use } from "react";
 import Link from "next/link";
@@ -84,7 +84,8 @@ export default function AdminPaymentDetailPage({
   const isPending = txn?.status?.toLowerCase() === "pending";
 
   return (
-    <div className="@container/main flex min-w-0 flex-1 flex-col gap-6 px-4 py-4 md:py-6 lg:px-6">
+    <div className="@container/main flex flex-1 flex-col gap-2">
+      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
       <AdminPageHeader
         title={txn ? `Chi Tiết Giao Dịch #${txn.transaction_id}` : "Chi Tiết Giao Dịch"}
         backHref="/admin/payments"
@@ -264,5 +265,6 @@ export default function AdminPaymentDetailPage({
         </div>
       )}
     </div>
+      </div>
   );
 }
