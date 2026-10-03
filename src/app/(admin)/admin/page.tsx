@@ -1,3 +1,4 @@
+import { AdminCatalogOverview } from "@/components/admin/AdminCatalogOverview"
 import { AdminTransactionsTable } from "@/components/admin/AdminTransactionsTable"
 import { ChartAreaInteractive } from "@/components/chart-area-interactive"
 import { SectionCards } from "@/components/section-cards"
@@ -10,6 +11,7 @@ export default function AdminDashboardPage() {
         <div className="px-4 lg:px-6">
           <ChartAreaInteractive />
         </div>
+        <AdminCatalogOverview />
         <div className="px-4 lg:px-6">
           <AdminTransactionsTable />
         </div>
