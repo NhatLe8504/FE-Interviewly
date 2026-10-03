@@ -126,8 +126,18 @@ export function AdminCatalogOverview() {
           ) : (
             featuredCourses.map((course, index) => (
               <div key={course.id} className="flex items-start gap-3 border-b pb-4 last:border-0 last:pb-0">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">
-                  {index + 1}
+                <div className="relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted ring-1 ring-foreground/10">
+                  <BookOpenIcon className="size-5 text-muted-foreground" />
+                  <img
+                    src={course.image}
+                    alt={course.title}
+                    loading="lazy"
+                    className="absolute inset-0 size-full object-cover"
+                    onError={(event) => event.currentTarget.remove()}
+                  />
+                  <span className="absolute bottom-1 left-1 flex size-5 items-center justify-center rounded-md bg-background/90 text-[11px] font-semibold text-foreground shadow-sm">
+                    {index + 1}
+                  </span>
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-foreground">{course.title}</p>
