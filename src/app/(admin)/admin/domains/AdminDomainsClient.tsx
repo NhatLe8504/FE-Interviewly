@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
@@ -164,7 +164,8 @@ export default function AdminDomainsClient() {
   };
 
   return (
-    <div className="@container/main flex min-w-0 flex-1 flex-col gap-4 px-4 py-4 lg:px-6 lg:py-6">
+    <div className="@container/main flex flex-1 flex-col gap-2">
+      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
       <AdminPageHeader
         title="Lĩnh vực nghề nghiệp"
         description="Quản lý domain, role và phạm vi câu hỏi được hiển thị trong hệ thống."
@@ -271,6 +272,8 @@ export default function AdminDomainsClient() {
           )}
         </CardContent>
       </Card>
+
+      </div>
 
       <Dialog open={formMode !== null} onOpenChange={(open) => !open && setFormMode(null)}>
         <DialogContent className="sm:max-w-lg">

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -273,7 +273,8 @@ export default function AdminLessonEditClient({
   }
 
   return (
-    <div className="@container/main flex min-w-0 flex-1 flex-col gap-6 px-4 py-4 md:py-6 lg:px-6">
+    <div className="@container/main flex flex-1 flex-col gap-2">
+      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
       {/* Breadcrumb Navigation */}
       <div className="space-y-1">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -758,5 +759,6 @@ export default function AdminLessonEditClient({
         </div>
       </form>
     </div>
+      </div>
   );
 }
