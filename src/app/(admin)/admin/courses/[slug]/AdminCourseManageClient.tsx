@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
@@ -304,7 +304,8 @@ export default function AdminCourseManageClient({ slug }: AdminCourseManageClien
   }
 
   return (
-    <div className="@container/main flex min-w-0 flex-1 flex-col gap-6 px-4 py-4 md:py-6 lg:px-6">
+    <div className="@container/main flex flex-1 flex-col gap-2">
+      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
       {/* Breadcrumb & Navigation */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
@@ -878,6 +879,7 @@ export default function AdminCourseManageClient({ slug }: AdminCourseManageClien
             );
           })
         )}
+        </div>
       </div>
     </div>
   );

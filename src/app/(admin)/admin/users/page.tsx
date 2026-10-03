@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
@@ -208,7 +208,8 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="@container/main flex min-w-0 flex-1 flex-col gap-6 px-4 py-4 md:py-6 lg:px-6">
+    <div className="@container/main flex flex-1 flex-col gap-2">
+      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
       {/* Reusable Admin Page Header */}
       <AdminPageHeader
         title="Danh Sách Người Dùng"
@@ -664,6 +665,8 @@ export default function AdminUsersPage() {
       </Card>
 
       {/* CREATE USER MODAL with shadcn Dialog */}
+      </div>
+
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
@@ -150,7 +150,8 @@ export default function AdminDomainDetailClient({ domainId }: { domainId: number
   }
 
   return (
-    <div className="@container/main flex min-w-0 flex-1 flex-col gap-4 px-4 py-4 lg:px-6 lg:py-6">
+    <div className="@container/main flex flex-1 flex-col gap-2">
+      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
       <AdminPageHeader title={domain?.domain_name || "Chi tiết domain"} description={domain?.description || "Quản lý các role thuộc domain này."} backHref="/admin/domains" backLabel="Quay lại danh sách" badge={domain?.is_active ? "Đang hoạt động" : "Đã lưu trữ"}>
         <Button variant="outline" size="sm" onClick={() => void loadData(true)} disabled={refreshing} className="gap-1.5"><RefreshCw className={refreshing ? "size-3.5 animate-spin" : "size-3.5"} />Làm mới</Button>
         <Button variant="outline" size="sm" onClick={() => domain && setConfirmTarget({ kind: "domain", id: domain.domain_id, name: domain.domain_name, isActive: domain.is_active })} className="gap-1.5">{domain?.is_active ? <Archive className="size-3.5" /> : <ArchiveRestore className="size-3.5" />}{domain?.is_active ? "Lưu trữ" : "Khôi phục"}</Button>
@@ -180,6 +181,8 @@ export default function AdminDomainDetailClient({ domainId }: { domainId: number
       </Card>
 
       <Card className="border-dashed bg-muted/20"><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-medium">Cần rà soát ngân hàng câu hỏi?</p><p className="text-xs text-muted-foreground">Mở trang câu hỏi với bộ lọc domain hiện tại để kiểm tra nội dung.</p></div><Button asChild variant="outline" size="sm" className="gap-1.5"><Link href={`/admin/questions?domain_id=${domainId}`}>Mở ngân hàng câu hỏi<ArrowUpRight className="size-3.5" /></Link></Button></CardContent></Card>
+
+      </div>
 
       <Dialog open={formMode !== null} onOpenChange={(open) => !open && setFormMode(null)}><DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle>{formMode === "edit" ? "Chỉnh sửa role" : "Tạo role mới"}</DialogTitle><DialogDescription>Role sẽ được gắn trong domain {domain?.domain_name}.</DialogDescription></DialogHeader><form onSubmit={handleSubmit} className="space-y-4"><div className="space-y-2"><Label htmlFor="role-name">Tên role <span className="text-destructive">*</span></Label><Input id="role-name" value={form.role_name} onChange={(event) => setForm((current) => ({ ...current, role_name: event.target.value }))} placeholder="Ví dụ: Engineering Manager" autoFocus /></div><div className="space-y-2"><Label htmlFor="role-description">Mô tả</Label><textarea id="role-description" value={form.description || ""} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} placeholder="Mô tả ngắn về phạm vi công việc..." rows={4} className="flex min-h-24 w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" /></div><DialogFooter><Button type="button" variant="outline" onClick={() => setFormMode(null)}>Hủy</Button><Button type="submit" disabled={submitting}>{submitting ? "Đang lưu..." : formMode === "edit" ? "Lưu thay đổi" : "Tạo role"}</Button></DialogFooter></form></DialogContent></Dialog>
 
