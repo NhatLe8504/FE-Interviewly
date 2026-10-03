@@ -261,7 +261,7 @@ export default function AdminLessonEditClient({
 
   if (!originalLesson) {
     return (
-      <div className="p-8 max-w-xl mx-auto text-center space-y-4">
+      <div className="@container/main flex min-w-0 flex-1 flex-col items-center justify-center gap-4 px-4 py-12 text-center lg:px-6">
         <AlertCircle className="size-12 text-destructive mx-auto" />
         <h2 className="text-xl font-bold">Không tìm thấy bài học</h2>
         <p className="text-sm text-muted-foreground">Bài học này không tồn tại trong khóa học `{slug}`.</p>
@@ -273,7 +273,7 @@ export default function AdminLessonEditClient({
   }
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-6xl mx-auto w-full">
+    <div className="@container/main flex min-w-0 flex-1 flex-col gap-6 px-4 py-4 md:py-6 lg:px-6">
       {/* Breadcrumb Navigation */}
       <div className="space-y-1">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">

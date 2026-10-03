@@ -21,7 +21,7 @@ export default function AdminSharedLayout({
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
-        <div className="flex-1 flex flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           {children}
         </div>
         <AdminFooter />
