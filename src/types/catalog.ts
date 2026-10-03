@@ -77,6 +77,7 @@ export interface DomainOut {
   domain_id: number;
   domain_name: string;
   description: string | null;
+  is_active?: boolean;
   created_at?: string | null;
 }
 
@@ -85,7 +86,36 @@ export interface RoleOut {
   domain_id: number;
   role_name: string;
   description: string | null;
+  is_active?: boolean;
   created_at?: string | null;
+}
+
+export type CatalogStatusFilter = "active" | "archived" | "all";
+
+export interface DomainAdminSummary extends DomainOut {
+  is_active: boolean;
+  role_count: number;
+  active_role_count: number;
+  question_count: number;
+}
+
+export interface DomainAdminSummaryPage {
+  items: DomainAdminSummary[];
+  total: number;
+  active_domains: number;
+  archived_domains: number;
+  active_roles: number;
+  total_questions: number;
+}
+
+export interface RoleAdminSummary extends RoleOut {
+  is_active: boolean;
+  question_count: number;
+}
+
+export interface DomainAdminDetail {
+  domain: DomainAdminSummary;
+  roles: RoleAdminSummary[];
 }
 
 export interface StarTemplateOut {

@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
+import AdminDomainsClient from "./AdminDomainsClient";
 
 export const metadata: Metadata = {
-  title: "Job Domains | Interviewly",
-  description: "Manage job domains and their roles.",
+  title: "Lĩnh vực nghề nghiệp | Interviewly",
+  description: "Quản lý lĩnh vực nghề nghiệp và vai trò tuyển dụng.",
 };
 
 export default function AdminDomainsPage() {
-  return (
-    <main>
-      <h1>Job Domains</h1>
-      <p>Manage job domains and their roles.</p>
-    </main>
-  );
+  return <AdminDomainsClient />;
 }
