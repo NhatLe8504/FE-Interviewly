@@ -262,7 +262,7 @@ export default function AdminLessonCreateClient({
   }
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-6xl mx-auto w-full">
+    <div className="@container/main flex min-w-0 flex-1 flex-col gap-6 px-4 py-4 md:py-6 lg:px-6">
       {/* Breadcrumb Navigation */}
       <div className="space-y-1">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">

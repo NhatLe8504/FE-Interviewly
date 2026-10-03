@@ -41,52 +41,52 @@ const data = {
   },
   navMain: [
     {
-      title: "Dashboard",
+      title: "Tổng quan",
       url: "/admin",
       icon: <LayoutDashboardIcon />,
     },
     {
-      title: "Question Bank",
+      title: "Ngân hàng câu hỏi",
       url: "/admin/questions",
       icon: <HelpCircleIcon />,
     },
     {
-      title: "Course Library",
+      title: "Thư viện khóa học",
       url: "/admin/courses",
       icon: <GraduationCapIcon />,
     },
     {
-      title: "User Management",
+      title: "Quản lý người dùng",
       url: "/admin/users",
       icon: <UsersIcon />,
     },
     {
-      title: "Payments & Revenue",
+      title: "Thanh toán & Doanh thu",
       url: "/admin/payments",
       icon: <CreditCardIcon />,
     },
     {
-      title: "Subscriptions",
+      title: "Gói đăng ký",
       url: "/admin/subscriptions",
       icon: <SparklesIcon />,
     },
     {
-      title: "Onboarding Flow",
+      title: "Luồng giới thiệu",
       url: "/admin/onboarding",
       icon: <CompassIcon />,
     },
     {
-      title: "Domains & Roles",
+      title: "Ngành nghề & Vai trò",
       url: "/admin/domains",
       icon: <FolderTreeIcon />,
     },
     {
-      title: "Content Moderation",
+      title: "Kiểm duyệt nội dung",
       url: "/admin/moderation",
       icon: <ShieldAlertIcon />,
     },
     {
-      title: "Audit Logs",
+      title: "Nhật ký hệ thống",
       url: "/admin/audit-logs",
       icon: <FileClockIcon />,
     },

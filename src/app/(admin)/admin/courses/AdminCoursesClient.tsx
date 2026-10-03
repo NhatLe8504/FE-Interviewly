@@ -391,7 +391,7 @@ export default function AdminCoursesClient() {
   };
 
   return (
-    <div className="@container/main flex flex-1 flex-col gap-2">
+    <div className="@container/main flex min-w-0 flex-1 flex-col gap-2">
       {/* Top Banner Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6 pt-4 gap-3">
         <div className="flex items-center gap-2">
@@ -558,16 +558,16 @@ export default function AdminCoursesClient() {
         {/* Courses Data Table */}
         <div className="rounded-2xl border bg-card shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="table-fixed">
               <TableHeader className="bg-muted/40 text-[11px] uppercase tracking-wider">
                 <TableRow>
-                  <TableHead className="w-12">Mã</TableHead>
-                  <TableHead className="min-w-[280px]">Khóa Học &amp; Mô Tả</TableHead>
-                  <TableHead className="min-w-[170px]">Lĩnh Vực &amp; Vị Trí</TableHead>
-                  <TableHead className="w-32 text-center">Hình Thức &amp; Cấp Độ</TableHead>
-                  <TableHead className="w-28 text-center">Quy Mô Bài Học</TableHead>
-                  <TableHead className="w-28 text-center">Học Viên &amp; Điểm</TableHead>
-                  <TableHead className="w-20 text-right">Thao Tác</TableHead>
+                  <TableHead className="w-[5%]">Mã</TableHead>
+                  <TableHead className="w-[30%]">Khóa Học &amp; Mô Tả</TableHead>
+                  <TableHead className="w-[20%]">Lĩnh Vực &amp; Vị Trí</TableHead>
+                  <TableHead className="w-[15%] text-center">Hình Thức &amp; Cấp Độ</TableHead>
+                  <TableHead className="w-[12%] text-center">Quy Mô Bài Học</TableHead>
+                  <TableHead className="w-[12%] text-center">Học Viên &amp; Điểm</TableHead>
+                  <TableHead className="w-[6%] text-right">Thao Tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="text-xs">
