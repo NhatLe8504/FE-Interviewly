@@ -37,6 +37,34 @@ function DropdownMenuContent({
   sideOffset = 4,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
+  React.useEffect(() => {
+    const unlockScroll = () => {
+      if (typeof document !== "undefined" && document.body) {
+        if (document.body.hasAttribute("data-scroll-locked")) {
+          document.body.removeAttribute("data-scroll-locked");
+        }
+        if (document.body.style.overflow === "hidden") {
+          document.body.style.overflow = "";
+        }
+        if (document.body.style.marginRight) {
+          document.body.style.marginRight = "";
+        }
+        if (document.body.style.paddingRight) {
+          document.body.style.paddingRight = "";
+        }
+      }
+    };
+
+    unlockScroll();
+    const timer = setTimeout(unlockScroll, 0);
+    const interval = setInterval(unlockScroll, 30);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+      unlockScroll();
+    };
+  }, []);
   return (
     <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Content
