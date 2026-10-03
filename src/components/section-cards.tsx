@@ -9,25 +9,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { useGetServerLogsQuery } from "@/redux/api/admin/auditApi"
 import { useGetAdminStatsQuery } from "@/redux/api/admin/statsApi"
-import { TrendingUpIcon } from "lucide-react"
+import { ActivityIcon, DatabaseIcon, GaugeIcon, TrendingUpIcon } from "lucide-react"
 
 function formatCount(value?: number) {
   return typeof value === "number" ? value.toLocaleString("vi-VN") : "—"
 }
 
-function formatRevenue(value?: number) {
-  if (typeof value !== "number") return "—"
-
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(value)
+function formatDuration(value?: number) {
+  return typeof value === "number" ? `${Math.round(value)} ms` : "—"
 }
 
 export function SectionCards() {
   const { data, isLoading, isError } = useGetAdminStatsQuery()
+  const { data: serverLogsData } = useGetServerLogsQuery({ limit: 1 })
   const activeRate =
     data && data.total_users > 0
       ? Math.round((data.active_users / data.total_users) * 100)
@@ -36,33 +32,15 @@ export function SectionCards() {
     data && data.total_sessions > 0
       ? Math.round((data.completed_sessions / data.total_sessions) * 100)
       : 0
+  const requestStats = serverLogsData?.stats
+  const apiHealthRate =
+    requestStats && requestStats.total_requests > 0
+      ? Math.round((requestStats.success_count / requestStats.total_requests) * 100)
+      : 0
   const statusLabel = isLoading ? "Đang tải" : isError ? "Lỗi dữ liệu" : "Trực tiếp"
 
   return (
     <div className="grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
-      <Card className="@container/card">
-        <CardHeader>
-          <CardDescription>Tổng doanh thu</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {formatRevenue(data?.total_revenue)}
-          </CardTitle>
-          <CardAction>
-            <Badge variant="outline">
-              <TrendingUpIcon />
-              {statusLabel}
-            </Badge>
-          </CardAction>
-        </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            Doanh thu giao dịch thành công{" "}
-            <TrendingUpIcon className="size-4" />
-          </div>
-          <div className="text-muted-foreground">
-            Cập nhật từ hệ thống thanh toán
-          </div>
-        </CardFooter>
-      </Card>
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Người dùng hoạt động</CardDescription>
@@ -71,61 +49,80 @@ export function SectionCards() {
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <TrendingUpIcon />
+              <ActivityIcon />
               {isLoading || isError ? "—" : `${activeRate}%`}
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Tài khoản đang hoạt động{" "}
+            {formatCount(data?.active_users)} / {formatCount(data?.total_users)} tài khoản{" "}
             <TrendingUpIcon className="size-4" />
           </div>
-          <div className="text-muted-foreground">
-            Tỷ lệ trên tổng số người dùng
-          </div>
+          <div className="text-muted-foreground">Tỷ lệ tài khoản đang hoạt động</div>
         </CardFooter>
       </Card>
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Phiên phỏng vấn</CardDescription>
+          <CardDescription>Phiên đã hoàn tất</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {formatCount(data?.total_sessions)}
+            {formatCount(data?.completed_sessions)}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <TrendingUpIcon />
-              {isLoading || isError ? "—" : `${completionRate}% hoàn tất`}
+              {isLoading || isError ? "—" : `${completionRate}%`}
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            {formatCount(data?.completed_sessions)} phiên đã hoàn tất{" "}
+            {formatCount(data?.total_sessions)} phiên luyện tập{" "}
             <TrendingUpIcon className="size-4" />
           </div>
-          <div className="text-muted-foreground">Theo dõi hoạt động luyện tập</div>
+          <div className="text-muted-foreground">Tỷ lệ hoàn thành phỏng vấn</div>
         </CardFooter>
       </Card>
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Tổng người dùng</CardDescription>
+          <CardDescription>Kho câu hỏi</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {formatCount(data?.total_users)}
+            {formatCount(data?.total_questions)}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <TrendingUpIcon />
-              {formatCount(data?.total_questions)} câu hỏi
+              <DatabaseIcon />
+              Nội dung
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Kho nội dung đang vận hành{" "}
+            Sẵn sàng cho luyện tập{" "}
             <TrendingUpIcon className="size-4" />
           </div>
-          <div className="text-muted-foreground">Số liệu được lấy trực tiếp từ hệ thống</div>
+          <div className="text-muted-foreground">Tổng số câu hỏi trong hệ thống</div>
+        </CardFooter>
+      </Card>
+      <Card className="@container/card">
+        <CardHeader>
+          <CardDescription>Sức khỏe API</CardDescription>
+          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+            {requestStats ? `${apiHealthRate}%` : "—"}
+          </CardTitle>
+          <CardAction>
+            <Badge variant="outline">
+              <GaugeIcon />
+              {requestStats ? `${requestStats.total_requests} requests` : statusLabel}
+            </Badge>
+          </CardAction>
+        </CardHeader>
+        <CardFooter className="flex-col items-start gap-1.5 text-sm">
+          <div className="line-clamp-1 flex gap-2 font-medium">
+            Phản hồi trung bình {formatDuration(requestStats?.avg_duration_ms)}{" "}
+            <GaugeIcon className="size-4" />
+          </div>
+          <div className="text-muted-foreground">Tỷ lệ request không lỗi gần đây</div>
         </CardFooter>
       </Card>
     </div>
