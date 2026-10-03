@@ -150,7 +150,7 @@ export default function AdminUserDetailPage({
   };
 
   return (
-    <div className="flex flex-1 flex-col p-4 md:p-6 lg:p-8 gap-6 max-w-6xl mx-auto w-full">
+    <div className="@container/main flex min-w-0 flex-1 flex-col gap-6 px-4 py-4 md:py-6 lg:px-6">
       {/* Reusable Admin Page Header with back link */}
       <AdminPageHeader
         title={user ? `Hồ Sơ Người Dùng #${user.user_id}` : "Chi Tiết Người Dùng"}

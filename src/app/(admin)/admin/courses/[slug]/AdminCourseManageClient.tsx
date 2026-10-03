@@ -281,7 +281,7 @@ export default function AdminCourseManageClient({ slug }: AdminCourseManageClien
 
   if (loading) {
     return (
-      <div className="p-8 flex flex-col items-center justify-center min-h-[400px] text-muted-foreground space-y-3">
+      <div className="@container/main flex min-w-0 flex-1 flex-col items-center justify-center gap-3 px-4 py-12 text-muted-foreground lg:px-6">
         <RefreshCw className="size-8 animate-spin text-primary" />
         <p className="text-sm font-medium">Đang tải thông tin chi tiết khóa học và giáo trình...</p>
       </div>
@@ -290,7 +290,7 @@ export default function AdminCourseManageClient({ slug }: AdminCourseManageClien
 
   if (!course) {
     return (
-      <div className="p-8 max-w-2xl mx-auto text-center space-y-4">
+      <div className="@container/main flex min-w-0 flex-1 flex-col items-center justify-center gap-4 px-4 py-12 text-center lg:px-6">
         <AlertCircle className="size-12 text-destructive mx-auto" />
         <h2 className="text-xl font-bold text-foreground">Không tìm thấy khóa học</h2>
         <p className="text-sm text-muted-foreground">Khóa học với mã `{slug}` không tồn tại hoặc đã bị xóa.</p>
@@ -304,7 +304,7 @@ export default function AdminCourseManageClient({ slug }: AdminCourseManageClien
   }
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+    <div className="@container/main flex min-w-0 flex-1 flex-col gap-6 px-4 py-4 md:py-6 lg:px-6">
       {/* Breadcrumb & Navigation */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">

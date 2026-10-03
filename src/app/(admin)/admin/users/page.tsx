@@ -208,7 +208,7 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="flex flex-1 flex-col p-4 md:p-6 lg:p-8 gap-6">
+    <div className="@container/main flex min-w-0 flex-1 flex-col gap-6 px-4 py-4 md:py-6 lg:px-6">
       {/* Reusable Admin Page Header */}
       <AdminPageHeader
         title="Danh Sách Người Dùng"
