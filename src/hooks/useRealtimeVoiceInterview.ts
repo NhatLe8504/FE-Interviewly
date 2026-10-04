@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import type { QuestionIntentContext, StageConfigIn } from "@/types/interview";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -50,6 +50,8 @@ export function useRealtimeVoiceInterview({
 }: UseRealtimeVoiceInterviewOptions) {
   // Connection & Lifecycle State
   const [isConnected, setIsConnected] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [reconnectCount, setReconnectCount] = useState(0);
   const [aiState, setAiState] = useState<AiVoiceState>("idle");
   const [isCompleted, setIsCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,13 +84,21 @@ export function useRealtimeVoiceInterview({
   // Audio, Mic & Barge-in Controls
   const [bargeInEnabled, setBargeInEnabled] = useState(bargeInInitial);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [isAudioMuted, setIsAudioMuted] = useState(false);
+  const [audioBlockedByAutoplay, setAudioBlockedByAutoplay] = useState(false);
   const [isMicActive, setIsMicActive] = useState(true);
+  const [micPermissionDenied, setMicPermissionDenied] = useState(false);
+  const [sttSupported, setSttSupported] = useState(true);
   const [volume, setVolume] = useState(0);
 
   // References
   const wsRef = useRef<WebSocket | null>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptRef = useRef(0);
+  const isManuallyClosedRef = useRef(false);
   const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const recognitionRef = useRef<any>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -99,6 +109,9 @@ export function useRealtimeVoiceInterview({
   const audioQueueRef = useRef<{ url: string; sentenceIdx?: number }[]>([]);
   const currentAudioElementRef = useRef<HTMLAudioElement | null>(null);
   const isPlayingAudioRef = useRef<boolean>(false);
+  const isAudioMutedRef = useRef<boolean>(isAudioMuted);
+  isAudioMutedRef.current = isAudioMuted;
+
   const fullAiTextAccumulatorRef = useRef<string>("");
   const questionsPerStage = useMemo(
     () =>
@@ -114,12 +127,13 @@ export function useRealtimeVoiceInterview({
     [selectedStages, stageConfigs]
   );
 
-  // Construct WebSocket URL
+  // Construct WebSocket URL with secure wss: check
   const getWsUrl = useCallback(() => {
     let baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
     let wsBase = baseUrl.replace(/^http/, "ws");
     if (typeof window !== "undefined" && !process.env.NEXT_PUBLIC_API_BASE_URL) {
-      wsBase = `ws://${window.location.hostname}:8000`;
+      const isHttps = window.location.protocol === "https:";
+      wsBase = `${isHttps ? "wss:" : "ws:"}//${window.location.hostname}:8000`;
     }
     return `${wsBase}/api/v1/voice/ws/${sessionId}`;
   }, [sessionId]);
@@ -138,22 +152,24 @@ export function useRealtimeVoiceInterview({
     };
   }, [isCompleted]);
 
-  // Stop current audio and clear queue immediately (Barge-in helper)
+  // Stop current audio and clear queue immediately (Barge-in / interruption helper)
   const stopAudioPlayback = useCallback(() => {
     if (currentAudioElementRef.current) {
-      currentAudioElementRef.current.pause();
-      currentAudioElementRef.current.currentTime = 0;
+      currentAudioElementRef.current.onended = null;
+      currentAudioElementRef.current.onerror = null;
+      try {
+        currentAudioElementRef.current.pause();
+        currentAudioElementRef.current.currentTime = 0;
+      } catch {}
       currentAudioElementRef.current = null;
     }
-    // Revoke queued blob URLs
+    // Revoke queued blob URLs to free memory
     while (audioQueueRef.current.length > 0) {
       const item = audioQueueRef.current.shift();
       if (item?.url) {
         try {
           URL.revokeObjectURL(item.url);
-        } catch {
-          // ignore
-        }
+        } catch {}
       }
     }
     isPlayingAudioRef.current = false;
@@ -175,27 +191,41 @@ export function useRealtimeVoiceInterview({
     setIsAudioPlaying(true);
 
     const audio = new Audio(nextItem.url);
+    if (isAudioMutedRef.current) {
+      audio.muted = true;
+    }
     currentAudioElementRef.current = audio;
 
-    audio.onended = () => {
+    const cleanup = () => {
       try {
         URL.revokeObjectURL(nextItem.url);
-      } catch {
-        // ignore
-      }
+      } catch {}
+      audio.onended = null;
+      audio.onerror = null;
+      currentAudioElementRef.current = null;
       isPlayingAudioRef.current = false;
+    };
+
+    audio.onended = () => {
+      cleanup();
       playNextChunk();
     };
 
-    audio.onerror = () => {
-      isPlayingAudioRef.current = false;
+    audio.onerror = (e) => {
+      cleanup();
       playNextChunk();
     };
 
-    audio.play().catch(() => {
-      isPlayingAudioRef.current = false;
-      playNextChunk();
-    });
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((err) => {
+        if (err.name === "NotAllowedError") {
+          setAudioBlockedByAutoplay(true);
+        }
+        cleanup();
+        setTimeout(playNextChunk, 150);
+      });
+    }
   }, []);
 
   // Enqueue base64 audio data
@@ -220,6 +250,28 @@ export function useRealtimeVoiceInterview({
     [playNextChunk]
   );
 
+  // Resume audio playback if blocked by browser autoplay policy
+  const resumeAudio = useCallback(() => {
+    setAudioBlockedByAutoplay(false);
+    if (audioContextRef.current && audioContextRef.current.state === "suspended") {
+      audioContextRef.current.resume().catch(() => {});
+    }
+    if (!isPlayingAudioRef.current && audioQueueRef.current.length > 0) {
+      playNextChunk();
+    }
+  }, [playNextChunk]);
+
+  // Toggle speaker mute
+  const toggleAudioMute = useCallback(() => {
+    setIsAudioMuted((prev) => {
+      const next = !prev;
+      if (currentAudioElementRef.current) {
+        currentAudioElementRef.current.muted = next;
+      }
+      return next;
+    });
+  }, []);
+
   // Send message helper
   const sendMessage = useCallback((payload: any) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -241,6 +293,7 @@ export function useRealtimeVoiceInterview({
 
   // End Session Early
   const endSessionEarly = useCallback(() => {
+    isManuallyClosedRef.current = true;
     stopAudioPlayback();
     sendMessage({ type: "stop_session" });
     setIsCompleted(true);
@@ -294,7 +347,7 @@ export function useRealtimeVoiceInterview({
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setError("Trình duyệt không hỗ trợ Web Speech API. Bạn có thể sử dụng chế độ nhập văn bản.");
+      setSttSupported(false);
       return;
     }
 
@@ -321,8 +374,8 @@ export function useRealtimeVoiceInterview({
         setInterimTranscript(interim);
 
         // BARGE-IN TRIGGER:
-        // When user starts speaking something substantial, immediately interrupt AI if enabled!
-        if (bargeInEnabled && interim.trim().length >= 2) {
+        // When user speaks something substantial, interrupt AI speech immediately!
+        if (bargeInEnabled && interim.trim().length >= 3) {
           if (aiState === "speaking" || aiState === "thinking") {
             stopAudioPlayback();
             sendMessage({ type: "user_speech_start" });
@@ -337,7 +390,6 @@ export function useRealtimeVoiceInterview({
           setCandidateTranscript(cleanFinal);
           setInterimTranscript("");
 
-          // Record in conversation history
           setTurns((prev) => [
             ...prev,
             {
@@ -359,44 +411,46 @@ export function useRealtimeVoiceInterview({
     };
 
     recognition.onerror = (err: any) => {
-      if (err.error !== "no-speech") {
-        console.warn("Speech recognition error:", err.error);
+      if (err.error === "no-speech") {
+        return;
       }
+      if (err.error === "not-allowed" || err.error === "service-not-allowed") {
+        setMicPermissionDenied(true);
+        setIsMicActive(false);
+        setError("Quyền truy cập micro đã bị từ chối. Bạn có thể sử dụng chế độ nhập văn bản.");
+        return;
+      }
+      console.warn("Speech recognition notice:", err.error);
     };
 
     recognition.onend = () => {
-      // Auto-restart recognition if mic is active and session is not completed
-      if (isMicActive && !isCompleted) {
-        try {
-          recognition.start();
-        } catch {
-          // ignore
-        }
+      if (isMicActive && !isCompleted && !isManuallyClosedRef.current && !micPermissionDenied) {
+        setTimeout(() => {
+          try {
+            recognitionRef.current?.start();
+          } catch {}
+        }, 300);
       }
     };
 
     recognitionRef.current = recognition;
 
-    if (isMicActive && !isCompleted) {
+    if (isMicActive && !isCompleted && !micPermissionDenied) {
       try {
         recognition.start();
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
 
     return () => {
       try {
         recognition.stop();
-      } catch {
-        // ignore
-      }
+      } catch {}
     };
-  }, [language, bargeInEnabled, aiState, isMicActive, isCompleted, sendMessage, stopAudioPlayback, turnId]);
+  }, [language, bargeInEnabled, aiState, isMicActive, isCompleted, micPermissionDenied, sendMessage, stopAudioPlayback, turnId]);
 
   // Audio Analyser for Waveform
   useEffect(() => {
-    if (typeof window === "undefined" || !isMicActive || isCompleted) return;
+    if (typeof window === "undefined" || !isMicActive || isCompleted || micPermissionDenied) return;
 
     let localStream: MediaStream | null = null;
     let localContext: AudioContext | null = null;
@@ -431,8 +485,11 @@ export function useRealtimeVoiceInterview({
         };
         animFrameRef.current = requestAnimationFrame(updateLoop);
       })
-      .catch(() => {
-        // Mic permission denied or unavailable
+      .catch((err) => {
+        if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+          setMicPermissionDenied(true);
+          setIsMicActive(false);
+        }
       });
 
     return () => {
@@ -444,134 +501,160 @@ export function useRealtimeVoiceInterview({
         localContext.close().catch(() => {});
       }
     };
-  }, [isMicActive, isCompleted]);
+  }, [isMicActive, isCompleted, micPermissionDenied]);
 
-  // Connect WebSocket on mount
+  // WebSocket Connection with Reconnection Resilience
   useEffect(() => {
-    const wsUrl = getWsUrl();
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
+    isManuallyClosedRef.current = false;
 
-    ws.onopen = () => {
-      setIsConnected(true);
-      setError(null);
+    const connectWebSocket = () => {
+      if (isManuallyClosedRef.current || isCompleted) return;
 
-      // Send initial ready configuration with selected stages
-      ws.send(
-        JSON.stringify({
-          type: "client_ready",
-          role_name: roleName,
-          level,
-          language,
-          voice,
-          barge_in_enabled: bargeInEnabled,
-          selected_stages: selectedStages,
-          questions_per_stage: questionsPerStage,
-        })
-      );
+      const wsUrl = getWsUrl();
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
-      // Heartbeat ping every 15s
-      pingIntervalRef.current = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: "ping" }));
+      ws.onopen = () => {
+        setIsConnected(true);
+        setIsReconnecting(false);
+        reconnectAttemptRef.current = 0;
+        setError(null);
+
+        // Send ready payload
+        ws.send(
+          JSON.stringify({
+            type: "client_ready",
+            role_name: roleName,
+            level,
+            language,
+            voice,
+            barge_in_enabled: bargeInEnabled,
+            selected_stages: selectedStages,
+            questions_per_stage: questionsPerStage,
+          })
+        );
+
+        if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "ping" }));
+          }
+        }, 15000);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          const type = data.type;
+
+          if (type === "state") {
+            const rawState = data.state;
+            if (rawState === "LISTEN") setAiState("listening");
+            else if (rawState === "THINK") setAiState("thinking");
+            else if (rawState === "SPEAK") setAiState("speaking");
+            else if (rawState === "COMPLETED") {
+              setAiState("completed");
+              setIsCompleted(true);
+            }
+
+            if (data.turn_id) setTurnId(data.turn_id);
+            if (data.current_stage) setCurrentStage(data.current_stage);
+            if (data.stages) setStagesList(data.stages);
+            if (data.turn_in_stage) setTurnInStage(data.turn_in_stage);
+            if (data.target_turns_in_stage) setTargetTurnsInStage(data.target_turns_in_stage);
+          } else if (type === "question_context" || type === "question_rerolled") {
+            setCurrentIntent({
+              question_id: data.question_id,
+              intent: data.topic_label || data.intent || "",
+              stage_key: data.stage_key || "",
+              difficulty: data.difficulty || 3,
+              topic_label: data.topic_label || "",
+            });
+          } else if (type === "stage_info" || type === "stage_change") {
+            if (data.current_stage) setCurrentStage(data.current_stage);
+            if (data.stages) setStagesList(data.stages);
+            if (data.turn_in_stage) setTurnInStage(data.turn_in_stage);
+            if (data.target_turns_in_stage) setTargetTurnsInStage(data.target_turns_in_stage);
+          } else if (type === "ai_token") {
+            fullAiTextAccumulatorRef.current += data.token;
+            setCurrentQuestion(fullAiTextAccumulatorRef.current);
+          } else if (type === "subtitle") {
+            setCurrentSubtitle(data.sentence || "");
+          } else if (type === "audio") {
+            if (data.audio_data) {
+              enqueueAudioChunk(data.audio_data, data.sentence_index);
+            }
+          } else if (type === "interrupted") {
+            stopAudioPlayback();
+            setAiState("listening");
+            fullAiTextAccumulatorRef.current = "";
+          } else if (type === "done") {
+            const aiResponse = data.full_text || fullAiTextAccumulatorRef.current;
+            if (aiResponse.trim()) {
+              setTurns((prev) => [
+                ...prev,
+                {
+                  id: `turn-ai-${Date.now()}`,
+                  turnNumber: data.turn_id || turnId,
+                  speaker: "ai",
+                  text: aiResponse.trim(),
+                  timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                },
+              ]);
+            }
+            fullAiTextAccumulatorRef.current = "";
+
+            if (data.is_completed) {
+              setIsCompleted(true);
+              setAiState("completed");
+            }
+          } else if (type === "error") {
+            setError(data.message || "Đã xảy ra lỗi trong phiên phỏng vấn.");
+          }
+        } catch (e) {
+          console.error("WS Parse error:", e);
         }
-      }, 15000);
-    };
+      };
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        const type = data.type;
+      ws.onerror = (e) => {
+        console.warn("WebSocket error occurred:", e);
+      };
 
-        if (type === "state") {
-          const rawState = data.state;
-          if (rawState === "LISTEN") setAiState("listening");
-          else if (rawState === "THINK") setAiState("thinking");
-          else if (rawState === "SPEAK") setAiState("speaking");
-          else if (rawState === "COMPLETED") {
-            setAiState("completed");
-            setIsCompleted(true);
-          }
+      ws.onclose = () => {
+        setIsConnected(false);
+        if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
 
-          if (data.turn_id) setTurnId(data.turn_id);
-          if (data.current_stage) setCurrentStage(data.current_stage);
-          if (data.stages) setStagesList(data.stages);
-          if (data.turn_in_stage) setTurnInStage(data.turn_in_stage);
-          if (data.target_turns_in_stage) setTargetTurnsInStage(data.target_turns_in_stage);
-        } else if (type === "question_context" || type === "question_rerolled") {
-          setCurrentIntent({
-            question_id: data.question_id,
-            intent: data.topic_label || data.intent || "",
-            stage_key: data.stage_key || "",
-            difficulty: data.difficulty || 3,
-            topic_label: data.topic_label || "",
-          });
-        } else if (type === "stage_info" || type === "stage_change") {
-          if (data.current_stage) setCurrentStage(data.current_stage);
-          if (data.stages) setStagesList(data.stages);
-          if (data.turn_in_stage) setTurnInStage(data.turn_in_stage);
-          if (data.target_turns_in_stage) setTargetTurnsInStage(data.target_turns_in_stage);
-        } else if (type === "ai_token") {
-          fullAiTextAccumulatorRef.current += data.token;
-          setCurrentQuestion(fullAiTextAccumulatorRef.current);
-        } else if (type === "subtitle") {
-          setCurrentSubtitle(data.sentence || "");
-        } else if (type === "audio") {
-          if (data.audio_data) {
-            enqueueAudioChunk(data.audio_data, data.sentence_index);
-          }
-        } else if (type === "interrupted") {
-          stopAudioPlayback();
-          setAiState("listening");
-          fullAiTextAccumulatorRef.current = "";
-        } else if (type === "done") {
-          const aiResponse = data.full_text || fullAiTextAccumulatorRef.current;
-          if (aiResponse.trim()) {
-            setTurns((prev) => [
-              ...prev,
-              {
-                id: `turn-ai-${Date.now()}`,
-                turnNumber: data.turn_id || turnId,
-                speaker: "ai",
-                text: aiResponse.trim(),
-                timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-              },
-            ]);
-          }
-          fullAiTextAccumulatorRef.current = "";
-
-          if (data.is_completed) {
-            setIsCompleted(true);
-            setAiState("completed");
-          }
-        } else if (type === "error") {
-          setError(data.message || "Đã xảy ra lỗi trong phiên phỏng vấn.");
+        // Auto-reconnect if not intentionally closed and session still active
+        if (!isManuallyClosedRef.current && !isCompleted && reconnectAttemptRef.current < 5) {
+          setIsReconnecting(true);
+          reconnectAttemptRef.current += 1;
+          setReconnectCount(reconnectAttemptRef.current);
+          const backoff = Math.min(1000 * Math.pow(1.5, reconnectAttemptRef.current), 5000);
+          reconnectTimeoutRef.current = setTimeout(connectWebSocket, backoff);
+        } else if (reconnectAttemptRef.current >= 5) {
+          setIsReconnecting(false);
+          setError("Không thể kết nối đến máy chủ phỏng vấn sau nhiều lần thử. Vui lòng tải lại trang.");
         }
-      } catch (e) {
-        console.error("WS Parse error:", e);
-      }
+      };
     };
 
-    ws.onerror = () => {
-      setError("Không thể kết nối đến máy chủ WebSocket Voice. Vui lòng kiểm tra lại dịch vụ Backend.");
-    };
-
-    ws.onclose = () => {
-      setIsConnected(false);
-      if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
-    };
+    connectWebSocket();
 
     return () => {
+      isManuallyClosedRef.current = true;
       if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       stopAudioPlayback();
-      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-        ws.close();
+      if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+        wsRef.current.close();
       }
     };
-  }, [getWsUrl, roleName, level, language, voice, bargeInEnabled, selectedStages, questionsPerStage, enqueueAudioChunk, stopAudioPlayback, turnId]);
+  }, [getWsUrl, roleName, level, language, voice, bargeInEnabled, selectedStages, questionsPerStage, enqueueAudioChunk, stopAudioPlayback, turnId, isCompleted]);
 
   return {
     isConnected,
+    isReconnecting,
+    reconnectCount,
     aiState,
     isCompleted,
     error,
@@ -588,10 +671,16 @@ export function useRealtimeVoiceInterview({
     turns,
     volume,
     isAudioPlaying,
+    isAudioMuted,
+    audioBlockedByAutoplay,
     isMicActive,
+    micPermissionDenied,
+    sttSupported,
     bargeInEnabled,
     toggleBargeIn,
     toggleMic: () => setIsMicActive((prev) => !prev),
+    toggleAudioMute,
+    resumeAudio,
     sendTextMessage,
     currentIntent,
     rerollQuestion,
