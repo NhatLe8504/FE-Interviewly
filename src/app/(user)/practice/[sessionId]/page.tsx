@@ -58,14 +58,16 @@ export default function InterviewRoomPage({
   const router = useRouter();
   const { locale } = useI18n();
 
-  // Read session metadata from sessionStorage
-  const meta: SessionMetaStored = useMemo(() => {
-    if (typeof window === "undefined") return {};
+  const [isClientMounted, setIsClientMounted] = useState(false);
+  const [meta, setMeta] = useState<SessionMetaStored>({});
+
+  useEffect(() => {
+    setIsClientMounted(true);
     try {
       const raw = sessionStorage.getItem(`session_metadata_${sessionId}`);
-      return raw ? JSON.parse(raw) : {};
+      if (raw) setMeta(JSON.parse(raw));
     } catch {
-      return {};
+      // ignore
     }
   }, [sessionId]);
 
@@ -408,8 +410,8 @@ export default function InterviewRoomPage({
             {/* AI State Badge & Character Name */}
             <div className={styles.interviewerMetaRow}>
               {renderStateBadge()}
-              <h2 className={styles.interviewerName}>{persona.name}</h2>
-              <p className={styles.interviewerTitle}>
+              <h2 className={styles.interviewerName} suppressHydrationWarning>{persona.name}</h2>
+              <p className={styles.interviewerTitle} suppressHydrationWarning>
                 {persona.title} • {meta.companyName || "Doanh nghiệp mục tiêu"}
               </p>
             </div>

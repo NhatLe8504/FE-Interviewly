@@ -534,6 +534,26 @@ export function useRealtimeVoiceInterview({
     questionsPerStage,
   };
 
+  // Sync updated metadata (role/stages) over active WebSocket without reconnecting
+  useEffect(() => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      try {
+        wsRef.current.send(
+          JSON.stringify({
+            type: "client_ready",
+            role_name: roleName,
+            level,
+            language,
+            voice,
+            barge_in_enabled: bargeInEnabled,
+            selected_stages: selectedStages,
+            questions_per_stage: questionsPerStage,
+          })
+        );
+      } catch {}
+    }
+  }, [roleName, level, language, voice, bargeInEnabled, selectedStages, questionsPerStage]);
+
   // WebSocket Connection with Reconnection Resilience
   useEffect(() => {
     isManuallyClosedRef.current = false;
