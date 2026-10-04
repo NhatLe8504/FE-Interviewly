@@ -462,16 +462,27 @@ export function useRealtimeVoiceInterview({
     setInterimTranscript("");
     speechAccumulatorRef.current = "";
 
-    setTurns((prev) => [
-      ...prev,
-      {
-        id: `turn-u-${Date.now()}`,
-        turnNumber: turnIdRef.current,
-        speaker: "user",
-        text: finalAnswer,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      },
-    ]);
+    setTurns((prev) => {
+      const curTurnNum = turnIdRef.current;
+      const existingIdx = prev.findIndex(
+        (t) => t.speaker === "user" && t.turnNumber === curTurnNum
+      );
+      if (existingIdx !== -1) {
+        const updated = [...prev];
+        updated[existingIdx] = { ...updated[existingIdx], text: finalAnswer };
+        return updated;
+      }
+      return [
+        ...prev,
+        {
+          id: `turn-u-${curTurnNum}-${Date.now()}`,
+          turnNumber: curTurnNum,
+          speaker: "user",
+          text: finalAnswer,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ];
+    });
 
     // Transition to THINKING while AI processes answer
     serverHasFinishedTurnRef.current = false;
@@ -529,16 +540,27 @@ export function useRealtimeVoiceInterview({
       setInterimTranscript("");
       setAiState("thinking");
 
-      setTurns((prev) => [
-        ...prev,
-        {
-          id: `turn-u-${Date.now()}`,
-          turnNumber: turnIdRef.current,
-          speaker: "user",
-          text: clean,
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        },
-      ]);
+      setTurns((prev) => {
+        const curTurnNum = turnIdRef.current;
+        const existingIdx = prev.findIndex(
+          (t) => t.speaker === "user" && t.turnNumber === curTurnNum
+        );
+        if (existingIdx !== -1) {
+          const updated = [...prev];
+          updated[existingIdx] = { ...updated[existingIdx], text: clean };
+          return updated;
+        }
+        return [
+          ...prev,
+          {
+            id: `turn-u-${curTurnNum}-${Date.now()}`,
+            turnNumber: curTurnNum,
+            speaker: "user",
+            text: clean,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ];
+      });
 
       sendMessage({
         type: "final_transcript",
@@ -774,14 +796,31 @@ export function useRealtimeVoiceInterview({
 
     isManuallyClosedRef.current = false;
 
+    const cleanupSocket = (socket: WebSocket | null) => {
+      if (!socket) return;
+      socket.onopen = null;
+      socket.onmessage = null;
+      socket.onerror = null;
+      socket.onclose = null;
+      try {
+        if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+          socket.close(1000, "Clean cleanup");
+        }
+      } catch {}
+    };
+
     const connectWebSocket = () => {
       if (isManuallyClosedRef.current || isCompleted) return;
+
+      // Safely close and detach listeners from any previous socket
+      cleanupSocket(wsRef.current);
 
       const wsUrl = getWsUrl();
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
+        if (wsRef.current !== ws) return;
         setIsConnected(true);
         setIsReconnecting(false);
         reconnectAttemptRef.current = 0;
@@ -803,13 +842,14 @@ export function useRealtimeVoiceInterview({
 
         if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
         pingIntervalRef.current = setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN) {
+          if (ws.readyState === WebSocket.OPEN && wsRef.current === ws) {
             ws.send(JSON.stringify({ type: "ping" }));
           }
         }, 15000);
       };
 
       ws.onmessage = (event) => {
+        if (wsRef.current !== ws) return;
         try {
           const data = JSON.parse(event.data);
           const type = data.type;
@@ -818,7 +858,6 @@ export function useRealtimeVoiceInterview({
             const rawState = data.state;
             if (rawState === "LISTEN") {
               serverHasFinishedTurnRef.current = true;
-              // Transition to listening only after all audio playback has completely finished on speakers
               if (!playerRef.current?.isPlaying()) {
                 setAiState("listening");
                 speechAccumulatorRef.current = "";
@@ -839,6 +878,32 @@ export function useRealtimeVoiceInterview({
             if (data.stages) setStagesList(data.stages);
             if (data.turn_in_stage) setTurnInStage(data.turn_in_stage);
             if (data.target_turns_in_stage) setTargetTurnsInStage(data.target_turns_in_stage);
+          } else if (type === "conversation_history") {
+            if (Array.isArray(data.turns) && data.turns.length > 0) {
+              setTurns((prev) => {
+                const merged = [...prev];
+                for (const item of data.turns) {
+                  const existingIdx = merged.findIndex(
+                    (t) => t.speaker === item.speaker && t.turnNumber === item.turnNumber
+                  );
+                  if (existingIdx !== -1) {
+                    merged[existingIdx] = {
+                      ...merged[existingIdx],
+                      text: item.text,
+                    };
+                  } else {
+                    merged.push({
+                      id: item.id || `turn-${item.speaker}-${item.turnNumber}`,
+                      turnNumber: item.turnNumber,
+                      speaker: item.speaker,
+                      text: item.text,
+                      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                    });
+                  }
+                }
+                return merged;
+              });
+            }
           } else if (type === "question_context" || type === "question_rerolled") {
             setCurrentIntent({
               question_id: data.question_id,
@@ -870,19 +935,33 @@ export function useRealtimeVoiceInterview({
           } else if (type === "done") {
             serverHasFinishedTurnRef.current = true;
             playerRef.current?.setExpectingMoreAudio(false);
-            const aiResponse = data.full_text || fullAiTextAccumulatorRef.current;
-            lastAiSpokenTextRef.current = aiResponse.trim();
-            if (aiResponse.trim()) {
-              setTurns((prev) => [
-                ...prev,
-                {
-                  id: `turn-ai-${Date.now()}`,
-                  turnNumber: data.turn_id || turnIdRef.current,
-                  speaker: "ai",
-                  text: aiResponse.trim(),
-                  timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                },
-              ]);
+            const aiResponse = (data.full_text || fullAiTextAccumulatorRef.current || "").trim();
+            lastAiSpokenTextRef.current = aiResponse;
+            if (aiResponse) {
+              const targetTurnNum = data.turn_id || turnIdRef.current;
+              setTurns((prev) => {
+                const existingIdx = prev.findIndex(
+                  (t) => t.speaker === "ai" && t.turnNumber === targetTurnNum
+                );
+                if (existingIdx !== -1) {
+                  const updated = [...prev];
+                  updated[existingIdx] = {
+                    ...updated[existingIdx],
+                    text: aiResponse,
+                  };
+                  return updated;
+                }
+                return [
+                  ...prev,
+                  {
+                    id: `turn-ai-${targetTurnNum}-${Date.now()}`,
+                    turnNumber: targetTurnNum,
+                    speaker: "ai",
+                    text: aiResponse,
+                    timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                  },
+                ];
+              });
             }
             fullAiTextAccumulatorRef.current = "";
 
@@ -911,10 +990,12 @@ export function useRealtimeVoiceInterview({
       };
 
       ws.onerror = (e) => {
+        if (wsRef.current !== ws) return;
         console.warn("WebSocket error occurred:", e);
       };
 
       ws.onclose = (event) => {
+        if (wsRef.current !== ws) return;
         setIsConnected(false);
         if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
 
@@ -943,9 +1024,8 @@ export function useRealtimeVoiceInterview({
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       if (playerRef.current) playerRef.current.stop();
-      if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
-        wsRef.current.close(1000, "Component unmounted");
-      }
+      cleanupSocket(wsRef.current);
+      wsRef.current = null;
     };
   }, [sessionId, getWsUrl, isCompleted]);
 
