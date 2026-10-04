@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import type { QuestionIntentContext, StageConfigIn } from "@/types/interview";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -35,6 +35,171 @@ export interface UseRealtimeVoiceInterviewOptions {
   stageConfigs?: StageConfigIn[];
   selectedQuestionIds?: number[];
   bargeInInitial?: boolean;
+}
+
+// Silence duration threshold in milliseconds to detect end of candidate speech (Xiaozhi VAD model)
+const VAD_SILENCE_THRESHOLD_MS = 1500;
+
+/**
+ * Gapless Web Audio API player inspired by Xiaozhi ESP32 digital-human StreamingContext.
+ * Decodes MP3 sentence packets asynchronously and schedules playback with sample-level accuracy,
+ * eliminating the micro-gaps, clicks, and browser audio element stuttering.
+ */
+class StreamingAudioPlayer {
+  private ctx: AudioContext | null = null;
+  private gainNode: GainNode | null = null;
+  private analyserNode: AnalyserNode | null = null;
+  private scheduledEndTime = 0;
+  private activeSources: AudioBufferSourceNode[] = [];
+  private isMuted = false;
+  private endCheckTimer: NodeJS.Timeout | null = null;
+  private onPlaybackEnded: (() => void) | null = null;
+  private onPlayStateChange: ((isPlaying: boolean) => void) | null = null;
+
+  constructor(
+    onPlaybackEnded: () => void,
+    onPlayStateChange: (isPlaying: boolean) => void
+  ) {
+    this.onPlaybackEnded = onPlaybackEnded;
+    this.onPlayStateChange = onPlayStateChange;
+  }
+
+  public getAudioContext(): AudioContext {
+    if (!this.ctx || this.ctx.state === "closed") {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      this.ctx = new AudioCtx();
+    }
+    if (this.ctx.state === "suspended") {
+      this.ctx.resume().catch(() => {});
+    }
+    if (!this.gainNode) {
+      this.gainNode = this.ctx.createGain();
+      this.gainNode.gain.setValueAtTime(this.isMuted ? 0 : 1, this.ctx.currentTime);
+      this.gainNode.connect(this.ctx.destination);
+    }
+    if (!this.analyserNode) {
+      this.analyserNode = this.ctx.createAnalyser();
+      this.analyserNode.fftSize = 128;
+      this.gainNode.connect(this.analyserNode);
+    }
+    return this.ctx;
+  }
+
+  public getAnalyser(): AnalyserNode | null {
+    if (!this.analyserNode && typeof window !== "undefined") {
+      try {
+        this.getAudioContext();
+      } catch {}
+    }
+    return this.analyserNode;
+  }
+
+  public setMuted(muted: boolean) {
+    this.isMuted = muted;
+    if (this.gainNode && this.ctx) {
+      this.gainNode.gain.setValueAtTime(muted ? 0 : 1, this.ctx.currentTime);
+    }
+  }
+
+  public isPlaying(): boolean {
+    if (!this.ctx) return false;
+    return this.ctx.currentTime < this.scheduledEndTime || this.activeSources.length > 0;
+  }
+
+  public async enqueueBase64(base64Data: string): Promise<void> {
+    try {
+      const ctx = this.getAudioContext();
+      const binaryString = atob(base64Data);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      // decodeAudioData consumes the buffer, slice to prevent detached buffer issues
+      const audioBuffer = await ctx.decodeAudioData(bytes.buffer.slice(0));
+
+      const source = ctx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(this.gainNode!);
+
+      const currentTime = ctx.currentTime;
+      const startTime = Math.max(this.scheduledEndTime, currentTime);
+      source.start(startTime);
+      this.scheduledEndTime = startTime + audioBuffer.duration;
+      this.activeSources.push(source);
+
+      if (this.onPlayStateChange) {
+        this.onPlayStateChange(true);
+      }
+
+      source.onended = () => {
+        const idx = this.activeSources.indexOf(source);
+        if (idx !== -1) {
+          this.activeSources.splice(idx, 1);
+        }
+      };
+
+      this.startEndCheck();
+    } catch (err) {
+      console.warn("StreamingAudioPlayer decode/schedule error:", err);
+    }
+  }
+
+  private startEndCheck() {
+    if (this.endCheckTimer) return;
+    this.endCheckTimer = setInterval(() => {
+      if (!this.ctx) {
+        this.stopEndCheck();
+        return;
+      }
+      if (this.ctx.currentTime >= this.scheduledEndTime && this.activeSources.length === 0) {
+        this.stopEndCheck();
+        if (this.onPlayStateChange) {
+          this.onPlayStateChange(false);
+        }
+        if (this.onPlaybackEnded) {
+          this.onPlaybackEnded();
+        }
+      }
+    }, 60);
+  }
+
+  private stopEndCheck() {
+    if (this.endCheckTimer) {
+      clearInterval(this.endCheckTimer);
+      this.endCheckTimer = null;
+    }
+  }
+
+  public stop() {
+    this.stopEndCheck();
+    for (const source of this.activeSources) {
+      try {
+        source.stop();
+        source.disconnect();
+      } catch {}
+    }
+    this.activeSources = [];
+    if (this.ctx) {
+      this.scheduledEndTime = this.ctx.currentTime;
+    } else {
+      this.scheduledEndTime = 0;
+    }
+    if (this.onPlayStateChange) {
+      this.onPlayStateChange(false);
+    }
+  }
+
+  public destroy() {
+    this.stop();
+    if (this.ctx && this.ctx.state !== "closed") {
+      this.ctx.close().catch(() => {});
+      this.ctx = null;
+    }
+    this.gainNode = null;
+    this.analyserNode = null;
+  }
 }
 
 export function useRealtimeVoiceInterview({
@@ -91,7 +256,14 @@ export function useRealtimeVoiceInterview({
   const [sttSupported, setSttSupported] = useState(true);
   const [volume, setVolume] = useState(0);
 
-  // References
+  // State References for safe async callbacks
+  const aiStateRef = useRef<AiVoiceState>("idle");
+  aiStateRef.current = aiState;
+  const isCompletedRef = useRef<boolean>(false);
+  isCompletedRef.current = isCompleted;
+  const turnIdRef = useRef<number>(turnId);
+  turnIdRef.current = turnId;
+
   const wsRef = useRef<WebSocket | null>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -99,57 +271,63 @@ export function useRealtimeVoiceInterview({
   const isManuallyClosedRef = useRef(false);
   const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Xiaozhi VAD & Turn-taking references
+  const speechAccumulatorRef = useRef<string>("");
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const serverHasFinishedTurnRef = useRef<boolean>(false);
+
+  // Audio subsystem references
+  const playerRef = useRef<StreamingAudioPlayer | null>(null);
   const recognitionRef = useRef<any>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
+  const micAnalyserRef = useRef<AnalyserNode | null>(null);
   const animFrameRef = useRef<number | null>(null);
-
-  // Audio queue for streaming chunks
-  const audioQueueRef = useRef<{ url: string; sentenceIdx?: number }[]>([]);
-  const currentAudioElementRef = useRef<HTMLAudioElement | null>(null);
-  const isPlayingAudioRef = useRef<boolean>(false);
-  const isAudioMutedRef = useRef<boolean>(isAudioMuted);
-  isAudioMutedRef.current = isAudioMuted;
 
   const fullAiTextAccumulatorRef = useRef<string>("");
   const questionsPerStage = useMemo(
     () =>
       Object.fromEntries(
-        (stageConfigs?.length
-          ? stageConfigs
-          : selectedStages.map((stageKey) => ({
-              stage_key: stageKey,
-              max_turns: stageKey === "technical" ? 2 : 1,
-            })))
-          .map((stageConfig) => [stageConfig.stage_key, stageConfig.max_turns])
+        stageConfigs?.length
+          ? stageConfigs.map((cfg) => [cfg.stage_key, cfg.max_turns || 2])
+          : selectedStages.map((s) => [s, 2])
       ),
-    [selectedStages, stageConfigs]
+    [stageConfigs, selectedStages]
   );
 
-  // Construct WebSocket URL with secure wss: check
-  const getWsUrl = useCallback(() => {
-    let host = "localhost:8000";
-    if (typeof window !== "undefined") {
-      const isHttps = window.location.protocol === "https:";
-      const proto = isHttps ? "wss:" : "ws:";
-      const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-      if (envUrl) {
-        try {
-          const parsed = new URL(envUrl);
-          host = parsed.host;
-        } catch {
-          host = `${window.location.hostname}:8000`;
-        }
-      } else {
-        host = `${window.location.hostname}:8000`;
-      }
-      return `${proto}//${host}/api/v1/voice/ws/${sessionId}`;
-    }
-    return `ws://localhost:8000/api/v1/voice/ws/${sessionId}`;
-  }, [sessionId]);
+  const optionsRef = useRef({
+    roleName,
+    level,
+    language,
+    voice,
+    bargeInEnabled,
+    selectedStages,
+    questionsPerStage,
+    selectedQuestionIds,
+  });
 
-  // Overall session clock
+  useEffect(() => {
+    optionsRef.current = {
+      roleName,
+      level,
+      language,
+      voice,
+      bargeInEnabled,
+      selectedStages,
+      questionsPerStage,
+      selectedQuestionIds,
+    };
+  }, [
+    roleName,
+    level,
+    language,
+    voice,
+    bargeInEnabled,
+    selectedStages,
+    questionsPerStage,
+    selectedQuestionIds,
+  ]);
+
+  // Session Duration Counter
   useEffect(() => {
     if (isCompleted) {
       if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
@@ -163,126 +341,6 @@ export function useRealtimeVoiceInterview({
     };
   }, [isCompleted]);
 
-  // Stop current audio and clear queue immediately (Barge-in / interruption helper)
-  const stopAudioPlayback = useCallback(() => {
-    if (currentAudioElementRef.current) {
-      currentAudioElementRef.current.onended = null;
-      currentAudioElementRef.current.onerror = null;
-      try {
-        currentAudioElementRef.current.pause();
-        currentAudioElementRef.current.currentTime = 0;
-      } catch {}
-      currentAudioElementRef.current = null;
-    }
-    // Revoke queued blob URLs to free memory
-    while (audioQueueRef.current.length > 0) {
-      const item = audioQueueRef.current.shift();
-      if (item?.url) {
-        try {
-          URL.revokeObjectURL(item.url);
-        } catch {}
-      }
-    }
-    isPlayingAudioRef.current = false;
-    setIsAudioPlaying(false);
-  }, []);
-
-  // Play next audio chunk from queue
-  const playNextChunk = useCallback(() => {
-    if (isPlayingAudioRef.current) return;
-    if (audioQueueRef.current.length === 0) {
-      setIsAudioPlaying(false);
-      return;
-    }
-
-    const nextItem = audioQueueRef.current.shift();
-    if (!nextItem) return;
-
-    isPlayingAudioRef.current = true;
-    setIsAudioPlaying(true);
-
-    const audio = new Audio(nextItem.url);
-    if (isAudioMutedRef.current) {
-      audio.muted = true;
-    }
-    currentAudioElementRef.current = audio;
-
-    const cleanup = () => {
-      try {
-        URL.revokeObjectURL(nextItem.url);
-      } catch {}
-      audio.onended = null;
-      audio.onerror = null;
-      currentAudioElementRef.current = null;
-      isPlayingAudioRef.current = false;
-    };
-
-    audio.onended = () => {
-      cleanup();
-      playNextChunk();
-    };
-
-    audio.onerror = (e) => {
-      cleanup();
-      playNextChunk();
-    };
-
-    const playPromise = audio.play();
-    if (playPromise !== undefined) {
-      playPromise.catch((err) => {
-        if (err.name === "NotAllowedError") {
-          setAudioBlockedByAutoplay(true);
-        }
-        cleanup();
-        setTimeout(playNextChunk, 150);
-      });
-    }
-  }, []);
-
-  // Enqueue base64 audio data
-  const enqueueAudioChunk = useCallback(
-    (base64Data: string, sentenceIdx?: number) => {
-      try {
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: "audio/mpeg" });
-        const url = URL.createObjectURL(blob);
-
-        audioQueueRef.current.push({ url, sentenceIdx });
-        playNextChunk();
-      } catch (err) {
-        console.error("Audio decode error:", err);
-      }
-    },
-    [playNextChunk]
-  );
-
-  // Resume audio playback if blocked by browser autoplay policy
-  const resumeAudio = useCallback(() => {
-    setAudioBlockedByAutoplay(false);
-    if (audioContextRef.current && audioContextRef.current.state === "suspended") {
-      audioContextRef.current.resume().catch(() => {});
-    }
-    if (!isPlayingAudioRef.current && audioQueueRef.current.length > 0) {
-      playNextChunk();
-    }
-  }, [playNextChunk]);
-
-  // Toggle speaker mute
-  const toggleAudioMute = useCallback(() => {
-    setIsAudioMuted((prev) => {
-      const next = !prev;
-      if (currentAudioElementRef.current) {
-        currentAudioElementRef.current.muted = next;
-      }
-      return next;
-    });
-  }, []);
-
   // Send message helper
   const sendMessage = useCallback((payload: any) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -290,42 +348,153 @@ export function useRealtimeVoiceInterview({
     }
   }, []);
 
+  // Initialize StreamingAudioPlayer
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    playerRef.current = new StreamingAudioPlayer(
+      () => {
+        // Physical audio playback has completely finished on speakers!
+        if (serverHasFinishedTurnRef.current && !isCompletedRef.current) {
+          setAiState("listening");
+          speechAccumulatorRef.current = "";
+          setInterimTranscript("");
+        }
+      },
+      (playing) => {
+        setIsAudioPlaying(playing);
+        if (playing) {
+          setAiState("speaking");
+        }
+      }
+    );
+
+    return () => {
+      playerRef.current?.destroy();
+      playerRef.current = null;
+    };
+  }, []);
+
+  // Resume audio playback if blocked by browser autoplay policy
+  const resumeAudio = useCallback(() => {
+    setAudioBlockedByAutoplay(false);
+    if (playerRef.current) {
+      playerRef.current.getAudioContext().resume().catch(() => {});
+    }
+  }, []);
+
+  // Toggle speaker mute
+  const toggleAudioMute = useCallback(() => {
+    setIsAudioMuted((prev) => {
+      const next = !prev;
+      playerRef.current?.setMuted(next);
+      return next;
+    });
+  }, []);
+
+  // Interrupt AI immediately (Xiaozhi Abort / Barge-in)
+  const interruptAi = useCallback(() => {
+    if (playerRef.current) {
+      playerRef.current.stop();
+    }
+    setIsAudioPlaying(false);
+    serverHasFinishedTurnRef.current = false;
+
+    // Send abort to backend to cancel LLM / TTS pipeline
+    sendMessage({ type: "abort" });
+    sendMessage({ type: "user_speech_start" });
+
+    setAiState("listening");
+    speechAccumulatorRef.current = "";
+    setInterimTranscript("");
+  }, [sendMessage]);
+
+  // Commit Candidate Answer (Auto-VAD or manual submit)
+  const commitCandidateAnswer = useCallback(() => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+
+    const finalAnswer = (speechAccumulatorRef.current || interimTranscript).trim();
+    if (finalAnswer.length < 2) return;
+
+    setCandidateTranscript(finalAnswer);
+    setInterimTranscript("");
+    speechAccumulatorRef.current = "";
+
+    setTurns((prev) => [
+      ...prev,
+      {
+        id: `turn-u-${Date.now()}`,
+        turnNumber: turnIdRef.current,
+        speaker: "user",
+        text: finalAnswer,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
+
+    // Transition to THINKING while AI processes answer
+    serverHasFinishedTurnRef.current = false;
+    setAiState("thinking");
+
+    sendMessage({
+      type: "final_transcript",
+      text: finalAnswer,
+      duration_seconds: 5,
+    });
+  }, [interimTranscript, sendMessage]);
+
   // Re-roll current situational question
   const rerollQuestion = useCallback(() => {
-    stopAudioPlayback();
+    if (playerRef.current) playerRef.current.stop();
+    serverHasFinishedTurnRef.current = false;
     sendMessage({ type: "reroll_question" });
-  }, [sendMessage, stopAudioPlayback]);
+  }, [sendMessage]);
 
   // Manual Stage Advance
   const skipToNextStage = useCallback(() => {
-    stopAudioPlayback();
+    if (playerRef.current) playerRef.current.stop();
+    serverHasFinishedTurnRef.current = false;
     sendMessage({ type: "next_stage" });
-  }, [sendMessage, stopAudioPlayback]);
+  }, [sendMessage]);
 
   // End Session Early
   const endSessionEarly = useCallback(() => {
     isManuallyClosedRef.current = true;
-    stopAudioPlayback();
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    if (playerRef.current) playerRef.current.stop();
     sendMessage({ type: "stop_session" });
     setIsCompleted(true);
     setAiState("completed");
-  }, [sendMessage, stopAudioPlayback]);
+  }, [sendMessage]);
 
-  // Send Text Message
+  // Send Typed Text Message
   const sendTextMessage = useCallback(
     (text: string) => {
       const clean = text.trim();
       if (!clean) return;
 
-      stopAudioPlayback();
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
+      speechAccumulatorRef.current = "";
+
+      if (playerRef.current) playerRef.current.stop();
+      serverHasFinishedTurnRef.current = false;
       setCandidateTranscript(clean);
       setInterimTranscript("");
+      setAiState("thinking");
 
       setTurns((prev) => [
         ...prev,
         {
           id: `turn-u-${Date.now()}`,
-          turnNumber: turnId,
+          turnNumber: turnIdRef.current,
           speaker: "user",
           text: clean,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
@@ -338,7 +507,7 @@ export function useRealtimeVoiceInterview({
         duration_seconds: 5,
       });
     },
-    [sendMessage, stopAudioPlayback, turnId]
+    [sendMessage]
   );
 
   // Toggle Barge-in
@@ -350,7 +519,7 @@ export function useRealtimeVoiceInterview({
     });
   }, [sendMessage]);
 
-  // Initialize Speech Recognition (STT)
+  // Initialize Speech Recognition (STT) with Xiaozhi VAD & Acoustic Echo Suppression
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -368,6 +537,24 @@ export function useRealtimeVoiceInterview({
     recognition.lang = language.startsWith("en") ? "en-US" : "vi-VN";
 
     recognition.onresult = (event: any) => {
+      if (!isMicActive || isCompletedRef.current) return;
+
+      // 1. Acoustic Echo Suppression (Xiaozhi model):
+      // When AI is actively speaking out of the laptop speakers, completely ignore microphone
+      // to eliminate the acoustic feedback loop where the AI transcribes its own voice!
+      const isAiSpeaking =
+        aiStateRef.current === "speaking" ||
+        Boolean(playerRef.current && playerRef.current.isPlaying());
+
+      if (isAiSpeaking) {
+        return;
+      }
+
+      // 2. Only accumulate candidate speech when in LISTENING state
+      if (aiStateRef.current !== "listening") {
+        return;
+      }
+
       let interim = "";
       let final = "";
 
@@ -381,53 +568,33 @@ export function useRealtimeVoiceInterview({
         }
       }
 
-      const isAiSpeaking = isPlayingAudioRef.current || aiState === "speaking";
-
-      // If AI is currently speaking and barge-in is NOT enabled:
-      // Completely ignore mic audio to avoid acoustic echo from laptop speakers cutting off the AI!
-      if (isAiSpeaking && !bargeInEnabled) {
-        return;
-      }
-
       if (interim) {
         setInterimTranscript(interim);
-
-        // Intentional barge-in: require meaningful speech (at least 2 words or 8 characters)
-        if (bargeInEnabled && isAiSpeaking && interim.trim().length >= 8 && interim.trim().split(/\s+/).length >= 2) {
-          stopAudioPlayback();
-          sendMessage({ type: "user_speech_start" });
-          sendMessage({ type: "interim_transcript", text: interim });
-        }
       }
 
       if (final) {
-        // If AI was speaking and barge-in is off, discard final transcript from speaker echo
-        if (isAiSpeaking && !bargeInEnabled) {
-          return;
-        }
-
         const cleanFinal = final.trim();
         if (cleanFinal) {
-          setCandidateTranscript(cleanFinal);
+          speechAccumulatorRef.current = speechAccumulatorRef.current
+            ? `${speechAccumulatorRef.current} ${cleanFinal}`
+            : cleanFinal;
+          setCandidateTranscript(speechAccumulatorRef.current);
           setInterimTranscript("");
-
-          setTurns((prev) => [
-            ...prev,
-            {
-              id: `turn-u-${Date.now()}`,
-              turnNumber: turnId,
-              speaker: "user",
-              text: cleanFinal,
-              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            },
-          ]);
-
-          sendMessage({
-            type: "final_transcript",
-            text: cleanFinal,
-            duration_seconds: 5,
-          });
         }
+      }
+
+      const currentSpeech = (speechAccumulatorRef.current + " " + interim).trim();
+
+      // Whenever candidate is actively speaking, reset the silence countdown
+      if (currentSpeech.length > 0) {
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
+        }
+
+        // When candidate stays quiet for VAD_SILENCE_THRESHOLD_MS (1.5s), finalize their answer!
+        silenceTimerRef.current = setTimeout(() => {
+          commitCandidateAnswer();
+        }, VAD_SILENCE_THRESHOLD_MS);
       }
     };
 
@@ -445,71 +612,88 @@ export function useRealtimeVoiceInterview({
     };
 
     recognition.onend = () => {
-      if (isMicActive && !isCompleted && !isManuallyClosedRef.current && !micPermissionDenied) {
-        setTimeout(() => {
-          try {
-            recognitionRef.current?.start();
-          } catch {}
-        }, 300);
+      if (isMicActive && !isCompletedRef.current && !isManuallyClosedRef.current && !micPermissionDenied) {
+        try {
+          recognition.start();
+        } catch {}
       }
     };
 
     recognitionRef.current = recognition;
 
-    if (isMicActive && !isCompleted && !micPermissionDenied) {
-      try {
+    try {
+      if (isMicActive) {
         recognition.start();
-      } catch {}
-    }
+      }
+    } catch {}
 
     return () => {
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
       try {
         recognition.stop();
       } catch {}
+      recognitionRef.current = null;
     };
-  }, [language, bargeInEnabled, aiState, isMicActive, isCompleted, micPermissionDenied, sendMessage, stopAudioPlayback, turnId]);
+  }, [language, isMicActive, micPermissionDenied, commitCandidateAnswer]);
 
-  // Audio Analyser for Waveform
+  // Audio Waveform Analyser (Mic volume during listening, AI volume during speaking)
   useEffect(() => {
-    if (typeof window === "undefined" || !isMicActive || isCompleted || micPermissionDenied) return;
+    if (typeof window === "undefined" || !isMicActive) return;
 
     let localStream: MediaStream | null = null;
     let localContext: AudioContext | null = null;
 
     navigator.mediaDevices
-      ?.getUserMedia({ audio: true })
+      ?.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      })
       .then((stream) => {
         localStream = stream;
         mediaStreamRef.current = stream;
 
         const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
         localContext = new AudioCtx();
-        audioContextRef.current = localContext;
 
         const source = localContext.createMediaStreamSource(stream);
         const analyser = localContext.createAnalyser();
         analyser.fftSize = 128;
         source.connect(analyser);
-        analyserRef.current = analyser;
+        micAnalyserRef.current = analyser;
 
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        const updateLoop = () => {
-          if (!analyserRef.current) return;
-          analyserRef.current.getByteFrequencyData(dataArray);
-          let sum = 0;
-          for (let i = 0; i < dataArray.length; i++) {
-            sum += dataArray[i];
+        const updateVolume = () => {
+          // If AI is speaking, read volume from the AI audio player analyser
+          const activeAnalyser =
+            aiStateRef.current === "speaking" && playerRef.current
+              ? playerRef.current.getAnalyser() || micAnalyserRef.current
+              : micAnalyserRef.current;
+
+          if (activeAnalyser) {
+            activeAnalyser.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+              sum += dataArray[i];
+            }
+            const avg = sum / dataArray.length;
+            const norm = Math.min(1, avg / 80);
+            setVolume(norm);
           }
-          const avg = sum / dataArray.length;
-          setVolume(Math.min(100, Math.round((avg / 128) * 100)));
-          animFrameRef.current = requestAnimationFrame(updateLoop);
+          animFrameRef.current = requestAnimationFrame(updateVolume);
         };
-        animFrameRef.current = requestAnimationFrame(updateLoop);
+        updateVolume();
       })
       .catch((err) => {
         if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
           setMicPermissionDenied(true);
           setIsMicActive(false);
+          setError("Microphone bị từ chối. Hãy cho phép truy cập micro để trải nghiệm đàm thoại.");
         }
       });
 
@@ -518,54 +702,25 @@ export function useRealtimeVoiceInterview({
       if (localStream) {
         localStream.getTracks().forEach((t) => t.stop());
       }
-      if (localContext) {
+      if (localContext && localContext.state !== "closed") {
         localContext.close().catch(() => {});
       }
+      micAnalyserRef.current = null;
     };
-  }, [isMicActive, isCompleted, micPermissionDenied]);
+  }, [isMicActive]);
 
-  // Store mutable options in a ref to avoid reconnecting on every render
-  const optionsRef = useRef({
-    roleName,
-    level,
-    language,
-    voice,
-    bargeInEnabled,
-    selectedStages,
-    questionsPerStage,
-  });
-  optionsRef.current = {
-    roleName,
-    level,
-    language,
-    voice,
-    bargeInEnabled,
-    selectedStages,
-    questionsPerStage,
-  };
+  // Construct WebSocket connection URL
+  const getWsUrl = useCallback(() => {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const host = window.location.hostname;
+    const port = process.env.NEXT_PUBLIC_API_PORT || "8000";
+    return `${protocol}//${host}:${port}/api/v1/voice/ws/${sessionId}`;
+  }, [sessionId]);
 
-  // Sync updated metadata (role/stages) over active WebSocket without reconnecting
+  // Main WebSocket Lifecycle
   useEffect(() => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      try {
-        wsRef.current.send(
-          JSON.stringify({
-            type: "client_ready",
-            role_name: roleName,
-            level,
-            language,
-            voice,
-            barge_in_enabled: bargeInEnabled,
-            selected_stages: selectedStages,
-            questions_per_stage: questionsPerStage,
-          })
-        );
-      } catch {}
-    }
-  }, [roleName, level, language, voice, bargeInEnabled, selectedStages, questionsPerStage]);
+    if (typeof window === "undefined" || !sessionId) return;
 
-  // WebSocket Connection with Reconnection Resilience
-  useEffect(() => {
     isManuallyClosedRef.current = false;
 
     const connectWebSocket = () => {
@@ -582,7 +737,6 @@ export function useRealtimeVoiceInterview({
         setError(null);
 
         const currentOpts = optionsRef.current;
-        // Send ready payload
         ws.send(
           JSON.stringify({
             type: "client_ready",
@@ -611,10 +765,20 @@ export function useRealtimeVoiceInterview({
 
           if (type === "state") {
             const rawState = data.state;
-            if (rawState === "LISTEN") setAiState("listening");
-            else if (rawState === "THINK") setAiState("thinking");
-            else if (rawState === "SPEAK") setAiState("speaking");
-            else if (rawState === "COMPLETED") {
+            if (rawState === "LISTEN") {
+              serverHasFinishedTurnRef.current = true;
+              // Transition to listening only after all audio playback has completely finished on speakers
+              if (!playerRef.current?.isPlaying()) {
+                setAiState("listening");
+                speechAccumulatorRef.current = "";
+                setInterimTranscript("");
+              }
+            } else if (rawState === "THINK") {
+              serverHasFinishedTurnRef.current = false;
+              setAiState("thinking");
+            } else if (rawState === "SPEAK") {
+              setAiState("speaking");
+            } else if (rawState === "COMPLETED") {
               setAiState("completed");
               setIsCompleted(true);
             }
@@ -643,21 +807,24 @@ export function useRealtimeVoiceInterview({
           } else if (type === "subtitle") {
             setCurrentSubtitle(data.sentence || "");
           } else if (type === "audio") {
-            if (data.audio_data) {
-              enqueueAudioChunk(data.audio_data, data.sentence_index);
+            setAiState("speaking");
+            if (data.audio_data && playerRef.current) {
+              playerRef.current.enqueueBase64(data.audio_data);
             }
           } else if (type === "interrupted") {
-            stopAudioPlayback();
+            if (playerRef.current) playerRef.current.stop();
+            serverHasFinishedTurnRef.current = false;
             setAiState("listening");
             fullAiTextAccumulatorRef.current = "";
           } else if (type === "done") {
+            serverHasFinishedTurnRef.current = true;
             const aiResponse = data.full_text || fullAiTextAccumulatorRef.current;
             if (aiResponse.trim()) {
               setTurns((prev) => [
                 ...prev,
                 {
                   id: `turn-ai-${Date.now()}`,
-                  turnNumber: data.turn_id || turnId,
+                  turnNumber: data.turn_id || turnIdRef.current,
                   speaker: "ai",
                   text: aiResponse.trim(),
                   timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
@@ -669,6 +836,10 @@ export function useRealtimeVoiceInterview({
             if (data.is_completed) {
               setIsCompleted(true);
               setAiState("completed");
+            } else if (!playerRef.current?.isPlaying()) {
+              setAiState("listening");
+              speechAccumulatorRef.current = "";
+              setInterimTranscript("");
             }
           } else if (type === "error") {
             setError(data.message || "Đã xảy ra lỗi trong phiên phỏng vấn.");
@@ -686,12 +857,10 @@ export function useRealtimeVoiceInterview({
         setIsConnected(false);
         if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
 
-        // If closed cleanly with code 1000 or manually closed or completed, don't reconnect
         if (event.code === 1000 || isManuallyClosedRef.current || isCompleted) {
           return;
         }
 
-        // Auto-reconnect if not intentionally closed and session still active
         if (reconnectAttemptRef.current < 5) {
           setIsReconnecting(true);
           reconnectAttemptRef.current += 1;
@@ -711,12 +880,13 @@ export function useRealtimeVoiceInterview({
       isManuallyClosedRef.current = true;
       if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-      stopAudioPlayback();
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      if (playerRef.current) playerRef.current.stop();
       if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
         wsRef.current.close(1000, "Component unmounted");
       }
     };
-  }, [sessionId, getWsUrl]);
+  }, [sessionId, getWsUrl, isCompleted]);
 
   return {
     isConnected,
@@ -748,6 +918,8 @@ export function useRealtimeVoiceInterview({
     toggleMic: () => setIsMicActive((prev) => !prev),
     toggleAudioMute,
     resumeAudio,
+    interruptAi,
+    commitCandidateAnswer,
     sendTextMessage,
     currentIntent,
     rerollQuestion,
