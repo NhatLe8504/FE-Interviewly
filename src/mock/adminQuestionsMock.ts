@@ -14,7 +14,7 @@ export interface QuestionDailyPoint {
 }
 
 export const MOCK_DOMAINS_LIST = [
-  { domain_id: 1, domain_name: "Công nghệ thông tin (IT)" },
+  { domain_id: 19, domain_name: "Công nghệ thông tin (IT)" },
   { domain_id: 2, domain_name: "Tài chính & Ngân hàng (Finance)" },
   { domain_id: 3, domain_name: "Marketing & Truyền thông" },
   { domain_id: 4, domain_name: "Bán hàng & Kinh doanh (Sales)" },
@@ -23,11 +23,11 @@ export const MOCK_DOMAINS_LIST = [
 ];
 
 export const MOCK_ROLES_LIST = [
-  { role_id: 1, domain_id: 1, role_name: "Backend Engineer" },
-  { role_id: 2, domain_id: 1, role_name: "Frontend Developer" },
-  { role_id: 3, domain_id: 1, role_name: "DevOps / Cloud Engineer" },
-  { role_id: 4, domain_id: 1, role_name: "Data Scientist / AI Engineer" },
-  { role_id: 5, domain_id: 1, role_name: "QA / Automation Tester" },
+  { role_id: 1, domain_id: 19, role_name: "Backend Engineer" },
+  { role_id: 2, domain_id: 19, role_name: "Frontend Developer" },
+  { role_id: 3, domain_id: 19, role_name: "DevOps / Cloud Engineer" },
+  { role_id: 4, domain_id: 19, role_name: "Data Scientist / AI Engineer" },
+  { role_id: 5, domain_id: 19, role_name: "QA / Automation Tester" },
   { role_id: 6, domain_id: 2, role_name: "Chuyên viên Phân tích Tài chính" },
   { role_id: 7, domain_id: 2, role_name: "Kế toán viên tổng hợp" },
   { role_id: 8, domain_id: 2, role_name: "Chuyên viên Quản trị Rủi ro" },
@@ -47,7 +47,7 @@ export const MOCK_ROLES_LIST = [
 export const MOCK_ADMIN_QUESTIONS: AdminQuestionItem[] = [
   {
     question_id: 101,
-    domain_id: 1,
+    domain_id: 19,
     domain_name: "Công nghệ thông tin (IT)",
     role_id: 1,
     role_name: "Backend Engineer",
@@ -87,7 +87,7 @@ export const MOCK_ADMIN_QUESTIONS: AdminQuestionItem[] = [
   },
   {
     question_id: 102,
-    domain_id: 1,
+    domain_id: 19,
     domain_name: "Công nghệ thông tin (IT)",
     role_id: 1,
     role_name: "Backend Engineer",
@@ -127,7 +127,7 @@ export const MOCK_ADMIN_QUESTIONS: AdminQuestionItem[] = [
   },
   {
     question_id: 103,
-    domain_id: 1,
+    domain_id: 19,
     domain_name: "Công nghệ thông tin (IT)",
     role_id: 2,
     role_name: "Frontend Developer",
@@ -167,7 +167,7 @@ export const MOCK_ADMIN_QUESTIONS: AdminQuestionItem[] = [
   },
   {
     question_id: 104,
-    domain_id: 1,
+    domain_id: 19,
     domain_name: "Công nghệ thông tin (IT)",
     role_id: 3,
     role_name: "DevOps / Cloud Engineer",
@@ -440,7 +440,7 @@ export const MOCK_ADMIN_QUESTIONS: AdminQuestionItem[] = [
   },
   {
     question_id: 111,
-    domain_id: 1,
+    domain_id: 19,
     domain_name: "Công nghệ thông tin (IT)",
     role_id: 1,
     role_name: "Backend Engineer",
@@ -479,7 +479,7 @@ export const MOCK_ADMIN_QUESTIONS: AdminQuestionItem[] = [
   },
   {
     question_id: 112,
-    domain_id: 1,
+    domain_id: 19,
     domain_name: "Công nghệ thông tin (IT)",
     role_id: 4,
     role_name: "Data Scientist / AI Engineer",
@@ -518,7 +518,7 @@ export const MOCK_ADMIN_QUESTIONS: AdminQuestionItem[] = [
   },
   {
     question_id: 113,
-    domain_id: 1,
+    domain_id: 19,
     domain_name: "Công nghệ thông tin (IT)",
     role_id: 1,
     role_name: "Backend Engineer",
@@ -596,7 +596,7 @@ export const MOCK_ADMIN_QUESTIONS: AdminQuestionItem[] = [
   },
   {
     question_id: 115,
-    domain_id: 1,
+    domain_id: 19,
     domain_name: "Công nghệ thông tin (IT)",
     role_id: 5,
     role_name: "QA / Automation Tester",
@@ -730,7 +730,7 @@ export const MOCK_ADMIN_QUESTIONS: AdminQuestionItem[] = [
   },
   {
     question_id: 119,
-    domain_id: 1,
+    domain_id: 19,
     domain_name: "Công nghệ thông tin (IT)",
     role_id: 1,
     role_name: "Backend Engineer",
