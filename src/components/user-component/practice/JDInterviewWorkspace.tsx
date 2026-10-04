@@ -125,6 +125,23 @@ export function JDInterviewWorkspace() {
     try {
       const sess = await jdInterviewApi.startSession(jobId, mode);
       if (sess && sess.session_id) {
+        try {
+          const analysis = jobState?.analysis;
+          sessionStorage.setItem(
+            `session_metadata_${sess.session_id}`,
+            JSON.stringify({
+              roleLabel: analysis?.job_title || "Software Engineer",
+              companyName: analysis?.company_name || "",
+              levelLabel: analysis?.seniority || "Senior",
+              languageLabel: language === "en" ? "English" : "Tiếng Việt",
+              mode,
+              bargeInEnabled: true,
+              selected_stages: ["warmup", "technical", "closing"],
+            })
+          );
+        } catch {
+          // ignore
+        }
         router.push(`/practice/${sess.session_id}`);
       } else {
         setErrorMessage("Không thể khởi tạo phòng phỏng vấn.");

@@ -52,6 +52,7 @@ class StreamingAudioPlayer {
   private scheduledEndTime = 0;
   private activeSources: AudioBufferSourceNode[] = [];
   private isMuted = false;
+  private isExpectingMoreAudio = false;
   private endCheckTimer: NodeJS.Timeout | null = null;
   private onPlaybackEnded: (() => void) | null = null;
   private onPlayStateChange: ((isPlaying: boolean) => void) | null = null;
@@ -103,10 +104,18 @@ class StreamingAudioPlayer {
 
   public isPlaying(): boolean {
     if (!this.ctx) return false;
-    return this.ctx.currentTime < this.scheduledEndTime || this.activeSources.length > 0;
+    return this.ctx.currentTime < this.scheduledEndTime || this.activeSources.length > 0 || this.isExpectingMoreAudio;
+  }
+
+  public setExpectingMoreAudio(expecting: boolean) {
+    this.isExpectingMoreAudio = expecting;
+    if (expecting) {
+      this.startEndCheck();
+    }
   }
 
   public async enqueueBase64(base64Data: string): Promise<void> {
+    this.isExpectingMoreAudio = true;
     try {
       const ctx = this.getAudioContext();
       const binaryString = atob(base64Data);
@@ -153,6 +162,9 @@ class StreamingAudioPlayer {
         this.stopEndCheck();
         return;
       }
+      if (this.isExpectingMoreAudio) {
+        return;
+      }
       if (this.ctx.currentTime >= this.scheduledEndTime && this.activeSources.length === 0) {
         this.stopEndCheck();
         if (this.onPlayStateChange) {
@@ -173,6 +185,7 @@ class StreamingAudioPlayer {
   }
 
   public stop() {
+    this.isExpectingMoreAudio = false;
     this.stopEndCheck();
     for (const source of this.activeSources) {
       try {
@@ -282,6 +295,9 @@ export function useRealtimeVoiceInterview({
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const micAnalyserRef = useRef<AnalyserNode | null>(null);
   const animFrameRef = useRef<number | null>(null);
+  const lastPlaybackEndedAtRef = useRef<number>(0);
+  const lastAiSpokenTextRef = useRef<string>("");
+  const isAudioPlayingRef = useRef<boolean>(false);
 
   const fullAiTextAccumulatorRef = useRef<string>("");
   const questionsPerStage = useMemo(
@@ -355,16 +371,30 @@ export function useRealtimeVoiceInterview({
     playerRef.current = new StreamingAudioPlayer(
       () => {
         // Physical audio playback has completely finished on speakers!
+        lastPlaybackEndedAtRef.current = Date.now();
         if (serverHasFinishedTurnRef.current && !isCompletedRef.current) {
-          setAiState("listening");
-          speechAccumulatorRef.current = "";
-          setInterimTranscript("");
+          setTimeout(() => {
+            if (serverHasFinishedTurnRef.current && !isCompletedRef.current && aiStateRef.current !== "speaking") {
+              setAiState("listening");
+              speechAccumulatorRef.current = "";
+              setInterimTranscript("");
+              if (isMicActive) {
+                try {
+                  recognitionRef.current?.start();
+                } catch {}
+              }
+            }
+          }, 600);
         }
       },
       (playing) => {
         setIsAudioPlaying(playing);
+        isAudioPlayingRef.current = playing;
         if (playing) {
           setAiState("speaking");
+          try {
+            recognitionRef.current?.abort();
+          } catch {}
         }
       }
     );
@@ -417,7 +447,16 @@ export function useRealtimeVoiceInterview({
     }
 
     const finalAnswer = (speechAccumulatorRef.current || interimTranscript).trim();
-    if (finalAnswer.length < 2) return;
+    if (finalAnswer.length < 3) return;
+
+    const lastAi = (lastAiSpokenTextRef.current || "").toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, "").trim();
+    const cand = finalAnswer.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, "").trim();
+    if (cand && lastAi && lastAi.includes(cand) && cand.length < 60) {
+      console.warn("[Echo Suppression] Suppressed auto-commit of echoed AI question:", finalAnswer);
+      speechAccumulatorRef.current = "";
+      setInterimTranscript("");
+      return;
+    }
 
     setCandidateTranscript(finalAnswer);
     setInterimTranscript("");
@@ -539,18 +578,18 @@ export function useRealtimeVoiceInterview({
     recognition.onresult = (event: any) => {
       if (!isMicActive || isCompletedRef.current) return;
 
-      // 1. Acoustic Echo Suppression (Xiaozhi model):
-      // When AI is actively speaking out of the laptop speakers, completely ignore microphone
-      // to eliminate the acoustic feedback loop where the AI transcribes its own voice!
+      const now = Date.now();
+      const inEchoCooldown = now - lastPlaybackEndedAtRef.current < 800;
       const isAiSpeaking =
-        aiStateRef.current === "speaking" ||
+        aiStateRef.current !== "listening" ||
+        isAudioPlayingRef.current ||
+        inEchoCooldown ||
         Boolean(playerRef.current && playerRef.current.isPlaying());
 
       if (isAiSpeaking) {
         return;
       }
 
-      // 2. Only accumulate candidate speech when in LISTENING state
       if (aiStateRef.current !== "listening") {
         return;
       }
@@ -575,6 +614,12 @@ export function useRealtimeVoiceInterview({
       if (final) {
         const cleanFinal = final.trim();
         if (cleanFinal) {
+          const lastAi = (lastAiSpokenTextRef.current || "").toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, "").trim();
+          const cand = cleanFinal.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, "").trim();
+          if (cand && lastAi && lastAi.includes(cand) && cand.length >= 4) {
+            console.warn("[Echo Suppression] Ignored speaker echo substring:", cleanFinal);
+            return;
+          }
           speechAccumulatorRef.current = speechAccumulatorRef.current
             ? `${speechAccumulatorRef.current} ${cleanFinal}`
             : cleanFinal;
@@ -612,7 +657,13 @@ export function useRealtimeVoiceInterview({
     };
 
     recognition.onend = () => {
-      if (isMicActive && !isCompletedRef.current && !isManuallyClosedRef.current && !micPermissionDenied) {
+      if (
+        aiStateRef.current === "listening" &&
+        isMicActive &&
+        !isCompletedRef.current &&
+        !isManuallyClosedRef.current &&
+        !micPermissionDenied
+      ) {
         try {
           recognition.start();
         } catch {}
@@ -818,7 +869,9 @@ export function useRealtimeVoiceInterview({
             fullAiTextAccumulatorRef.current = "";
           } else if (type === "done") {
             serverHasFinishedTurnRef.current = true;
+            playerRef.current?.setExpectingMoreAudio(false);
             const aiResponse = data.full_text || fullAiTextAccumulatorRef.current;
+            lastAiSpokenTextRef.current = aiResponse.trim();
             if (aiResponse.trim()) {
               setTurns((prev) => [
                 ...prev,
@@ -837,9 +890,17 @@ export function useRealtimeVoiceInterview({
               setIsCompleted(true);
               setAiState("completed");
             } else if (!playerRef.current?.isPlaying()) {
-              setAiState("listening");
-              speechAccumulatorRef.current = "";
-              setInterimTranscript("");
+              lastPlaybackEndedAtRef.current = Date.now();
+              setTimeout(() => {
+                if (serverHasFinishedTurnRef.current && !isCompletedRef.current && aiStateRef.current !== "speaking") {
+                  setAiState("listening");
+                  speechAccumulatorRef.current = "";
+                  setInterimTranscript("");
+                  if (isMicActive) {
+                    try { recognitionRef.current?.start(); } catch {}
+                  }
+                }
+              }, 600);
             }
           } else if (type === "error") {
             setError(data.message || "Đã xảy ra lỗi trong phiên phỏng vấn.");
