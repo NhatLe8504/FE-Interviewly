@@ -896,34 +896,51 @@ export function QuestionDataTable({
                       </TableCell>
 
                       {/* Question Text & Tags */}
-                      <TableCell>
-                        <div className="space-y-1.5 py-1">
-                          <button
-                            type="button"
-                            className="text-left font-medium text-foreground leading-relaxed line-clamp-2 hover:text-primary focus-visible:outline-hidden focus-visible:underline cursor-pointer group w-full"
-                            onClick={() => setDetailItem(q)}
-                            title="Bấm để xem chi tiết đầy đủ câu hỏi"
-                          >
-                            <span className="group-hover:underline">{q.question_text}</span>
-                          </button>
-
-                          <div className="flex flex-wrap items-center gap-1.5">
+                      <TableCell className="max-w-[300px] md:max-w-[360px] xl:max-w-[440px] overflow-hidden">
+                        <div className="space-y-1 py-1 overflow-hidden">
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <button
+                              type="button"
+                              className="text-left font-bold text-foreground hover:text-primary focus-visible:outline-hidden focus-visible:underline cursor-pointer leading-snug truncate group"
+                              onClick={() => setDetailItem(q)}
+                              title={q.question_text}
+                            >
+                              <span className="group-hover:underline truncate">{q.question_text}</span>
+                            </button>
                             {q.language === "en" && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 shrink-0"
+                              >
                                 English
                               </Badge>
                             )}
+                          </div>
 
-                            {q.tags?.slice(0, 3).map((tag, idx) => (
-                              <span
-                                key={idx}
-                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-muted text-muted-foreground"
-                              >
-                                #{tag}
+                          <div className="flex items-center gap-1.5 overflow-hidden text-[11px] text-muted-foreground">
+                            {q.tags && q.tags.length > 0 ? (
+                              <div className="flex items-center gap-1 overflow-hidden truncate">
+                                {q.tags.slice(0, 3).map((tag, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-muted text-muted-foreground shrink-0"
+                                  >
+                                    #{tag}
+                                  </span>
+                                ))}
+                                {q.tags.length > 3 && (
+                                  <span className="text-[10px] text-muted-foreground shrink-0">
+                                    +{q.tags.length - 3}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground truncate">
+                                Chưa gắn thẻ
                               </span>
-                            ))}
+                            )}
 
-                            <span className="text-[10px] text-muted-foreground ml-auto hidden sm:inline">
+                            <span className="text-[10px] text-muted-foreground ml-auto shrink-0 tabular-nums hidden sm:inline">
                               {q.practice_count ? `${q.practice_count} lượt luyện` : "Mới thêm"}
                             </span>
                           </div>
@@ -931,12 +948,12 @@ export function QuestionDataTable({
                       </TableCell>
 
                       {/* Domain & Role */}
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-medium text-foreground truncate">
+                      <TableCell className="max-w-[160px] md:max-w-[180px] overflow-hidden">
+                        <div className="space-y-1 overflow-hidden">
+                          <div className="font-semibold text-foreground truncate" title={q.role_name || "Vị trí chung"}>
                             {q.role_name || "Vị trí chung"}
                           </div>
-                          <div className="text-[11px] text-muted-foreground truncate">
+                          <div className="text-[11px] text-muted-foreground truncate" title={q.domain_name}>
                             {q.domain_name}
                           </div>
                         </div>
