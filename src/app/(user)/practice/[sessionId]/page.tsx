@@ -108,6 +108,8 @@ export default function InterviewRoomPage({
     toggleAudioMute,
     resumeAudio,
     sendTextMessage,
+    interruptAi,
+    commitCandidateAnswer,
     skipToNextStage,
     endSessionEarly,
     currentIntent,
@@ -177,6 +179,21 @@ export default function InterviewRoomPage({
       router.push(`/practice/${sessionId}/result`);
     }
   };
+
+  useEffect(() => {
+    const handleGlobalSpace = (e: globalThis.KeyboardEvent) => {
+      if (e.code === "Space" && (aiState === "speaking" || isAudioPlaying)) {
+        const target = e.target as HTMLElement | null;
+        const tagName = target?.tagName?.toLowerCase();
+        if (tagName !== "input" && tagName !== "textarea") {
+          e.preventDefault();
+          interruptAi();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleGlobalSpace);
+    return () => window.removeEventListener("keydown", handleGlobalSpace);
+  }, [aiState, isAudioPlaying, interruptAi]);
 
   // AI State Badge
   const renderStateBadge = () => {
@@ -649,37 +666,49 @@ export default function InterviewRoomPage({
             {aiState === "speaking" && <span className={styles.typewriterCursor} />}
           </p>
 
-          {/* Realtime Candidate Speech Preview (STT feedback) */}
+          {/* Realtime Candidate Speech Preview (STT feedback - Xiaozhi VAD model) */}
           {(interimTranscript || candidateTranscript) && (
             <div
               style={{
                 marginTop: "8px",
-                padding: "8px 12px",
-                borderRadius: "10px",
+                padding: "10px 14px",
+                borderRadius: "12px",
                 background: "rgba(16, 185, 129, 0.08)",
-                border: "1px dashed rgba(16, 185, 129, 0.3)",
+                border: "1px solid rgba(16, 185, 129, 0.35)",
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
+                justifyContent: "space-between",
+                gap: "10px",
               }}
             >
-              <Mic size={14} className="text-[#059669] flex-shrink-0" />
-              <div style={{ fontSize: "12px", color: "#065f46" }}>
-                <strong>Bạn: </strong>
-                <span>{interimTranscript || candidateTranscript}</span>
-                {interimTranscript && (
-                  <span
-                    style={{
-                      display: "inline-block",
-                      width: "6px",
-                      height: "6px",
-                      borderRadius: "50%",
-                      background: "#10b981",
-                      marginLeft: "4px",
-                      animation: "pulse 1s infinite",
-                    }}
-                  />
-                )}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+                <Mic size={15} className="text-[#059669] flex-shrink-0 animate-pulse" />
+                <div style={{ fontSize: "13px", color: "#065f46", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <strong>Bạn: </strong>
+                  <span>{interimTranscript || candidateTranscript}</span>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+                <span style={{ fontSize: "11px", color: "#047857", background: "rgba(16, 185, 129, 0.15)", padding: "2px 8px", borderRadius: "8px" }}>
+                  Đang lắng nghe... ngừng 1.5s để gửi
+                </span>
+                <button
+                  type="button"
+                  onClick={commitCandidateAnswer}
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: "6px",
+                    background: "#059669",
+                    color: "#ffffff",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                  title="Nhấn để gửi câu trả lời ngay lập tức"
+                >
+                  Gửi ngay
+                </button>
               </div>
             </div>
           )}
@@ -717,6 +746,32 @@ export default function InterviewRoomPage({
                   ? "🎙️ Hãy nói tự nhiên vào micro. Hệ thống sẽ nhận diện giọng nói và phản hồi ngay lập tức."
                   : "⌨️ Nhập câu trả lời của bạn bên dưới và nhấn Ctrl+Enter hoặc nút Gửi."}
               </span>
+
+              {/* Interrupt AI Button (Xiaozhi Abort / Barge-in) */}
+              {isVoiceMode && (aiState === "speaking" || isAudioPlaying) && (
+                <button
+                  type="button"
+                  onClick={interruptAi}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    padding: "4px 12px",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    fontWeight: "700",
+                    background: "#ef4444",
+                    color: "#ffffff",
+                    border: "none",
+                    cursor: "pointer",
+                    boxShadow: "0 2px 6px rgba(239, 68, 68, 0.3)",
+                  }}
+                  title="Ngắt lời AI và bắt đầu nói ngay lập tức (phím Space)"
+                >
+                  <Square size={12} fill="currentColor" />
+                  <span>✋ Ngắt lời (Space)</span>
+                </button>
+              )}
 
               {/* Mic Toggle Button */}
               {isVoiceMode && (
