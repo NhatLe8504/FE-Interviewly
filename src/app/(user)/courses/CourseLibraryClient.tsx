@@ -20,9 +20,11 @@ import {
 } from "lucide-react";
 import { COURSES_DATA, COURSE_CATEGORIES } from "@/data/coursesData";
 import type { CourseItem } from "@/types/course";
+import { useI18n } from "@/context/I18nContext";
 import styles from "./courses.module.css";
 
 export default function CourseLibraryClient() {
+  const { locale } = useI18n();
   const [search, setSearch] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
@@ -82,10 +84,14 @@ export default function CourseLibraryClient() {
       {/* Hero Header */}
       <div className={styles.heroHeader}>
         <div className={styles.eyebrow}>
-          <span>LỘ TRÌNH ÔN LUYỆN PHỎNG VẤN CHUYÊN SÂU</span>
+          {locale === "vi" ? "Lộ trình ôn luyện chuyên sâu" : "Curated Course Library"}
         </div>
         <h1 className={styles.title}>
-          Thư Viện Khóa Học <em>Course Library</em> Chuẩn Quốc Tế
+          {locale === "vi" ? (
+            <>Thư viện <em>khóa học tuyển dụng</em></>
+          ) : (
+            <>Interview <em>Course Library</em></>
+          )}
         </h1>
         <p className={styles.subtitle}>
           Các lộ trình ôn luyện có cấu trúc được thiết kế bởi các chuyên gia kỹ thuật và phỏng vấn viên cấp cao tại Google, Meta, OpenAI và Goldman Sachs. Học từ lý thuyết, phân tích ca thực tế, cấu trúc STAR và giả lập phỏng vấn 1-1 với AI.
