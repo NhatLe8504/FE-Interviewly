@@ -83,7 +83,7 @@ export function QuestionInteractiveChart({
     <Card className="@container/chart">
       <CardHeader>
         <CardTitle>Xu Hướng Luyện Tập & Bổ Sung Câu Hỏi</CardTitle>
-        <CardDescription>
+        <CardDescription className="tabular-nums">
           Thống kê {filteredData.length} ngày gần nhất · {totalFilteredSessions.toLocaleString("vi-VN")} lượt luyện · {totalFilteredNewQuestions} câu hỏi mới
         </CardDescription>
         <CardAction>
@@ -103,7 +103,7 @@ export function QuestionInteractiveChart({
 
           <div className="sm:hidden">
             <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-[120px] h-8 text-xs">
+              <SelectTrigger className="w-[120px] h-8 text-xs" aria-label="Khoảng thời gian thống kê">
                 <SelectValue placeholder="Chọn kỳ" />
               </SelectTrigger>
               <SelectContent>
