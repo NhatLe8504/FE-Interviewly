@@ -2,7 +2,7 @@
 
 import { questionAdminApi } from "@/services/admin/questionAdminApi";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -86,15 +86,41 @@ export function QuestionDataTable({
   onRefresh,
   triggerCreate,
   onTriggerCreateHandled,
+  initialDomainId = "all",
+  domainsList,
+  rolesList,
+  onDomainChange,
 }: {
   initialQuestions: AdminQuestionItem[];
   onRefresh?: () => void;
   triggerCreate?: boolean;
   onTriggerCreateHandled?: () => void;
+  initialDomainId?: string;
+  domainsList?: { domain_id: number; domain_name: string }[];
+  rolesList?: { role_id: number; domain_id: number; role_name: string }[];
+  onDomainChange?: (domainId: string) => void;
 }) {
   const [questions, setQuestions] = useState<AdminQuestionItem[]>(initialQuestions);
   const [search, setSearch] = useState("");
-  const [selectedDomain, setSelectedDomain] = useState<string>("all");
+  const [selectedDomain, setSelectedDomain] = useState<string>(initialDomainId || "all");
+
+  useEffect(() => {
+    setQuestions(initialQuestions);
+  }, [initialQuestions]);
+
+  useEffect(() => {
+    if (initialDomainId !== undefined) {
+      setSelectedDomain(initialDomainId || "all");
+    }
+  }, [initialDomainId]);
+
+  const effectiveDomains = useMemo(() => {
+    return domainsList && domainsList.length > 0 ? domainsList : MOCK_DOMAINS_LIST;
+  }, [domainsList]);
+
+  const effectiveRoles = useMemo(() => {
+    return rolesList && rolesList.length > 0 ? rolesList : MOCK_ROLES_LIST;
+  }, [rolesList]);
   const [selectedRole, setSelectedRole] = useState<string>("all");
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
@@ -132,14 +158,14 @@ export function QuestionDataTable({
 
   // Dynamic roles based on selected domain in form
   const formRoles = useMemo(() => {
-    return MOCK_ROLES_LIST.filter((r) => r.domain_id === formData.domain_id);
-  }, [formData.domain_id]);
+    return effectiveRoles.filter((r) => r.domain_id === formData.domain_id);
+  }, [formData.domain_id, effectiveRoles]);
 
   // Filtered dynamic roles for filter bar
   const filterRoles = useMemo(() => {
-    if (selectedDomain === "all") return MOCK_ROLES_LIST;
-    return MOCK_ROLES_LIST.filter((r) => String(r.domain_id) === selectedDomain);
-  }, [selectedDomain]);
+    if (selectedDomain === "all") return effectiveRoles;
+    return effectiveRoles.filter((r) => String(r.domain_id) === selectedDomain);
+  }, [selectedDomain, effectiveRoles]);
 
   // Filter logic
   const filteredQuestions = useMemo(() => {
@@ -405,8 +431,8 @@ export function QuestionDataTable({
       return;
     }
 
-    const domainObj = MOCK_DOMAINS_LIST.find((d) => d.domain_id === formData.domain_id);
-    const roleObj = MOCK_ROLES_LIST.find((r) => r.role_id === formData.role_id);
+    const domainObj = effectiveDomains.find((d) => d.domain_id === formData.domain_id);
+    const roleObj = effectiveRoles.find((r) => r.role_id === formData.role_id);
 
     setIsSubmitting(true);
     try {
@@ -483,7 +509,7 @@ export function QuestionDataTable({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Tìm kiếm theo nội dung câu hỏi, vị trí, ngành nghề hoặc từ khóa tag..."
+              placeholder="Tìm kiếm theo nội dung câu hỏi, vị trí, ngành nghề hoặc từ khóa tag…"
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -495,6 +521,7 @@ export function QuestionDataTable({
               <button
                 type="button"
                 onClick={() => setSearch("")}
+                aria-label="Xóa nội dung tìm kiếm"
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
               >
                 ✕
@@ -549,14 +576,15 @@ export function QuestionDataTable({
                 setSelectedDomain(v);
                 setSelectedRole("all");
                 setPage(1);
+                onDomainChange?.(v);
               }}
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo ngành nghề">
                 <SelectValue placeholder="Tất cả ngành" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả ngành</SelectItem>
-                {MOCK_DOMAINS_LIST.map((d) => (
+                {effectiveDomains.map((d) => (
                   <SelectItem key={d.domain_id} value={String(d.domain_id)}>
                     {d.domain_name}
                   </SelectItem>
@@ -575,7 +603,7 @@ export function QuestionDataTable({
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo vị trí chuyên môn">
                 <SelectValue placeholder="Tất cả vị trí" />
               </SelectTrigger>
               <SelectContent>
@@ -599,7 +627,7 @@ export function QuestionDataTable({
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo cấp độ">
                 <SelectValue placeholder="Tất cả cấp độ" />
               </SelectTrigger>
               <SelectContent>
@@ -624,7 +652,7 @@ export function QuestionDataTable({
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo dạng câu hỏi">
                 <SelectValue placeholder="Tất cả dạng" />
               </SelectTrigger>
               <SelectContent>
@@ -646,7 +674,7 @@ export function QuestionDataTable({
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo trạng thái kiểm duyệt">
                 <SelectValue placeholder="Tất cả kiểm duyệt" />
               </SelectTrigger>
               <SelectContent>
@@ -668,7 +696,7 @@ export function QuestionDataTable({
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo trạng thái hoạt động">
                 <SelectValue placeholder="Tất cả trạng thái" />
               </SelectTrigger>
               <SelectContent>
@@ -845,20 +873,21 @@ export function QuestionDataTable({
                       </TableCell>
 
                       {/* ID */}
-                      <TableCell className="font-mono text-muted-foreground font-semibold">
+                      <TableCell className="font-mono text-muted-foreground font-semibold tabular-nums">
                         #{q.question_id}
                       </TableCell>
 
                       {/* Question Text & Tags */}
                       <TableCell>
                         <div className="space-y-1.5 py-1">
-                          <p
-                            className="font-medium text-foreground leading-relaxed line-clamp-2 hover:text-primary cursor-pointer"
+                          <button
+                            type="button"
+                            className="text-left font-medium text-foreground leading-relaxed line-clamp-2 hover:text-primary focus-visible:outline-hidden focus-visible:underline cursor-pointer group w-full"
                             onClick={() => setDetailItem(q)}
                             title="Bấm để xem chi tiết đầy đủ câu hỏi"
                           >
-                            {q.question_text}
-                          </p>
+                            <span className="group-hover:underline">{q.question_text}</span>
+                          </button>
 
                           <div className="flex flex-wrap items-center gap-1.5">
                             {q.language === "en" && (
@@ -1050,7 +1079,7 @@ export function QuestionDataTable({
 
           <div className="flex items-center gap-1.5 self-end sm:self-auto">
             <span className="mr-2">
-              Trang {page} / {totalPages}
+              Trang <span className="tabular-nums font-semibold">{page}</span> / <span className="tabular-nums font-semibold">{totalPages}</span>
             </span>
             <Button
               variant="outline"
@@ -1058,6 +1087,7 @@ export function QuestionDataTable({
               className="size-7"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
+              aria-label="Trang trước"
             >
               <ChevronLeft className="size-3.5" />
             </Button>
@@ -1067,6 +1097,7 @@ export function QuestionDataTable({
               className="size-7"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
+              aria-label="Trang sau"
             >
               <ChevronRight className="size-3.5" />
             </Button>
@@ -1076,7 +1107,7 @@ export function QuestionDataTable({
 
       {/* Question Detail Sheet (Drawer) */}
       <Sheet open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
-        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto p-0 text-xs">
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto overscroll-contain p-0 text-xs">
           {detailItem && (
             <div className="flex flex-col h-full">
               <SheetHeader className="p-6 pb-4 border-b bg-muted/20">
