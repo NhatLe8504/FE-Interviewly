@@ -22,6 +22,16 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const getStoredUser = (): UserOut | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("interviewly_user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserOut | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -38,6 +48,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       setToken(storedToken);
+      const cachedUser = getStoredUser();
+      if (cachedUser) {
+        setUser(cachedUser);
+      }
       const profile = await authApi.getMe();
       let avatarUrl = profile.avatar_url;
       if (!avatarUrl) {
@@ -51,11 +65,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         avatar_url: avatarUrl || profile.avatar_url || null,
       };
       setUser(combined);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("interviewly_user", JSON.stringify(combined));
+      }
       return combined;
-    } catch {
-      authApi.logout();
-      setUser(null);
-      setToken(null);
+    } catch (err: any) {
+      const status = err?.status || err?.originalStatus || err?.response?.status;
+      // CRITICAL: ONLY log out if the backend explicitly rejects the token with 401 Unauthorized!
+      // NEVER log out on network disconnect, 500 database error, timeout, or server reload!
+      if (status === 401) {
+        authApi.logout();
+        setUser(null);
+        setToken(null);
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("interviewly_user");
+        }
+      }
       return null;
     } finally {
       setIsLoading(false);
@@ -72,6 +97,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const profile = await authApi.getMe();
       setUser(profile);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("interviewly_user", JSON.stringify(profile));
+      }
     } catch {
       // Ignored if me fails temporarily
     }
@@ -93,6 +121,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         needs_password: res.needs_password !== undefined ? res.needs_password : profile?.needs_password,
       };
       setUser(combinedProfile);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("interviewly_user", JSON.stringify(combinedProfile));
+      }
     } catch {
       // Ignored
     }
@@ -105,13 +136,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateUserLocal = (updated: Partial<UserOut>) => {
-    setUser((prev) => (prev ? { ...prev, ...updated } : null));
+    setUser((prev) => {
+      const updatedUser = prev ? { ...prev, ...updated } : null;
+      if (updatedUser && typeof window !== "undefined") {
+        localStorage.setItem("interviewly_user", JSON.stringify(updatedUser));
+      }
+      return updatedUser;
+    });
   };
 
   const logout = () => {
     authApi.logout();
     setUser(null);
     setToken(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("interviewly_user");
+    }
   };
 
   return (
