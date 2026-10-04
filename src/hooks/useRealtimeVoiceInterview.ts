@@ -129,13 +129,24 @@ export function useRealtimeVoiceInterview({
 
   // Construct WebSocket URL with secure wss: check
   const getWsUrl = useCallback(() => {
-    let baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-    let wsBase = baseUrl.replace(/^http/, "ws");
-    if (typeof window !== "undefined" && !process.env.NEXT_PUBLIC_API_BASE_URL) {
+    let host = "localhost:8000";
+    if (typeof window !== "undefined") {
       const isHttps = window.location.protocol === "https:";
-      wsBase = `${isHttps ? "wss:" : "ws:"}//${window.location.hostname}:8000`;
+      const proto = isHttps ? "wss:" : "ws:";
+      const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+      if (envUrl) {
+        try {
+          const parsed = new URL(envUrl);
+          host = parsed.host;
+        } catch {
+          host = `${window.location.hostname}:8000`;
+        }
+      } else {
+        host = `${window.location.hostname}:8000`;
+      }
+      return `${proto}//${host}/api/v1/voice/ws/${sessionId}`;
     }
-    return `${wsBase}/api/v1/voice/ws/${sessionId}`;
+    return `ws://localhost:8000/api/v1/voice/ws/${sessionId}`;
   }, [sessionId]);
 
   // Overall session clock
@@ -503,6 +514,26 @@ export function useRealtimeVoiceInterview({
     };
   }, [isMicActive, isCompleted, micPermissionDenied]);
 
+  // Store mutable options in a ref to avoid reconnecting on every render
+  const optionsRef = useRef({
+    roleName,
+    level,
+    language,
+    voice,
+    bargeInEnabled,
+    selectedStages,
+    questionsPerStage,
+  });
+  optionsRef.current = {
+    roleName,
+    level,
+    language,
+    voice,
+    bargeInEnabled,
+    selectedStages,
+    questionsPerStage,
+  };
+
   // WebSocket Connection with Reconnection Resilience
   useEffect(() => {
     isManuallyClosedRef.current = false;
@@ -520,17 +551,18 @@ export function useRealtimeVoiceInterview({
         reconnectAttemptRef.current = 0;
         setError(null);
 
+        const currentOpts = optionsRef.current;
         // Send ready payload
         ws.send(
           JSON.stringify({
             type: "client_ready",
-            role_name: roleName,
-            level,
-            language,
-            voice,
-            barge_in_enabled: bargeInEnabled,
-            selected_stages: selectedStages,
-            questions_per_stage: questionsPerStage,
+            role_name: currentOpts.roleName,
+            level: currentOpts.level,
+            language: currentOpts.language,
+            voice: currentOpts.voice,
+            barge_in_enabled: currentOpts.bargeInEnabled,
+            selected_stages: currentOpts.selectedStages,
+            questions_per_stage: currentOpts.questionsPerStage,
           })
         );
 
@@ -620,18 +652,23 @@ export function useRealtimeVoiceInterview({
         console.warn("WebSocket error occurred:", e);
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         setIsConnected(false);
         if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
 
+        // If closed cleanly with code 1000 or manually closed or completed, don't reconnect
+        if (event.code === 1000 || isManuallyClosedRef.current || isCompleted) {
+          return;
+        }
+
         // Auto-reconnect if not intentionally closed and session still active
-        if (!isManuallyClosedRef.current && !isCompleted && reconnectAttemptRef.current < 5) {
+        if (reconnectAttemptRef.current < 5) {
           setIsReconnecting(true);
           reconnectAttemptRef.current += 1;
           setReconnectCount(reconnectAttemptRef.current);
           const backoff = Math.min(1000 * Math.pow(1.5, reconnectAttemptRef.current), 5000);
           reconnectTimeoutRef.current = setTimeout(connectWebSocket, backoff);
-        } else if (reconnectAttemptRef.current >= 5) {
+        } else {
           setIsReconnecting(false);
           setError("Không thể kết nối đến máy chủ phỏng vấn sau nhiều lần thử. Vui lòng tải lại trang.");
         }
@@ -646,10 +683,10 @@ export function useRealtimeVoiceInterview({
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       stopAudioPlayback();
       if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
-        wsRef.current.close();
+        wsRef.current.close(1000, "Component unmounted");
       }
     };
-  }, [getWsUrl, roleName, level, language, voice, bargeInEnabled, selectedStages, questionsPerStage, enqueueAudioChunk, stopAudioPlayback, turnId, isCompleted]);
+  }, [sessionId, getWsUrl]);
 
   return {
     isConnected,

@@ -72,7 +72,7 @@ export default function InterviewRoomPage({
   const roleName = meta.roleLabel || "Software Engineer";
   const level = meta.levelLabel || "Senior";
   const language = meta.languageLabel === "English" ? "en" : "vi";
-  const selectedStages = meta.selected_stages || ["warmup", "technical", "closing"];
+  const selectedStages = useMemo(() => meta.selected_stages || ["warmup", "technical", "closing"], [meta.selected_stages]);
 
   // Realtime Voice Interview Hook (WebSocket + STT + Audio Queue + Barge-in)
   const {
