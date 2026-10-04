@@ -314,55 +314,71 @@ export function QuestionSetDataTable({
           </div>
         </div>
 
-        {/* Dropdown Filters */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t text-xs">
-          <div className="space-y-1">
-            <Label className="text-[11px] text-muted-foreground">Ngành nghề</Label>
-            <Select
-              value={selectedDomain}
-              onValueChange={(v) => {
-                setSelectedDomain(v);
-                setPage(1);
-                onDomainChange?.(v);
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo ngành nghề">
-                <SelectValue placeholder="Tất cả ngành" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả ngành</SelectItem>
-                {effectiveDomains.map((d) => (
-                  <SelectItem key={d.domain_id} value={String(d.domain_id)}>
-                    {d.domain_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* Dropdown Filters - Grouped tightly together on one side with moderate gap */}
+        <div className="flex flex-wrap items-center gap-3 pt-3 border-t text-xs">
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground whitespace-nowrap font-medium">Ngành nghề:</Label>
+            <div className="w-[190px]">
+              <Select
+                value={selectedDomain}
+                onValueChange={(v) => {
+                  setSelectedDomain(v);
+                  setPage(1);
+                  onDomainChange?.(v);
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo ngành nghề">
+                  <SelectValue placeholder="Tất cả ngành" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả ngành</SelectItem>
+                  {effectiveDomains.map((d) => (
+                    <SelectItem key={d.domain_id} value={String(d.domain_id)}>
+                      {d.domain_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-[11px] text-muted-foreground">Cấp độ</Label>
-            <Select
-              value={selectedLevel}
-              onValueChange={(v) => {
-                setSelectedLevel(v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo cấp độ">
-                <SelectValue placeholder="Tất cả cấp độ" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả cấp độ</SelectItem>
-                <SelectItem value="intern">Intern</SelectItem>
-                <SelectItem value="fresher">Fresher</SelectItem>
-                <SelectItem value="junior">Junior</SelectItem>
-                <SelectItem value="mid">Middle</SelectItem>
-                <SelectItem value="senior">Senior</SelectItem>
-                <SelectItem value="lead">Lead</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground whitespace-nowrap font-medium">Cấp độ:</Label>
+            <div className="w-[140px]">
+              <Select
+                value={selectedLevel}
+                onValueChange={(v) => {
+                  setSelectedLevel(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo cấp độ">
+                  <SelectValue placeholder="Tất cả cấp độ" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả cấp độ</SelectItem>
+                  <SelectItem value="intern">Intern</SelectItem>
+                  <SelectItem value="fresher">Fresher</SelectItem>
+                  <SelectItem value="junior">Junior</SelectItem>
+                  <SelectItem value="mid">Middle</SelectItem>
+                  <SelectItem value="senior">Senior</SelectItem>
+                  <SelectItem value="lead">Lead</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
+          {(selectedDomain !== "all" || selectedLevel !== "all" || search) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleReset}
+              className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground ml-auto"
+            >
+              <RotateCcw className="size-3" />
+              <span>Xóa bộ lọc</span>
+            </Button>
+          )}
         </div>
       </div>
 

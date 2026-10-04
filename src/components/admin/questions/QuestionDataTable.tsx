@@ -565,147 +565,165 @@ export function QuestionDataTable({
           </div>
         </div>
 
-        {/* Filter Dropdowns Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-2 border-t text-xs">
-          {/* Domain Filter */}
-          <div className="space-y-1">
-            <Label className="text-[11px] text-muted-foreground">Ngành nghề</Label>
-            <Select
-              value={selectedDomain}
-              onValueChange={(v) => {
-                setSelectedDomain(v);
-                setSelectedRole("all");
-                setPage(1);
-                onDomainChange?.(v);
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo ngành nghề">
-                <SelectValue placeholder="Tất cả ngành" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả ngành</SelectItem>
-                {effectiveDomains.map((d) => (
-                  <SelectItem key={d.domain_id} value={String(d.domain_id)}>
-                    {d.domain_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* Filter Dropdowns - Grouped tightly together on one side with moderate gap */}
+        <div className="flex flex-wrap items-center gap-3 pt-3 border-t text-xs">
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground whitespace-nowrap font-medium">Ngành:</Label>
+            <div className="w-[180px]">
+              <Select
+                value={selectedDomain}
+                onValueChange={(v) => {
+                  setSelectedDomain(v);
+                  setSelectedRole("all");
+                  setPage(1);
+                  onDomainChange?.(v);
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo ngành nghề">
+                  <SelectValue placeholder="Tất cả ngành" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả ngành</SelectItem>
+                  {effectiveDomains.map((d) => (
+                    <SelectItem key={d.domain_id} value={String(d.domain_id)}>
+                      {d.domain_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Role Filter */}
-          <div className="space-y-1">
-            <Label className="text-[11px] text-muted-foreground">Vị trí chuyên môn</Label>
-            <Select
-              value={selectedRole}
-              onValueChange={(v) => {
-                setSelectedRole(v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo vị trí chuyên môn">
-                <SelectValue placeholder="Tất cả vị trí" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả vị trí</SelectItem>
-                {filterRoles.map((r) => (
-                  <SelectItem key={r.role_id} value={String(r.role_id)}>
-                    {r.role_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground whitespace-nowrap font-medium">Vị trí:</Label>
+            <div className="w-[160px]">
+              <Select
+                value={selectedRole}
+                onValueChange={(v) => {
+                  setSelectedRole(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo vị trí chuyên môn">
+                  <SelectValue placeholder="Tất cả vị trí" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả vị trí</SelectItem>
+                  {filterRoles.map((r) => (
+                    <SelectItem key={r.role_id} value={String(r.role_id)}>
+                      {r.role_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Level Filter */}
-          <div className="space-y-1">
-            <Label className="text-[11px] text-muted-foreground">Cấp độ</Label>
-            <Select
-              value={selectedLevel}
-              onValueChange={(v) => {
-                setSelectedLevel(v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo cấp độ">
-                <SelectValue placeholder="Tất cả cấp độ" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả cấp độ</SelectItem>
-                <SelectItem value="intern">Intern</SelectItem>
-                <SelectItem value="fresher">Fresher</SelectItem>
-                <SelectItem value="junior">Junior</SelectItem>
-                <SelectItem value="mid">Middle</SelectItem>
-                <SelectItem value="senior">Senior</SelectItem>
-                <SelectItem value="lead">Lead / Principal</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground whitespace-nowrap font-medium">Cấp độ:</Label>
+            <div className="w-[125px]">
+              <Select
+                value={selectedLevel}
+                onValueChange={(v) => {
+                  setSelectedLevel(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo cấp độ">
+                  <SelectValue placeholder="Tất cả cấp độ" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả cấp độ</SelectItem>
+                  <SelectItem value="intern">Intern</SelectItem>
+                  <SelectItem value="fresher">Fresher</SelectItem>
+                  <SelectItem value="junior">Junior</SelectItem>
+                  <SelectItem value="mid">Middle</SelectItem>
+                  <SelectItem value="senior">Senior</SelectItem>
+                  <SelectItem value="lead">Lead</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Type Filter */}
-          <div className="space-y-1">
-            <Label className="text-[11px] text-muted-foreground">Dạng câu hỏi</Label>
-            <Select
-              value={selectedType}
-              onValueChange={(v) => {
-                setSelectedType(v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo dạng câu hỏi">
-                <SelectValue placeholder="Tất cả dạng" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả dạng</SelectItem>
-                <SelectItem value="behavioral">Hành vi (Behavioral)</SelectItem>
-                <SelectItem value="technical">Chuyên môn (Technical)</SelectItem>
-                <SelectItem value="situational">Tình huống (Situational)</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground whitespace-nowrap font-medium">Dạng:</Label>
+            <div className="w-[125px]">
+              <Select
+                value={selectedType}
+                onValueChange={(v) => {
+                  setSelectedType(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo dạng câu hỏi">
+                  <SelectValue placeholder="Tất cả dạng" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả dạng</SelectItem>
+                  <SelectItem value="behavioral">Hành vi</SelectItem>
+                  <SelectItem value="technical">Kỹ thuật</SelectItem>
+                  <SelectItem value="situational">Tình huống</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Moderation Filter */}
-          <div className="space-y-1">
-            <Label className="text-[11px] text-muted-foreground">Kiểm duyệt</Label>
-            <Select
-              value={selectedModeration}
-              onValueChange={(v) => {
-                setSelectedModeration(v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo trạng thái kiểm duyệt">
-                <SelectValue placeholder="Tất cả kiểm duyệt" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả kiểm duyệt</SelectItem>
-                <SelectItem value="approved">Đã phê duyệt</SelectItem>
-                <SelectItem value="pending">Chờ kiểm duyệt</SelectItem>
-                <SelectItem value="rejected">Bị từ chối</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground whitespace-nowrap font-medium">Kiểm duyệt:</Label>
+            <div className="w-[130px]">
+              <Select
+                value={selectedModeration}
+                onValueChange={(v) => {
+                  setSelectedModeration(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo trạng thái kiểm duyệt">
+                  <SelectValue placeholder="Tất cả duyệt" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả duyệt</SelectItem>
+                  <SelectItem value="approved">Đã phê duyệt</SelectItem>
+                  <SelectItem value="pending">Chờ kiểm duyệt</SelectItem>
+                  <SelectItem value="rejected">Bị từ chối</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Active Filter */}
-          <div className="space-y-1">
-            <Label className="text-[11px] text-muted-foreground">Trạng thái</Label>
-            <Select
-              value={selectedStatus}
-              onValueChange={(v) => {
-                setSelectedStatus(v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo trạng thái hoạt động">
-                <SelectValue placeholder="Tất cả trạng thái" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                <SelectItem value="active">Đang hoạt động</SelectItem>
-                <SelectItem value="inactive">Đã tạm dừng</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground whitespace-nowrap font-medium">Trạng thái:</Label>
+            <div className="w-[130px]">
+              <Select
+                value={selectedStatus}
+                onValueChange={(v) => {
+                  setSelectedStatus(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo trạng thái hoạt động">
+                  <SelectValue placeholder="Tất cả trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="active">Đang hoạt động</SelectItem>
+                  <SelectItem value="inactive">Đã tạm dừng</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
+          {(selectedDomain !== "all" || selectedRole !== "all" || selectedLevel !== "all" || selectedType !== "all" || selectedModeration !== "all" || selectedStatus !== "all" || search) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleResetFilters}
+              className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground ml-auto"
+            >
+              <RotateCcw className="size-3" />
+              <span>Xóa bộ lọc</span>
+            </Button>
+          )}
         </div>
       </div>
 
