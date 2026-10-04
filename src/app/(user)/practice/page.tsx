@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { jdInterviewApi, type JDJobSummary } from "@/services/jdInterviewApi";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -22,6 +23,8 @@ import {
   Layers,
   ChevronRight,
   TrendingUp,
+  Play,
+  Loader2,
 } from "lucide-react";
 import { PRE_MADE_INTERVIEWS, PreMadeInterview } from "@/data/mockInterviews";
 import styles from "./practice.module.css";
@@ -41,6 +44,24 @@ export default function PracticeOverviewPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
+  const [myJdJobs, setMyJdJobs] = useState<JDJobSummary[]>([]);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    jdInterviewApi
+      .getMyJobs()
+      .then((jobs) => {
+        if (mounted) setMyJdJobs(jobs || []);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) setIsLoadingJobs(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Pre-made Interview Quick Launch Modal
   const [selectedInterview, setSelectedInterview] = useState<PreMadeInterview | null>(null);
@@ -60,14 +81,15 @@ export default function PracticeOverviewPage() {
   const [isLaunching, setIsLaunching] = useState(false);
 
   // Filter categories
-  const categories = [
+  const categories = useMemo(() => [
     { id: "all", label: "Tất cả các buổi" },
+    ...(myJdJobs.length > 0 ? [{ id: "my-jd", label: `📑 JD Của Tôi (${myJdJobs.length})` }] : []),
     { id: "bigtech", label: "🏢 Big Tech Khủng" },
     { id: "software", label: "💻 Software Dev" },
     { id: "ai", label: "🧠 AI & Data Science" },
     { id: "product", label: "🚀 Product & Management" },
     { id: "fintech", label: "💳 FinTech & Systems" },
-  ];
+  ], [myJdJobs.length]);
 
   const levels = [
     { id: "all", label: "Mọi cấp độ" },
@@ -215,7 +237,123 @@ export default function PracticeOverviewPage() {
         </div>
       </div>
 
+      {/* =========================================================
+          MY SAVED JD INTERVIEWS (PERSISTED WORKSPACES)
+      ========================================================= */}
+      {myJdJobs.length > 0 && (selectedCategory === "all" || selectedCategory === "my-jd") && (
+        <section className={styles.myJdSection} aria-label="Buổi phỏng vấn đã tạo từ JD">
+          <header className={styles.myJdHeader}>
+            <div className={styles.myJdTitleWrap}>
+              <Sparkles size={20} className="text-[#d98236]" />
+              <h2 className={styles.myJdTitle}>Buổi Phỏng Vấn Bạn Đã Tạo Từ JD</h2>
+              <span className={styles.myJdBadgeCount}>{myJdJobs.length} buổi</span>
+            </div>
+            <Link href="/practice/new" className={styles.btnNewJdLink}>
+              <Plus size={14} />
+              <span>Tạo thêm từ JD mới</span>
+            </Link>
+          </header>
+
+          <div className={styles.myJdGrid}>
+            {myJdJobs.map((job) => {
+              const isCompleted = job.status === "COMPLETED";
+              const targetUrl = isCompleted
+                ? `/practice/setup/${job.job_id}`
+                : `/practice/new?job_id=${job.job_id}`;
+
+              return (
+                <div
+                  key={job.job_id}
+                  className={styles.myJdItemCard}
+                  onClick={() => router.push(targetUrl)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") router.push(targetUrl);
+                  }}
+                >
+                  <div>
+                    <div className={styles.myJdCardTop}>
+                      <span className={styles.myJdSeniorityBadge}>
+                        <Award size={12} />
+                        {job.seniority || "Junior"}
+                      </span>
+
+                      {isCompleted ? (
+                        <span className={styles.myJdStatusBadgeSuccess}>
+                          <CheckCircle2 size={12} />
+                          Sẵn sàng
+                        </span>
+                      ) : (
+                        <span className={styles.myJdStatusBadgePending}>
+                          <Clock size={12} />
+                          {job.stage || "Đang xử lý"}
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className={styles.myJdRoleTitle}>{job.role}</h3>
+                    <p className={styles.myJdCompany}>
+                      <Building2 size={13} />
+                      {job.company_name || "Theo Job Description"}
+                    </p>
+
+                    {job.focus_areas && job.focus_areas.length > 0 && (
+                      <div className={styles.myJdTagsList}>
+                        {job.focus_areas.slice(0, 3).map((tag, i) => (
+                          <span key={i} className={styles.myJdTagPill}>
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className={styles.myJdMetaRow}>
+                      <span className="flex items-center gap-1">
+                        <Layers size={13} />
+                        {job.total_questions > 0 ? `${job.total_questions} câu hỏi` : "Kịch bản AI"}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock size={13} />
+                        ~{job.estimated_minutes || 45} phút
+                      </span>
+                      <span className="capitalize opacity-75">
+                        {job.source_type}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      className={styles.myJdBtnAction}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(targetUrl);
+                      }}
+                    >
+                      {isCompleted ? (
+                        <>
+                          <Play size={14} className="fill-current" />
+                          <span>Tùy Chọn & Luyện Tập</span>
+                        </>
+                      ) : (
+                        <>
+                          <ArrowRight size={14} />
+                          <span>Tiếp Tục Xử Lý</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {/* VERTICAL PORTRAIT CARDS GRID */}
+      {selectedCategory !== "my-jd" && (
       <div className={styles.interviewsGrid}>
         {/* =========================================================
             CARD 1: CREATE CUSTOM INTERVIEW WITH JOB DESCRIPTION (JD)
@@ -388,6 +526,7 @@ export default function PracticeOverviewPage() {
           </div>
         ))}
       </div>
+      )}
 
       {/* =========================================================
           MODAL 2: QUICK LAUNCH PRE-MADE INTERVIEW
