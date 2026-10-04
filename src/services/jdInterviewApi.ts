@@ -1,4 +1,4 @@
-import { request } from "./apiClient";
+﻿import { request } from "./apiClient";
 
 export interface ScriptItem {
   order_index: number;
@@ -18,6 +18,8 @@ export interface InterviewScriptResult {
   job_id: string;
   role: string;
   seniority: string;
+  company_name?: string;
+  focus_areas?: string[];
   total_questions: number;
   estimated_minutes: number;
   questions: ScriptItem[];
@@ -33,12 +35,31 @@ export interface JDJobStatusResponse {
   error?: string | null;
 }
 
+export interface JDJobSummary {
+  job_id: string;
+  status: "PENDING" | "INGESTING" | "NORMALIZED" | "ANALYZING" | "PLANNING" | "GENERATING" | "VALIDATING" | "COMPLETED" | "FAILED" | "RETRYING";
+  stage: string;
+  progress_pct: number;
+  source_type: string;
+  role: string;
+  seniority: string;
+  company_name: string;
+  focus_areas: string[];
+  total_questions: number;
+  estimated_minutes: number;
+  session_id?: number | null;
+  created_at?: string | null;
+  error?: string | null;
+}
+
 export interface JDStartSessionResponse {
   session_id: number;
   first_question: string;
   script_id: string;
   role: string;
   seniority: string;
+  company_name?: string;
+  focus_areas?: string[];
   total_questions: number;
   estimated_minutes: number;
   all_questions: string[];
@@ -105,16 +126,26 @@ export const jdInterviewApi = {
     });
   },
 
+  getMyJobs: async (limit = 30, offset = 0): Promise<JDJobSummary[]> => {
+    return request<JDJobSummary[]>(`/api/v1/interviews/from-jd/my-jobs?limit=${limit}&offset=${offset}`, {
+      method: "GET",
+    });
+  },
+
   startSession: async (
     jobId: string,
     mode: "text" | "voice" = "text",
-    bargeInEnabled = false
+    bargeInEnabled = false,
+    selectedStages?: string[],
+    stageConfigs?: any[]
   ): Promise<JDStartSessionResponse> => {
     return request<JDStartSessionResponse>(`/api/v1/interviews/from-jd/jobs/${jobId}/start-session`, {
       method: "POST",
       body: JSON.stringify({
         mode,
         barge_in_enabled: bargeInEnabled,
+        selected_stages: selectedStages,
+        stage_configs: stageConfigs,
       }),
     });
   },

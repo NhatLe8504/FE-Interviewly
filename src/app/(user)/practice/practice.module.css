@@ -839,6 +839,229 @@
   cursor: not-allowed;
 }
 
+/* =========================================================
+   MY SAVED JD INTERVIEWS SECTION
+========================================================= */
+
+.myJdSection {
+  margin-bottom: 44px;
+  padding: 28px 30px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(250, 245, 240, 0.95) 100%);
+  border: 1px solid rgba(217, 130, 54, 0.25);
+  box-shadow: 0 16px 40px -16px rgba(139, 69, 19, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.myJdSection::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #d98236 0%, #8b4513 50%, #211914 100%);
+}
+
+.myJdHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.myJdTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.myJdTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink, #211914);
+  letter-spacing: -0.02em;
+}
+
+.myJdBadgeCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(217, 130, 54, 0.15);
+  color: #8c4e20;
+  border: 1px solid rgba(217, 130, 54, 0.25);
+}
+
+.btnNewJdLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #ffffff;
+  color: #8c4e20;
+  border: 1px solid rgba(217, 130, 54, 0.3);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.btnNewJdLink:hover {
+  background: rgba(217, 130, 54, 0.1);
+  transform: translateY(-1px);
+}
+
+.myJdGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 20px;
+}
+
+.myJdItemCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 22px;
+  border-radius: 22px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+  transition: all 0.25s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.myJdItemCard:hover {
+  transform: translateY(-4px);
+  border-color: rgba(217, 130, 54, 0.4);
+  box-shadow: 0 14px 32px -8px rgba(217, 130, 54, 0.2);
+}
+
+.myJdCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.myJdSeniorityBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: rgba(217, 130, 54, 0.12);
+  color: #8c4e20;
+}
+
+.myJdStatusBadgeSuccess {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.myJdStatusBadgePending {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+}
+
+.myJdRoleTitle {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #211914;
+  line-height: 1.35;
+}
+
+.myJdCompany {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.myJdTagsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.myJdTagPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--ink-soft);
+}
+
+.myJdMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  margin-bottom: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.myJdBtnAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #211914 0%, #3a2215 100%);
+  color: #fffaf4;
+  font-size: 12.5px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.myJdItemCard:hover .myJdBtnAction {
+  background: linear-gradient(135deg, #d98236 0%, #8b4513 100%);
+  box-shadow: 0 6px 16px rgba(217, 130, 54, 0.3);
+}
+
+
 @media (max-width: 768px) {
   .pageShell {
     padding: 90px 0 60px;
