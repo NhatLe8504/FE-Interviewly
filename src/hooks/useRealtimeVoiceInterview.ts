@@ -381,21 +381,31 @@ export function useRealtimeVoiceInterview({
         }
       }
 
+      const isAiSpeaking = isPlayingAudioRef.current || aiState === "speaking";
+
+      // If AI is currently speaking and barge-in is NOT enabled:
+      // Completely ignore mic audio to avoid acoustic echo from laptop speakers cutting off the AI!
+      if (isAiSpeaking && !bargeInEnabled) {
+        return;
+      }
+
       if (interim) {
         setInterimTranscript(interim);
 
-        // BARGE-IN TRIGGER:
-        // When user speaks something substantial, interrupt AI speech immediately!
-        if (bargeInEnabled && interim.trim().length >= 3) {
-          if (aiState === "speaking" || aiState === "thinking") {
-            stopAudioPlayback();
-            sendMessage({ type: "user_speech_start" });
-            sendMessage({ type: "interim_transcript", text: interim });
-          }
+        // Intentional barge-in: require meaningful speech (at least 2 words or 8 characters)
+        if (bargeInEnabled && isAiSpeaking && interim.trim().length >= 8 && interim.trim().split(/\s+/).length >= 2) {
+          stopAudioPlayback();
+          sendMessage({ type: "user_speech_start" });
+          sendMessage({ type: "interim_transcript", text: interim });
         }
       }
 
       if (final) {
+        // If AI was speaking and barge-in is off, discard final transcript from speaker echo
+        if (isAiSpeaking && !bargeInEnabled) {
+          return;
+        }
+
         const cleanFinal = final.trim();
         if (cleanFinal) {
           setCandidateTranscript(cleanFinal);
