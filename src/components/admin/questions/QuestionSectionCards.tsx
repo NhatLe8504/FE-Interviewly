@@ -45,7 +45,7 @@ export function QuestionSectionCards({
           </CardTitle>
           <CardAction>
             <Badge variant="outline" className="text-xs gap-1">
-              <TrendingUpIcon className="size-3 text-emerald-500" />
+              <TrendingUpIcon className="size-3 text-emerald-500" aria-hidden="true" />
               +14.2%
             </Badge>
           </CardAction>
@@ -53,7 +53,7 @@ export function QuestionSectionCards({
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
             Kho đề phỏng vấn đa ngành{" "}
-            <HelpCircle className="size-4 text-primary" />
+            <HelpCircle className="size-4 text-primary" aria-hidden="true" />
           </div>
           <div className="text-muted-foreground">
             Bao gồm IT, Finance, Marketing, Sales & HR
@@ -69,7 +69,7 @@ export function QuestionSectionCards({
             {approvedCount.toLocaleString("vi-VN")}
           </CardTitle>
           <CardAction>
-            <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-500/30">
+            <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-500/30 tabular-nums">
               {approvalRate}% đã duyệt
             </Badge>
           </CardAction>
@@ -77,7 +77,7 @@ export function QuestionSectionCards({
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
             Sẵn sàng cho ứng viên luyện tập{" "}
-            <CheckCircle2 className="size-4 text-emerald-500" />
+            <CheckCircle2 className="size-4 text-emerald-500" aria-hidden="true" />
           </div>
           <div className="text-muted-foreground">
             Đạt chuẩn kiểm duyệt chuyên môn
@@ -101,7 +101,7 @@ export function QuestionSectionCards({
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
             Đóng góp từ AI & Cộng đồng{" "}
-            <Clock className="size-4 text-amber-500" />
+            <Clock className="size-4 text-amber-500" aria-hidden="true" />
           </div>
           <div className="text-muted-foreground">
             Cần gán nhãn STAR và thẩm định Rubric
@@ -117,7 +117,7 @@ export function QuestionSectionCards({
             {totalPracticeSessions.toLocaleString("vi-VN")}
           </CardTitle>
           <CardAction>
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs tabular-nums">
               {starCoverageRate}% có STAR
             </Badge>
           </CardAction>
@@ -125,7 +125,7 @@ export function QuestionSectionCards({
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
             Tương tác AI Coach tích cực{" "}
-            <Sparkles className="size-4 text-primary" />
+            <Sparkles className="size-4 text-primary" aria-hidden="true" />
           </div>
           <div className="text-muted-foreground">
             Tăng 18.5% so với chu kỳ trước

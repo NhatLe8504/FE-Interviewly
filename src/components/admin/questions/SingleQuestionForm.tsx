@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Save,
@@ -86,8 +86,8 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
   const [tip2, setTip2] = useState<string>(initialQuestion?.tips?.[1] || "");
 
   // Quiz Options
-  const [hasQuiz, setHasQuiz] = useState<boolean>(Boolean(initialQuestion?.quiz_data?.question));
-  const [quizQuestion, setQuizQuestion] = useState<string>(initialQuestion?.quiz_data?.question || "");
+  const [hasQuiz, setHasQuiz] = useState<boolean>(Boolean((initialQuestion?.quiz_data as any)?.question));
+  const [quizQuestion, setQuizQuestion] = useState<string>((initialQuestion?.quiz_data as any)?.question || "");
   const [optA, setOptA] = useState<string>(initialQuestion?.quiz_data?.options?.[0]?.text || "");
   const [optB, setOptB] = useState<string>(initialQuestion?.quiz_data?.options?.[1]?.text || "");
   const [optC, setOptC] = useState<string>(initialQuestion?.quiz_data?.options?.[2]?.text || "");
