@@ -77,13 +77,33 @@ import { MOCK_DOMAINS_LIST } from "@/mock/adminQuestionsMock";
 export function QuestionSetDataTable({
   initialSets = [],
   onRefresh,
+  initialDomainId = "all",
+  domainsList,
+  onDomainChange,
 }: {
   initialSets: QuestionSetItem[];
   onRefresh?: () => void;
+  initialDomainId?: string;
+  domainsList?: { domain_id: number; domain_name: string }[];
+  onDomainChange?: (domainId: string) => void;
 }) {
   const [sets, setSets] = useState<QuestionSetItem[]>(initialSets);
   const [search, setSearch] = useState("");
-  const [selectedDomain, setSelectedDomain] = useState<string>("all");
+  const [selectedDomain, setSelectedDomain] = useState<string>(initialDomainId || "all");
+
+  React.useEffect(() => {
+    setSets(initialSets);
+  }, [initialSets]);
+
+  React.useEffect(() => {
+    if (initialDomainId !== undefined) {
+      setSelectedDomain(initialDomainId || "all");
+    }
+  }, [initialDomainId]);
+
+  const effectiveDomains = React.useMemo(() => {
+    return domainsList && domainsList.length > 0 ? domainsList : MOCK_DOMAINS_LIST;
+  }, [domainsList]);
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -249,7 +269,7 @@ export function QuestionSetDataTable({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Tìm kiếm theo tên bộ đề, vị trí, công nghệ (Java, React, K8s...)..."
+              placeholder="Tìm kiếm theo tên bộ đề, vị trí, công nghệ (Java, React, K8s…)…"
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -261,6 +281,7 @@ export function QuestionSetDataTable({
               <button
                 type="button"
                 onClick={() => setSearch("")}
+                aria-label="Xóa nội dung tìm kiếm"
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
               >
                 ✕
@@ -302,14 +323,15 @@ export function QuestionSetDataTable({
               onValueChange={(v) => {
                 setSelectedDomain(v);
                 setPage(1);
+                onDomainChange?.(v);
               }}
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo ngành nghề">
                 <SelectValue placeholder="Tất cả ngành" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả ngành</SelectItem>
-                {MOCK_DOMAINS_LIST.map((d) => (
+                {effectiveDomains.map((d) => (
                   <SelectItem key={d.domain_id} value={String(d.domain_id)}>
                     {d.domain_name}
                   </SelectItem>
@@ -327,7 +349,7 @@ export function QuestionSetDataTable({
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 text-xs" aria-label="Lọc theo cấp độ">
                 <SelectValue placeholder="Tất cả cấp độ" />
               </SelectTrigger>
               <SelectContent>
@@ -377,20 +399,21 @@ export function QuestionSetDataTable({
                 currentItems.map((s) => {
                   return (
                     <TableRow key={s.set_id} className="hover:bg-muted/30 transition-colors">
-                      <TableCell className="font-mono text-muted-foreground font-semibold">
+                      <TableCell className="font-mono text-muted-foreground font-semibold tabular-nums">
                         #{s.set_id}
                       </TableCell>
 
                       <TableCell className="max-w-[300px] md:max-w-[360px] xl:max-w-[440px] overflow-hidden">
                         <div className="space-y-1 py-1 overflow-hidden">
                           <div className="flex items-center gap-2 overflow-hidden">
-                            <p
-                              className="font-bold text-foreground hover:text-primary cursor-pointer leading-snug truncate"
+                            <button
+                              type="button"
+                              className="text-left font-bold text-foreground hover:text-primary focus-visible:outline-hidden focus-visible:underline cursor-pointer leading-snug truncate group"
                               onClick={() => handleOpenPreview(s)}
                               title={s.title}
                             >
-                              {s.title}
-                            </p>
+                              <span className="group-hover:underline truncate">{s.title}</span>
+                            </button>
                             {s.is_curated && (
                               <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-amber-600 border-amber-500/30 bg-amber-500/10 shrink-0">
                                 Tuyển chọn
@@ -510,13 +533,14 @@ export function QuestionSetDataTable({
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="mr-2">Trang {page} / {totalPages}</span>
+            <span className="mr-2">Trang <span className="tabular-nums font-semibold">{page}</span> / <span className="tabular-nums font-semibold">{totalPages}</span></span>
             <Button
               variant="outline"
               size="icon"
               className="size-7"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
+              aria-label="Trang trước"
             >
               <ChevronLeft className="size-3.5" />
             </Button>
@@ -526,6 +550,7 @@ export function QuestionSetDataTable({
               className="size-7"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
+              aria-label="Trang sau"
             >
               <ChevronRight className="size-3.5" />
             </Button>
@@ -535,7 +560,7 @@ export function QuestionSetDataTable({
 
       {/* Preview Question Set Drawer */}
       <Sheet open={!!previewSet} onOpenChange={(open) => !open && setPreviewSet(null)}>
-        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto p-0 text-xs">
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto overscroll-contain p-0 text-xs">
           {previewSet && (() => {
             const questionsList = previewSet.questions || [];
             const techList = previewSet.tech_stack || [];
