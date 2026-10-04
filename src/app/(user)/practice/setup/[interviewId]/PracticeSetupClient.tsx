@@ -3,9 +3,12 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Briefcase, Coffee, Handshake } from "lucide-react";
-import { PRE_MADE_INTERVIEWS } from "@/data/mockInterviews";
+import { PRE_MADE_INTERVIEWS, type PreMadeInterview } from "@/data/mockInterviews";
 import { ApiError } from "@/services/apiClient";
 import { interviewApi } from "@/services/interviewApi";
+import { jdInterviewApi } from "@/services/jdInterviewApi";
+import { useEffect } from "react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { CandidatePreferencePanel } from "./components/CandidatePreferencePanel";
 import { InterviewProfile } from "./components/InterviewProfile";
 import { PlanSummary } from "./components/PlanSummary";
@@ -84,10 +87,91 @@ function getStartErrorMessage(cause: unknown): string {
 }
 
 export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
-  const interview = useMemo(
+  const preMadeInterview = useMemo(
     () => PRE_MADE_INTERVIEWS.find((item) => item.id === interviewId) ?? null,
     [interviewId]
   );
+
+  const [jdInterview, setJdInterview] = useState<PreMadeInterview | null>(null);
+  const [isLoadingJd, setIsLoadingJd] = useState<boolean>(!preMadeInterview);
+  const [jdError, setJdError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (preMadeInterview) return;
+
+    let mounted = true;
+    setIsLoadingJd(true);
+    setJdError(null);
+
+    jdInterviewApi
+      .getJobStatus(interviewId)
+      .then((data) => {
+        if (!mounted) return;
+        if (data.status === "COMPLETED" && data.result) {
+          const res = data.result;
+          const seniorityClean = (
+            ["intern", "fresher", "junior", "mid", "senior", "lead"].includes(
+              res.seniority?.toLowerCase()
+            )
+              ? res.seniority.toLowerCase()
+              : "junior"
+          ) as "junior" | "mid" | "senior" | "lead";
+
+          const adapted: PreMadeInterview = {
+            id: interviewId,
+            title: res.role || "Software Engineer",
+            company: res.company_name || "Theo Job Description của bạn",
+            companyBadge: "JD Custom",
+            domain: "Phỏng vấn theo JD ứng tuyển",
+            level: seniorityClean,
+            levelLabel: res.seniority ? res.seniority.toUpperCase() : "JUNIOR",
+            durationMinutes: res.estimated_minutes || 45,
+            questionsCount: res.total_questions || (res.questions?.length || 5),
+            candidatesPracticed: "1 bạn",
+            reviewsCount: 1,
+            rating: 5.0,
+            imageUrl:
+              "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80",
+            testimonial: {
+              quote:
+                "Bộ câu hỏi và thang điểm năng lực được AI bóc tách chính xác từ bản mô tả công việc (JD), kèm khung đánh giá STAR và tiêu chí chấm điểm chuyên sâu.",
+              author: "AI Interview Coach",
+              role: "JD Intelligence Engine",
+            },
+            topics:
+              res.focus_areas && res.focus_areas.length > 0
+                ? res.focus_areas
+                : ["Kỹ năng chuyên môn", "Hành vi STAR", "Xử lý tình huống thực tế"],
+            category: "software",
+            sampleQuestions: (res.questions || []).map((q: any, idx: number) => ({
+              question_id: 10000 + idx,
+              question_text: q.question_text || "",
+              star_hint: q.rationale || "Áp dụng phương pháp STAR để trả lời chi tiết.",
+            })),
+          };
+          setJdInterview(adapted);
+        } else if (data.status === "FAILED") {
+          setJdError(data.error || "Quá trình phân tích JD bị thất bại.");
+        } else {
+          setJdError("Kịch bản phỏng vấn từ JD đang được xử lý. Vui lòng chờ trong giây lát...");
+        }
+      })
+      .catch((err) => {
+        if (mounted) {
+          setJdError(err.message || "Không thể tải thông tin buổi phỏng vấn JD này.");
+        }
+      })
+      .finally(() => {
+        if (mounted) setIsLoadingJd(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [interviewId, preMadeInterview]);
+
+  const interview = preMadeInterview || jdInterview;
+
   const [selectedStages, setSelectedStages] = useState<PracticeStageKey[]>([
     "warmup",
     "technical",
@@ -138,16 +222,29 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
     setIsLaunching(true);
     try {
       const selectedQuestionIds = getPlanQuestionIds(stageConfigs);
-      const createdSession = await interviewApi.startSession({
-        role_name: interview.title,
-        level: interview.level,
-        language,
-        mode,
-        barge_in_enabled: bargeInEnabled,
-        stage_configs: stageConfigs,
-        selected_question_ids: selectedQuestionIds,
-      });
-      const sessionId = createdSession.session_id;
+      let sessionId: number | string | undefined;
+
+      if (interviewId.startsWith("jd_") || !preMadeInterview) {
+        const jdSession = await jdInterviewApi.startSession(
+          interviewId,
+          mode,
+          bargeInEnabled,
+          selectedStages,
+          stageConfigs
+        );
+        sessionId = jdSession.session_id;
+      } else {
+        const createdSession = await interviewApi.startSession({
+          role_name: interview.title,
+          level: interview.level,
+          language,
+          mode,
+          barge_in_enabled: bargeInEnabled,
+          stage_configs: stageConfigs,
+          selected_question_ids: selectedQuestionIds,
+        });
+        sessionId = createdSession.session_id;
+      }
       if (sessionId === undefined || sessionId === null || String(sessionId).trim() === "") {
         throw new Error("Backend không trả về mã phiên phỏng vấn hợp lệ.");
       }
@@ -180,11 +277,29 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
     }
   };
 
+  if (isLoadingJd) {
+    return (
+      <main className={styles.pageShell} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "50vh", gap: 16 }}>
+        <Loader2 className="size-8 animate-spin text-[#d98236]" />
+        <h2 style={{ fontSize: 18, fontWeight: 700 }}>Đang chuẩn bị phòng phỏng vấn theo JD của bạn...</h2>
+        <p style={{ color: "var(--ink-soft)", fontSize: 13 }}>Đang tải kịch bản câu hỏi và tiêu chí đánh giá STAR</p>
+      </main>
+    );
+  }
+
   if (!interview) {
     return (
       <main className={styles.notFound}>
-        <h1>Buổi phỏng vấn không tìm thấy</h1>
-        <Link href="/practice">Quay lại danh sách luyện tập</Link>
+        <h1>{jdError || "Buổi phỏng vấn không tìm thấy"}</h1>
+        <p style={{ color: "var(--ink-soft)", fontSize: 13, marginBottom: 16 }}>
+          {jdError ? "Vui lòng kiểm tra lại tiến trình tạo kịch bản từ JD hoặc quay lại danh sách." : "Không tìm thấy dữ liệu kịch bản cho buổi phỏng vấn này."}
+        </p>
+        <div style={{ display: "flex", gap: 12 }}>
+          <Link href="/practice">Quay lại danh sách luyện tập</Link>
+          {interviewId.startsWith("jd_") && (
+            <Link href={`/practice/new?job_id=${interviewId}`} style={{ fontWeight: 600 }}>Xem tiến trình phân tích</Link>
+          )}
+        </div>
       </main>
     );
   }
