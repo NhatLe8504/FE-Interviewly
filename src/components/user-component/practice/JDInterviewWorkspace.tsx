@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Sparkles,
   FileText,
@@ -22,11 +22,14 @@ import {
   HelpCircle,
   Volume2,
   MessageSquare,
+  SlidersHorizontal,
 } from "lucide-react";
 import { jdInterviewApi, JDJobStatusResponse, InterviewScriptResult, ScriptItem } from "@/services/jdInterviewApi";
 
 export function JDInterviewWorkspace() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryJobId = searchParams.get("job_id");
 
   // Input tabs
   const [activeTab, setActiveTab] = useState<"text" | "url" | "file">("text");
@@ -48,6 +51,12 @@ export function JDInterviewWorkspace() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isStartingSession, setIsStartingSession] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (queryJobId && !jobId) {
+      setJobId(queryJobId);
+    }
+  }, [queryJobId, jobId]);
   const [expandedQuestionIdx, setExpandedQuestionIdx] = useState<number | null>(0);
 
   // Status Polling Effect
@@ -443,24 +452,30 @@ export function JDInterviewWorkspace() {
               </div>
             </div>
 
-            <button
-              type="button"
-              disabled={isStartingSession}
-              onClick={handleLaunchInterview}
-              className="h-11 px-6 rounded-2xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer disabled:opacity-50"
-            >
-              {isStartingSession ? (
-                <>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => router.push(`/practice/setup/${jobId}`)}
+                className="h-11 px-6 rounded-2xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer"
+              >
+                <SlidersHorizontal className="size-4" />
+                <span>Cấu Hình & Bắt Đầu Phỏng Vấn</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isStartingSession}
+                onClick={handleLaunchInterview}
+                className="h-11 px-4 rounded-2xl border border-border text-foreground font-semibold text-xs flex items-center justify-center gap-2 hover:bg-muted transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {isStartingSession ? (
                   <Loader2 className="size-4 animate-spin" />
-                  <span>Đang mở phòng phỏng vấn...</span>
-                </>
-              ) : (
-                <>
-                  <Play className="size-4 fill-current" />
-                  <span>Bắt Đầu Buổi Phỏng Vấn Ngay</span>
-                </>
-              )}
-            </button>
+                ) : (
+                  <Play className="size-3.5 fill-current" />
+                )}
+                <span>Vào thẳng phòng</span>
+              </button>
+            </div>
           </div>
 
           {/* Questions Accordion List */}
