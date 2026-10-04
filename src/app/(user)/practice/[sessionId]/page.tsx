@@ -14,6 +14,8 @@ import {
   Check,
   BrainCircuit,
   Volume2,
+  VolumeX,
+  Loader2,
   ChevronRight,
   Wifi,
   WifiOff,
@@ -75,6 +77,8 @@ export default function InterviewRoomPage({
   // Realtime Voice Interview Hook (WebSocket + STT + Audio Queue + Barge-in)
   const {
     isConnected,
+    isReconnecting,
+    reconnectCount,
     aiState,
     isCompleted,
     error,
@@ -91,10 +95,16 @@ export default function InterviewRoomPage({
     turns,
     volume,
     isAudioPlaying,
+    isAudioMuted,
+    audioBlockedByAutoplay,
     isMicActive,
+    micPermissionDenied,
+    sttSupported,
     bargeInEnabled,
     toggleBargeIn,
     toggleMic,
+    toggleAudioMute,
+    resumeAudio,
     sendTextMessage,
     skipToNextStage,
     endSessionEarly,
@@ -479,6 +489,31 @@ export default function InterviewRoomPage({
                 </span>
               </div>
 
+              {/* Speaker Mute Toggle */}
+              <button
+                type="button"
+                onClick={toggleAudioMute}
+                title={isAudioMuted ? "Bật âm thanh AI" : "Tắt âm thanh AI"}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "6px 10px",
+                  borderRadius: "10px",
+                  background: isAudioMuted ? "rgba(220, 38, 38, 0.08)" : "rgba(106, 72, 49, 0.05)",
+                  border: isAudioMuted ? "1px solid rgba(220, 38, 38, 0.3)" : "1px solid rgba(106, 72, 49, 0.1)",
+                  fontSize: "11px",
+                  cursor: "pointer",
+                  color: isAudioMuted ? "#dc2626" : "inherit",
+                }}
+              >
+                <span style={{ fontWeight: "700", display: "flex", alignItems: "center", gap: 5 }}>
+                  {isAudioMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                  Loa AI:
+                </span>
+                <span style={{ fontWeight: "800" }}>{isAudioMuted ? "TẮT" : "BẬT"}</span>
+              </button>
+
               {/* Connection Status */}
               <div
                 style={{
@@ -486,12 +521,26 @@ export default function InterviewRoomPage({
                   alignItems: "center",
                   gap: "6px",
                   fontSize: "11px",
-                  color: isConnected ? "#059669" : "#dc2626",
+                  color: isReconnecting ? "#d97706" : isConnected ? "#059669" : "#dc2626",
                   fontWeight: "700",
                 }}
               >
-                {isConnected ? <Wifi size={12} /> : <WifiOff size={12} />}
-                <span>{isConnected ? "Realtime WebSocket" : "Mất kết nối"}</span>
+                {isReconnecting ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin" />
+                    <span>Đang nối lại... ({reconnectCount}/5)</span>
+                  </>
+                ) : isConnected ? (
+                  <>
+                    <Wifi size={12} />
+                    <span>Realtime WebSocket</span>
+                  </>
+                ) : (
+                  <>
+                    <WifiOff size={12} />
+                    <span>Mất kết nối</span>
+                  </>
+                )}
               </div>
 
               {/* End Interview Button */}
