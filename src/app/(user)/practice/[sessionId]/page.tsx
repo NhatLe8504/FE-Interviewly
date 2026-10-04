@@ -429,7 +429,9 @@ export default function InterviewRoomPage({
               {renderStateBadge()}
               <h2 className={styles.interviewerName} suppressHydrationWarning>{persona.name}</h2>
               <p className={styles.interviewerTitle} suppressHydrationWarning>
-                {persona.title} • {meta.companyName || "Doanh nghiệp mục tiêu"}
+                {isClientMounted
+                  ? `${persona.title} • ${meta.companyName || "Doanh nghiệp mục tiêu"}`
+                  : "AI Interviewer • Doanh nghiệp mục tiêu"}
               </p>
             </div>
           </div>
