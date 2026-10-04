@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
@@ -6,8 +6,8 @@ import {
   Archive,
   ArchiveRestore,
   BriefcaseBusiness,
+  ChevronRight,
   Database,
-  Eye,
   Layers3,
   MessageSquareText,
   MoreHorizontal,
@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Search,
   TriangleAlert,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { domainAdminApi, type DomainAdminCreateIn } from "@/services/admin/domainAdminApi";
@@ -44,7 +45,6 @@ import { Input } from "@/components/admin/ui/input";
 import { Label } from "@/components/admin/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/admin/ui/select";
 import { Skeleton } from "@/components/admin/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/admin/ui/table";
 
 type FormMode = "create" | "edit" | null;
 
@@ -54,8 +54,26 @@ const statusLabels: Record<CatalogStatusFilter, string> = {
   all: "Tất cả trạng thái",
 };
 
+const DOMAIN_COLORS = [
+  "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200/60 dark:border-blue-800/40",
+  "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200/60 dark:border-rose-800/40",
+  "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/40",
+  "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200/60 dark:border-amber-800/40",
+  "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-200/60 dark:border-violet-800/40",
+  "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-200/60 dark:border-cyan-800/40",
+];
+
+const DOMAIN_ICON_COLORS = [
+  "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+  "bg-rose-500/15 text-rose-600 dark:text-rose-400",
+  "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+  "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+  "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400",
+];
+
 const formatDate = (value?: string | null) => {
-  if (!value) return "—";
+  if (!value) return "\u2014";
   return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" }).format(new Date(value));
 };
 
@@ -86,7 +104,7 @@ export default function AdminDomainsClient() {
         totalQuestions: data.total_questions,
       });
     } catch (error: any) {
-      toast.error(error?.message || "Không thể tải danh sách domain");
+      toast.error(error?.message || "Không thể tải danh sách ngành nghề");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -121,7 +139,7 @@ export default function AdminDomainsClient() {
     event.preventDefault();
     const domainName = form.domain_name.trim();
     if (!domainName) {
-      toast.error("Vui lòng nhập tên domain");
+      toast.error("Vui lòng nhập tên ngành nghề");
       return;
     }
     setSubmitting(true);
@@ -131,18 +149,18 @@ export default function AdminDomainsClient() {
           domain_name: domainName,
           description: form.description?.trim() || null,
         });
-        toast.success("Đã cập nhật domain");
+        toast.success("Đã cập nhật ngành nghề");
       } else {
         await domainAdminApi.createDomain({
           domain_name: domainName,
           description: form.description?.trim() || null,
         });
-        toast.success("Đã tạo domain mới");
+        toast.success("Đã tạo ngành nghề mới");
       }
       setFormMode(null);
       await loadData(true);
     } catch (error: any) {
-      toast.error(error?.message || "Không thể lưu domain");
+      toast.error(error?.message || "Có lỗi xảy ra");
     } finally {
       setSubmitting(false);
     }
@@ -153,11 +171,11 @@ export default function AdminDomainsClient() {
     setStatusUpdating(true);
     try {
       await domainAdminApi.setDomainStatus(confirmTarget.domain_id, !confirmTarget.is_active);
-      toast.success(confirmTarget.is_active ? "Đã lưu trữ domain" : "Đã khôi phục domain");
+      toast.success(confirmTarget.is_active ? "Đã lưu trữ ngành nghề" : "Đã khôi phục ngành nghề");
       setConfirmTarget(null);
       await loadData(true);
     } catch (error: any) {
-      toast.error(error?.message || "Không thể cập nhật trạng thái domain");
+      toast.error(error?.message || "Không thể cập nhật trạng thái");
     } finally {
       setStatusUpdating(false);
     }
@@ -167,9 +185,9 @@ export default function AdminDomainsClient() {
     <div className="@container/main flex flex-1 flex-col gap-2">
       <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
       <AdminPageHeader
-        title="Lĩnh vực nghề nghiệp"
-        description="Quản lý domain, role và phạm vi câu hỏi được hiển thị trong hệ thống."
-        badge={`${domains.length} domain`}
+        title="Ngành nghề & Lĩnh vực"
+        description="Hệ thống chia thành nhiều ngành lớn, mỗi ngành có các lĩnh vực (role) chuyên sâu bên trong."
+        badge={`${stats.activeDomains} ngành · ${stats.activeRoles} lĩnh vực`}
       >
         <Button variant="outline" size="sm" onClick={() => void loadData(true)} disabled={refreshing} className="gap-1.5">
           <RefreshCw className={refreshing ? "size-3.5 animate-spin" : "size-3.5"} />
@@ -177,86 +195,89 @@ export default function AdminDomainsClient() {
         </Button>
         <Button size="sm" onClick={openCreate} className="gap-1.5">
           <Plus className="size-3.5" />
-          Tạo domain
+          Thêm ngành
         </Button>
       </AdminPageHeader>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <AdminStatCard title="Domain hoạt động" value={stats.activeDomains} icon={<Layers3 className="size-5" />} description="Đang hiển thị trên catalog" />
-        <AdminStatCard title="Domain lưu trữ" value={stats.archivedDomains} icon={<Archive className="size-5" />} iconClassName="bg-amber-500/10 text-amber-600 dark:text-amber-400" description="Có thể khôi phục bất kỳ lúc nào" />
-        <AdminStatCard title="Role hoạt động" value={stats.activeRoles} icon={<BriefcaseBusiness className="size-5" />} iconClassName="bg-blue-500/10 text-blue-600 dark:text-blue-400" description="Thuộc các domain đang dùng" />
-        <AdminStatCard title="Tổng câu hỏi" value={stats.totalQuestions} icon={<MessageSquareText className="size-5" />} iconClassName="bg-violet-500/10 text-violet-600 dark:text-violet-400" description="Gắn với toàn bộ domain" />
+        <AdminStatCard title="Ngành hoạt động" value={stats.activeDomains} icon={<Layers3 className="size-5" />} description="Đang hiển thị trên hệ thống" />
+        <AdminStatCard title="Ngành lưu trữ" value={stats.archivedDomains} icon={<Archive className="size-5" />} iconClassName="bg-amber-500/10 text-amber-600 dark:text-amber-400" description="Có thể khôi phục bất kỳ lúc nào" />
+        <AdminStatCard title="Lĩnh vực hoạt động" value={stats.activeRoles} icon={<BriefcaseBusiness className="size-5" />} iconClassName="bg-blue-500/10 text-blue-600 dark:text-blue-400" description="Tổng role thuộc các ngành" />
+        <AdminStatCard title="Tổng câu hỏi" value={stats.totalQuestions} icon={<MessageSquareText className="size-5" />} iconClassName="bg-violet-500/10 text-violet-600 dark:text-violet-400" description="Gắn với toàn bộ ngành nghề" />
       </div>
 
-      <Card className="min-w-0">
-        <CardHeader className="gap-4 border-b pb-4">
-          <div className="flex flex-col gap-1">
-            <CardTitle>Danh sách domain</CardTitle>
-            <CardDescription>Chọn một domain để quản lý các role và nội dung liên quan.</CardDescription>
-          </div>
-          <div className="grid min-w-0 gap-2 md:grid-cols-[minmax(0,1fr)_180px]">
-            <div className="relative min-w-0">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm theo tên hoặc mô tả..." className="h-9 pl-9" aria-label="Tìm domain" />
-            </div>
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as CatalogStatusFilter)}>
-              <SelectTrigger className="h-9 w-full" aria-label="Lọc trạng thái domain">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent position="popper" align="end">
-                <SelectItem value="active">{statusLabels.active}</SelectItem>
-                <SelectItem value="archived">{statusLabels.archived}</SelectItem>
-                <SelectItem value="all">{statusLabels.all}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="space-y-3 p-4">
-              {Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} className="h-12 w-full" />)}
-            </div>
-          ) : filteredDomains.length === 0 ? (
-            <AdminEmptyState
-              icon={<Database className="size-8 opacity-40 text-muted-foreground" />}
-              title={search ? "Không tìm thấy domain phù hợp" : "Chưa có domain nào"}
-              description={search ? "Thử thay đổi từ khóa tìm kiếm." : "Tạo domain đầu tiên để bắt đầu tổ chức ngân hàng câu hỏi."}
-              action={!search ? <Button size="sm" onClick={openCreate}><Plus className="size-3.5" />Tạo domain</Button> : undefined}
-            />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-4">Domain</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Câu hỏi</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead>Ngày tạo</TableHead>
-                  <TableHead className="w-12 pr-4 text-right"><span className="sr-only">Thao tác</span></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredDomains.map((domain) => (
-                  <TableRow key={domain.domain_id}>
-                    <TableCell className="max-w-[360px] pl-4">
-                      <div className="min-w-0 space-y-1">
-                        <Link href={`/admin/domains/${domain.domain_id}`} className="block truncate font-semibold text-foreground hover:text-primary hover:underline">
-                          {domain.domain_name}
-                        </Link>
-                        <p className="truncate text-xs text-muted-foreground">{domain.description || "Chưa có mô tả"}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="relative flex-1 min-w-0">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm theo tên ngành hoặc mô tả..." className="h-9 pl-9" aria-label="Tìm ngành nghề" />
+        </div>
+        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as CatalogStatusFilter)}>
+          <SelectTrigger className="h-9 w-[180px] shrink-0" aria-label="Lọc trạng thái">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent position="popper" align="end">
+            <SelectItem value="active">{statusLabels.active}</SelectItem>
+            <SelectItem value="archived">{statusLabels.archived}</SelectItem>
+            <SelectItem value="all">{statusLabels.all}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {loading ? (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Card key={index}>
+              <CardContent className="p-5 space-y-4">
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <Skeleton className="h-6 w-14 rounded-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : filteredDomains.length === 0 ? (
+        <AdminEmptyState
+          icon={<Database className="size-8 opacity-40 text-muted-foreground" />}
+          title={search ? "Không tìm thấy ngành phù hợp" : "Chưa có ngành nào"}
+          description={search ? "Thử thay đổi từ khóa tìm kiếm." : "Tạo ngành nghề đầu tiên để bắt đầu xây dựng cấu trúc hệ thống."}
+          action={!search ? <Button size="sm" onClick={openCreate}><Plus className="size-3.5" />Thêm ngành</Button> : undefined}
+        />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {filteredDomains.map((domain, index) => {
+            const colorIdx = index % DOMAIN_COLORS.length;
+            return (
+              <Card key={domain.domain_id} className={`group relative transition-shadow hover:shadow-md border ${domain.is_active ? "" : "opacity-70"}`}>
+                <CardContent className="p-0">
+                  <div className="p-5 pb-3">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${DOMAIN_ICON_COLORS[colorIdx]}`}>
+                          <Layers3 className="size-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-sm leading-tight truncate">{domain.domain_name}</h3>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <Badge variant={domain.is_active ? "default" : "outline"} className="text-[10px] px-1.5 py-0">
+                              {domain.is_active ? "Hoạt động" : "Lưu trữ"}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground">{formatDate(domain.created_at)}</span>
+                          </div>
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell><span className="font-medium">{domain.active_role_count}</span><span className="text-muted-foreground"> / {domain.role_count}</span></TableCell>
-                    <TableCell><span className="font-medium">{domain.question_count}</span></TableCell>
-                    <TableCell><Badge variant={domain.is_active ? "default" : "outline"}>{domain.is_active ? "Đang hoạt động" : "Đã lưu trữ"}</Badge></TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{formatDate(domain.created_at)}</TableCell>
-                    <TableCell className="pr-4 text-right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8" aria-label={`Thao tác với ${domain.domain_name}`}><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="size-7 shrink-0" aria-label={`Thao tác ${domain.domain_name}`}>
+                            <MoreHorizontal className="size-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-44">
                           <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem asChild><Link href={`/admin/domains/${domain.domain_id}`}><Eye className="size-4" />Xem chi tiết</Link></DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => openEdit(domain)}><Pencil className="size-4" />Chỉnh sửa</DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => setConfirmTarget(domain)}>
                             {domain.is_active ? <Archive className="size-4" /> : <ArchiveRestore className="size-4" />}
@@ -264,35 +285,60 @@ export default function AdminDomainsClient() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                    </div>
+
+                    {domain.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 mb-3 leading-relaxed">{domain.description}</p>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <BriefcaseBusiness className="size-3.5 text-muted-foreground" />
+                        <span className="font-semibold">{domain.active_role_count}</span>
+                        <span className="text-muted-foreground">/{domain.role_count} lĩnh vực</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <MessageSquareText className="size-3.5 text-muted-foreground" />
+                        <span className="font-semibold">{domain.question_count}</span>
+                        <span className="text-muted-foreground">câu hỏi</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Link
+                    href={`/admin/domains/${domain.domain_id}`}
+                    className="flex items-center justify-between px-5 py-2.5 border-t bg-muted/30 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors rounded-b-xl"
+                  >
+                    <span>Xem {domain.role_count} lĩnh vực con</span>
+                    <ChevronRight className="size-3.5" />
+                  </Link>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       </div>
 
       <Dialog open={formMode !== null} onOpenChange={(open) => !open && setFormMode(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{formMode === "edit" ? "Chỉnh sửa domain" : "Tạo domain mới"}</DialogTitle>
-            <DialogDescription>Thông tin này giúp admin phân loại role và ngân hàng câu hỏi.</DialogDescription>
+            <DialogTitle>{formMode === "edit" ? "Chỉnh sửa ngành nghề" : "Tạo ngành nghề mới"}</DialogTitle>
+            <DialogDescription>Mỗi ngành nghề chứa nhiều lĩnh vực (role) con bên trong.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="domain-name">Tên domain <span className="text-destructive">*</span></Label>
-              <Input id="domain-name" value={form.domain_name} onChange={(event) => setForm((current) => ({ ...current, domain_name: event.target.value }))} placeholder="Ví dụ: Engineering Management" autoFocus />
+              <Label htmlFor="domain-name">Tên ngành nghề <span className="text-destructive">*</span></Label>
+              <Input id="domain-name" value={form.domain_name} onChange={(event) => setForm((current) => ({ ...current, domain_name: event.target.value }))} placeholder="Ví dụ: Công nghệ thông tin (IT)" autoFocus />
             </div>
             <div className="space-y-2">
               <Label htmlFor="domain-description">Mô tả</Label>
-              <textarea id="domain-description" value={form.description || ""} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} placeholder="Mô tả ngắn về phạm vi domain..." rows={4} className="flex min-h-24 w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" />
+              <textarea id="domain-description" value={form.description || ""} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} placeholder="Mô tả ngắn về phạm vi ngành nghề..." rows={4} className="flex min-h-24 w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setFormMode(null)}>Hủy</Button>
-              <Button type="submit" disabled={submitting}>{submitting ? "Đang lưu..." : formMode === "edit" ? "Lưu thay đổi" : "Tạo domain"}</Button>
+              <Button type="submit" disabled={submitting}>{submitting ? "Đang lưu..." : formMode === "edit" ? "Lưu thay đổi" : "Tạo ngành"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -303,13 +349,13 @@ export default function AdminDomainsClient() {
           <DialogHeader>
             <div className="flex items-start gap-3">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400"><TriangleAlert className="size-5" /></div>
-              <div className="space-y-1"><DialogTitle>{confirmTarget?.is_active ? "Lưu trữ domain?" : "Khôi phục domain?"}</DialogTitle><DialogDescription>{confirmTarget?.domain_name}</DialogDescription></div>
+              <div className="space-y-1"><DialogTitle>{confirmTarget?.is_active ? "Lưu trữ ngành này?" : "Khôi phục ngành này?"}</DialogTitle><DialogDescription>{confirmTarget?.domain_name}</DialogDescription></div>
             </div>
           </DialogHeader>
-          <p className="text-sm leading-relaxed text-muted-foreground">{confirmTarget?.is_active ? "Domain sẽ ẩn khỏi catalog public và các bộ lọc câu hỏi. Dữ liệu role, câu hỏi và lịch sử vẫn được giữ nguyên." : "Domain sẽ xuất hiện lại trong catalog public. Các role đã lưu trữ vẫn giữ nguyên trạng thái riêng."}</p>
+          <p className="text-sm leading-relaxed text-muted-foreground">{confirmTarget?.is_active ? "Ngành sẽ ẩn khỏi hệ thống. Các lĩnh vực, câu hỏi và dữ liệu liên quan vẫn được giữ nguyên." : "Ngành sẽ xuất hiện lại trên hệ thống. Các lĩnh vực đã lưu trữ riêng vẫn giữ nguyên trạng thái."}</p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmTarget(null)}>Hủy</Button>
-            <Button onClick={() => void handleStatusChange()} disabled={statusUpdating}>{statusUpdating ? "Đang cập nhật..." : confirmTarget?.is_active ? "Lưu trữ domain" : "Khôi phục domain"}</Button>
+            <Button onClick={() => void handleStatusChange()} disabled={statusUpdating}>{statusUpdating ? "Đang cập nhật..." : confirmTarget?.is_active ? "Lưu trữ" : "Khôi phục"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
