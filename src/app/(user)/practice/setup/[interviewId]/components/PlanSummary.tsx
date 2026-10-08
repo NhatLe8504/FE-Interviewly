@@ -1,6 +1,7 @@
 "use client";
 
 import { Play, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { StageDefinition } from "./StageConfigEditor";
 import type { PracticeStageKey } from "../setupPlan";
 import styles from "../setup.module.css";
@@ -9,7 +10,6 @@ interface PlanSummaryProps {
   stageDefinitions: readonly StageDefinition[];
   selectedStages: PracticeStageKey[];
   totalTurns: number;
-  mode: "voice" | "text";
   isLaunching: boolean;
   isPlanValid: boolean;
   validationMessage: string | null;
@@ -21,7 +21,6 @@ export function PlanSummary({
   stageDefinitions,
   selectedStages,
   totalTurns,
-  mode,
   isLaunching,
   isPlanValid,
   validationMessage,
@@ -49,22 +48,23 @@ export function PlanSummary({
         ))}
       </ol>
 
-      <button
-        className={styles.startButton}
+      <Button
+        variant="home-primary"
+        className="w-full"
         type="button"
         disabled={isStartDisabled}
         onClick={onStart}
       >
         <Play size={18} aria-hidden="true" />
         {isLaunching ? "Đang chuẩn bị phòng..." : "Bắt đầu phỏng vấn"}
-      </button>
+      </Button>
 
       {error || validationMessage ? (
         <p className={styles.errorMessage} role="alert">{error ?? validationMessage}</p>
       ) : null}
 
       <p className={styles.summaryHint}>
-        AI sẽ phỏng vấn bạn realtime qua {mode === "voice" ? "giọng nói" : "văn bản"}.
+        Trong phòng, bạn chọn ngôn ngữ và trả lời bằng giọng nói hoặc văn bản.
       </p>
     </section>
   );

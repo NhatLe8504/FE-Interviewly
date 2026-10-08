@@ -177,8 +177,8 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
     "technical",
     "closing",
   ]);
-  const [mode, setMode] = useState<"voice" | "text">("voice");
-  const [language, setLanguage] = useState<"vi" | "en">("vi");
+  const mode = "text";
+  const language = "vi";
   const [bargeInEnabled, setBargeInEnabled] = useState(false);
   const [stageSourceModes, setStageSourceModes] = useState(DEFAULT_STAGE_SOURCE_MODES);
   const [stageTurns, setStageTurns] = useState(DEFAULT_STAGE_TURN_BUDGETS);
@@ -203,11 +203,6 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
       }
       return PRACTICE_STAGE_ORDER.filter((item) => current.includes(item) || item === stageId);
     });
-  };
-
-  const handleModeChange = (nextMode: "voice" | "text") => {
-    setMode(nextMode);
-    if (nextMode === "text") setBargeInEnabled(false);
   };
 
   const handleStartInterview = async () => {
@@ -321,11 +316,7 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
           </header>
 
           <CandidatePreferencePanel
-            mode={mode}
-            language={language}
             bargeInEnabled={bargeInEnabled}
-            onModeChange={handleModeChange}
-            onLanguageChange={setLanguage}
             onBargeInChange={setBargeInEnabled}
           />
 
@@ -345,7 +336,6 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
             stageDefinitions={STAGE_DEFINITIONS}
             selectedStages={selectedStages}
             totalTurns={getTotalTurnBudget(stageConfigs)}
-            mode={mode}
             isLaunching={isLaunching}
             isPlanValid={!planValidationError}
             validationMessage={planValidationError}

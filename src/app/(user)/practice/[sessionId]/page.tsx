@@ -30,7 +30,9 @@ import { InterviewStagesTimeline } from "./components/InterviewStagesTimeline";
 import { StarGuidanceDrawer } from "./components/StarGuidanceDrawer";
 import { ConversationTimelineDrawer } from "./components/ConversationTimelineDrawer";
 import { UserTooltip } from "@/components/user-component/common";
+import { Button } from "@/components/ui/button";
 import { useI18n } from "@/context/I18nContext";
+import { INTERVIEW_LANGUAGES, getInterviewLanguage, type InterviewLanguage } from "@/lib/interviewLanguages";
 import styles from "./interviewRoom.module.css";
 
 interface SessionMetaStored {
@@ -39,6 +41,7 @@ interface SessionMetaStored {
   domainLabel?: string;
   levelLabel?: string;
   languageLabel?: string;
+  language?: InterviewLanguage;
   mode?: "voice" | "text";
   bargeInEnabled?: boolean;
   selected_stages?: string[];
@@ -58,6 +61,7 @@ export default function InterviewRoomPage({
   const [isClientMounted, setIsClientMounted] = useState(false);
   const [meta, setMeta] = useState<SessionMetaStored>({});
   const [currentMode, setCurrentMode] = useState<"voice" | "text">("voice");
+  const [language, setLanguage] = useState<InterviewLanguage>("vi");
   const [typedText, setTypedText] = useState("");
   const isVoiceMode = currentMode === "voice";
 
@@ -68,6 +72,7 @@ export default function InterviewRoomPage({
         const stored: SessionMetaStored = JSON.parse(raw);
         setMeta(stored);
         setCurrentMode(stored.mode === "text" ? "text" : "voice");
+        setLanguage(getInterviewLanguage(stored.language ?? (stored.languageLabel === "English" ? "en" : "vi")).code);
       }
     } catch {
       // ignore
@@ -77,7 +82,6 @@ export default function InterviewRoomPage({
 
   const roleName = meta.roleLabel || "Software Engineer";
   const level = meta.levelLabel || "Senior";
-  const language = meta.languageLabel === "English" ? "en" : "vi";
   const selectedStages = useMemo(() => meta.selected_stages || ["warmup", "technical", "closing"], [meta.selected_stages]);
 
   // Realtime Voice Interview Hook (WebSocket + STT + Audio Queue + Barge-in)
@@ -126,6 +130,19 @@ export default function InterviewRoomPage({
     onSubmit: sendTextMessage,
   });
   const canSendText = canAnswer && !["requesting", "recording", "processing"].includes(voiceDraft.state);
+
+  function changeInterviewLanguage(code: string) {
+    if (!canSendText) return;
+    const selected = getInterviewLanguage(code);
+    const updated = { ...meta, language: selected.code, languageLabel: selected.label };
+    setLanguage(selected.code);
+    setMeta(updated);
+    try {
+      sessionStorage.setItem(`session_metadata_${sessionId}`, JSON.stringify(updated));
+    } catch {
+      return;
+    }
+  }
 
   // Character Persona
   const isLeadLevel =
@@ -468,26 +485,55 @@ export default function InterviewRoomPage({
                 </span>
               </div>
 
+              <div className="space-y-2">
+                <label htmlFor="interview-language" className="portal-field-label">
+                  {locale === "en" ? "Interview language" : "Ngôn ngữ phỏng vấn"}
+                </label>
+                <select
+                  id="interview-language"
+                  className="portal-input"
+                  value={language}
+                  disabled={!canSendText}
+                  onChange={(event) => changeInterviewLanguage(event.target.value)}
+                  aria-describedby="interview-language-help"
+                >
+                  {INTERVIEW_LANGUAGES.map((option) => (
+                    <option key={option.code} value={option.code}>{option.label}</option>
+                  ))}
+                </select>
+                <p id="interview-language-help" className="portal-help-text">
+                  {locale === "en"
+                    ? "Change while AI waits for your answer. Applies to its next response, not the interface."
+                    : "Đổi khi AI đang chờ bạn trả lời. Áp dụng cho phản hồi tiếp theo, không đổi ngôn ngữ giao diện."}
+                </p>
+              </div>
+
               {/* Mode Toggle */}
               <div className={styles.modeToggleGroup}>
-                <button
+                <Button
                   type="button"
+                  variant="home-choice"
+                  size="home-compact"
                   onClick={() => setCurrentMode("voice")}
-                  className={`${styles.modeBtn} ${isVoiceMode ? styles.modeBtnActive : ""}`}
-                  title="Chế độ Giọng nói"
+                  className="flex-1"
+                  aria-pressed={isVoiceMode}
+                  title="Trả lời bằng giọng nói"
                 >
                   <Mic size={12} />
                   <span>Giọng nói</span>
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="home-choice"
+                  size="home-compact"
                   onClick={() => setCurrentMode("text")}
-                  className={`${styles.modeBtn} ${!isVoiceMode ? styles.modeBtnActive : ""}`}
-                  title="Chế độ Văn bản"
+                  className="flex-1"
+                  aria-pressed={!isVoiceMode}
+                  title="Trả lời bằng văn bản"
                 >
                   <Keyboard size={12} />
                   <span>Văn bản</span>
-                </button>
+                </Button>
               </div>
 
 
