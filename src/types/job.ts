@@ -18,6 +18,7 @@ export interface JobItem {
   salary_min?: number | null;
   salary_max?: number | null;
   skills_required: string[];
+  thumbnail_url?: string | null;
   technologies: string[];
   via_source?: string | null;
   original_apply_url: string;
