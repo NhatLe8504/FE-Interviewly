@@ -25,6 +25,7 @@ import styles from "./Header.module.css";
 const NAV_ITEMS = [
   { href: "/", label: "HOME" },
   { href: "/practice", label: "MOCK INTERVIEW" },
+  { href: "/jobs", label: "JOBS" },
   { href: "/questions", label: "QUESTION BANK" },
   { href: "/courses", label: "COURSES" },
   { href: "/pricing", label: "PRICING" },
