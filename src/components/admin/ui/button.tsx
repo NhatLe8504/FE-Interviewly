@@ -18,8 +18,16 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
+        "home-primary": "portal-button portal-button--primary",
+        "home-secondary": "portal-button portal-button--secondary",
+        "home-outline": "portal-button portal-button--outline",
+        "home-quiet": "portal-button portal-button--quiet",
+        "home-choice": "portal-button portal-button--choice",
+        "home-tab": "portal-button portal-button--tab",
       },
       size: {
+        "home-hero": "portal-button--hero",
+        "home-compact": "portal-button--compact",
         default:
           "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
         xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",

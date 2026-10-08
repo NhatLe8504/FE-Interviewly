@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { preload } from "react-dom";
 import { useI18n } from "@/context/I18nContext";
+import { Button } from "@/components/ui/button";
 import styles from "./AuroraHero.module.css";
 
 const HERO_IMAGE =
@@ -139,15 +140,19 @@ export default function AuroraHero() {
           </p>
 
           <div className={styles.actions}>
-            <a href="#practice" className={`${styles.btn} ${styles.btnPrimary}`}>
+            <Button asChild variant="home-primary" size="home-hero">
+            <a href="#practice">
               {t.home.hero.startBtn}
               <span>↗</span>
             </a>
+            </Button>
 
-            <a href="#how-it-works" className={`${styles.btn} ${styles.btnSecondary}`}>
+            <Button asChild variant="home-secondary" size="home-hero">
+            <a href="#how-it-works">
               {t.home.hero.exploreBtn}
               <span>→</span>
             </a>
+            </Button>
           </div>
 
           <div className={styles.meta}>
