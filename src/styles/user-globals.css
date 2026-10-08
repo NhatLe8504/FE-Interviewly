@@ -12,6 +12,19 @@
   --glass-card: rgba(255, 255, 255, 0.68);
   --glass-card-border: rgba(255, 255, 255, 0.85);
   --glass-shadow: 0 18px 45px rgba(84, 50, 27, 0.06);
+  --surface-paper: #faf9f5;
+  --surface-card: #fff;
+  --surface-subtle: #f0eee6;
+  --text-strong: #141413;
+  --text-secondary: #5e5d59;
+  --border-subtle: #e8e6dc;
+  --accent-clay: #d97757;
+  --state-success: #35604a;
+  --state-error: #963a2b;
+  --font-editorial: Georgia, "Times New Roman", serif;
+  --button-primary-background: linear-gradient(135deg, #211813 0%, #302019 55%, #3a281e 100%);
+  --button-primary-foreground: #fffaf4;
+  --button-primary-shadow: 0 2px 2px rgba(255, 255, 255, 0.08) inset, 0 9px 25px rgba(84, 50, 27, 0.11);
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -60,6 +73,137 @@ select {
 
 button {
   cursor: pointer;
+}
+
+.user-paper-page {
+  background: var(--surface-paper);
+  color: var(--text-strong);
+}
+
+.portal-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  height: auto;
+  padding: 12px 20px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  box-shadow: none;
+  text-decoration: none;
+  transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.portal-button--primary {
+  background: var(--button-primary-background);
+  color: var(--button-primary-foreground);
+  box-shadow: var(--button-primary-shadow);
+}
+
+.portal-button--primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.portal-button--secondary {
+  position: relative;
+  padding-inline: 0;
+  color: var(--ink);
+}
+
+.portal-button--secondary::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 9px;
+  height: 1px;
+  background: rgba(46, 32, 24, 0.62);
+}
+
+.portal-button--outline,
+.portal-button--choice {
+  border-color: var(--line);
+  background: var(--surface-card);
+}
+
+.portal-button--outline:hover:not(:disabled),
+.portal-button--choice:hover:not(:disabled),
+.portal-button--quiet:hover:not(:disabled) {
+  background: var(--surface-subtle);
+}
+
+.portal-button--choice[aria-pressed="true"] {
+  border-color: var(--accent-deep);
+  background: var(--surface-subtle);
+  color: var(--accent-deep);
+}
+
+.portal-button--tab {
+  padding-inline: 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--text-secondary);
+}
+
+.portal-button--tab[aria-pressed="true"] {
+  border-bottom-color: var(--accent-deep);
+  color: var(--accent-deep);
+}
+
+.portal-button--hero {
+  justify-content: space-between;
+  gap: 30px;
+  min-height: 44px;
+  padding: 16px 20px;
+  border: 0;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.portal-button--primary.portal-button--hero { min-width: 176px; }
+.portal-button--secondary.portal-button--hero { padding: 15px 0; }
+.portal-button--secondary.portal-button--hero::after { right: 30px; }
+.portal-button--compact { min-width: 44px; min-height: 44px; padding: 10px 12px; font-size: 13px; }
+.portal-button:disabled { opacity: 0.6; cursor: not-allowed; }
+.portal-button:focus-visible,
+.portal-input:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 4px; }
+
+.portal-panel {
+  min-width: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--surface-card);
+}
+
+.portal-input {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--surface-card);
+  color: var(--text-strong);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+textarea.portal-input { min-height: 220px; resize: vertical; }
+.portal-input::placeholder { color: var(--text-secondary); opacity: 1; }
+.portal-field-label { display: block; margin-bottom: 8px; color: var(--text-strong); font-size: 13px; font-weight: 500; line-height: 1.6; }
+.portal-help-text { margin: 8px 0 0; color: var(--text-secondary); font-size: 13px; line-height: 1.65; }
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-button { transition: none; }
 }
 
 ::selection {
