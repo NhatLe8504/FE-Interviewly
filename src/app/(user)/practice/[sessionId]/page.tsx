@@ -1,12 +1,10 @@
 ﻿"use client";
 
-import { use, useEffect, useState, useMemo, KeyboardEvent, useRef } from "react";
-import Link from "next/link";
+import { use, useEffect, useState, useMemo, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
   Mic,
-  MicOff,
   Keyboard,
   Send,
   StopCircle,
@@ -20,15 +18,14 @@ import {
   Wifi,
   WifiOff,
   AlertCircle,
-  HelpCircle,
-  Square,
   FastForward,
   RotateCcw,
 } from "lucide-react";
 import { useRealtimeVoiceInterview } from "@/hooks/useRealtimeVoiceInterview";
+import { useVoiceAnswerDraft } from "@/hooks/useVoiceAnswerDraft";
 import type { StageConfigIn } from "@/types/interview";
 import { ChromaVideoCanvas } from "./components/ChromaVideoCanvas";
-import { AudioWaveformVisualizer } from "./components/AudioWaveformVisualizer";
+import { VoiceAnswerPanel } from "./components/VoiceAnswerPanel";
 import { InterviewStagesTimeline } from "./components/InterviewStagesTimeline";
 import { StarGuidanceDrawer } from "./components/StarGuidanceDrawer";
 import { ConversationTimelineDrawer } from "./components/ConversationTimelineDrawer";
@@ -60,15 +57,22 @@ export default function InterviewRoomPage({
 
   const [isClientMounted, setIsClientMounted] = useState(false);
   const [meta, setMeta] = useState<SessionMetaStored>({});
+  const [currentMode, setCurrentMode] = useState<"voice" | "text">("voice");
+  const [typedText, setTypedText] = useState("");
+  const isVoiceMode = currentMode === "voice";
 
   useEffect(() => {
-    setIsClientMounted(true);
     try {
       const raw = sessionStorage.getItem(`session_metadata_${sessionId}`);
-      if (raw) setMeta(JSON.parse(raw));
+      if (raw) {
+        const stored: SessionMetaStored = JSON.parse(raw);
+        setMeta(stored);
+        setCurrentMode(stored.mode === "text" ? "text" : "voice");
+      }
     } catch {
       // ignore
     }
+    setIsClientMounted(true);
   }, [sessionId]);
 
   const roleName = meta.roleLabel || "Software Engineer";
@@ -86,36 +90,26 @@ export default function InterviewRoomPage({
     error,
     sessionDurationSeconds,
     currentStage,
-    stagesList,
     turnId,
     turnInStage,
     targetTurnsInStage,
     currentQuestion,
     currentSubtitle,
-    candidateTranscript,
-    interimTranscript,
     turns,
-    volume,
     isAudioPlaying,
     isAudioMuted,
     audioBlockedByAutoplay,
-    isMicActive,
-    micPermissionDenied,
-    sttSupported,
-    bargeInEnabled,
-    toggleBargeIn,
-    toggleMic,
     toggleAudioMute,
     resumeAudio,
     sendTextMessage,
     interruptAi,
-    commitCandidateAnswer,
     skipToNextStage,
     endSessionEarly,
     currentIntent,
     rerollQuestion,
   } = useRealtimeVoiceInterview({
     sessionId,
+    enabled: isClientMounted,
     roleName,
     level,
     language,
@@ -124,11 +118,14 @@ export default function InterviewRoomPage({
     bargeInInitial: meta.bargeInEnabled ?? false,
   });
 
-  const [currentMode, setCurrentMode] = useState<"voice" | "text">(
-    meta.mode === "text" ? "text" : "voice"
-  );
-  const [typedText, setTypedText] = useState("");
-  const isVoiceMode = currentMode === "voice";
+  const canAnswer = isConnected && aiState === "listening" && !isAudioPlaying && !isCompleted;
+  const voiceDraft = useVoiceAnswerDraft({
+    enabled: isClientMounted && isVoiceMode && !isCompleted,
+    canRecord: canAnswer,
+    language,
+    onSubmit: sendTextMessage,
+  });
+  const canSendText = canAnswer && !["requesting", "recording", "processing"].includes(voiceDraft.state);
 
   // Character Persona
   const isLeadLevel =
@@ -161,9 +158,11 @@ export default function InterviewRoomPage({
 
   const handleSendText = () => {
     const clean = typedText.trim();
-    if (!clean) return;
-    sendTextMessage(clean);
-    setTypedText("");
+    if (!clean || !canSendText) return;
+    if (sendTextMessage(clean)) {
+      setTypedText("");
+      voiceDraft.discard();
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -256,7 +255,7 @@ export default function InterviewRoomPage({
               }}
             />
             <Mic size={12} />
-            <span>AI Đang Lắng Nghe Bạn Nói...</span>
+            <span>{voiceDraft.state === "recording" ? "Đang thu câu trả lời" : voiceDraft.state === "review" ? "Chờ bạn gửi câu trả lời" : "Sẵn sàng nhận câu trả lời"}</span>
           </span>
         );
       case "thinking":
@@ -332,6 +331,14 @@ export default function InterviewRoomPage({
 
   return (
     <div className={styles.roomShell}>
+      <header className={styles.roomHeading}>
+        <div>
+          <span className={styles.roomEyebrow}>INTERVIEWLY / PHÒNG LUYỆN TẬP</span>
+          <h1>Luyện phỏng vấn theo nhịp của bạn</h1>
+          <p>Nghe câu hỏi. Thu câu trả lời. Chỉ gửi khi bạn đã sẵn sàng.</p>
+        </div>
+        <span className={styles.sessionModeBadge}>{isVoiceMode ? <Mic size={16} /> : <Keyboard size={16} />}{isVoiceMode ? "Giọng nói" : "Văn bản"}</span>
+      </header>
       {/* Side Drawers */}
       <ConversationTimelineDrawer
         turns={turns.map((t) => ({
@@ -344,9 +351,10 @@ export default function InterviewRoomPage({
       />
       <StarGuidanceDrawer
         starTip="Tập trung trả lời theo cấu trúc STAR: Situation (Bối cảnh) → Task (Nhiệm vụ) → Action (Hành động) → Result (Kết quả định lượng)."
-        onInsertStarter={(starter) =>
+        onInsertStarter={(starter) => {
+          setCurrentMode("text");
           setTypedText((prev) => (prev ? `${prev}\n\n${starter}` : starter))
-        }
+        }}
       />
 
       {/* Main Card */}
@@ -373,6 +381,7 @@ export default function InterviewRoomPage({
               <button
                 type="button"
                 onClick={skipToNextStage}
+                disabled={!canAnswer || voiceDraft.state !== "idle"}
                 style={{
                   marginTop: "10px",
                   display: "inline-flex",
@@ -409,8 +418,8 @@ export default function InterviewRoomPage({
                   isPlaying={isAudioPlaying || aiState === "speaking"}
                   fallbackImageUrl={persona.avatarUrl}
                   characterName={persona.name}
-                  width={240}
-                  height={240}
+                  width={180}
+                  height={180}
                 />
               ) : (
                 <div className={styles.textModeAvatarBox}>
@@ -468,7 +477,7 @@ export default function InterviewRoomPage({
                   title="Chế độ Giọng nói"
                 >
                   <Mic size={12} />
-                  <span>Voice</span>
+                  <span>Giọng nói</span>
                 </button>
                 <button
                   type="button"
@@ -477,40 +486,13 @@ export default function InterviewRoomPage({
                   title="Chế độ Văn bản"
                 >
                   <Keyboard size={12} />
-                  <span>Text</span>
+                  <span>Văn bản</span>
                 </button>
               </div>
 
-              {/* Barge-in Toggle */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "6px 10px",
-                  borderRadius: "10px",
-                  background: bargeInEnabled
-                    ? "rgba(217, 130, 54, 0.1)"
-                    : "rgba(106, 72, 49, 0.05)",
-                  border: "1px solid rgba(106, 72, 49, 0.1)",
-                  fontSize: "11px",
-                  cursor: "pointer",
-                }}
-                onClick={toggleBargeIn}
-                title="Cho phép nói để chen ngang khi AI đang nói"
-              >
-                <span style={{ fontWeight: "700", color: "#8b4513" }}>Barge-in (Ngắt lời):</span>
-                <span
-                  style={{
-                    fontWeight: "800",
-                    color: bargeInEnabled ? "#d98236" : "rgba(33,25,20,0.4)",
-                  }}
-                >
-                  {bargeInEnabled ? "BẬT" : "TẮT"}
-                </span>
-              </div>
 
               {/* Speaker Mute Toggle */}
+              {audioBlockedByAutoplay && <button type="button" className={styles.audioResumeButton} onClick={() => void resumeAudio()}><Volume2 size={17} />Bật tiếng AI để nghe câu hỏi</button>}
               <button
                 type="button"
                 onClick={toggleAudioMute}
@@ -596,6 +578,7 @@ export default function InterviewRoomPage({
                 <button
                   type="button"
                   onClick={rerollQuestion}
+                  disabled={voiceDraft.state !== "idle"}
                   title="Yêu cầu AI đổi tình huống / câu hỏi khác trong ngân hàng đã duyệt"
                   style={{
                     display: "inline-flex",
@@ -616,17 +599,6 @@ export default function InterviewRoomPage({
                 </button>
               )}
 
-              {/* Audio Waveform when Mic is active */}
-              {isVoiceMode && isMicActive && (
-                <div style={{ width: "100px", height: "24px" }}>
-                  <AudioWaveformVisualizer
-                    isRecording={aiState === "listening" || Boolean(interimTranscript)}
-                    volume={volume}
-                    barCount={16}
-                    height={24}
-                  />
-                </div>
-              )}
             </div>
           </div>
 
@@ -648,7 +620,7 @@ export default function InterviewRoomPage({
                 width: "fit-content",
               }}
             >
-              <span>🎯 Chủ đề kiểm tra:</span>
+              <span>Chủ đề kiểm tra:</span>
               <span style={{ color: "#211914", fontWeight: "800" }}>
                 {currentIntent.topic_label || currentIntent.intent}
               </span>
@@ -661,59 +633,14 @@ export default function InterviewRoomPage({
           {/* Currently Spoken AI Subtitle */}
           <p className={styles.subtitleSpeechText}>
             &ldquo;
-            {currentSubtitle ||
-              currentQuestion ||
+            {currentQuestion ||
+              currentSubtitle ||
               "Xin chào, AI đang chuẩn bị câu hỏi mở đầu cho bạn..."}
             &rdquo;
             {aiState === "speaking" && <span className={styles.typewriterCursor} />}
           </p>
+          {currentSubtitle && (isAudioPlaying || aiState === "speaking") && <p className={styles.spokenCaption}>Đang nói: {currentSubtitle}</p>}
 
-          {/* Realtime Candidate Speech Preview (STT feedback - Xiaozhi VAD model) */}
-          {(interimTranscript || candidateTranscript) && (
-            <div
-              style={{
-                marginTop: "8px",
-                padding: "10px 14px",
-                borderRadius: "12px",
-                background: "rgba(16, 185, 129, 0.08)",
-                border: "1px solid rgba(16, 185, 129, 0.35)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "10px",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
-                <Mic size={15} className="text-[#059669] flex-shrink-0 animate-pulse" />
-                <div style={{ fontSize: "13px", color: "#065f46", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  <strong>Bạn: </strong>
-                  <span>{interimTranscript || candidateTranscript}</span>
-                </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
-                <span style={{ fontSize: "11px", color: "#047857", background: "rgba(16, 185, 129, 0.15)", padding: "2px 8px", borderRadius: "8px" }}>
-                  Đang lắng nghe... ngừng 1.5s để gửi
-                </span>
-                <button
-                  type="button"
-                  onClick={commitCandidateAnswer}
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: "6px",
-                    background: "#059669",
-                    color: "#ffffff",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                  title="Nhấn để gửi câu trả lời ngay lập tức"
-                >
-                  Gửi ngay
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Error notice if any */}
           {error && (
@@ -741,98 +668,29 @@ export default function InterviewRoomPage({
             CANDIDATE RESPONSE CONSOLE (VOICE + TEXT INPUT)
         ========================================================= */}
         {!isCompleted ? (
-          <div className={styles.responseConsole}>
-            <div className={styles.consoleTopBar}>
-              <span className={styles.consoleHint}>
-                {isVoiceMode
-                  ? "🎙️ Hãy nói tự nhiên vào micro. Hệ thống sẽ nhận diện giọng nói và phản hồi ngay lập tức."
-                  : "⌨️ Nhập câu trả lời của bạn bên dưới và nhấn Ctrl+Enter hoặc nút Gửi."}
-              </span>
-
-              {/* Interrupt AI Button (Xiaozhi Abort / Barge-in) */}
-              {isVoiceMode && (aiState === "speaking" || isAudioPlaying) && (
-                <button
-                  type="button"
-                  onClick={interruptAi}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "5px",
-                    padding: "4px 12px",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                    fontWeight: "700",
-                    background: "#ef4444",
-                    color: "#ffffff",
-                    border: "none",
-                    cursor: "pointer",
-                    boxShadow: "0 2px 6px rgba(239, 68, 68, 0.3)",
-                  }}
-                  title="Ngắt lời AI và bắt đầu nói ngay lập tức (phím Space)"
-                >
-                  <Square size={12} fill="currentColor" />
-                  <span>✋ Ngắt lời (Space)</span>
-                </button>
-              )}
-
-              {/* Mic Toggle Button */}
-              {isVoiceMode && (
-                <button
-                  type="button"
-                  onClick={toggleMic}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "5px",
-                    padding: "4px 10px",
-                    borderRadius: "8px",
-                    fontSize: "11px",
-                    fontWeight: "700",
-                    background: isMicActive
-                      ? "rgba(16, 185, 129, 0.12)"
-                      : "rgba(239, 68, 68, 0.12)",
-                    color: isMicActive ? "#059669" : "#dc2626",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  {isMicActive ? <Mic size={12} /> : <MicOff size={12} />}
-                  <span>{isMicActive ? "Micro: Bật" : "Micro: Tắt"}</span>
-                </button>
-              )}
-            </div>
-
-            {/* Hybrid Input Box */}
-            <div className={styles.inputAreaWrapper}>
-              <textarea
-                className={styles.candidateTextarea}
-                placeholder={
-                  isVoiceMode
-                    ? "Giọng nói của bạn sẽ tự động hiển thị ở đây... (Bạn cũng có thể gõ thêm văn bản tại đây)"
-                    : "Nhập câu trả lời chi tiết của bạn tại đây..."
-                }
-                value={typedText}
-                onChange={(e) => setTypedText(e.target.value)}
-                onKeyDown={handleKeyDown}
-                rows={2}
-              />
-
-              <div className={styles.inputActionRow}>
-                <span className={styles.charCounter}>Ctrl + Enter để gửi</span>
-
-                <button
-                  type="button"
-                  className={styles.btnSubmitAnswer}
-                  onClick={handleSendText}
-                  disabled={!typedText.trim()}
-                  title="Gửi câu trả lời"
-                >
-                  <span>Gửi câu trả lời</span>
-                  <Send size={13} />
-                </button>
+          isVoiceMode ? (
+            <VoiceAnswerPanel
+              draft={voiceDraft}
+              canRecord={canAnswer}
+              isConnected={isConnected}
+              isAiSpeaking={aiState === "speaking" || isAudioPlaying}
+              onInterrupt={interruptAi}
+              onSwitchToText={() => setCurrentMode("text")}
+            />
+          ) : (
+            <section className={styles.responseConsole} aria-labelledby="text-answer-title">
+              <div className={styles.consoleTopBar}>
+                <label id="text-answer-title" htmlFor="typed-answer" className={styles.consoleHint}>Câu trả lời của bạn • Chỉ gửi khi bạn đã sẵn sàng</label>
               </div>
-            </div>
-          </div>
+              <div className={styles.inputAreaWrapper}>
+                <textarea id="typed-answer" className={styles.candidateTextarea} placeholder="Nhập câu trả lời chi tiết của bạn…" value={typedText} onChange={(event) => setTypedText(event.target.value)} onKeyDown={handleKeyDown} rows={4} />
+                <div className={styles.inputActionRow}>
+                  <span className={styles.charCounter}>{canSendText ? "Ctrl / ⌘ + Enter để gửi" : "Đợi AI nói xong để gửi câu trả lời"}</span>
+                  <button type="button" className={styles.btnSubmitAnswer} onClick={handleSendText} disabled={!typedText.trim() || !canSendText}><span>Gửi câu trả lời</span><Send size={16} /></button>
+                </div>
+              </div>
+            </section>
+          )
         ) : (
           /* When interview is completed */
           <div
@@ -865,8 +723,7 @@ export default function InterviewRoomPage({
               Chúc mừng bạn đã hoàn thành buổi phỏng vấn!
             </h3>
             <p style={{ fontSize: "13px", color: "rgba(6, 95, 70, 0.8)", margin: 0, maxWidth: "500px" }}>
-              Tất cả các câu trả lời qua giọng nói của bạn đã được ghi nhận. Báo cáo đánh giá
-              Rubric và STAR đang được tổng hợp.
+              Bạn đã kết thúc phiên luyện tập. Có thể mở trang kết quả để xem dữ liệu hiện có của phiên.
             </p>
             <button
               type="button"
