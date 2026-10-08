@@ -1,269 +1,158 @@
 "use client";
 
-import React from "react";
-import { Search, X, RotateCcw, MapPin, Briefcase, Globe, Layers, ArrowUpDown, Sparkles } from "lucide-react";
+import { Search, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BrandIcon } from "@/components/user-component/common/BrandIcon";
+import { getBrandLabel } from "@/lib/brand-icons";
+import { SENIORITY_LABELS, WORKPLACE_LABELS } from "@/lib/job-presentation";
 import styles from "./jobs.module.css";
 
 interface JobFiltersProps {
   keyword: string;
-  onKeywordChange: (val: string) => void;
+  onKeywordChange: (value: string) => void;
   seniority: string;
-  onSeniorityChange: (val: string) => void;
+  onSeniorityChange: (value: string) => void;
   workplaceType: string;
-  onWorkplaceTypeChange: (val: string) => void;
+  onWorkplaceTypeChange: (value: string) => void;
   technology: string;
-  onTechnologyChange: (val: string) => void;
+  onTechnologyChange: (value: string) => void;
   location: string;
-  onLocationChange: (val: string) => void;
+  onLocationChange: (value: string) => void;
+  countryCode: string;
+  onCountryCodeChange: (value: string) => void;
   sourceId: string;
-  onSourceIdChange: (val: string) => void;
+  onSourceIdChange: (value: string) => void;
   sortBy: string;
-  onSortByChange: (val: string) => void;
+  onSortByChange: (value: string) => void;
   onResetFilters: () => void;
   hasActiveFilters: boolean;
   totalCount: number;
+  loading?: boolean;
+  resultsError?: boolean;
+  metadataLoading?: boolean;
+  metadataError?: boolean;
   topTechnologies?: string[];
   locations?: string[];
+  countries?: { id: string; name: string }[];
   sources?: { id: string; name: string }[];
   sortOptions?: { id: string; name: string }[];
 }
 
-const DEFAULT_TECHS = [
-  "Java", "React", "Golang", "Python", "TypeScript", "Node.js", "Spring Boot", "Kafka", "PostgreSQL", "Docker", "AWS"
+const SORT_OPTIONS = [
+  { id: "recent", name: "Mới cập nhật dữ liệu" },
+  { id: "posted", name: "Mới đăng tuyển" },
+  { id: "title_asc", name: "Tên công việc A – Z" },
 ];
-
-const DEFAULT_LOCATIONS = [
-  "Việt Nam",
-  "Hà Nội",
-  "Hồ Chí Minh City",
-  "Đà Nẵng",
-  "Remote",
-  "Bắc Mỹ",
-  "Châu Âu",
-  "Châu Á",
-];
-
-const DEFAULT_SOURCES = [
-  { id: "topcv", name: "TopCV" },
-  { id: "itviec", name: "ITviec" },
-  { id: "vietnamworks", name: "VietnamWorks" },
-  { id: "vng", name: "VNG Careers" },
-  { id: "linkedin", name: "LinkedIn" },
-  { id: "greenhouse", name: "Greenhouse" },
-  { id: "lever", name: "Lever" },
-];
-
-const DEFAULT_SORT_OPTIONS = [
-  { id: "recent", name: "Mới cập nhật nhất" },
-  { id: "posted", name: "Mới đăng gần đây" },
-  { id: "salary_desc", name: "Lương cao nhất" },
-  { id: "title_asc", name: "Tiêu đề A - Z" },
-];
-
-const SENIORITY_LABELS: Record<string, string> = {
-  "": "Tất cả cấp bậc",
-  intern: "Intern (Thực tập)",
-  fresher: "Fresher (Mới tốt nghiệp)",
-  junior: "Junior (1-2 năm)",
-  mid: "Middle (2-4 năm)",
-  senior: "Senior (4+ năm)",
-  lead: "Lead / Trưởng nhóm",
-};
-
-const WORKPLACE_LABELS: Record<string, string> = {
-  "": "Tất cả hình thức",
-  remote: "Remote (Làm từ xa)",
-  hybrid: "Hybrid (Linh hoạt)",
-  on_site: "Tại văn phòng (On-site)",
-};
 
 export function JobFilters({
-  keyword,
-  onKeywordChange,
-  seniority,
-  onSeniorityChange,
-  workplaceType,
-  onWorkplaceTypeChange,
-  technology,
-  onTechnologyChange,
-  location,
-  onLocationChange,
-  sourceId,
-  onSourceIdChange,
-  sortBy,
-  onSortByChange,
-  onResetFilters,
-  hasActiveFilters,
-  totalCount,
-  topTechnologies = DEFAULT_TECHS,
-  locations = DEFAULT_LOCATIONS,
-  sources = DEFAULT_SOURCES,
-  sortOptions = DEFAULT_SORT_OPTIONS,
+  keyword, onKeywordChange, seniority, onSeniorityChange, workplaceType, onWorkplaceTypeChange,
+  technology, onTechnologyChange, location, onLocationChange, countryCode, onCountryCodeChange,
+  sourceId, onSourceIdChange, sortBy, onSortByChange, onResetFilters, hasActiveFilters, totalCount,
+  loading = false, resultsError = false, metadataLoading = false, metadataError = false,
+  topTechnologies = [], locations = [], countries = [], sources = [], sortOptions = SORT_OPTIONS,
 }: JobFiltersProps) {
+  const quickTechnologies = topTechnologies.slice(0, 6);
+  if (technology && !quickTechnologies.includes(technology)) quickTechnologies.push(technology);
+  const advancedCount = [location, seniority, workplaceType].filter(Boolean).length;
+
   return (
-    <div className={styles.filterPanel}>
-      {/* Primary Row: Sleek Search Bar */}
+    <section className={styles.filterPanel} aria-label="Tìm kiếm và lọc việc làm">
       <div className={styles.searchBarRow}>
         <div className={styles.searchBox}>
-          <Search className={styles.searchIcon} />
-          <input
-            type="text"
-            placeholder="Tìm theo vị trí, công ty hoặc từ khóa công nghệ..."
+          <Search className={styles.searchIcon} aria-hidden="true" />
+          <Input
+            id="jobs-search"
+            type="search"
+            aria-label="Tìm theo vị trí, công ty hoặc công nghệ"
+            placeholder="Vị trí, công ty hoặc công nghệ bạn quan tâm"
             className={styles.searchInput}
             value={keyword}
-            onChange={(e) => onKeywordChange(e.target.value)}
+            onChange={(event) => onKeywordChange(event.target.value)}
           />
           {keyword && (
-            <button
-              type="button"
-              className={styles.clearSearchBtn}
-              onClick={() => onKeywordChange("")}
-              title="Xóa tìm kiếm"
-            >
-              <X className="w-4 h-4 text-stone-400 hover:text-stone-700" />
-            </button>
+            <Button type="button" variant="home-quiet" size="icon-sm" className={styles.clearSearchBtn} onClick={() => onKeywordChange("")} aria-label="Xóa từ khóa tìm kiếm">
+              <X className="size-4" aria-hidden="true" />
+            </Button>
           )}
         </div>
-
-        {hasActiveFilters && (
-          <button
-            type="button"
-            className={styles.resetBtn}
-            onClick={onResetFilters}
-            title="Xóa tất cả bộ lọc"
-          >
-            <RotateCcw className="w-3.5 h-3.5 mr-1 text-[#d98236]" />
-            <span>Đặt lại</span>
-          </button>
-        )}
+        {hasActiveFilters && <Button type="button" variant="home-quiet" size="home-compact" onClick={onResetFilters}>Xóa bộ lọc</Button>}
       </div>
 
-      {/* Secondary Row: Compact Dropdown Filters */}
-      <div className={styles.dropdownsGrid}>
-        {/* Địa điểm / Quốc gia */}
-        <div className={styles.filterControl}>
-          <label className={styles.controlLabel}>
-            <MapPin className="w-3.5 h-3.5 text-[#d98236]" />
-            <span>Địa điểm</span>
-          </label>
-          <select
-            className={styles.selectBox}
-            value={location}
-            onChange={(e) => onLocationChange(e.target.value)}
-          >
-            <option value="">Tất cả địa điểm</option>
-            {locations.map((loc) => (
-              <option key={loc} value={loc}>
-                {loc}
-              </option>
-            ))}
+      <div className={styles.primaryFilters}>
+        <div className={styles.countryControl}>
+          <label className={styles.controlLabel} htmlFor="jobs-country">Thị trường tuyển dụng</label>
+          <select id="jobs-country" className={styles.selectBox} value={countryCode} onChange={(event) => onCountryCodeChange(event.target.value)}>
+            <option value="VN">Việt Nam & remote toàn cầu</option>
+            <option value="">Tất cả quốc gia</option>
+            {countries.filter((country) => country.id !== "VN").map((country) => <option key={country.id} value={country.id}>{country.name}</option>)}
           </select>
         </div>
-
-        {/* Cấp bậc */}
         <div className={styles.filterControl}>
-          <label className={styles.controlLabel}>
-            <Briefcase className="w-3.5 h-3.5 text-[#d98236]" />
-            <span>Cấp bậc</span>
-          </label>
-          <select
-            className={styles.selectBox}
-            value={seniority}
-            onChange={(e) => onSeniorityChange(e.target.value)}
-          >
-            {Object.entries(SENIORITY_LABELS).map(([val, label]) => (
-              <option key={val} value={val}>
-                {label}
-              </option>
-            ))}
-          </select>
+          <label id="jobs-source-label" className={styles.controlLabel}>Nguồn tuyển dụng</label>
+          <Select value={sourceId || "all"} onValueChange={(value) => onSourceIdChange(value === "all" ? "" : value)} disabled={metadataLoading}>
+            <SelectTrigger className={styles.sourceTrigger} aria-labelledby="jobs-source-label"><SelectValue /></SelectTrigger>
+            <SelectContent className={styles.sourceMenu}>
+              <SelectItem value="all" textValue="Tất cả nguồn">Tất cả nguồn</SelectItem>
+              {sources.map((source) => (
+                <SelectItem key={source.id} value={source.id} textValue={source.name}>
+                  <span className={styles.sourceOption}><BrandIcon name={source.id} size={18} />{source.name}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-
-        {/* Hình thức */}
         <div className={styles.filterControl}>
-          <label className={styles.controlLabel}>
-            <Globe className="w-3.5 h-3.5 text-[#d98236]" />
-            <span>Hình thức</span>
-          </label>
-          <select
-            className={styles.selectBox}
-            value={workplaceType}
-            onChange={(e) => onWorkplaceTypeChange(e.target.value)}
-          >
-            {Object.entries(WORKPLACE_LABELS).map(([val, label]) => (
-              <option key={val} value={val}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Nguồn tuyển */}
-        <div className={styles.filterControl}>
-          <label className={styles.controlLabel}>
-            <Layers className="w-3.5 h-3.5 text-[#d98236]" />
-            <span>Nguồn tin</span>
-          </label>
-          <select
-            className={styles.selectBox}
-            value={sourceId}
-            onChange={(e) => onSourceIdChange(e.target.value)}
-          >
-            <option value="">Tất cả nguồn tin</option>
-            {sources.map((src) => (
-              <option key={src.id} value={src.id}>
-                {src.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Sắp xếp */}
-        <div className={styles.filterControl}>
-          <label className={styles.controlLabel}>
-            <ArrowUpDown className="w-3.5 h-3.5 text-[#d98236]" />
-            <span>Sắp xếp</span>
-          </label>
-          <select
-            className={styles.selectBox}
-            value={sortBy}
-            onChange={(e) => onSortByChange(e.target.value)}
-          >
-            {sortOptions.map((opt) => (
-              <option key={opt.id} value={opt.id}>
-                {opt.name}
-              </option>
-            ))}
+          <label className={styles.controlLabel} htmlFor="jobs-sort">Sắp xếp theo</label>
+          <select id="jobs-sort" className={styles.selectBox} value={sortBy} onChange={(event) => onSortByChange(event.target.value)}>
+            {(sortOptions.length ? sortOptions : SORT_OPTIONS).map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
           </select>
         </div>
       </div>
 
-      {/* Tertiary Row: Quick Tech Tags & Result Count */}
-      <div className={styles.tagsRow}>
+      <details className={styles.moreFilters}>
+        <summary>Thêm bộ lọc{advancedCount > 0 && <span> · {advancedCount} đang chọn</span>}</summary>
+        <div className={styles.advancedFilters}>
+          <div className={styles.filterControl}>
+            <label className={styles.controlLabel} htmlFor="jobs-location">Địa điểm cụ thể</label>
+            <select id="jobs-location" className={styles.selectBox} value={location} onChange={(event) => onLocationChange(event.target.value)} disabled={metadataLoading}>
+              <option value="">Mọi địa điểm</option>
+              {locations.map((place) => <option key={place} value={place}>{place}</option>)}
+            </select>
+          </div>
+          <div className={styles.filterControl}>
+            <label className={styles.controlLabel} htmlFor="jobs-seniority">Cấp bậc</label>
+            <select id="jobs-seniority" className={styles.selectBox} value={seniority} onChange={(event) => onSeniorityChange(event.target.value)}>
+              <option value="">Mọi cấp bậc</option>
+              {Object.entries(SENIORITY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </div>
+          <div className={styles.filterControl}>
+            <label className={styles.controlLabel} htmlFor="jobs-workplace">Hình thức làm việc</label>
+            <select id="jobs-workplace" className={styles.selectBox} value={workplaceType} onChange={(event) => onWorkplaceTypeChange(event.target.value)}>
+              <option value="">Mọi hình thức</option>
+              {Object.entries(WORKPLACE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </div>
+        </div>
+      </details>
+
+      {metadataError && <p className={styles.filterNotice}>Chưa tải được các tùy chọn lọc. Bạn vẫn có thể tìm bằng từ khóa hoặc tải lại trang.</p>}
+      <div className={styles.filterFooter}>
         <div className={styles.techList}>
-          <span className={styles.tagsLabel}>
-            <Sparkles className="w-3.5 h-3.5 inline mr-1 text-[#d98236]" />
-            Công nghệ:
-          </span>
-          {topTechnologies.map((tech) => {
-            const active = technology.toLowerCase() === tech.toLowerCase();
-            return (
-              <button
-                key={tech}
-                type="button"
-                className={`${styles.tagPill} ${active ? styles.tagPillActive : ""}`}
-                onClick={() => onTechnologyChange(active ? "" : tech)}
-              >
-                {tech}
-              </button>
-            );
-          })}
+          {quickTechnologies.length > 0 && <span className={styles.tagsLabel}>Lọc nhanh</span>}
+          {quickTechnologies.map((technologyName) => (
+            <Button key={technologyName} type="button" variant="home-choice" size="home-compact" className={styles.tagPill}
+              aria-pressed={technology.toLowerCase() === technologyName.toLowerCase()}
+              onClick={() => onTechnologyChange(technology.toLowerCase() === technologyName.toLowerCase() ? "" : technologyName)}>
+              <BrandIcon name={technologyName} size={19} />{getBrandLabel(technologyName)}
+            </Button>
+          ))}
         </div>
-
-        <div className={styles.resultCounter}>
-          <span>Tìm thấy <strong>{totalCount}</strong> việc làm</span>
-        </div>
+        <p className={styles.resultCounter} role="status" aria-live="polite">{loading ? "Đang tìm việc làm…" : resultsError ? "Chưa tải được kết quả" : totalCount.toLocaleString("vi-VN") + " vị trí phù hợp"}</p>
       </div>
-    </div>
+      {sortBy === "posted" && <p className={styles.filterNotice}>Sắp xếp theo ngày đăng do nguồn cung cấp. Tin chưa có ngày đăng được xếp phía sau.</p>}
+    </section>
   );
 }
