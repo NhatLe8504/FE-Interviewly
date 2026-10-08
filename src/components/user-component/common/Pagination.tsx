@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import styles from "./Pagination.module.css";
 
 /* -------------------------------------------------------------------------- */
@@ -49,14 +50,16 @@ export function PaginationLink({
   ...props
 }: PaginationLinkProps) {
   return (
-    <button
+    <Button
       type="button"
+      variant={isActive ? "home-primary" : "home-outline"}
+      size="home-compact"
       aria-current={isActive ? "page" : undefined}
-      className={`${styles.btn} ${isActive ? styles.btnActive : ""} ${className}`}
+      className={className}
       {...props}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -70,15 +73,17 @@ export function PaginationPrevious({
   ...props
 }: PaginationNavButtonProps) {
   return (
-    <button
+    <Button
       type="button"
+      variant="home-outline"
+      size="home-compact"
       aria-label="Trang trước"
-      className={`${styles.btn} ${styles.btnNav} ${className}`}
+      className={className}
       {...props}
     >
-      <ChevronLeft size={14} />
+      <ChevronLeft size={14} aria-hidden="true" />
       <span>{label}</span>
-    </button>
+    </Button>
   );
 }
 
@@ -88,15 +93,17 @@ export function PaginationNext({
   ...props
 }: PaginationNavButtonProps) {
   return (
-    <button
+    <Button
       type="button"
+      variant="home-outline"
+      size="home-compact"
       aria-label="Trang kế tiếp"
-      className={`${styles.btn} ${styles.btnNav} ${className}`}
+      className={className}
       {...props}
     >
       <span>{label}</span>
-      <ChevronRight size={14} />
-    </button>
+      <ChevronRight size={14} aria-hidden="true" />
+    </Button>
   );
 }
 
@@ -129,6 +136,10 @@ export interface UserPaginationProps {
   className?: string;
   prevLabel?: string;
   nextLabel?: string;
+  itemLabel?: string;
+  disabled?: boolean;
+  controlsId?: string;
+  ariaLabel?: string;
 }
 
 export function UserPagination({
@@ -141,6 +152,10 @@ export function UserPagination({
   className = "",
   prevLabel = "Trước",
   nextLabel = "Sau",
+  itemLabel = "câu hỏi",
+  disabled = false,
+  controlsId,
+  ariaLabel = "Phân trang",
 }: UserPaginationProps) {
   if (totalPages <= 1 && !totalItems) {
     return null;
@@ -195,18 +210,19 @@ export function UserPagination({
             {totalItems > 0 ? `${startItem} - ${endItem}` : 0}
           </span>{" "}
           trong tổng số{" "}
-          <span className={styles.infoHighlight}>{totalItems}</span> câu hỏi
+          <span className={styles.infoHighlight}>{totalItems}</span> {itemLabel}
         </div>
       )}
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <Pagination>
+        <Pagination aria-label={ariaLabel}>
           <PaginationContent>
             {/* Previous Button */}
             <PaginationItem>
               <PaginationPrevious
-                disabled={currentPage <= 1}
+                disabled={disabled || currentPage <= 1}
+                aria-controls={controlsId}
                 onClick={() => onPageChange(currentPage - 1)}
                 label={prevLabel}
               />
@@ -226,6 +242,9 @@ export function UserPagination({
                 <PaginationItem key={page}>
                   <PaginationLink
                     isActive={page === currentPage}
+                    disabled={disabled}
+                    aria-label={`Trang ${page}`}
+                    aria-controls={controlsId}
                     onClick={() => onPageChange(page)}
                   >
                     {page}
@@ -237,7 +256,8 @@ export function UserPagination({
             {/* Next Button */}
             <PaginationItem>
               <PaginationNext
-                disabled={currentPage >= totalPages}
+                disabled={disabled || currentPage >= totalPages}
+                aria-controls={controlsId}
                 onClick={() => onPageChange(currentPage + 1)}
                 label={nextLabel}
               />

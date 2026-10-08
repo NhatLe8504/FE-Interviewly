@@ -47,58 +47,6 @@
   display: inline-flex;
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-width: 36px;
-  height: 36px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(106, 72, 49, 0.18);
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--ink, #211914);
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  text-decoration: none;
-}
-
-.btn:hover:not(:disabled) {
-  background: #ffffff;
-  transform: translateY(-1.5px);
-  border-color: rgba(106, 72, 49, 0.3);
-  box-shadow: 0 4px 12px rgba(84, 50, 27, 0.08);
-}
-
-.btnActive {
-  background: var(--ink, #211914) !important;
-  color: #fffaf4 !important;
-  border-color: var(--ink, #211914) !important;
-  box-shadow: 0 4px 14px rgba(33, 25, 20, 0.25);
-}
-
-.btnActive:hover {
-  transform: none;
-}
-
-.btnNav {
-  padding: 0 14px;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
 .ellipsis {
   display: inline-flex;
   align-items: center;
