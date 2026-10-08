@@ -8,7 +8,12 @@ import { JobDetail } from "@/types/job";
 import { Button } from "@/components/ui/button";
 import { JobQuickActionPanel } from "@/components/user-component/jobs/JobQuickActionPanel";
 import { JobThumbnail } from "@/components/user-component/jobs/JobThumbnail";
-import { ArrowLeft, Loader2, MapPin, Briefcase } from "lucide-react";
+import { JobSourceMark } from "@/components/user-component/jobs/JobSourceMark";
+import { JobDescription } from "@/components/user-component/jobs/JobDescription";
+import { BrandIcon } from "@/components/user-component/common/BrandIcon";
+import { formatJobTimestamp, getJobTechnologies, SENIORITY_LABELS, WORKPLACE_LABELS } from "@/lib/job-presentation";
+import { getBrandLabel } from "@/lib/brand-icons";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "@/components/user-component/toast";
 import styles from "./jobDetail.module.css";
 
@@ -21,28 +26,28 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
   const jobId = resolvedParams.id;
   const router = useRouter();
 
-  const [job, setJob] = useState<JobDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [jobResponse, setJobResponse] = useState<{ jobId: string; retryAttempt: number; job: JobDetail | null } | null>(null);
   const [isStarting, setIsStarting] = useState(false);
+  const [retryAttempt, setRetryAttempt] = useState(0);
+
+  const loading = jobResponse?.jobId !== jobId || jobResponse?.retryAttempt !== retryAttempt;
+  const job = loading ? null : jobResponse?.job;
 
   useEffect(() => {
     let mounted = true;
     jobsApi
       .getJobDetail(jobId)
       .then((data) => {
-        if (mounted) setJob(data);
+        if (mounted) setJobResponse({ jobId, retryAttempt, job: data });
       })
       .catch(() => {
-        toast.error("Không tìm thấy thông tin tin tuyển dụng này.");
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
+        if (mounted) setJobResponse({ jobId, retryAttempt, job: null });
       });
 
     return () => {
       mounted = false;
     };
-  }, [jobId]);
+  }, [jobId, retryAttempt]);
 
   const handleStartPractice = async () => {
     if (!job) return;
@@ -63,11 +68,9 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
 
   if (loading) {
     return (
-      <div className={styles.container}>
-        <div className="flex flex-col items-center justify-center py-28">
-          <Loader2 className="w-8 h-8 animate-spin text-amber-700 mb-3" />
-          <p className="text-sm font-medium text-stone-600">Đang tải thông tin chi tiết công việc...</p>
-        </div>
+      <div className={styles.container} role="status" aria-label="Đang tải chi tiết việc làm">
+        <span className="sr-only">Đang tải thông tin công việc…</span>
+        <div className={styles.loadingHeader} aria-hidden="true" /><div className={styles.loadingBody} aria-hidden="true" />
       </div>
     );
   }
@@ -75,97 +78,69 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
   if (!job) {
     return (
       <div className={styles.container}>
-        <div className="text-center py-24 bg-white rounded-2xl border border-stone-200 shadow-sm">
-          <h2 className="text-lg font-bold text-stone-800 mb-2">Không tìm thấy tin tuyển dụng</h2>
-          <p className="text-sm text-stone-500 mb-4">Tin tuyển dụng này có thể đã hết hạn hoặc bị xóa.</p>
-          <Link href="/jobs">
-            <Button variant="home-primary">Quay lại danh sách</Button>
-          </Link>
-        </div>
+        <section className={styles.unavailable}>
+          <h1>Chưa mở được tin tuyển dụng</h1>
+          <p>Tin có thể đã hết hạn, bị gỡ hoặc máy chủ chưa phản hồi. Thử lại hoặc khám phá một cơ hội khác.</p>
+          <div className={styles.unavailableActions}>
+            <Button type="button" variant="home-primary" onClick={() => setRetryAttempt((previous) => previous + 1)}>Thử lại</Button>
+            <Button asChild variant="home-secondary"><Link href="/jobs">Danh sách việc làm</Link></Button>
+          </div>
+        </section>
       </div>
     );
   }
 
+  const postedTime = formatJobTimestamp(job.posted_at, "posted");
+  const syncedTime = formatJobTimestamp(job.last_synced_at, "synced");
+  const technologies = getJobTechnologies(job);
+  const employmentLabels: Record<string, string> = { full_time: "Toàn thời gian", part_time: "Bán thời gian", contract: "Hợp đồng", internship: "Thực tập" };
+
   return (
     <div className={styles.container}>
-      <div className={styles.backButton}>
-        <Link href="/jobs">
-          <Button variant="home-secondary" size="sm">
-            <ArrowLeft className="w-4 h-4 mr-1.5" />
-            Quay lại danh sách việc làm
-          </Button>
-        </Link>
-      </div>
-
+      <nav className={styles.backButton} aria-label="Điều hướng việc làm">
+        <Button asChild variant="home-quiet" size="home-compact"><Link href="/jobs"><ArrowLeft className="size-4" aria-hidden="true" />Tất cả việc làm</Link></Button>
+      </nav>
       <div className={styles.layout}>
-        <div className={styles.mainContent}>
-          {/* Top Wide Banner */}
+        <section className={styles.headerCard} aria-labelledby="job-detail-title">
           <JobThumbnail job={job} aspectRatio="wide" />
-
-          <div className={styles.detailBody}>
-            <div className={styles.header}>
-              <h1 className={styles.title}>{job.title}</h1>
-              <div className={styles.companyInfo}>
-                {job.company?.company_name || "Nhà tuyển dụng"}
-              </div>
-              <div className={styles.badges}>
-                <span className={styles.salaryHighlight}>{job.salary_display}</span>
-                <span className={styles.metaBadge}>
-                  <MapPin className="inline-block w-3.5 h-3.5 mr-1 text-stone-400" />
-                  {job.location || "Việt Nam"}
-                </span>
-                <span className={styles.metaBadge}>
-                  <Briefcase className="inline-block w-3.5 h-3.5 mr-1 text-stone-400" />
-                  {job.seniority.toUpperCase()} ({job.workplace_type})
-                </span>
-                {job.via_source && (
-                  <span className={styles.metaBadge}>
-                    {job.via_source}
-                  </span>
-                )}
-              </div>
+          <div className={styles.headerBody}>
+            <div className={styles.sourceRow}>
+              <JobSourceMark job={job} />
+              {postedTime ? <time dateTime={postedTime.dateTime} title={postedTime.title}>{postedTime.label}</time> : <span>Nguồn chưa cung cấp ngày đăng</span>}
             </div>
-
-            <h2 className={styles.sectionTitle}>Mô tả công việc & Yêu cầu chi tiết</h2>
-            <div className={styles.descriptionText}>
-              {job.cleaned_jd_text || job.raw_description}
-            </div>
-
-            {job.skills_required && job.skills_required.length > 0 && (
-              <>
-                <h2 className={styles.sectionTitle}>Kỹ năng trọng tâm</h2>
-                <div className={styles.tagsGrid}>
-                  {job.skills_required.map((skill) => (
-                    <span key={skill} className={styles.tag}>
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {job.technologies && job.technologies.length > 0 && (
-              <>
-                <h2 className={styles.sectionTitle}>Công nghệ liên quan</h2>
-                <div className={styles.tagsGrid}>
-                  {job.technologies.map((tech) => (
-                    <span key={tech} className={styles.tag}>
-                      {tech}
-                    </span>
-                  ))}
-                </div>
-              </>
-            )}
+            <h1 id="job-detail-title" className={styles.title}>{job.title}</h1>
+            <dl className={styles.factsGrid}>
+              <div><dt>Địa điểm</dt><dd>{job.location || "Chưa công bố"}</dd></div>
+              {SENIORITY_LABELS[job.seniority] && <div><dt>Cấp bậc</dt><dd>{SENIORITY_LABELS[job.seniority]}</dd></div>}
+              {WORKPLACE_LABELS[job.workplace_type] && <div><dt>Hình thức</dt><dd>{WORKPLACE_LABELS[job.workplace_type]}</dd></div>}
+              {employmentLabels[job.employment_type] && <div><dt>Loại công việc</dt><dd>{employmentLabels[job.employment_type]}</dd></div>}
+              <div><dt>Mức lương</dt><dd>{job.salary_display}</dd></div>
+            </dl>
+            {syncedTime && <p className={styles.dataNote}><time dateTime={syncedTime.dateTime} title={syncedTime.title}>{syncedTime.label}</time><span>Đây là thời điểm Interviewly đồng bộ dữ liệu, không phải ngày đăng tuyển.</span></p>}
           </div>
-        </div>
+        </section>
 
-        <div>
-          <JobQuickActionPanel
-            job={job}
-            onStartPractice={handleStartPractice}
-            isStarting={isStarting}
-          />
-        </div>
+        <aside className={styles.sidebar} aria-label="Luyện phỏng vấn và ứng tuyển">
+          <JobQuickActionPanel job={job} onStartPractice={handleStartPractice} isStarting={isStarting} />
+        </aside>
+
+        <section className={styles.descriptionCard} aria-labelledby="job-description-title">
+          <div className={styles.sectionHeader}><p>Nội dung từ nguồn tuyển dụng</p><h2 id="job-description-title">Mô tả công việc</h2></div>
+          <div className={styles.descriptionText}>
+            {job.cleaned_jd_text || job.raw_description ? <JobDescription text={job.cleaned_jd_text || job.raw_description} /> : <p>Nguồn chưa cung cấp nội dung chi tiết. Vui lòng xem tin tuyển dụng gốc.</p>}
+          </div>
+          {technologies.length > 0 && (
+            <section className={styles.technologySection} id="technologies" aria-labelledby="job-technologies-title">
+              <h2 id="job-technologies-title">Công nghệ & kỹ năng</h2>
+              <ul className={styles.technologyList}>
+                {technologies.map((technology) => <li key={technology}><BrandIcon name={technology} size={22} /><span>{getBrandLabel(technology)}</span></li>)}
+              </ul>
+            </section>
+          )}
+          {job.company?.branding_reuse_allowed && job.company.branding_source_url && (
+            <p className={styles.brandingAttribution}>Tư liệu doanh nghiệp từ <a href={job.company.branding_source_url} target="_blank" rel="noopener noreferrer">nguồn tuyển dụng</a>{job.company.branding_license_url && <> · <a href={job.company.branding_license_url} target="_blank" rel="noopener noreferrer">Quyền sử dụng</a></>}</p>
+          )}
+        </section>
       </div>
     </div>
   );
