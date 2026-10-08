@@ -426,6 +426,58 @@
   text-align: center;
 }
 
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-top: 24px;
+}
+
+.paginationSummary {
+  margin: 0;
+  color: var(--practice-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+}
+
+.paginationNav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pageButton {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--practice-line);
+  border-radius: 6px;
+  background: var(--practice-surface);
+  color: var(--practice-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  transition: background-color 180ms, color 180ms;
+}
+
+.pageButton:hover:not(:disabled) {
+  background: var(--practice-hover);
+  color: var(--practice-accent);
+}
+
+.pageButton[aria-current="page"] {
+  border-color: var(--practice-accent);
+  background: var(--practice-accent);
+  color: var(--practice-on-accent);
+}
+
+.pageButton:disabled {
+  cursor: default;
+}
+
 .loadMore p {
   margin: 12px 0 0;
   color: var(--practice-muted);

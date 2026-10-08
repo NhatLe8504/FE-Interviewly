@@ -10,6 +10,7 @@ import { PracticeHero } from "./components/PracticeHero";
 import styles from "./practice.module.css";
 
 const PAGE_SIZE = 30;
+const INTERVIEWS_PER_PAGE = 6;
 const STATUS_FILTERS = [
   { value: "all", label: "Tất cả" },
   { value: "ready", label: "Sẵn sàng luyện" },
@@ -138,6 +139,7 @@ function PracticeJobs() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [levelFilter, setLevelFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     let mounted = true;
@@ -175,17 +177,25 @@ function PracticeJobs() {
     });
   }, [jobs, query, statusFilter, levelFilter]);
   const hasFilters = Boolean(query.trim()) || statusFilter !== "all" || levelFilter !== "all";
+  const totalPages = Math.max(1, Math.ceil(filteredJobs.length / INTERVIEWS_PER_PAGE));
+  const visiblePage = Math.min(currentPage, totalPages);
+  const firstJobIndex = (visiblePage - 1) * INTERVIEWS_PER_PAGE;
+  const pageJobs = filteredJobs.slice(firstJobIndex, firstJobIndex + INTERVIEWS_PER_PAGE);
+  const firstPageNumber = Math.max(1, Math.min(visiblePage - 2, totalPages - 4));
+  const pageNumbers = Array.from({ length: Math.min(5, totalPages) }, (_, index) => firstPageNumber + index);
 
   function resetFilters() {
     setQuery("");
     setStatusFilter("all");
     setLevelFilter("all");
+    setCurrentPage(1);
   }
 
   function refreshJobs() {
     setIsLoading(true);
     setLoadError(null);
     setPageIndex(0);
+    setCurrentPage(1);
     setReloadKey((previous) => previous + 1);
   }
 
@@ -206,11 +216,11 @@ function PracticeJobs() {
       <div className={styles.toolbar}>
         <div className={styles.searchField}>
           <label htmlFor="practice-search">Tìm buổi luyện</label>
-          <input id="practice-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Vị trí, công ty hoặc kỹ năng" autoComplete="off" />
+          <input id="practice-search" type="search" value={query} onChange={(event) => { setQuery(event.target.value); setCurrentPage(1); }} placeholder="Vị trí, công ty hoặc kỹ năng" autoComplete="off" />
         </div>
         <div className={styles.levelField}>
           <label htmlFor="practice-level">Cấp độ</label>
-          <select id="practice-level" value={levelFilter} onChange={(event) => setLevelFilter(event.target.value)}>
+          <select id="practice-level" value={levelFilter} onChange={(event) => { setLevelFilter(event.target.value); setCurrentPage(1); }}>
             {LEVELS.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}
           </select>
         </div>
@@ -222,7 +232,7 @@ function PracticeJobs() {
       <div className={styles.filterBar}>
         <div className={styles.statusFilters} role="group" aria-label="Lọc theo trạng thái">
           {STATUS_FILTERS.map((filter) => (
-            <button key={filter.value} type="button" className={styles.filterButton} aria-pressed={statusFilter === filter.value} onClick={() => setStatusFilter(filter.value)}>{filter.label}</button>
+            <button key={filter.value} type="button" className={styles.filterButton} aria-pressed={statusFilter === filter.value} onClick={() => { setStatusFilter(filter.value); setCurrentPage(1); }}>{filter.label}</button>
           ))}
         </div>
         {hasFilters && <button type="button" className={styles.textButton} onClick={resetFilters}>Bỏ bộ lọc</button>}
@@ -245,7 +255,7 @@ function PracticeJobs() {
             </p>
           )}
           {filteredJobs.length > 0 ? (
-            <ul className={styles.jobList}>{filteredJobs.map((job) => <JobRow key={job.job_id} job={job} />)}</ul>
+            <ul id="practice-job-list" className={styles.jobList}>{pageJobs.map((job) => <JobRow key={job.job_id} job={job} />)}</ul>
           ) : !loadError && (
             <div className={styles.emptyState}>
               <p className={styles.emptyEyebrow}>{jobs.length > 0 ? "CHƯA CÓ KẾT QUẢ PHÙ HỢP" : "BẮT ĐẦU TỪ CÔNG VIỆC BẠN MUỐN"}</p>
@@ -254,6 +264,20 @@ function PracticeJobs() {
               {jobs.length > 0
                 ? <button type="button" className={styles.outlineButton} onClick={resetFilters}>Xem tất cả buổi đã tải</button>
                 : <Link href="/practice/new" className={styles.outlineButton}>Tạo buổi luyện đầu tiên</Link>}
+            </div>
+          )}
+          {filteredJobs.length > 0 && (
+            <div className={styles.pagination}>
+              <p className={styles.paginationSummary} role="status">
+                Hiển thị {firstJobIndex + 1}–{firstJobIndex + pageJobs.length} / {filteredJobs.length} buổi đã tải
+              </p>
+              <nav className={styles.paginationNav} aria-label="Phân trang buổi luyện">
+                <button type="button" className={styles.pageButton} onClick={() => setCurrentPage(visiblePage - 1)} disabled={visiblePage === 1 || isLoading} aria-controls="practice-job-list">Trước</button>
+                {pageNumbers.map((page) => (
+                  <button key={page} type="button" className={styles.pageButton} aria-label={`Trang ${page}`} aria-current={page === visiblePage ? "page" : undefined} aria-controls="practice-job-list" disabled={isLoading} onClick={() => setCurrentPage(page)}>{page}</button>
+                ))}
+                <button type="button" className={styles.pageButton} onClick={() => setCurrentPage(visiblePage + 1)} disabled={visiblePage === totalPages || isLoading} aria-controls="practice-job-list">Sau</button>
+              </nav>
             </div>
           )}
           {hasMore && (
