@@ -183,6 +183,7 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
     "closing",
   ]);
   const mode = "text";
+  const questionBankLanguage = "vi";
   const [language, setLanguage] = useState<InterviewLanguage>(locale);
   const [bargeInEnabled, setBargeInEnabled] = useState(false);
   const [stageSourceModes, setStageSourceModes] = useState(DEFAULT_STAGE_SOURCE_MODES);
@@ -237,7 +238,7 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
         const createdSession = await interviewApi.startSession({
           role_name: interview.title,
           level: interview.level,
-          language: locale,
+          language: questionBankLanguage,
           mode,
           barge_in_enabled: bargeInEnabled,
           stage_configs: stageConfigs,
@@ -361,7 +362,7 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
       {selectingStageKey ? (
         <QuestionBankDrawer
           stageKey={selectingStageKey}
-          language={locale}
+          language={questionBankLanguage}
           selectedQuestionIds={stageSelectedQuestions[selectingStageKey] ?? []}
           onSelectedQuestionIdsChange={(questionIds) =>
             setStageSelectedQuestions((current) => ({
