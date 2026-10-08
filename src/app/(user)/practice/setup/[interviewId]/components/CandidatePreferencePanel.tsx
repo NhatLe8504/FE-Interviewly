@@ -1,13 +1,18 @@
 "use client";
 
 import styles from "../setup.module.css";
+import { INTERVIEW_LANGUAGES, getInterviewLanguage, type InterviewLanguage } from "@/lib/interviewLanguages";
 
 interface CandidatePreferencePanelProps {
+  language: InterviewLanguage;
+  onLanguageChange: (language: InterviewLanguage) => void;
   bargeInEnabled: boolean;
   onBargeInChange: (enabled: boolean) => void;
 }
 
 export function CandidatePreferencePanel({
+  language,
+  onLanguageChange,
   bargeInEnabled,
   onBargeInChange,
 }: CandidatePreferencePanelProps) {
@@ -18,7 +23,19 @@ export function CandidatePreferencePanel({
       </h2>
 
       <div className={styles.preferenceGrid}>
-        <p className="portal-help-text">Chọn ngôn ngữ phỏng vấn ngay trong phòng. Ngôn ngữ của JD không giới hạn cách bạn trả lời.</p>
+        <div>
+          <label htmlFor="setup-interview-language" className="portal-field-label">Ngôn ngữ phỏng vấn</label>
+          <select
+            id="setup-interview-language"
+            className="portal-input"
+            value={language}
+            onChange={(event) => onLanguageChange(getInterviewLanguage(event.target.value).code)}
+            aria-describedby="setup-language-help"
+          >
+            {INTERVIEW_LANGUAGES.map((option) => <option key={option.code} value={option.code}>{option.label}</option>)}
+          </select>
+          <p id="setup-language-help" className="portal-help-text">Không phụ thuộc ngôn ngữ JD. Bạn vẫn có thể đổi khi đang luyện tập.</p>
+        </div>
 
         <label className={styles.bargeInControl}>
           <input

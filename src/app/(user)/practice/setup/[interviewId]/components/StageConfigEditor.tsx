@@ -10,6 +10,7 @@ import type {
   StageTurnBudgets,
 } from "../setupPlan";
 import styles from "../setup.module.css";
+import { Button } from "@/components/ui/button";
 
 export interface StageDefinition {
   id: PracticeStageKey;
@@ -92,11 +93,13 @@ export function StageConfigEditor({
                 <div className={styles.stageSettings}>
                   <div className={styles.compactControl}>
                     <span>Nguồn câu hỏi</span>
-                    <div className={styles.segmentedControl}>
+                    <div className={styles.segmentedControl} role="group" aria-label={`Nguồn câu hỏi · ${stage.label}`}>
                       {SOURCE_OPTIONS.map((option) => (
-                        <button
+                        <Button
                           key={option.id}
-                          className={sourceMode === option.id ? styles.segmentedActive : ""}
+                          variant="home-choice"
+                          size="home-compact"
+                          className="flex-1"
                           type="button"
                           aria-pressed={sourceMode === option.id}
                           onClick={() =>
@@ -107,18 +110,20 @@ export function StageConfigEditor({
                           }
                         >
                           {option.label}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
 
                   <div className={styles.compactControl}>
                     <span>Số lượt hỏi</span>
-                    <div className={styles.segmentedControl}>
+                    <div className={styles.segmentedControl} role="group" aria-label={`Số lượt hỏi · ${stage.label}`}>
                       {[1, 2, 3].map((turns) => (
-                        <button
+                        <Button
                           key={turns}
-                          className={turnBudgets[stage.id] === turns ? styles.segmentedActive : ""}
+                          variant="home-choice"
+                          size="home-compact"
+                          className="flex-1"
                           type="button"
                           aria-pressed={turnBudgets[stage.id] === turns}
                           onClick={() =>
@@ -129,20 +134,22 @@ export function StageConfigEditor({
                           }
                         >
                           {turns}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
 
                   {sourceMode !== "auto_random" ? (
-                    <button
+                    <Button
                       className={styles.questionBankButton}
+                      variant="home-outline"
+                      size="home-compact"
                       type="button"
                       onClick={() => onChooseQuestions(stage.id)}
                     >
                       Chọn từ ngân hàng câu hỏi
                       <span>{selectedCount} đã chọn</span>
-                    </button>
+                    </Button>
                   ) : null}
                 </div>
               ) : null}

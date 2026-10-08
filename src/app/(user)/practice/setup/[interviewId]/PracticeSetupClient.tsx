@@ -14,6 +14,10 @@ import { InterviewProfile } from "./components/InterviewProfile";
 import { PlanSummary } from "./components/PlanSummary";
 import { StageConfigEditor, type StageDefinition } from "./components/StageConfigEditor";
 import { QuestionBankDrawer } from "./components/QuestionBankDrawer";
+import { Button } from "@/components/ui/button";
+import { PageMascot } from "@/components/user-component/common/PageMascot";
+import { useI18n } from "@/context/I18nContext";
+import { getInterviewLanguage, type InterviewLanguage } from "@/lib/interviewLanguages";
 import {
   buildStageConfigs,
   DEFAULT_STAGE_QUESTION_SELECTIONS,
@@ -87,6 +91,7 @@ function getStartErrorMessage(cause: unknown): string {
 }
 
 export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
+  const { locale } = useI18n();
   const preMadeInterview = useMemo(
     () => PRE_MADE_INTERVIEWS.find((item) => item.id === interviewId) ?? null,
     [interviewId]
@@ -178,7 +183,7 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
     "closing",
   ]);
   const mode = "text";
-  const language = "vi";
+  const [language, setLanguage] = useState<InterviewLanguage>(locale);
   const [bargeInEnabled, setBargeInEnabled] = useState(false);
   const [stageSourceModes, setStageSourceModes] = useState(DEFAULT_STAGE_SOURCE_MODES);
   const [stageTurns, setStageTurns] = useState(DEFAULT_STAGE_TURN_BUDGETS);
@@ -232,7 +237,7 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
         const createdSession = await interviewApi.startSession({
           role_name: interview.title,
           level: interview.level,
-          language,
+          language: locale,
           mode,
           barge_in_enabled: bargeInEnabled,
           stage_configs: stageConfigs,
@@ -252,7 +257,8 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
             companyName: interview.company,
             domainLabel: interview.domain,
             levelLabel: interview.levelLabel,
-            languageLabel: language === "vi" ? "Tiếng Việt" : "English",
+            language,
+            languageLabel: getInterviewLanguage(language).label,
             mode,
             bargeInEnabled,
             selected_stages: selectedStages,
@@ -265,7 +271,7 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
         // Backend owns session persistence. This isolated cache only provides room labels.
       }
 
-      window.location.assign(`/practice/${sessionId}`);
+      window.location.assign(`/practice/${sessionId}?language=${language}`);
     } catch (cause) {
       setSetupError(getStartErrorMessage(cause));
       setIsLaunching(false);
@@ -301,21 +307,28 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
 
   return (
     <main className={styles.pageShell}>
-      <Link className={styles.backLink} href="/practice">
-        <ArrowLeft size={15} aria-hidden="true" />
-        Quay lại danh sách
-      </Link>
+      <div className={styles.topbar}>
+        <Button asChild variant="home-quiet" size="home-compact">
+          <Link href="/practice">
+            <ArrowLeft size={15} aria-hidden="true" />
+            Quay lại danh sách
+          </Link>
+        </Button>
+        <PageMascot className={styles.mascot} />
+      </div>
 
       <div className={styles.layout}>
         <InterviewProfile interview={interview} />
 
-        <aside className={styles.setupCard} aria-label="Thiết lập phỏng vấn">
+        <aside className={`portal-panel ${styles.setupCard}`} aria-label="Thiết lập phỏng vấn">
           <header className={styles.setupHeader}>
             <h1>Thiết lập phỏng vấn</h1>
             <p>Tùy chỉnh phòng phỏng vấn AI trước khi bắt đầu.</p>
           </header>
 
           <CandidatePreferencePanel
+            language={language}
+            onLanguageChange={setLanguage}
             bargeInEnabled={bargeInEnabled}
             onBargeInChange={setBargeInEnabled}
           />
@@ -348,7 +361,7 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
       {selectingStageKey ? (
         <QuestionBankDrawer
           stageKey={selectingStageKey}
-          language={language}
+          language={locale}
           selectedQuestionIds={stageSelectedQuestions[selectingStageKey] ?? []}
           onSelectedQuestionIdsChange={(questionIds) =>
             setStageSelectedQuestions((current) => ({
