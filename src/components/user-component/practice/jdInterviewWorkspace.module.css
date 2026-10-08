@@ -47,7 +47,7 @@
   border-bottom: 1px solid var(--jd-line);
 }
 
-.mascot { position: absolute !important; right: 12px; bottom: 0; image-rendering: pixelated; }
+.mascot { position: absolute !important; right: 12px; bottom: 0; }
 
 .eyebrow {
   display: flex;

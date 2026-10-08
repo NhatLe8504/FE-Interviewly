@@ -200,6 +200,7 @@ button {
 textarea.portal-input { min-height: 220px; resize: vertical; }
 .portal-input::placeholder { color: var(--text-secondary); opacity: 1; }
 .portal-input:disabled { opacity: 0.6; cursor: not-allowed; }
+.portal-mascot--pixel { image-rendering: pixelated; }
 .portal-field-label { display: block; margin-bottom: 8px; color: var(--text-strong); font-size: 13px; font-weight: 500; line-height: 1.6; }
 .portal-help-text { margin: 8px 0 0; color: var(--text-secondary); font-size: 13px; line-height: 1.65; }
 
