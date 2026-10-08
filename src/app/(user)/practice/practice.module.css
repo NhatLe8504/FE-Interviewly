@@ -196,9 +196,9 @@
 
 .jobRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 210px;
+  grid-template-columns: 160px minmax(0, 1fr) 210px;
   align-items: center;
-  gap: 40px;
+  gap: 28px;
   padding: 28px 20px;
   border-bottom: 1px solid var(--practice-line);
   border-radius: 6px;
@@ -207,6 +207,20 @@
 
 .jobRow:hover {
   background: var(--practice-hover);
+}
+
+.jobThumbnail {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 10 / 7;
+  overflow: hidden;
+  border: 1px solid var(--practice-line);
+  border-radius: 10px;
+  background: var(--practice-hover);
+}
+
+.thumbnailImage {
+  object-fit: cover;
 }
 
 .jobContent {
@@ -370,12 +384,27 @@
 
 .skeletonRow {
   display: grid;
-  gap: 12px;
+  grid-template-columns: 160px minmax(0, 1fr);
+  align-items: center;
+  gap: 28px;
   padding: 28px 20px;
   border-bottom: 1px solid var(--practice-line);
 }
 
-.skeletonRow span {
+.skeletonThumbnail {
+  display: block;
+  width: 100%;
+  aspect-ratio: 10 / 7;
+  border-radius: 10px;
+  background: var(--practice-line);
+}
+
+.skeletonContent {
+  display: grid;
+  gap: 12px;
+}
+
+.skeletonContent span {
   display: block;
   height: 12px;
   width: 26%;
@@ -383,12 +412,12 @@
   background: var(--practice-line);
 }
 
-.skeletonRow span:nth-child(2) {
+.skeletonContent span:nth-child(2) {
   width: 50%;
   height: 24px;
 }
 
-.skeletonRow span:nth-child(3) {
+.skeletonContent span:nth-child(3) {
   width: 36%;
 }
 
@@ -408,7 +437,8 @@
   .pageShell { width: calc(100% - 48px); }
   .toolbar { gap: 14px; }
   .levelField { width: 155px; }
-  .jobRow { gap: 24px; padding-inline: 12px; }
+  .jobRow { grid-template-columns: 128px minmax(0, 1fr) 180px; gap: 20px; padding-inline: 12px; }
+  .skeletonRow { grid-template-columns: 128px minmax(0, 1fr); gap: 20px; padding-inline: 12px; }
 }
 
 @media (max-width: 767px) {
@@ -425,8 +455,9 @@
   .statusFilters { gap: 0 20px; }
   .filterButton { font-size: 13px; }
   .filterBar > .textButton { padding-inline: 0; white-space: nowrap; }
-  .jobRow { grid-template-columns: 1fr; gap: 20px; padding: 24px 12px; }
-  .jobDetails { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; text-align: left; }
+  .jobRow { grid-template-columns: 112px minmax(0, 1fr); align-items: start; gap: 20px; padding: 24px 12px; }
+  .jobDetails { display: grid; grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; text-align: left; }
+  .skeletonRow { grid-template-columns: 112px minmax(0, 1fr); padding: 24px 12px; }
   .jobStatus { grid-column: 1; }
   .jobDate { grid-column: 1; grid-row: 2; margin: 0; }
   .jobAction { grid-column: 2; grid-row: 1 / 3; align-self: center; margin-top: 0; }
@@ -440,7 +471,10 @@
   .pageShell { width: calc(100% - 40px); }
   .filterBar { flex-wrap: wrap; }
   .statusFilters { width: 100%; gap: 0 16px; }
-  .jobRow { padding-inline: 0; }
+  .jobRow { grid-template-columns: 92px minmax(0, 1fr); gap: 16px; padding-inline: 0; }
+  .skeletonRow { grid-template-columns: 92px minmax(0, 1fr); gap: 16px; padding-inline: 0; }
+  .jobThumbnail,
+  .skeletonThumbnail { aspect-ratio: 1; }
   .jobDetails { grid-template-columns: 1fr; }
   .jobAction { grid-column: 1; grid-row: 3; justify-self: start; margin-top: 8px; }
   .resultCount { font-size: 12px; }
