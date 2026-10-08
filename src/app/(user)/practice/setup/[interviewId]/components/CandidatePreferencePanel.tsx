@@ -37,7 +37,7 @@ export function CandidatePreferencePanel({
           <p id="setup-language-help" className="portal-help-text">Không phụ thuộc ngôn ngữ JD. Bạn vẫn có thể đổi khi đang luyện tập.</p>
         </div>
 
-        <label className={styles.bargeInControl}>
+        <label className={`portal-panel ${styles.bargeInControl}`}>
           <input
             type="checkbox"
             checked={bargeInEnabled}

@@ -159,24 +159,24 @@ export function QuestionBankDrawer({
         </p>
 
         {isLoading ? (
-          <div className={styles.drawerStatus} aria-live="polite">
+          <div className={`portal-panel ${styles.drawerStatus}`} aria-live="polite">
             <LoaderCircle className="animate-spin" size={24} aria-label="Đang tải câu hỏi" />
           </div>
         ) : error ? (
-          <div className={[styles.drawerStatus, styles.drawerError].join(" ")} role="alert">
+          <div className={["portal-panel", styles.drawerStatus, styles.drawerError].join(" ")} role="alert">
             <span>{error}</span>
             <Button variant="home-outline" size="home-compact" type="button" onClick={() => void loadQuestions(0, false)}>
               Thử lại
             </Button>
           </div>
         ) : questions.length === 0 ? (
-          <div className={styles.drawerStatus}>Không tìm thấy câu hỏi phù hợp trong catalog.</div>
+          <div className={`portal-panel ${styles.drawerStatus}`}>Không tìm thấy câu hỏi phù hợp trong catalog.</div>
         ) : (
           <div className={styles.questionList}>
             {questions.map((question) => {
               const isSelected = draftQuestionIds.includes(question.question_id);
               return (
-                <label className={styles.questionOption} key={question.question_id}>
+                <label className={`portal-panel ${styles.questionOption}`} key={question.question_id}>
                   <input
                     type="checkbox"
                     checked={isSelected}

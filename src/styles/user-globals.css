@@ -178,7 +178,7 @@ button {
 
 .portal-panel {
   min-width: 0;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--surface-card);
 }
