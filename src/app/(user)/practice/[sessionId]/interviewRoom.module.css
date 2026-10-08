@@ -14,6 +14,31 @@
   justify-content: flex-start;
 }
 
+.roomHeading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 4px; }
+.roomEyebrow { color: #905029; font-size: 11px; font-weight: 750; letter-spacing: 0.12em; }
+.roomHeading h1 { margin: 7px 0; font-size: clamp(22px, 3vw, 30px); line-height: 1.3; letter-spacing: -0.025em; font-weight: 750; }
+.roomHeading p { margin: 0; color: #6c5b50; font-size: 14px; line-height: 1.6; }
+.sessionModeBadge { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; background: #fff9f3; border: 1px solid #e7dace; border-radius: 999px; color: #905029; font-size: 13px; font-weight: 650; flex-shrink: 0; }
+.spokenCaption { margin: 4px 0 0; color: #6c5b50; font-size: 12px; line-height: 1.6; padding-top: 10px; border-top: 1px solid #e7dace; }
+.audioResumeButton { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 12px; border: 1px solid #905029; border-radius: 12px; background: #905029; color: #fff; font-size: 13px; font-weight: 650; cursor: pointer; }
+.roomShell button:focus-visible, .roomShell textarea:focus-visible { outline: 3px solid #c07f50; outline-offset: 3px; }
+.roomShell button:disabled { cursor: not-allowed; opacity: 0.5; }
+
+@media (max-width: 640px) {
+  .roomHeading { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .roomShell { width: calc(100% - 24px); }
+  .mainInterviewCard { padding: 18px 14px !important; }
+  .threePanelRow { grid-template-columns: 1fr !important; align-items: start; gap: 14px; }
+  .leftPanel { grid-column: 1 / -1; }
+  .rightPanel { align-items: stretch; }
+  .rightControlsBox { max-width: none; }
+  .subtitleTopRow { flex-wrap: wrap; gap: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roomShell *, .roomShell *::before, .roomShell *::after { animation: none !important; transition: none !important; }
+}
+
 /* =========================================================
    MAIN 3-COLUMN HERO STAGE: LEFT (STAGES) - CENTER (AI) - RIGHT (CONTROLS)
 ========================================================= */
@@ -24,8 +49,6 @@
   border-radius: 28px;
   border: 1px solid rgba(255, 255, 255, 0.88);
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 248, 240, 0.85) 100%);
-  backdrop-filter: blur(36px) saturate(210%);
-  -webkit-backdrop-filter: blur(36px) saturate(210%);
   box-shadow: 0 20px 55px -12px rgba(84, 50, 27, 0.14),
               inset 0 1px 2px rgba(255, 255, 255, 1);
   padding: 22px 28px;
@@ -50,7 +73,7 @@
 /* Three-Panel Row: Left Stages | Center AI Avatar | Right Session Controls */
 .threePanelRow {
   display: grid;
-  grid-template-columns: 240px 1fr 240px;
+  grid-template-columns: minmax(190px, 1fr) minmax(200px, 1fr) minmax(190px, 1fr);
   align-items: center;
   gap: 20px;
   width: 100%;
@@ -101,8 +124,8 @@
 
 .interviewerMediaStage {
   position: relative;
-  width: 250px;
-  height: 250px;
+  width: 180px;
+  height: 180px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -136,8 +159,8 @@
 
 /* Text Mode Portrait Avatar */
 .textModeAvatarBox {
-  width: 180px;
-  height: 180px;
+  width: 150px;
+  height: 150px;
   border-radius: 50%;
   overflow: hidden;
   border: 3.5px solid #ffffff;
@@ -264,6 +287,7 @@
 }
 
 .modeBtn {
+  min-height: 44px;
   flex: 1;
   display: inline-flex;
   align-items: center;
@@ -339,7 +363,7 @@
 
 .subtitleSpeechText {
   margin: 0;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 650;
   line-height: 1.55;
   color: #211914;
