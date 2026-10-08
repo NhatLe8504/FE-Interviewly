@@ -19,7 +19,7 @@ export function PageMascot({ size = 96, className }: PageMascotProps) {
     <Mascot
       {...getMascotSheets(mascotId)}
       size={size}
-      className={className}
+      className={`${className ?? ""} ${mascotId === "fox-pixel" ? "portal-mascot--pixel" : ""}`}
       label={getMascot(mascotId).name[locale]}
       key={mascotId}
     />

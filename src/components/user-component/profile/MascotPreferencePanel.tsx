@@ -25,6 +25,9 @@ export function MascotPreferencePanel() {
     setSaved(false);
     try {
       const profile = await profileApi.updateProfile({ mascot_id: selected });
+      if (profile.user_id !== user.user_id || profile.mascot_id !== selected) {
+        throw new Error("The server did not confirm the mascot preference");
+      }
       setSavedMascot(getMascot(profile.mascot_id).id, profile.user_id);
       setSaved(true);
     } catch {
