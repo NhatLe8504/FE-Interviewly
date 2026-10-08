@@ -1,14 +1,12 @@
 .pageShell {
   --practice-ink: var(--ink, #211914);
   --practice-accent: var(--accent-deep, #8b4513);
-  --practice-accent-hover: #6e350f;
-  --practice-on-accent: #fffaf4;
-  --practice-muted: #736050;
-  --practice-line: #e0d6ca;
-  --practice-surface: #fcfaf6;
-  --practice-hover: #f2eade;
-  --practice-ready: #35604a;
-  --practice-error: #963a2b;
+  --practice-muted: var(--ink-soft);
+  --practice-line: var(--line);
+  --practice-surface: var(--surface-card);
+  --practice-hover: var(--surface-subtle);
+  --practice-ready: var(--state-success);
+  --practice-error: var(--state-error);
   --practice-error-surface: #f9eee7;
   width: min(1180px, calc(100% - 80px));
   margin-inline: auto;
@@ -73,70 +71,9 @@
   width: 180px;
 }
 
-.toolbar label {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--practice-muted);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.5;
-}
-
-.toolbar input,
-.toolbar select {
-  width: 100%;
-  height: 48px;
-  padding: 0 14px;
-  border: 1px solid var(--practice-line);
-  border-radius: 6px;
-  background: var(--practice-surface);
-  color: var(--practice-ink);
-  font-size: 16px;
-  line-height: 1.5;
-}
-
-.toolbar input::placeholder {
-  color: var(--practice-muted);
-  opacity: 1;
-}
-
-.refreshButton,
-.textButton,
-.outlineButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 10px 12px;
-  border: 0;
-  background: transparent;
-  color: var(--practice-accent);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.5;
-  transition: background-color 180ms, color 180ms;
-}
-
-.refreshButton {
-  min-height: 48px;
-  padding-inline: 0;
-  white-space: nowrap;
-}
-
-.refreshButton:hover,
-.textButton:hover {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
-.pageShell :is(button, a, input, select):focus-visible {
+.jobRow:focus-visible {
   outline: 2px solid var(--practice-accent);
   outline-offset: 4px;
-}
-
-.pageShell button:disabled {
-  cursor: wait;
-  opacity: 0.6;
 }
 
 .filterBar {
@@ -152,30 +89,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0 28px;
-}
-
-.filterButton {
-  min-width: 44px;
-  min-height: 48px;
-  margin-bottom: -1px;
-  padding: 12px 0;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: var(--practice-muted);
-  font-size: 14px;
-  line-height: 1.5;
-  transition: color 180ms, border-color 180ms;
-}
-
-.filterButton:hover {
-  color: var(--practice-ink);
-}
-
-.filterButton[aria-pressed="true"] {
-  color: var(--practice-accent);
-  border-bottom-color: var(--practice-accent);
-  font-weight: 600;
 }
 
 .resultCount {
@@ -334,17 +247,6 @@
   line-height: 1.75;
 }
 
-.outlineButton {
-  padding: 12px 20px;
-  border: 1px solid var(--practice-line);
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.outlineButton:hover:not(:disabled) {
-  background: var(--practice-hover);
-}
-
 .errorState {
   display: flex;
   align-items: center;
@@ -361,11 +263,6 @@
   margin: 0;
   font-size: 14px;
   line-height: 1.6;
-}
-
-.errorState .textButton {
-  flex-shrink: 0;
-  color: var(--practice-error);
 }
 
 .loadingState {
@@ -426,58 +323,6 @@
   text-align: center;
 }
 
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
-  padding-top: 24px;
-}
-
-.paginationSummary {
-  margin: 0;
-  color: var(--practice-muted);
-  font-size: 12px;
-  line-height: 1.6;
-  font-variant-numeric: tabular-nums;
-}
-
-.paginationNav {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.pageButton {
-  min-width: 44px;
-  min-height: 44px;
-  padding: 10px 12px;
-  border: 1px solid var(--practice-line);
-  border-radius: 6px;
-  background: var(--practice-surface);
-  color: var(--practice-muted);
-  font-size: 13px;
-  line-height: 1.5;
-  transition: background-color 180ms, color 180ms;
-}
-
-.pageButton:hover:not(:disabled) {
-  background: var(--practice-hover);
-  color: var(--practice-accent);
-}
-
-.pageButton[aria-current="page"] {
-  border-color: var(--practice-accent);
-  background: var(--practice-accent);
-  color: var(--practice-on-accent);
-}
-
-.pageButton:disabled {
-  cursor: default;
-}
-
 .loadMore p {
   margin: 12px 0 0;
   color: var(--practice-muted);
@@ -502,11 +347,8 @@
   .toolbar { flex-wrap: wrap; gap: 16px 12px; }
   .searchField { flex-basis: 100%; }
   .levelField { flex: 1; width: auto; }
-  .refreshButton { padding: 10px 8px; }
   .filterBar { align-items: flex-start; gap: 8px; }
   .statusFilters { gap: 0 20px; }
-  .filterButton { font-size: 13px; }
-  .filterBar > .textButton { padding-inline: 0; white-space: nowrap; }
   .jobRow { grid-template-columns: 112px minmax(0, 1fr); align-items: start; gap: 20px; padding: 24px 12px; }
   .jobDetails { display: grid; grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; text-align: left; }
   .skeletonRow { grid-template-columns: 112px minmax(0, 1fr); padding: 24px 12px; }
@@ -516,7 +358,6 @@
   .emptyState { padding: 44px 16px; }
   .emptyState > p:not(.emptyEyebrow) { font-size: 16px; }
   .errorState { align-items: flex-start; flex-direction: column; gap: 4px; padding: 16px; }
-  .errorState .textButton { padding-left: 0; }
 }
 
 @media (max-width: 480px) {
@@ -533,5 +374,4 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pageShell :is(button, a) { transition: none; }
 }
