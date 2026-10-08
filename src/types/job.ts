@@ -8,6 +8,7 @@ export interface JobCompany {
 
 export interface JobItem {
   job_id: string;
+  source_id?: string | null;
   title: string;
   slug: string;
   seniority: string;
@@ -23,6 +24,8 @@ export interface JobItem {
   via_source?: string | null;
   original_apply_url: string;
   posted_at?: string | null;
+  updated_at?: string | null;
+  created_at?: string | null;
   company?: JobCompany | null;
 }
 
@@ -44,6 +47,9 @@ export interface JobFilterMetadata {
   seniorities: string[];
   workplace_types: string[];
   top_technologies: string[];
+  locations?: string[];
+  sources?: { id: string; name: string }[];
+  sort_options?: { id: string; name: string }[];
 }
 
 export interface JobSkillMatch {
@@ -66,6 +72,9 @@ export interface JobFilterParams {
   seniority?: string;
   workplace_type?: string;
   technology?: string;
+  location?: string;
+  source_id?: string;
+  sort_by?: string;
   page?: number;
   limit?: number;
 }

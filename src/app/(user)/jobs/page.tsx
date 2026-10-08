@@ -3,11 +3,11 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { jobsApi } from "@/services/jobsApi";
-import { JobItem, JobListResponse } from "@/types/job";
+import { JobItem, JobListResponse, JobFilterMetadata } from "@/types/job";
 import { JobsHero } from "@/components/user-component/jobs/JobsHero";
 import { JobFilters } from "@/components/user-component/jobs/JobFilters";
 import { JobCard } from "@/components/user-component/jobs/JobCard";
-import { Loader2, Briefcase, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Briefcase, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { toast } from "@/components/user-component/toast";
 import styles from "@/components/user-component/jobs/jobs.module.css";
 
@@ -19,13 +19,38 @@ export default function JobsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Filters State
   const [keyword, setKeyword] = useState("");
   const [seniority, setSeniority] = useState("");
   const [workplaceType, setWorkplaceType] = useState("");
   const [technology, setTechnology] = useState("");
+  const [location, setLocation] = useState("");
+  const [sourceId, setSourceId] = useState("");
+  const [sortBy, setSortBy] = useState("recent");
+
+  // Metadata from backend API
+  const [metadata, setMetadata] = useState<JobFilterMetadata | null>(null);
   const [startingJobId, setStartingJobId] = useState<string | null>(null);
 
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch metadata once on mount
+  useEffect(() => {
+    let mounted = true;
+    jobsApi
+      .getFilterMetadata()
+      .then((data) => {
+        if (mounted && data) {
+          setMetadata(data);
+        }
+      })
+      .catch(() => {
+        // Fallbacks in JobFilters will be used gracefully
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const loadJobs = useCallback(
     async (targetPage = 1) => {
@@ -36,6 +61,9 @@ export default function JobsPage() {
           seniority,
           workplace_type: workplaceType,
           technology,
+          location,
+          source_id: sourceId,
+          sort_by: sortBy,
           page: targetPage,
           limit: 12,
         });
@@ -49,7 +77,7 @@ export default function JobsPage() {
         setLoading(false);
       }
     },
-    [keyword, seniority, workplaceType, technology]
+    [keyword, seniority, workplaceType, technology, location, sourceId, sortBy]
   );
 
   useEffect(() => {
@@ -58,12 +86,32 @@ export default function JobsPage() {
     }
     debounceTimer.current = setTimeout(() => {
       loadJobs(1);
-    }, 300);
+    }, 250);
 
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
   }, [loadJobs]);
+
+  const hasActiveFilters = Boolean(
+    keyword ||
+      seniority ||
+      workplaceType ||
+      technology ||
+      location ||
+      sourceId ||
+      (sortBy && sortBy !== "recent")
+  );
+
+  const handleResetFilters = () => {
+    setKeyword("");
+    setSeniority("");
+    setWorkplaceType("");
+    setTechnology("");
+    setLocation("");
+    setSourceId("");
+    setSortBy("recent");
+  };
 
   const handleStartPractice = async (job: JobItem) => {
     setStartingJobId(job.job_id);
@@ -94,12 +142,27 @@ export default function JobsPage() {
         onWorkplaceTypeChange={(v) => setWorkplaceType(v)}
         technology={technology}
         onTechnologyChange={(v) => setTechnology(v)}
+        location={location}
+        onLocationChange={(v) => setLocation(v)}
+        sourceId={sourceId}
+        onSourceIdChange={(v) => setSourceId(v)}
+        sortBy={sortBy}
+        onSortByChange={(v) => setSortBy(v)}
+        onResetFilters={handleResetFilters}
+        hasActiveFilters={hasActiveFilters}
+        totalCount={total}
+        topTechnologies={metadata?.top_technologies}
+        locations={metadata?.locations}
+        sources={metadata?.sources}
+        sortOptions={metadata?.sort_options}
       />
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-24">
           <Loader2 className="w-8 h-8 animate-spin text-[#d98236] mb-3" />
-          <p className="text-sm font-semibold text-[rgba(84,58,42,0.7)]">Đang tải danh sách cơ hội việc làm...</p>
+          <p className="text-sm font-semibold text-[rgba(84,58,42,0.7)]">
+            Đang tìm kiếm cơ hội việc làm phù hợp...
+          </p>
         </div>
       ) : jobs.length === 0 ? (
         <div className={styles.emptyState}>
@@ -107,9 +170,20 @@ export default function JobsPage() {
           <h3 className="text-base font-bold text-[#211914] mb-1">
             Không tìm thấy tin tuyển dụng phù hợp
           </h3>
-          <p className="text-sm text-[rgba(84,58,42,0.7)] max-w-md mx-auto">
-            Thử thay đổi từ khóa tìm kiếm hoặc bỏ bớt các bộ lọc để khám phá thêm nhiều cơ hội khác.
+          <p className="text-sm text-[rgba(84,58,42,0.7)] max-w-md mx-auto mb-4">
+            Thử thay đổi từ khóa tìm kiếm hoặc bỏ bớt các tiêu chí lọc để xem thêm nhiều cơ hội khác.
           </p>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className={styles.btnSecondary}
+              onClick={handleResetFilters}
+              style={{ maxWidth: "200px", margin: "0 auto" }}
+            >
+              <RotateCcw className="w-3.5 h-3.5 mr-1.5 text-[#d98236]" />
+              Xóa tất cả bộ lọc
+            </button>
+          )}
         </div>
       ) : (
         <>
@@ -131,7 +205,11 @@ export default function JobsPage() {
                 className={styles.btnSecondary}
                 disabled={page <= 1}
                 onClick={() => loadJobs(page - 1)}
-                style={{ opacity: page <= 1 ? 0.5 : 1, cursor: page <= 1 ? "not-allowed" : "pointer", maxWidth: "140px" }}
+                style={{
+                  opacity: page <= 1 ? 0.5 : 1,
+                  cursor: page <= 1 ? "not-allowed" : "pointer",
+                  maxWidth: "140px",
+                }}
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Trang trước
@@ -146,7 +224,11 @@ export default function JobsPage() {
                 className={styles.btnSecondary}
                 disabled={page >= totalPages}
                 onClick={() => loadJobs(page + 1)}
-                style={{ opacity: page >= totalPages ? 0.5 : 1, cursor: page >= totalPages ? "not-allowed" : "pointer", maxWidth: "140px" }}
+                style={{
+                  opacity: page >= totalPages ? 0.5 : 1,
+                  cursor: page >= totalPages ? "not-allowed" : "pointer",
+                  maxWidth: "140px",
+                }}
               >
                 Trang sau
                 <ChevronRight className="w-4 h-4 ml-1" />
