@@ -1,267 +1,704 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
-import { ApiError } from "@/services/apiClient";
+import React, { useState, useMemo, useEffect } from "react";
 import { jdInterviewApi, type JDJobSummary } from "@/services/jdInterviewApi";
-import { PracticeHero } from "./components/PracticeHero";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  Sparkles,
+  Search,
+  Building2,
+  Clock,
+  Award,
+  Star,
+  ArrowRight,
+  Plus,
+  FileText,
+  Briefcase,
+  CheckCircle2,
+  X,
+  Keyboard,
+  Mic,
+  Link as LinkIcon,
+  Layers,
+  ChevronRight,
+  TrendingUp,
+  Play,
+  Loader2,
+} from "lucide-react";
+import { PRE_MADE_INTERVIEWS, PreMadeInterview } from "@/data/mockInterviews";
 import styles from "./practice.module.css";
 
-const PAGE_SIZE = 30;
-const STATUS_FILTERS = [
-  { value: "all", label: "Tất cả" },
-  { value: "ready", label: "Sẵn sàng luyện" },
-  { value: "processing", label: "Đang chuẩn bị" },
-  { value: "failed", label: "Cần kiểm tra" },
-] as const;
-const LEVELS = [
-  { value: "all", label: "Mọi cấp độ" },
-  { value: "intern", label: "Intern" },
-  { value: "fresher", label: "Fresher" },
-  { value: "junior", label: "Junior" },
-  { value: "mid", label: "Middle" },
-  { value: "senior", label: "Senior" },
-  { value: "lead", label: "Lead / Staff" },
-];
-const JOB_STATUSES: Record<JDJobSummary["status"], string> = {
-  PENDING: "Chờ xử lý",
-  INGESTING: "Đang đọc JD",
-  NORMALIZED: "Đang phân tích JD",
-  ANALYZING: "Đang phân tích JD",
-  PLANNING: "Đang lên nội dung",
-  GENERATING: "Đang tạo câu hỏi",
-  VALIDATING: "Đang kiểm tra câu hỏi",
-  COMPLETED: "Sẵn sàng luyện",
-  FAILED: "Tạo câu hỏi chưa thành công",
-  RETRYING: "Đang thử lại",
-};
-const DATE_FORMAT = new Intl.DateTimeFormat("vi-VN", {
-  day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Asia/Ho_Chi_Minh",
-});
+const SAMPLE_JD_TEXT = `Vị trí: Senior Software Engineer (Frontend / Fullstack)
+Yêu cầu công việc:
+- Tối thiểu 4 năm kinh nghiệm làm việc chuyên sâu với React, Next.js, TypeScript.
+- Nắm vững kiến trúc Micro-frontends, tối ưu hóa Web Performance (LCP, INP, CLS) và SEO.
+- Có kinh nghiệm thiết kế State Management quy mô lớn (Redux Toolkit, Zustand).
+- Khả năng phối hợp liên chức năng với Product Manager và UI/UX Designer theo chuẩn Agile/Scrum.
+- Tư duy phản biện, kỹ năng giải quyết sự cố trên production và văn hóa code review chặt chẽ.`;
 
-type StatusFilter = typeof STATUS_FILTERS[number]["value"];
-type LoadError = { message: string; authenticationRequired: boolean };
+export default function PracticeOverviewPage() {
+  const router = useRouter();
 
-function normalizeSearch(value: string) {
-  return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").trim();
-}
-
-function normalizeLevel(value: string) {
-  const level = normalizeSearch(value);
-  if (["middle", "mid-level", "mid level"].includes(level)) return "mid";
-  if (["staff", "principal", "team lead", "tech lead"].includes(level)) return "lead";
-  return level;
-}
-
-function JobRow({ job }: { job: JDJobSummary }) {
-  const isReady = job.status === "COMPLETED";
-  const isFailed = job.status === "FAILED";
-  const jobId = encodeURIComponent(job.job_id);
-  const href = isReady ? `/practice/setup/${jobId}` : `/practice/new?job_id=${jobId}`;
-  const level = LEVELS.find((item) => item.value === normalizeLevel(job.seniority))?.label || job.seniority;
-  const createdAt = job.created_at ? new Date(job.created_at) : null;
-  const dateLabel = createdAt && !Number.isNaN(createdAt.getTime()) ? DATE_FORMAT.format(createdAt) : null;
-  const progress = !isReady && !isFailed && Number.isFinite(job.progress_pct) && job.progress_pct > 0
-    ? ` · ${Math.round(Math.min(100, Math.max(0, job.progress_pct)))}%`
-    : "";
-
-  return (
-    <li>
-      <Link href={href} className={styles.jobRow}>
-        <div className={styles.jobContent}>
-          <p className={styles.jobCompany}>{job.company_name || "Phỏng vấn theo JD"}</p>
-          <h3 className={styles.jobTitle}>{job.role || "Buổi phỏng vấn theo mô tả công việc"}</h3>
-          <div className={styles.jobMeta}>
-            {level && <span>{level}</span>}
-            {job.total_questions > 0 && <span>{job.total_questions} câu hỏi</span>}
-            {job.estimated_minutes > 0 && <span>Dự kiến {job.estimated_minutes} phút</span>}
-          </div>
-          {job.focus_areas?.length > 0 && <p className={styles.jobTopics}>{job.focus_areas.join(" · ")}</p>}
-        </div>
-        <div className={styles.jobDetails}>
-          <p className={`${styles.jobStatus} ${isReady ? styles.statusReady : isFailed ? styles.statusFailed : ""}`}>
-            {JOB_STATUSES[job.status]}{progress}
-          </p>
-          {dateLabel && <time dateTime={job.created_at ?? undefined} className={styles.jobDate}>Tạo ngày {dateLabel}</time>}
-          <span className={styles.jobAction}>{isReady ? "Thiết lập buổi luyện" : isFailed ? "Xem chi tiết lỗi" : "Xem tiến độ"}</span>
-        </div>
-      </Link>
-    </li>
-  );
-}
-
-function LoadingJobs() {
-  return (
-    <div className={styles.loadingState}>
-      <p role="status">Đang tải các buổi luyện…</p>
-      <div className={styles.skeletonList} aria-hidden="true">
-        {[0, 1, 2].map((index) => <div key={index} className={styles.skeletonRow}><span /><span /><span /></div>)}
-      </div>
-    </div>
-  );
-}
-
-function PracticeJobs() {
-  const [jobs, setJobs] = useState<JDJobSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<LoadError | null>(null);
-  const [pageIndex, setPageIndex] = useState(0);
-  const [reloadKey, setReloadKey] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
-  const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [levelFilter, setLevelFilter] = useState("all");
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedLevel, setSelectedLevel] = useState<string>("all");
+  const [myJdJobs, setMyJdJobs] = useState<JDJobSummary[]>([]);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(true);
 
   useEffect(() => {
     let mounted = true;
-    jdInterviewApi.getMyJobs(PAGE_SIZE, pageIndex * PAGE_SIZE)
-      .then((result) => {
-        if (!mounted) return;
-        setJobs((previous) => pageIndex === 0
-          ? result
-          : Array.from(new Map([...previous, ...result].map((job) => [job.job_id, job])).values()));
-        setHasMore(result.length === PAGE_SIZE);
+    jdInterviewApi
+      .getMyJobs()
+      .then((jobs) => {
+        if (mounted) setMyJdJobs(jobs || []);
       })
-      .catch((cause: unknown) => {
-        if (!mounted) return;
-        const authenticationRequired = cause instanceof ApiError && cause.status === 401;
-        setLoadError({
-          authenticationRequired,
-          message: authenticationRequired
-            ? "Phiên đăng nhập đã hết hạn. Đăng nhập lại để xem các buổi luyện."
-            : "Chưa tải được các buổi luyện. Vui lòng thử lại sau ít phút.",
-        });
-      })
-      .finally(() => { if (mounted) setIsLoading(false); });
-    return () => { mounted = false; };
-  }, [pageIndex, reloadKey]);
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) setIsLoadingJobs(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-  const filteredJobs = useMemo(() => {
-    const search = normalizeSearch(query);
-    return jobs.filter((job) => {
-      if (statusFilter === "ready" && job.status !== "COMPLETED") return false;
-      if (statusFilter === "failed" && job.status !== "FAILED") return false;
-      if (statusFilter === "processing" && ["COMPLETED", "FAILED"].includes(job.status)) return false;
-      if (levelFilter !== "all" && normalizeLevel(job.seniority) !== levelFilter) return false;
-      const searchable = [job.role, job.company_name, job.seniority, ...(job.focus_areas || [])].join(" ");
-      return !search || normalizeSearch(searchable).includes(search);
+  // Pre-made Interview Quick Launch Modal
+  const [selectedInterview, setSelectedInterview] = useState<PreMadeInterview | null>(null);
+  const [launchMode, setLaunchMode] = useState<"text" | "voice">("voice");
+  const [selectedStages, setSelectedStages] = useState<string[]>(["warmup", "technical", "closing"]);
+
+  const toggleStage = (stageId: string) => {
+    setSelectedStages((prev) => {
+      if (prev.includes(stageId)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((id) => id !== stageId);
+      }
+      const order = ["warmup", "technical", "closing"];
+      return order.filter((id) => prev.includes(id) || id === stageId);
     });
-  }, [jobs, query, statusFilter, levelFilter]);
-  const hasFilters = Boolean(query.trim()) || statusFilter !== "all" || levelFilter !== "all";
+  };
+  const [isLaunching, setIsLaunching] = useState(false);
 
-  function resetFilters() {
-    setQuery("");
-    setStatusFilter("all");
-    setLevelFilter("all");
-  }
+  // Filter categories
+  const categories = useMemo(() => [
+    { id: "all", label: "Tất cả các buổi" },
+    ...(myJdJobs.length > 0 ? [{ id: "my-jd", label: `📑 JD Của Tôi (${myJdJobs.length})` }] : []),
+    { id: "bigtech", label: "🏢 Big Tech Khủng" },
+    { id: "software", label: "💻 Software Dev" },
+    { id: "ai", label: "🧠 AI & Data Science" },
+    { id: "product", label: "🚀 Product & Management" },
+    { id: "fintech", label: "💳 FinTech & Systems" },
+  ], [myJdJobs.length]);
 
-  function refreshJobs() {
-    setIsLoading(true);
-    setLoadError(null);
-    setPageIndex(0);
-    setReloadKey((previous) => previous + 1);
-  }
+  const levels = [
+    { id: "all", label: "Mọi cấp độ" },
+    { id: "junior", label: "Junior" },
+    { id: "mid", label: "Middle" },
+    { id: "senior", label: "Senior" },
+    { id: "lead", label: "Staff / Lead" },
+  ];
 
-  function retryRequest() {
-    setIsLoading(true);
-    setLoadError(null);
-    setReloadKey((previous) => previous + 1);
-  }
+  // Filtered interviews list
+  const filteredInterviews = useMemo(() => {
+    return PRE_MADE_INTERVIEWS.filter((item) => {
+      // Category filter
+      if (selectedCategory !== "all" && item.category !== selectedCategory) {
+        return false;
+      }
+      // Level filter
+      if (selectedLevel !== "all" && item.level !== selectedLevel) {
+        return false;
+      }
+      // Search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const inTitle = item.title.toLowerCase().includes(q);
+        const inCompany = item.company.toLowerCase().includes(q);
+        const inDomain = item.domain.toLowerCase().includes(q);
+        const inTopics = item.topics.some((t) => t.toLowerCase().includes(q));
+        return inTitle || inCompany || inDomain || inTopics;
+      }
+      return true;
+    });
+  }, [searchQuery, selectedCategory, selectedLevel]);
 
-  function loadMore() {
-    setIsLoading(true);
-    setLoadError(null);
-    setPageIndex((previous) => previous + 1);
-  }
+  // Handle launch pre-made interview
+  const handleStartPreMade = (interview: PreMadeInterview) => {
+    router.push(`/practice/setup/${interview.id}`);
+  };
 
-  return (
-    <div className={styles.workspace} aria-busy={isLoading}>
-      <div className={styles.toolbar}>
-        <div className={styles.searchField}>
-          <label htmlFor="practice-search">Tìm buổi luyện</label>
-          <input id="practice-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Vị trí, công ty hoặc kỹ năng" autoComplete="off" />
-        </div>
-        <div className={styles.levelField}>
-          <label htmlFor="practice-level">Cấp độ</label>
-          <select id="practice-level" value={levelFilter} onChange={(event) => setLevelFilter(event.target.value)}>
-            {LEVELS.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}
-          </select>
-        </div>
-        <button type="button" className={styles.refreshButton} onClick={refreshJobs} disabled={isLoading}>
-          {isLoading && jobs.length > 0 && pageIndex === 0 ? "Đang cập nhật…" : "Cập nhật danh sách"}
-        </button>
-      </div>
+  const confirmLaunchPreMade = () => {
+    if (!selectedInterview) return;
+    setIsLaunching(true);
 
-      <div className={styles.filterBar}>
-        <div className={styles.statusFilters} role="group" aria-label="Lọc theo trạng thái">
-          {STATUS_FILTERS.map((filter) => (
-            <button key={filter.value} type="button" className={styles.filterButton} aria-pressed={statusFilter === filter.value} onClick={() => setStatusFilter(filter.value)}>{filter.label}</button>
-          ))}
-        </div>
-        {hasFilters && <button type="button" className={styles.textButton} onClick={resetFilters}>Bỏ bộ lọc</button>}
-      </div>
+    const sessionId = `bt-${selectedInterview.company.toLowerCase().replace(/[^a-z0-9]/g, "")}-${Date.now().toString(36)}`;
+    const metadata = {
+      roleLabel: selectedInterview.title,
+      companyName: selectedInterview.company,
+      domainLabel: selectedInterview.domain,
+      levelLabel: selectedInterview.levelLabel,
+      languageLabel: "Tiếng Việt",
+      mode: launchMode,
+      selected_stages: selectedStages,
+      totalQuestions: selectedInterview.sampleQuestions.length,
+    };
 
-      {loadError && (
-        <div className={styles.errorState} role="alert">
-          <p>{loadError.message}</p>
-          {loadError.authenticationRequired
-            ? <Link href="/login" className={styles.textButton}>Đăng nhập lại</Link>
-            : <button type="button" className={styles.textButton} onClick={retryRequest} disabled={isLoading}>{isLoading ? "Đang thử lại…" : "Thử lại"}</button>}
-        </div>
-      )}
+    try {
+      sessionStorage.setItem(`session_metadata_${sessionId}`, JSON.stringify(metadata));
+      sessionStorage.setItem("active_session_metadata", JSON.stringify(metadata));
+      sessionStorage.setItem(
+        `custom_questions_${sessionId}`,
+        JSON.stringify(selectedInterview.sampleQuestions)
+      );
+      sessionStorage.setItem(
+        "active_custom_questions",
+        JSON.stringify(selectedInterview.sampleQuestions)
+      );
+    } catch {
+      // ignore
+    }
 
-      {isLoading && jobs.length === 0 ? <LoadingJobs /> : !loadError?.authenticationRequired && (
-        <>
-          {jobs.length > 0 && (
-            <p className={styles.resultCount} role="status">
-              {hasFilters ? `${filteredJobs.length} trên ${jobs.length} buổi đã tải` : `${jobs.length} buổi đã tải`}<span>Mới nhất trước</span>
-            </p>
-          )}
-          {filteredJobs.length > 0 ? (
-            <ul className={styles.jobList}>{filteredJobs.map((job) => <JobRow key={job.job_id} job={job} />)}</ul>
-          ) : !loadError && (
-            <div className={styles.emptyState}>
-              <p className={styles.emptyEyebrow}>{jobs.length > 0 ? "CHƯA CÓ KẾT QUẢ PHÙ HỢP" : "BẮT ĐẦU TỪ CÔNG VIỆC BẠN MUỐN"}</p>
-              <h3>{jobs.length > 0 ? "Thử tìm theo một cách khác." : "Buổi luyện đầu tiên đang chờ bạn."}</h3>
-              <p>{jobs.length > 0 ? "Đổi từ khóa hoặc bỏ bộ lọc để xem lại các buổi đã tải." : "Thêm mô tả công việc để tạo câu hỏi theo vị trí bạn đang ứng tuyển. Các buổi đã tạo sẽ xuất hiện tại đây."}</p>
-              {jobs.length > 0
-                ? <button type="button" className={styles.outlineButton} onClick={resetFilters}>Xem tất cả buổi đã tải</button>
-                : <Link href="/practice/new" className={styles.outlineButton}>Tạo buổi luyện đầu tiên</Link>}
-            </div>
-          )}
-          {hasMore && (
-            <div className={styles.loadMore}>
-              <button type="button" className={styles.outlineButton} onClick={loadMore} disabled={isLoading || Boolean(loadError)}>{isLoading ? "Đang tải thêm…" : "Tải thêm buổi luyện"}</button>
-              <p>Tìm kiếm và bộ lọc áp dụng cho các buổi đã tải.</p>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
+    router.push(`/practice/${sessionId}`);
+  };
 
-export default function PracticeOverviewPage() {
-  const { user, isLoading } = useAuth();
+  const getLevelClass = (level: string) => {
+    switch (level) {
+      case "junior":
+        return styles.levelJunior;
+      case "mid":
+        return styles.levelMid;
+      case "senior":
+        return styles.levelSenior;
+      case "lead":
+        return styles.levelLead;
+      default:
+        return styles.levelSenior;
+    }
+  };
 
   return (
     <div className={styles.pageShell}>
-      <PracticeHero />
-      <section id="practice-sessions" className={styles.sessions} aria-labelledby="sessions-title">
-        <div className={styles.sectionHeader}>
-          <div><p className={styles.sectionEyebrow}>TIẾP TỤC TỪ ĐÂY</p><h2 id="sessions-title">Buổi luyện đã tạo</h2></div>
-          <p>Chọn một buổi để thiết lập và bắt đầu.<br />Giọng nói hay văn bản, bạn quyết định.</p>
+      {/* Hero Title Section */}
+      <div className={styles.heroHeader}>
+        <div className={styles.eyebrow}>
+          <Sparkles size={13} />
+          <span>PHÒNG GIẢ LẬP PHỎNG VẤN THỰC CHIẾN AI (MOCK INTERVIEW)</span>
         </div>
-        {isLoading ? <LoadingJobs /> : user ? <PracticeJobs key={user.user_id} /> : (
-          <div className={styles.emptyState}>
-            <p className={styles.emptyEyebrow}>KHÔNG GIAN LUYỆN TẬP CỦA BẠN</p>
-            <h3>Đăng nhập để tiếp tục.</h3>
-            <p>Xem lại các buổi đã tạo và chuẩn bị cho lần phỏng vấn tiếp theo.</p>
-            <Link href="/login" className={styles.outlineButton}>Đăng nhập</Link>
+        <h1 className={styles.title}>
+          Chinh phục phỏng vấn <em>Big Tech</em> &amp; JD thực chiến
+        </h1>
+        <p className={styles.sub}>
+          Lựa chọn các buổi phỏng vấn mô phỏng chuẩn hóa từ các tập đoàn công nghệ hàng đầu thế giới,
+          hoặc dán bản mô tả công việc (JD) bạn đang ứng tuyển để AI tạo bộ câu hỏi độc quyền 1-1.
+        </p>
+      </div>
+
+      {/* Filter & Controls Bar */}
+      <div className={styles.controlsSection}>
+        <div className={styles.searchBarWrapper}>
+          <div className={styles.searchBox}>
+            <Search size={17} className={styles.searchIcon} />
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder="Tìm theo vị trí, công ty (Google, Meta, Shopee) hoặc kỹ năng..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-        )}
-      </section>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            {levels.map((lvl) => (
+              <button
+                key={lvl.id}
+                type="button"
+                className={`${styles.tabPill} ${selectedLevel === lvl.id ? styles.tabPillActive : ""}`}
+                onClick={() => setSelectedLevel(lvl.id)}
+              >
+                {lvl.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Category Tabs */}
+        <div className={styles.categoryTabsRow}>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              className={`${styles.tabPill} ${selectedCategory === cat.id ? styles.tabPillActive : ""}`}
+              onClick={() => setSelectedCategory(cat.id)}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* =========================================================
+          MY SAVED JD INTERVIEWS (PERSISTED WORKSPACES)
+      ========================================================= */}
+      {myJdJobs.length > 0 && (selectedCategory === "all" || selectedCategory === "my-jd") && (
+        <section className={styles.myJdSection} aria-label="Buổi phỏng vấn đã tạo từ JD">
+          <header className={styles.myJdHeader}>
+            <div className={styles.myJdTitleWrap}>
+              <Sparkles size={20} className="text-[#d98236]" />
+              <h2 className={styles.myJdTitle}>Buổi Phỏng Vấn Bạn Đã Tạo Từ JD</h2>
+              <span className={styles.myJdBadgeCount}>{myJdJobs.length} buổi</span>
+            </div>
+            <Link href="/practice/new" className={styles.btnNewJdLink}>
+              <Plus size={14} />
+              <span>Tạo thêm từ JD mới</span>
+            </Link>
+          </header>
+
+          <div className={styles.myJdGrid}>
+            {myJdJobs.map((job) => {
+              const isCompleted = job.status === "COMPLETED";
+              const targetUrl = isCompleted
+                ? `/practice/setup/${job.job_id}`
+                : `/practice/new?job_id=${job.job_id}`;
+
+              return (
+                <div
+                  key={job.job_id}
+                  className={styles.myJdItemCard}
+                  onClick={() => router.push(targetUrl)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") router.push(targetUrl);
+                  }}
+                >
+                  <div>
+                    <div className={styles.myJdCardTop}>
+                      <span className={styles.myJdSeniorityBadge}>
+                        <Award size={12} />
+                        {job.seniority || "Junior"}
+                      </span>
+
+                      {isCompleted ? (
+                        <span className={styles.myJdStatusBadgeSuccess}>
+                          <CheckCircle2 size={12} />
+                          Sẵn sàng
+                        </span>
+                      ) : (
+                        <span className={styles.myJdStatusBadgePending}>
+                          <Clock size={12} />
+                          {job.stage || "Đang xử lý"}
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className={styles.myJdRoleTitle}>{job.role}</h3>
+                    <p className={styles.myJdCompany}>
+                      <Building2 size={13} />
+                      {job.company_name || "Theo Job Description"}
+                    </p>
+
+                    {job.focus_areas && job.focus_areas.length > 0 && (
+                      <div className={styles.myJdTagsList}>
+                        {job.focus_areas.slice(0, 3).map((tag, i) => (
+                          <span key={i} className={styles.myJdTagPill}>
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className={styles.myJdMetaRow}>
+                      <span className="flex items-center gap-1">
+                        <Layers size={13} />
+                        {job.total_questions > 0 ? `${job.total_questions} câu hỏi` : "Kịch bản AI"}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock size={13} />
+                        ~{job.estimated_minutes || 45} phút
+                      </span>
+                      <span className="capitalize opacity-75">
+                        {job.source_type}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      className={styles.myJdBtnAction}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(targetUrl);
+                      }}
+                    >
+                      {isCompleted ? (
+                        <>
+                          <Play size={14} className="fill-current" />
+                          <span>Tùy Chọn & Luyện Tập</span>
+                        </>
+                      ) : (
+                        <>
+                          <ArrowRight size={14} />
+                          <span>Tiếp Tục Xử Lý</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* VERTICAL PORTRAIT CARDS GRID */}
+      {selectedCategory !== "my-jd" && (
+      <div className={styles.interviewsGrid}>
+        {/* =========================================================
+            CARD 1: CREATE CUSTOM INTERVIEW WITH JOB DESCRIPTION (JD)
+            Tỉ lệ dọc, thiết kế sang trọng & nổi bật nhất
+        ========================================================= */}
+        <div
+          className={`${styles.cardBase} ${styles.customJdCard}`}
+          onClick={() => router.push("/practice/new")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") router.push("/practice/new");
+          }}
+          aria-label="Tạo buổi phỏng vấn mới theo JD của bạn"
+        >
+          {/* Top Illustration / Image Banner */}
+          <div className={styles.customJdHeroImgWrap}>
+            <div className={styles.customJdIllustration}>
+              <div className={styles.customJdIconGlow}>
+                <FileText size={32} />
+              </div>
+              <div className={styles.customJdSupportedBadges}>
+                <span className={styles.customJdSupportPill}>LinkedIn</span>
+                <span className={styles.customJdSupportPill}>TopCV</span>
+                <span className={styles.customJdSupportPill}>VietCV</span>
+                <span className={styles.customJdSupportPill}>PDF / Text</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card Body */}
+          <div className={styles.customJdBody}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <span className={styles.customJdBadge}>
+                <Sparkles size={13} />
+                <span>AI Tailored • Độc Quyền</span>
+              </span>
+              <h2 className={styles.customJdTitle}>Tạo Buổi Phỏng Vấn Theo JD Của Bạn</h2>
+              <p className={styles.customJdDesc}>
+                Dán bản mô tả công việc (JD) từ LinkedIn, TopCV hoặc link tuyển dụng bất kỳ.
+                AI phân tích yêu cầu chuyên môn và mô phỏng chính xác buổi phỏng vấn thực tế.
+              </p>
+
+              {/* Feature Highlights */}
+              <ul className={styles.customJdFeatures}>
+                <li className={styles.customJdFeatureItem}>
+                  <span className={styles.customJdFeatureDot}>✦</span>
+                  <span>Bóc tách 100% kỹ thuật & văn hóa công ty</span>
+                </li>
+                <li className={styles.customJdFeatureItem}>
+                  <span className={styles.customJdFeatureDot}>✦</span>
+                  <span>Dự đoán câu hỏi đào sâu theo level</span>
+                </li>
+                <li className={styles.customJdFeatureItem}>
+                  <span className={styles.customJdFeatureDot}>✦</span>
+                  <span>Hỗ trợ Voice (Nói chuyện AI) hoặc Text</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Bottom Action */}
+            <Link
+              href="/practice/new"
+              className={styles.btnCreateJdAction}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <Sparkles size={16} />
+              <span>Tạo phỏng vấn theo JD ngay</span>
+              <ArrowRight size={15} />
+            </Link>
+          </div>
+        </div>
+
+        {/* =========================================================
+            SUBSEQUENT CARDS: PRE-MADE INTERVIEWS (TỈ LỆ DỌC CÓ HÌNH ẢNH)
+        ========================================================= */}
+        {filteredInterviews.map((item) => (
+          <div
+            key={item.id}
+            className={styles.cardBase}
+            onClick={() => handleStartPreMade(item)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleStartPreMade(item);
+            }}
+          >
+            {/* Top Portrait Image */}
+            <div className={styles.cardImgWrap}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.imageUrl}
+                alt={item.title}
+                className={styles.cardImg}
+                loading="lazy"
+              />
+              <div className={styles.cardImgOverlay}>
+                <div className={styles.cardTopTags}>
+                  <span className={styles.cardCompanyBadge}>
+                    <Building2 size={12} className="text-[#d98236]" />
+                    <span>{item.company}</span>
+                  </span>
+                  <span className={styles.cardRatingPill}>
+                    <Star size={12} fill="#fbbf24" stroke="none" />
+                    <span>{item.rating}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Card Body */}
+            <div className={styles.cardBody}>
+              <div className={styles.cardMainInfo}>
+                <div className={styles.cardRoleLevelRow}>
+                  <span className={`${styles.levelBadge} ${getLevelClass(item.level)}`}>
+                    {item.levelLabel}
+                  </span>
+                  <span className={styles.cardDuration}>
+                    <Clock size={11} style={{ display: "inline", marginRight: 4 }} />
+                    {item.questionsCount} câu hỏi • ~{item.durationMinutes}p
+                  </span>
+                </div>
+
+                <h3 className={styles.cardTitle}>{item.title}</h3>
+                <p className={styles.cardSubtitle}>
+                  <span>{item.companyBadge}</span> • <span>{item.domain}</span>
+                </p>
+
+                {/* Topics Tag List */}
+                <div className={styles.cardTopicsRow}>
+                  {item.topics.slice(0, 3).map((topic, i) => (
+                    <span key={i} className={styles.topicTag}>
+                      {topic}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Community Social Proof / Testimonial Box */}
+                <div className={styles.testimonialQuoteBox}>
+                  <p className={styles.quoteText}>&ldquo;{item.testimonial.quote}&rdquo;</p>
+                  <p className={styles.quoteAuthor}>
+                    <Award size={12} className="text-[#d98236]" />
+                    <span>{item.testimonial.author} ({item.testimonial.role})</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Card Footer */}
+              <div className={styles.cardFooter}>
+                <span className={styles.candidatesCount}>
+                  <TrendingUp size={12} style={{ display: "inline", marginRight: 4 }} />
+                  {item.candidatesPracticed} ứng viên đã luyện
+                </span>
+
+                <button
+                  type="button"
+                  className={styles.btnStartInterview}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStartPreMade(item);
+                  }}
+                >
+                  <span>Luyện tập</span>
+                  <ArrowRight size={13} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      )}
+
+      {/* =========================================================
+          MODAL 2: QUICK LAUNCH PRE-MADE INTERVIEW
+      ========================================================= */}
+      {selectedInterview && (
+        <div
+          className={styles.modalBackdrop}
+          onClick={() => setSelectedInterview(null)}
+        >
+          <div
+            className={styles.modalCard}
+            style={{ maxWidth: 580 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <div className={styles.modalTitleWrap}>
+                <span className={`${styles.levelBadge} ${getLevelClass(selectedInterview.level)}`}>
+                  {selectedInterview.levelLabel}
+                </span>
+                <h2 className={styles.modalTitle}>{selectedInterview.title}</h2>
+                <p className={styles.modalSub}>
+                  {selectedInterview.company} • {selectedInterview.domain} • {selectedInterview.questionsCount} câu hỏi
+                </p>
+              </div>
+              <button
+                type="button"
+                className={styles.modalCloseBtn}
+                onClick={() => setSelectedInterview(null)}
+                aria-label="Đóng cửa sổ"
+              >
+                <X size={17} />
+              </button>
+            </div>
+
+            {/* Testimonial Box */}
+            <div className={styles.testimonialQuoteBox} style={{ background: "rgba(217, 130, 54, 0.08)", border: "1px solid rgba(217, 130, 54, 0.2)" }}>
+              <p className={styles.quoteText}>&ldquo;{selectedInterview.testimonial.quote}&rdquo;</p>
+              <p className={styles.quoteAuthor}>
+                <Award size={13} className="text-[#d98236]" />
+                <span>{selectedInterview.testimonial.author} ({selectedInterview.testimonial.role})</span>
+              </p>
+            </div>
+
+            {/* Mode Picker */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <label style={{ fontSize: 12, fontWeight: 800, color: "#211914" }}>Chọn hình thức phỏng vấn:</label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setLaunchMode("voice")}
+                  style={{
+                    padding: "12px 14px",
+                    borderRadius: "14px",
+                    border: launchMode === "voice" ? "2px solid #d98236" : "1px solid rgba(106, 72, 49, 0.18)",
+                    background: launchMode === "voice" ? "rgba(217, 130, 54, 0.12)" : "rgba(255, 255, 255, 0.8)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Mic size={18} className={launchMode === "voice" ? "text-[#d98236]" : "text-stone-500"} />
+                  <div style={{ textAlign: "left" }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: "#211914" }}>Giọng nói (Voice)</div>
+                    <div style={{ fontSize: 11, color: "#8b4513" }}>Khuyên dùng</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setLaunchMode("text")}
+                  style={{
+                    padding: "12px 14px",
+                    borderRadius: "14px",
+                    border: launchMode === "text" ? "2px solid #d98236" : "1px solid rgba(106, 72, 49, 0.18)",
+                    background: launchMode === "text" ? "rgba(217, 130, 54, 0.12)" : "rgba(255, 255, 255, 0.8)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Keyboard size={18} className={launchMode === "text" ? "text-[#d98236]" : "text-stone-500"} />
+                  <div style={{ textAlign: "left" }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: "#211914" }}>Nhập phím (Text)</div>
+                    <div style={{ fontSize: 11, color: "rgba(45, 31, 23, 0.6)" }}>Gõ câu trả lời</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Stage Selector (3 Chặng Phỏng Vấn) */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <label style={{ fontSize: 12, fontWeight: 800, color: "#211914", display: "flex", alignItems: "center", gap: 6 }}>
+                  <Layers size={14} className="text-[#d98236]" />
+                  <span>Chọn các chặng phỏng vấn:</span>
+                </label>
+                <span style={{ fontSize: 11, fontWeight: 700, color: selectedStages.length > 0 ? "#d98236" : "#ef4444" }}>
+                  {selectedStages.length}/3
+                </span>
+              </div>
+
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <button type="button" onClick={() => setSelectedStages(["warmup", "technical", "closing"])}
+                  style={{ padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "700",
+                    border: selectedStages.length === 3 ? "1.5px solid #d98236" : "1px solid rgba(106, 72, 49, 0.2)",
+                    background: selectedStages.length === 3 ? "rgba(217, 130, 54, 0.15)" : "transparent",
+                    color: selectedStages.length === 3 ? "#8b4513" : "rgba(33, 25, 20, 0.7)", cursor: "pointer" }}>
+                  Full 3 chặng
+                </button>
+                <button type="button" onClick={() => setSelectedStages(["technical"])}
+                  style={{ padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "700",
+                    border: selectedStages.length === 1 && selectedStages[0] === "technical" ? "1.5px solid #d98236" : "1px solid rgba(106, 72, 49, 0.2)",
+                    background: selectedStages.length === 1 && selectedStages[0] === "technical" ? "rgba(217, 130, 54, 0.15)" : "transparent",
+                    color: selectedStages.length === 1 && selectedStages[0] === "technical" ? "#8b4513" : "rgba(33, 25, 20, 0.7)", cursor: "pointer" }}>
+                  Chỉ chuyên môn
+                </button>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {[
+                  { id: "warmup", label: "1. Khởi động (Warm-up)", desc: "Chào hỏi, thời tiết, giới thiệu bản thân" },
+                  { id: "technical", label: "2. Chuyên môn (Technical)", desc: "Kiến trúc, kinh nghiệm, câu hỏi kỹ thuật & STAR" },
+                  { id: "closing", label: "3. Thỏa thuận (Closing)", desc: "Câu hỏi, nguyện vọng & deal lương" },
+                ].map((stg) => (
+                  <div key={stg.id} onClick={() => toggleStage(stg.id)}
+                    style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 10px", borderRadius: "12px", cursor: "pointer",
+                      background: selectedStages.includes(stg.id) ? "rgba(217, 130, 54, 0.08)" : "rgba(255, 255, 255, 0.5)",
+                      border: selectedStages.includes(stg.id) ? "1.5px solid #d98236" : "1px solid rgba(106, 72, 49, 0.12)" }}>
+                    <input type="checkbox" checked={selectedStages.includes(stg.id)} onChange={() => {}} style={{ marginTop: 3, accentColor: "#d98236" }} />
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "#211914" }}>{stg.label}</div>
+                      <div style={{ fontSize: 11, color: "rgba(45, 31, 23, 0.7)" }}>{stg.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ padding: "6px 10px", borderRadius: "10px", background: "rgba(217, 130, 54, 0.05)", border: "1px dashed rgba(217, 130, 54, 0.25)",
+                display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: "#8b4513" }}>Preview:</span>
+                {selectedStages.map((stg, i) => (
+                  <span key={stg} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 800, color: "#d98236" }}>
+                    {"\u25CF"} {stg === "warmup" ? "Warm-up" : stg === "technical" ? "Technical" : "Closing"}
+                    {i < selectedStages.length - 1 && <span style={{ color: "rgba(106, 72, 49, 0.3)", margin: "0 2px" }}>{"\u2500\u2500\u2500"}</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.modalBtnCancel}
+                onClick={() => setSelectedInterview(null)}
+              >
+                Đóng
+              </button>
+              <button
+                type="button"
+                className={styles.modalBtnSubmit}
+                onClick={confirmLaunchPreMade}
+                disabled={isLaunching || selectedStages.length === 0}
+              >
+                <Sparkles size={16} />
+                <span>{isLaunching ? "Đang chuẩn bị phòng..." : "Vào phòng phỏng vấn ngay"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
