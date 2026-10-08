@@ -66,7 +66,7 @@ export function StageConfigEditor({
           return (
             <article
               key={stage.id}
-              className={[styles.stageCard, isActive ? styles.stageCardActive : ""].filter(Boolean).join(" ")}
+              className={["portal-panel", styles.stageCard, isActive ? styles.stageCardActive : ""].filter(Boolean).join(" ")}
             >
               <label className={styles.stageToggle} htmlFor={"stage-" + stage.id}>
                 <input

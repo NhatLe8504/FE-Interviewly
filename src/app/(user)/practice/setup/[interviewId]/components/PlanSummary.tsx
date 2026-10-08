@@ -33,7 +33,7 @@ export function PlanSummary({
   const isStartDisabled = isLaunching || !isPlanValid;
 
   return (
-    <section className={styles.summaryPanel} aria-labelledby="plan-summary-heading">
+    <section className={`portal-panel ${styles.summaryPanel}`} aria-labelledby="plan-summary-heading">
       <div className={styles.summaryHeader}>
         <Sparkles size={16} aria-hidden="true" />
         <div>

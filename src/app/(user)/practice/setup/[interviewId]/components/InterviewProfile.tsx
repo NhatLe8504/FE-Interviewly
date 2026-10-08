@@ -39,7 +39,7 @@ export function InterviewProfile({ interview }: InterviewProfileProps) {
 
       <dl className={styles.statsGrid}>
         {stats.map(({ Icon, label, detail }) => (
-          <div key={detail}>
+          <div key={detail} className="portal-panel">
             <Icon size={17} aria-hidden="true" />
             <dt>{detail}</dt>
             <dd>{label}</dd>
@@ -47,7 +47,7 @@ export function InterviewProfile({ interview }: InterviewProfileProps) {
         ))}
       </dl>
 
-      <blockquote className={styles.testimonial}>
+      <blockquote className={`portal-panel ${styles.testimonial}`}>
         <p>&ldquo;{interview.testimonial.quote}&rdquo;</p>
         <footer>
           <Award size={14} aria-hidden="true" />
@@ -62,7 +62,7 @@ export function InterviewProfile({ interview }: InterviewProfileProps) {
         </div>
       </section>
 
-      <aside className={styles.catalogNotice}>
+      <aside className={`portal-panel ${styles.catalogNotice}`}>
         <Sparkles size={17} aria-hidden="true" />
         <p>
           Khi chọn nguồn <strong>Tự chọn</strong> hoặc <strong>Kết hợp</strong>, hệ thống chỉ dùng
