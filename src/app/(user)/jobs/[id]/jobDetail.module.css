@@ -1,0 +1,110 @@
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+.backButton {
+  margin-bottom: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mainContent {
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 1.25rem;
+  padding: 2rem;
+}
+
+.header {
+  border-bottom: 1px solid var(--line, #f1f5f9);
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-main, #0f172a);
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
+}
+
+.companyInfo {
+  font-size: 1.05rem;
+  color: var(--text-muted, #475569);
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.salaryHighlight {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.metaBadge {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.sectionTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main, #1e293b);
+  margin: 1.75rem 0 0.85rem;
+}
+
+.descriptionText {
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: #334155;
+  white-space: pre-line;
+}
+
+.tagsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.tag {
+  padding: 0.35rem 0.75rem;
+  background: #f1f5f9;
+  color: #1e293b;
+  border-radius: 6px;
+  font-size: 0.825rem;
+  font-weight: 500;
+}
