@@ -18,6 +18,7 @@ export const jobsApi = {
     if (params?.technology) searchParams.set("technology", params.technology);
     if (params?.location) searchParams.set("location", params.location);
     if (params?.source_id) searchParams.set("source_id", params.source_id);
+    if (params?.country_code !== undefined) searchParams.set("country_code", params.country_code);
     if (params?.sort_by) searchParams.set("sort_by", params.sort_by);
     if (params?.page) searchParams.set("page", String(params.page));
     if (params?.limit) searchParams.set("limit", String(params.limit));
@@ -31,8 +32,8 @@ export const jobsApi = {
     return request<JobDetail>(`/api/v1/jobs/${jobId}`);
   },
 
-  getFilterMetadata: async (): Promise<JobFilterMetadata> => {
-    return request<JobFilterMetadata>("/api/v1/jobs/metadata/filters");
+  getFilterMetadata: async (countryCode = "VN"): Promise<JobFilterMetadata> => {
+    return request<JobFilterMetadata>("/api/v1/jobs/metadata/filters?country_code=" + encodeURIComponent(countryCode));
   },
 
   getSkillMatch: async (jobId: string): Promise<JobSkillMatch> => {
