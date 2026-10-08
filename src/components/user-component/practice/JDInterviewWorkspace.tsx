@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { jdInterviewApi, JDJobStatusResponse, InterviewScriptResult, ScriptItem } from "@/services/jdInterviewApi";
 import { Button } from "@/components/ui/button";
-import { Mascot } from "page-mascot";
+import { PageMascot } from "@/components/user-component/common/PageMascot";
 import styles from "./jdInterviewWorkspace.module.css";
 
 export function JDInterviewWorkspace() {
@@ -165,11 +165,8 @@ export function JDInterviewWorkspace() {
               và trả lời bằng giọng nói hoặc văn bản — theo cách thoải mái nhất.
             </p>
           </div>
-          <Mascot
-            directions="/mascots/fox-pixel-directions.webp"
-            reactions="/mascots/fox-pixel-reactions.webp"
+          <PageMascot
             size={96}
-            label="Cáo pixel đồng hành luyện phỏng vấn"
             className={styles.mascot}
           />
         </div>

@@ -1,8 +1,10 @@
 # Practice mascot
 
-`fox-pixel-directions.webp` and `fox-pixel-reactions.webp` are the original
-pixel fox sprite sheets from `nilbuild/page-mascot` (the demo's “pixel / 32 across”
-variant). They are served locally; the page does not depend on a third-party image host.
+The character IDs are `fox-pixel`, `cat`, `otter`, `panda`, `gearbot`, and
+`astronaut`, from `nilbuild/page-mascot`. `fox-pixel` is the demo's “pixel / 32
+across” variant. Each character has direction and reaction sheets, served locally
+without a third-party image dependency. The sheets are resized to the UI's display
+resolution; the pixel variant uses nearest-neighbor resizing and lossless WebP.
 
 Source: https://github.com/nilbuild/page-mascot/tree/main/public/mascots
 
