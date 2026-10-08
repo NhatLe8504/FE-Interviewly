@@ -16,6 +16,9 @@ export const jobsApi = {
     if (params?.seniority) searchParams.set("seniority", params.seniority);
     if (params?.workplace_type) searchParams.set("workplace_type", params.workplace_type);
     if (params?.technology) searchParams.set("technology", params.technology);
+    if (params?.location) searchParams.set("location", params.location);
+    if (params?.source_id) searchParams.set("source_id", params.source_id);
+    if (params?.sort_by) searchParams.set("sort_by", params.sort_by);
     if (params?.page) searchParams.set("page", String(params.page));
     if (params?.limit) searchParams.set("limit", String(params.limit));
 
