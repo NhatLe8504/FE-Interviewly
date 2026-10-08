@@ -21,6 +21,7 @@ export interface ProfileOut {
   target_domain_name: string | null;
   bio: string | null;
   avatar_url: string | null;
+  mascot_id: string;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -33,6 +34,7 @@ export interface ProfileUpdateIn {
   target_domain_id?: number | null;
   bio?: string | null;
   avatar_url?: string | null;
+  mascot_id?: string | null;
 }
 
 export interface ChangePasswordIn {

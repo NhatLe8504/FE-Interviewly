@@ -50,6 +50,7 @@ import type {
 } from "@/types/profile";
 import { SimpleUserSelect } from "@/components/user-component/common";
 import styles from "./profile.module.css";
+import { MascotPreferencePanel } from "@/components/user-component/profile/MascotPreferencePanel";
 
 // Helper to resize image client-side to ensure lightweight, fast uploads
 function resizeImageToDataUrl(file: File, maxWidth = 400, maxHeight = 400): Promise<string> {
@@ -253,6 +254,7 @@ export default function ProfileClient() {
           target_domain_name: null,
           bio: null,
           avatar_url: null,
+          mascot_id: user.mascot_id || "fox-pixel",
           created_at: null,
           updated_at: null,
         });
@@ -299,6 +301,7 @@ export default function ProfileClient() {
             target_domain_name: null,
             bio: null,
             avatar_url: null,
+            mascot_id: user.mascot_id || "fox-pixel",
             created_at: null,
             updated_at: null,
           });
@@ -1047,6 +1050,7 @@ export default function ProfileClient() {
               </button>
             </div>
           </form>
+          <MascotPreferencePanel key={user?.user_id} />
         </div>
       )}
 

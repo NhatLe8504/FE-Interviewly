@@ -7,6 +7,7 @@ export interface UserOut {
   is_onboarded?: boolean;
   needs_password?: boolean;
   avatar_url?: string | null;
+  mascot_id?: string;
 }
 
 export interface TokenOut {
