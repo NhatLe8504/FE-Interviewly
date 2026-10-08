@@ -5,6 +5,7 @@ import { LoaderCircle, RefreshCw, Search, X } from "lucide-react";
 import { catalogApi } from "@/services/catalogApi";
 import type { QuestionOut, QuestionType } from "@/types/catalog";
 import styles from "../setup.module.css";
+import { Button } from "@/components/ui/button";
 
 interface QuestionBankDrawerProps {
   stageKey: string;
@@ -119,9 +120,9 @@ export function QuestionBankDrawer({
             <h2 id="question-bank-title">Question Bank · {getStageLabel(stageKey)}</h2>
             <p>Chỉ các câu hỏi đang hoạt động, đã được duyệt mới có thể dùng trong phiên.</p>
           </div>
-          <button className={styles.iconButton} type="button" aria-label="Đóng Question Bank" onClick={onClose}>
+          <Button variant="home-quiet" size="home-compact" type="button" aria-label="Đóng Question Bank" onClick={onClose}>
             <X size={18} aria-hidden="true" />
-          </button>
+          </Button>
         </header>
 
         <form className={styles.drawerFilters} onSubmit={submitSearch}>
@@ -129,25 +130,27 @@ export function QuestionBankDrawer({
             <Search size={16} aria-hidden="true" />
             <span className="sr-only">Tìm câu hỏi</span>
             <input
+              className="portal-input"
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Tìm trong câu hỏi đã tải..."
             />
           </label>
-          <button className={styles.secondaryButton} type="submit">Tìm</button>
+          <Button variant="home-outline" size="home-compact" type="submit">Tìm</Button>
         </form>
 
         <div className={styles.filterPills} role="group" aria-label="Lọc loại câu hỏi">
           {QUESTION_TYPE_OPTIONS.map((option) => (
-            <button
+            <Button
               key={option.value}
-              className={questionType === option.value ? styles.filterActive : ""}
+              variant="home-choice"
+              size="home-compact"
               type="button"
               aria-pressed={questionType === option.value}
               onClick={() => setQuestionType(option.value)}
             >
               {option.label}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -162,9 +165,9 @@ export function QuestionBankDrawer({
         ) : error ? (
           <div className={[styles.drawerStatus, styles.drawerError].join(" ")} role="alert">
             <span>{error}</span>
-            <button className={styles.secondaryButton} type="button" onClick={() => void loadQuestions(0, false)}>
+            <Button variant="home-outline" size="home-compact" type="button" onClick={() => void loadQuestions(0, false)}>
               Thử lại
-            </button>
+            </Button>
           </div>
         ) : questions.length === 0 ? (
           <div className={styles.drawerStatus}>Không tìm thấy câu hỏi phù hợp trong catalog.</div>
@@ -193,21 +196,24 @@ export function QuestionBankDrawer({
         )}
 
         {canLoadMore ? (
-          <button
-            className={[styles.secondaryButton, styles.loadMore].join(" ")}
+          <Button
+            variant="home-outline"
+            size="home-compact"
+            className={styles.loadMore}
             type="button"
             disabled={isLoadingMore}
             onClick={() => void loadQuestions(offset + PAGE_SIZE, true)}
           >
             {isLoadingMore ? <LoaderCircle className="animate-spin" size={15} /> : <RefreshCw size={15} />}
             Tải thêm
-          </button>
+          </Button>
         ) : null}
 
         <footer className={styles.drawerFooter}>
-          <button className={styles.secondaryButton} type="button" onClick={onClose}>Hủy</button>
-          <button
-            className={styles.primaryButton}
+          <Button variant="home-outline" size="home-compact" type="button" onClick={onClose}>Hủy</Button>
+          <Button
+            variant="home-primary"
+            size="home-compact"
             type="button"
             onClick={() => {
               onSelectedQuestionIdsChange(draftQuestionIds);
@@ -215,7 +221,7 @@ export function QuestionBankDrawer({
             }}
           >
             Xong ({draftQuestionIds.length})
-          </button>
+          </Button>
         </footer>
       </section>
     </div>

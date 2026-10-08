@@ -66,16 +66,19 @@ export default function InterviewRoomPage({
   const isVoiceMode = currentMode === "voice";
 
   useEffect(() => {
+    const initialLanguage = new URL(window.location.href).searchParams.get("language") ?? "vi";
     try {
       const raw = sessionStorage.getItem(`session_metadata_${sessionId}`);
       if (raw) {
         const stored: SessionMetaStored = JSON.parse(raw);
         setMeta(stored);
         setCurrentMode(stored.mode === "text" ? "text" : "voice");
-        setLanguage(getInterviewLanguage(stored.language ?? (stored.languageLabel === "English" ? "en" : "vi")).code);
+        setLanguage(getInterviewLanguage(stored.language ?? (stored.languageLabel === "English" ? "en" : initialLanguage)).code);
+      } else {
+        setLanguage(getInterviewLanguage(initialLanguage).code);
       }
     } catch {
-      // ignore
+      setLanguage(getInterviewLanguage(initialLanguage).code);
     }
     setIsClientMounted(true);
   }, [sessionId]);
