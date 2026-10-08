@@ -8,7 +8,7 @@ Source: https://github.com/nilbuild/page-mascot/tree/main/public/mascots
 
 MIT License
 
-Copyright (c) Kamran Ahmed
+Copyright (c) 2026 Kamran Ahmed <https://kamran.fyi>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
