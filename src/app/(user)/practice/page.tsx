@@ -7,6 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/services/apiClient";
 import { jdInterviewApi, type JDJobSummary } from "@/services/jdInterviewApi";
 import { PracticeHero } from "./components/PracticeHero";
+import { Button } from "@/components/ui/button";
+import { UserPagination } from "@/components/user-component/common/Pagination";
 import styles from "./practice.module.css";
 
 const PAGE_SIZE = 30;
@@ -181,8 +183,6 @@ function PracticeJobs() {
   const visiblePage = Math.min(currentPage, totalPages);
   const firstJobIndex = (visiblePage - 1) * INTERVIEWS_PER_PAGE;
   const pageJobs = filteredJobs.slice(firstJobIndex, firstJobIndex + INTERVIEWS_PER_PAGE);
-  const firstPageNumber = Math.max(1, Math.min(visiblePage - 2, totalPages - 4));
-  const pageNumbers = Array.from({ length: Math.min(5, totalPages) }, (_, index) => firstPageNumber + index);
 
   function resetFilters() {
     setQuery("");
@@ -215,35 +215,35 @@ function PracticeJobs() {
     <div className={styles.workspace} aria-busy={isLoading}>
       <div className={styles.toolbar}>
         <div className={styles.searchField}>
-          <label htmlFor="practice-search">Tìm buổi luyện</label>
-          <input id="practice-search" type="search" value={query} onChange={(event) => { setQuery(event.target.value); setCurrentPage(1); }} placeholder="Vị trí, công ty hoặc kỹ năng" autoComplete="off" />
+          <label htmlFor="practice-search" className="portal-field-label">Tìm buổi luyện</label>
+          <input id="practice-search" className="portal-input" type="search" value={query} onChange={(event) => { setQuery(event.target.value); setCurrentPage(1); }} placeholder="Vị trí, công ty hoặc kỹ năng" autoComplete="off" />
         </div>
         <div className={styles.levelField}>
-          <label htmlFor="practice-level">Cấp độ</label>
-          <select id="practice-level" value={levelFilter} onChange={(event) => { setLevelFilter(event.target.value); setCurrentPage(1); }}>
+          <label htmlFor="practice-level" className="portal-field-label">Cấp độ</label>
+          <select id="practice-level" className="portal-input" value={levelFilter} onChange={(event) => { setLevelFilter(event.target.value); setCurrentPage(1); }}>
             {LEVELS.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}
           </select>
         </div>
-        <button type="button" className={styles.refreshButton} onClick={refreshJobs} disabled={isLoading}>
+        <Button type="button" variant="home-quiet" onClick={refreshJobs} disabled={isLoading}>
           {isLoading && jobs.length > 0 && pageIndex === 0 ? "Đang cập nhật…" : "Cập nhật danh sách"}
-        </button>
+        </Button>
       </div>
 
       <div className={styles.filterBar}>
         <div className={styles.statusFilters} role="group" aria-label="Lọc theo trạng thái">
           {STATUS_FILTERS.map((filter) => (
-            <button key={filter.value} type="button" className={styles.filterButton} aria-pressed={statusFilter === filter.value} onClick={() => { setStatusFilter(filter.value); setCurrentPage(1); }}>{filter.label}</button>
+            <Button key={filter.value} type="button" variant="home-tab" aria-pressed={statusFilter === filter.value} onClick={() => { setStatusFilter(filter.value); setCurrentPage(1); }}>{filter.label}</Button>
           ))}
         </div>
-        {hasFilters && <button type="button" className={styles.textButton} onClick={resetFilters}>Bỏ bộ lọc</button>}
+        {hasFilters && <Button type="button" variant="home-quiet" size="home-compact" onClick={resetFilters}>Bỏ bộ lọc</Button>}
       </div>
 
       {loadError && (
         <div className={styles.errorState} role="alert">
           <p>{loadError.message}</p>
           {loadError.authenticationRequired
-            ? <Link href="/login" className={styles.textButton}>Đăng nhập lại</Link>
-            : <button type="button" className={styles.textButton} onClick={retryRequest} disabled={isLoading}>{isLoading ? "Đang thử lại…" : "Thử lại"}</button>}
+            ? <Button asChild variant="home-quiet" size="home-compact"><Link href="/login">Đăng nhập lại</Link></Button>
+            : <Button type="button" variant="home-quiet" size="home-compact" onClick={retryRequest} disabled={isLoading}>{isLoading ? "Đang thử lại…" : "Thử lại"}</Button>}
         </div>
       )}
 
@@ -262,27 +262,26 @@ function PracticeJobs() {
               <h3>{jobs.length > 0 ? "Thử tìm theo một cách khác." : "Buổi luyện đầu tiên đang chờ bạn."}</h3>
               <p>{jobs.length > 0 ? "Đổi từ khóa hoặc bỏ bộ lọc để xem lại các buổi đã tải." : "Thêm mô tả công việc để tạo câu hỏi theo vị trí bạn đang ứng tuyển. Các buổi đã tạo sẽ xuất hiện tại đây."}</p>
               {jobs.length > 0
-                ? <button type="button" className={styles.outlineButton} onClick={resetFilters}>Xem tất cả buổi đã tải</button>
-                : <Link href="/practice/new" className={styles.outlineButton}>Tạo buổi luyện đầu tiên</Link>}
+                ? <Button type="button" variant="home-outline" onClick={resetFilters}>Xem tất cả buổi đã tải</Button>
+                : <Button asChild variant="home-primary"><Link href="/practice/new">Tạo buổi luyện đầu tiên</Link></Button>}
             </div>
           )}
           {filteredJobs.length > 0 && (
-            <div className={styles.pagination}>
-              <p className={styles.paginationSummary} role="status">
-                Hiển thị {firstJobIndex + 1}–{firstJobIndex + pageJobs.length} / {filteredJobs.length} buổi đã tải
-              </p>
-              <nav className={styles.paginationNav} aria-label="Phân trang buổi luyện">
-                <button type="button" className={styles.pageButton} onClick={() => setCurrentPage(visiblePage - 1)} disabled={visiblePage === 1 || isLoading} aria-controls="practice-job-list">Trước</button>
-                {pageNumbers.map((page) => (
-                  <button key={page} type="button" className={styles.pageButton} aria-label={`Trang ${page}`} aria-current={page === visiblePage ? "page" : undefined} aria-controls="practice-job-list" disabled={isLoading} onClick={() => setCurrentPage(page)}>{page}</button>
-                ))}
-                <button type="button" className={styles.pageButton} onClick={() => setCurrentPage(visiblePage + 1)} disabled={visiblePage === totalPages || isLoading} aria-controls="practice-job-list">Sau</button>
-              </nav>
-            </div>
+            <UserPagination
+              currentPage={visiblePage}
+              totalPages={totalPages}
+              totalItems={filteredJobs.length}
+              pageSize={INTERVIEWS_PER_PAGE}
+              itemLabel="buổi đã tải"
+              onPageChange={setCurrentPage}
+              disabled={isLoading}
+              controlsId="practice-job-list"
+              ariaLabel="Phân trang buổi luyện"
+            />
           )}
           {hasMore && (
             <div className={styles.loadMore}>
-              <button type="button" className={styles.outlineButton} onClick={loadMore} disabled={isLoading || Boolean(loadError)}>{isLoading ? "Đang tải thêm…" : "Tải thêm buổi luyện"}</button>
+              <Button type="button" variant="home-outline" onClick={loadMore} disabled={isLoading || Boolean(loadError)}>{isLoading ? "Đang tải thêm…" : "Tải thêm buổi luyện"}</Button>
               <p>Tìm kiếm và bộ lọc áp dụng cho các buổi đã tải.</p>
             </div>
           )}
@@ -308,7 +307,7 @@ export default function PracticeOverviewPage() {
             <p className={styles.emptyEyebrow}>KHÔNG GIAN LUYỆN TẬP CỦA BẠN</p>
             <h3>Đăng nhập để tiếp tục.</h3>
             <p>Xem lại các buổi đã tạo và chuẩn bị cho lần phỏng vấn tiếp theo.</p>
-            <Link href="/login" className={styles.outlineButton}>Đăng nhập</Link>
+            <Button asChild variant="home-outline"><Link href="/login">Đăng nhập</Link></Button>
           </div>
         )}
       </section>
