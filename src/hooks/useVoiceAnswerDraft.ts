@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getInterviewLanguage } from "@/lib/interviewLanguages";
 
 export type VoiceDraftState = "idle" | "requesting" | "recording" | "processing" | "review";
 
@@ -154,7 +155,7 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
       recognitionRef.current = recognition;
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = current.language.startsWith("en") ? "en-US" : "vi-VN";
+      recognition.lang = getInterviewLanguage(current.language).speechLocale;
       const startedAt = Date.now();
       let lastVoiceAt = startedAt;
       let hasVoice = false;

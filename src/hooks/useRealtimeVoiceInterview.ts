@@ -244,7 +244,7 @@ export function useRealtimeVoiceInterview({
   roleName = "Software Engineer",
   level = "Senior",
   language = "vi",
-  voice = "vi-VN-HoaiMyNeural",
+  voice,
   selectedStages = ["warmup", "technical", "closing"],
   stageConfigs,
   selectedQuestionIds,
@@ -380,6 +380,10 @@ export function useRealtimeVoiceInterview({
     }
     return false;
   }, []);
+
+  useEffect(() => {
+    if (enabled && isConnected) sendMessage({ type: "config", language });
+  }, [enabled, isConnected, language, sendMessage]);
 
   // Initialize StreamingAudioPlayer
   useEffect(() => {
