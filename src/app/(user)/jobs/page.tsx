@@ -7,7 +7,6 @@ import { JobItem, JobListResponse } from "@/types/job";
 import { JobsHero } from "@/components/user-component/jobs/JobsHero";
 import { JobFilters } from "@/components/user-component/jobs/JobFilters";
 import { JobCard } from "@/components/user-component/jobs/JobCard";
-import { Button } from "@/components/ui/button";
 import { Loader2, Briefcase, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "@/components/user-component/toast";
 import styles from "@/components/user-component/jobs/jobs.module.css";
@@ -98,17 +97,17 @@ export default function JobsPage() {
       />
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-orange-600 mb-3" />
-          <p className="text-sm text-slate-500 font-medium">Đang tải danh sách cơ hội việc làm...</p>
+        <div className="flex flex-col items-center justify-center py-24">
+          <Loader2 className="w-8 h-8 animate-spin text-[#d98236] mb-3" />
+          <p className="text-sm font-semibold text-[rgba(84,58,42,0.7)]">Đang tải danh sách cơ hội việc làm...</p>
         </div>
       ) : jobs.length === 0 ? (
         <div className={styles.emptyState}>
-          <Briefcase className="w-12 h-12 mx-auto mb-3 text-slate-400" />
-          <h3 className="text-base font-semibold text-slate-700 mb-1">
+          <Briefcase className="w-12 h-12 mx-auto mb-3 text-[rgba(84,58,42,0.4)]" />
+          <h3 className="text-base font-bold text-[#211914] mb-1">
             Không tìm thấy tin tuyển dụng phù hợp
           </h3>
-          <p className="text-sm text-slate-500 max-w-md mx-auto">
+          <p className="text-sm text-[rgba(84,58,42,0.7)] max-w-md mx-auto">
             Thử thay đổi từ khóa tìm kiếm hoặc bỏ bớt các bộ lọc để khám phá thêm nhiều cơ hội khác.
           </p>
         </div>
@@ -127,29 +126,31 @@ export default function JobsPage() {
 
           {totalPages > 1 && (
             <div className={styles.pagination}>
-              <Button
-                variant="home-secondary"
-                size="sm"
+              <button
+                type="button"
+                className={styles.btnSecondary}
                 disabled={page <= 1}
                 onClick={() => loadJobs(page - 1)}
+                style={{ opacity: page <= 1 ? 0.5 : 1, cursor: page <= 1 ? "not-allowed" : "pointer", maxWidth: "140px" }}
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Trang trước
-              </Button>
+              </button>
 
-              <span className="text-xs font-semibold px-3 text-slate-600">
-                Trang {page} / {totalPages} (Tổng {total} vị trí)
+              <span className="text-xs font-bold px-3 text-[#211914]">
+                Trang {page} / {totalPages} ({total} vị trí)
               </span>
 
-              <Button
-                variant="home-secondary"
-                size="sm"
+              <button
+                type="button"
+                className={styles.btnSecondary}
                 disabled={page >= totalPages}
                 onClick={() => loadJobs(page + 1)}
+                style={{ opacity: page >= totalPages ? 0.5 : 1, cursor: page >= totalPages ? "not-allowed" : "pointer", maxWidth: "140px" }}
               >
                 Trang sau
                 <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
+              </button>
             </div>
           )}
         </>
