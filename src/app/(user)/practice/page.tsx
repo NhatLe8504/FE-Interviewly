@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/services/apiClient";
@@ -54,6 +55,17 @@ function normalizeLevel(value: string) {
   return level;
 }
 
+function getJobThumbnail(role: string) {
+  const normalizedRole = normalizeSearch(role);
+  if (/\b(data|ai|ml|machine learning|analytics|cloud|security|du lieu)\b/.test(normalizedRole)) {
+    return "/images/practice/technology.webp";
+  }
+  if (/\b(product|manager|management|business|marketing|san pham|quan ly)\b/.test(normalizedRole)) {
+    return "/images/practice/product.webp";
+  }
+  return "/images/practice/engineering.webp";
+}
+
 function JobRow({ job }: { job: JDJobSummary }) {
   const isReady = job.status === "COMPLETED";
   const isFailed = job.status === "FAILED";
@@ -69,6 +81,15 @@ function JobRow({ job }: { job: JDJobSummary }) {
   return (
     <li>
       <Link href={href} className={styles.jobRow}>
+        <div className={styles.jobThumbnail}>
+          <Image
+            src={getJobThumbnail(job.role)}
+            alt=""
+            fill
+            sizes="(max-width: 480px) 92px, (max-width: 767px) 112px, (max-width: 900px) 128px, 160px"
+            className={styles.thumbnailImage}
+          />
+        </div>
         <div className={styles.jobContent}>
           <p className={styles.jobCompany}>{job.company_name || "Phỏng vấn theo JD"}</p>
           <h3 className={styles.jobTitle}>{job.role || "Buổi phỏng vấn theo mô tả công việc"}</h3>
@@ -96,7 +117,12 @@ function LoadingJobs() {
     <div className={styles.loadingState}>
       <p role="status">Đang tải các buổi luyện…</p>
       <div className={styles.skeletonList} aria-hidden="true">
-        {[0, 1, 2].map((index) => <div key={index} className={styles.skeletonRow}><span /><span /><span /></div>)}
+        {[0, 1, 2].map((index) => (
+          <div key={index} className={styles.skeletonRow}>
+            <span className={styles.skeletonThumbnail} />
+            <div className={styles.skeletonContent}><span /><span /><span /></div>
+          </div>
+        ))}
       </div>
     </div>
   );
