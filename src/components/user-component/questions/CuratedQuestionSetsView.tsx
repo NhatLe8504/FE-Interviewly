@@ -219,7 +219,7 @@ export function CuratedQuestionSetsView({
     <div className="space-y-6 pt-2">
       {/* Search & Quick Filter Toolbar with Integrated Compact Tab Switcher */}
       <div className={`${pageStyles.filterCard} space-y-3`}>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           {/* Integrated Compact Tab Switcher */}
           {setActiveTab && (
             <div className={pageStyles.tabGroup}>
@@ -241,32 +241,14 @@ export function CuratedQuestionSetsView({
               </button>
             </div>
           )}
+        </div>
 
-          <div className="flex items-center gap-2">
-            {(search || selectedDomain !== "all" || selectedLevel !== "all") && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setSelectedDomain("all");
-                  setSelectedLevel("all");
-                }}
-                className={pageStyles.chipBtn}
-              >
-                <RotateCcw size={12} />
-                <span>Đặt lại lọc</span>
-              </button>
-            )}
+        {/* Search & Filter Controls Row: chung hàng, con mèo absolute ở góc phải không chiếm flow */}
+        <div className="relative flex flex-wrap items-center gap-3.5 pt-3 border-t border-[var(--border-subtle)]">
+          {/* Con mèo absolute bên phải, đứng trên đường gạch ngang */}
+          <div className="absolute -top-[48px] right-6 sm:right-10 pointer-events-none select-none">
+            <PageMascot size={52} />
           </div>
-        </div>
-
-        {/* Mascot nằm sát ngay trên đường gạch ngang thứ 2 (bỏ gạch ngắn riêng) */}
-        <div className="flex justify-center -mb-[5px] pt-1 pointer-events-none">
-          <PageMascot size={60} />
-        </div>
-
-        {/* Search & Filter Controls Row: Ngắn hơn, chung hàng */}
-        <div className="flex flex-wrap items-center gap-3.5 pt-3.5 border-t border-[var(--border-subtle)]">
           {/* Thanh tìm kiếm dài hơn nằm bên trái */}
           <div className="relative flex items-center w-full sm:w-[330px] shrink-0">
             <Search size={15} className="absolute left-3 text-[var(--text-secondary)] pointer-events-none" />
@@ -340,6 +322,22 @@ export function CuratedQuestionSetsView({
               className="min-w-[130px]"
             />
           </div>
+
+          {(search || selectedDomain !== "all" || selectedLevel !== "all") && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setSelectedDomain("all");
+                setSelectedLevel("all");
+              }}
+              className={`${pageStyles.chipBtn} h-9 shrink-0`}
+              title="Đặt lại bộ lọc"
+            >
+              <RotateCcw size={12} />
+              <span>Đặt lại</span>
+            </button>
+          )}
         </div>
       </div>
 
