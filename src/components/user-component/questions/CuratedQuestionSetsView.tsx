@@ -291,7 +291,8 @@ export function CuratedQuestionSetsView({
               })),
             ]}
             aria-label="Chọn ngành nghề"
-            className="w-[185px] shrink-0"
+            width="200px"
+            className="shrink-0"
           />
 
           {/* Cấp độ: icon lồng trong select, không cần title ngoài */}
@@ -310,7 +311,8 @@ export function CuratedQuestionSetsView({
               { value: "lead", label: "Lead / Architect" },
             ]}
             aria-label="Chọn cấp độ"
-            className="w-[145px] shrink-0"
+            width="150px"
+            className="shrink-0"
           />
 
           {(search || selectedDomain !== "all" || selectedLevel !== "all") && (

@@ -17,11 +17,16 @@ export function UserSelectTrigger({
   className = "",
   children,
   icon,
+  style,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Trigger> & { icon?: React.ReactNode }) {
+}: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
+  icon?: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
   return (
     <SelectPrimitive.Trigger
       className={`${styles.trigger} ${className}`}
+      style={style}
       {...props}
     >
       <span className={styles.value}>
@@ -105,6 +110,8 @@ export interface SimpleUserSelectProps {
   disabled?: boolean;
   "aria-label"?: string;
   icon?: React.ReactNode;
+  width?: string | number;
+  style?: React.CSSProperties;
 }
 
 export function SimpleUserSelect({
@@ -117,7 +124,17 @@ export function SimpleUserSelect({
   disabled = false,
   "aria-label": ariaLabel,
   icon,
+  width,
+  style,
 }: SimpleUserSelectProps) {
+  const triggerStyle = React.useMemo(() => {
+    if (width !== undefined) {
+      const w = typeof width === "number" ? `${width}px` : width;
+      return { ...style, width: w, minWidth: w, maxWidth: w };
+    }
+    return style;
+  }, [style, width]);
+
   const selectedLabel = React.useMemo(() => {
     const found = options.find((opt) => opt.value === value);
     return found ? found.label : placeholder;
@@ -134,6 +151,7 @@ export function SimpleUserSelect({
         className={className}
         aria-label={ariaLabel}
         icon={icon}
+        style={triggerStyle}
       >
         <UserSelectValue placeholder={placeholder}>
           {selectedLabel}

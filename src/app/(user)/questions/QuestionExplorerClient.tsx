@@ -489,7 +489,8 @@ export default function QuestionExplorerClient() {
               })),
             ]}
             aria-label="Chọn ngành nghề"
-            className="w-[165px] shrink-0"
+            width="175px"
+            className="shrink-0"
           />
 
           {/* Vị trí: icon trong select */}
@@ -509,7 +510,8 @@ export default function QuestionExplorerClient() {
               })),
             ]}
             aria-label="Chọn vị trí ứng tuyển"
-            className="w-[145px] shrink-0"
+            width="155px"
+            className="shrink-0"
           />
 
           {/* Cấp độ: icon trong select */}
@@ -526,7 +528,8 @@ export default function QuestionExplorerClient() {
               label: opt.label,
             }))}
             aria-label="Chọn cấp độ"
-            className="w-[125px] shrink-0"
+            width="130px"
+            className="shrink-0"
           />
 
           {/* Dạng câu hỏi: icon trong select */}
@@ -543,7 +546,8 @@ export default function QuestionExplorerClient() {
               label: opt.label,
             }))}
             aria-label="Chọn dạng câu hỏi"
-            className="w-[130px] shrink-0"
+            width="135px"
+            className="shrink-0"
           />
 
           {/* Ngôn ngữ: icon trong select */}
@@ -560,7 +564,8 @@ export default function QuestionExplorerClient() {
               label: opt.label,
             }))}
             aria-label="Chọn ngôn ngữ"
-            className="w-[115px] shrink-0"
+            width="120px"
+            className="shrink-0"
           />
 
           {/* Nút đặt lại */}
