@@ -16,14 +16,18 @@ export const UserSelectValue = SelectPrimitive.Value;
 export function UserSelectTrigger({
   className = "",
   children,
+  icon,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Trigger>) {
+}: React.ComponentProps<typeof SelectPrimitive.Trigger> & { icon?: React.ReactNode }) {
   return (
     <SelectPrimitive.Trigger
       className={`${styles.trigger} ${className}`}
       {...props}
     >
-      <span className={styles.value}>{children}</span>
+      <span className={styles.value}>
+        {icon && <span className="shrink-0 text-[var(--text-secondary)] flex items-center">{icon}</span>}
+        {children}
+      </span>
       <SelectPrimitive.Icon asChild>
         <ChevronDown size={15} className={styles.icon} />
       </SelectPrimitive.Icon>
@@ -100,6 +104,7 @@ export interface SimpleUserSelectProps {
   className?: string;
   disabled?: boolean;
   "aria-label"?: string;
+  icon?: React.ReactNode;
 }
 
 export function SimpleUserSelect({
@@ -111,6 +116,7 @@ export function SimpleUserSelect({
   className = "",
   disabled = false,
   "aria-label": ariaLabel,
+  icon,
 }: SimpleUserSelectProps) {
   const selectedLabel = React.useMemo(() => {
     const found = options.find((opt) => opt.value === value);
@@ -127,6 +133,7 @@ export function SimpleUserSelect({
         id={id}
         className={className}
         aria-label={ariaLabel}
+        icon={icon}
       >
         <UserSelectValue placeholder={placeholder}>
           {selectedLabel}
