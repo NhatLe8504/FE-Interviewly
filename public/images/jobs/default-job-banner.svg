@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#231b15"/>
+      <stop offset="45%" stop-color="#2f241d"/>
+      <stop offset="100%" stop-color="#181310"/>
+    </linearGradient>
+    <linearGradient id="ambient" x1="0%" y1="0%" x2="70%" y2="80%">
+      <stop offset="0%" stop-color="#b45309" stop-opacity="0.22"/>
+      <stop offset="50%" stop-color="#d97706" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="100%" y1="0%" x2="30%" y2="70%">
+      <stop offset="0%" stop-color="#60a5fa" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.035)" stroke-width="1"/>
+    </pattern>
+    <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(245,158,11,0)" />
+      <stop offset="50%" stop-color="rgba(245,158,11,0.25)" />
+      <stop offset="100%" stop-color="rgba(245,158,11,0)" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background base -->
+  <rect width="800" height="450" fill="url(#bg)"/>
+
+  <!-- Ambient lighting -->
+  <circle cx="150" cy="120" r="300" fill="url(#ambient)"/>
+  <circle cx="700" cy="80" r="260" fill="url(#glow)"/>
+
+  <!-- Grid overlay -->
+  <rect width="800" height="450" fill="url(#grid)"/>
+
+  <!-- Subtle abstract workspace architecture lines -->
+  <g opacity="0.18" stroke="#fef3c7" stroke-width="1.2">
+    <path d="M -50 350 L 320 180 L 850 260" fill="none"/>
+    <path d="M -50 390 L 320 220 L 850 300" fill="none"/>
+    <path d="M 320 180 L 320 450" fill="none"/>
+    <path d="M 520 215 L 520 450" fill="none"/>
+    <path d="M 160 260 L 160 450" fill="none"/>
+  </g>
+
+  <!-- Accent beam -->
+  <line x1="0" y1="448" x2="800" y2="448" stroke="url(#lineGrad)" stroke-width="2"/>
+</svg>
