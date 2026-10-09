@@ -58,7 +58,7 @@ export interface SkillLevelItem {
 
 export interface UserCareerProfileOut {
   user_id: number;
-  primary_role_track: string;
+  primary_role_track: string | null;
   secondary_role_track: string | null;
   role_confidence: number;
   overall_level: string;
