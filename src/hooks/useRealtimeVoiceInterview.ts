@@ -23,6 +23,7 @@ export interface ConversationTurn {
   text: string;
   durationSeconds?: number;
   timestamp: string;
+  audioUrl?: string | null;
 }
 
 export interface UseRealtimeVoiceInterviewOptions {
@@ -255,6 +256,7 @@ export function useRealtimeVoiceInterview({
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [reconnectCount, setReconnectCount] = useState(0);
   const [aiState, setAiState] = useState<AiVoiceState>("idle");
+  const [activeVoice, setActiveVoice] = useState<string>(options.voice || "vi-VN-HoaiMyNeural");
   const [isCompleted, setIsCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sessionDurationSeconds, setSessionDurationSeconds] = useState(0);
@@ -490,7 +492,7 @@ export function useRealtimeVoiceInterview({
 
   // Send Typed Text Message
   const sendTextMessage = useCallback(
-    (text: string, durationSeconds = 0) => {
+    (text: string, durationSeconds = 0, audioUrl?: string | null) => {
       const clean = text.trim();
       if (!clean || isCompletedRef.current || aiStateRef.current !== "listening" || wsRef.current?.readyState !== WebSocket.OPEN) return false;
       if (!sendMessage({ type: "final_transcript", text: clean, duration_seconds: durationSeconds })) return false;
@@ -518,6 +520,8 @@ export function useRealtimeVoiceInterview({
             turnNumber: curTurnNum,
             speaker: "user",
             text: clean,
+            durationSeconds,
+            audioUrl: audioUrl || null,
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           },
         ];
@@ -526,6 +530,30 @@ export function useRealtimeVoiceInterview({
       return true;
     },
     [sendMessage]
+  );
+
+  // Change active TTS voice dynamically
+  const changeVoice = useCallback(
+    (newVoice: string) => {
+      setActiveVoice(newVoice);
+      optionsRef.current.voice = newVoice;
+      sendMessage({ type: "config", voice: newVoice });
+    },
+    [sendMessage]
+  );
+
+  // Update audio URL for turns (e.g. after candidate audio upload)
+  const updateTurnAudioUrl = useCallback(
+    (speaker: "ai" | "user", targetTurnNumber: number, url: string) => {
+      setTurns((prev) =>
+        prev.map((t) =>
+          t.speaker === speaker && t.turnNumber === targetTurnNumber
+            ? { ...t, audioUrl: url }
+            : t
+        )
+      );
+    },
+    []
   );
 
   // Toggle Barge-in
@@ -666,6 +694,8 @@ export function useRealtimeVoiceInterview({
                       turnNumber: item.turnNumber,
                       speaker: item.speaker,
                       text: item.text,
+                      durationSeconds: item.durationSeconds || item.duration_seconds,
+                      audioUrl: item.audioUrl || item.audio_url || null,
                       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
                     });
                   }
@@ -681,6 +711,8 @@ export function useRealtimeVoiceInterview({
               difficulty: data.difficulty || 3,
               topic_label: data.topic_label || "",
             });
+          } else if (type === "voice_configured") {
+            if (data.voice) setActiveVoice(data.voice);
           } else if (type === "stage_info" || type === "stage_change") {
             if (data.current_stage) setCurrentStage(data.current_stage);
             if (data.stages) setStagesList(data.stages);
@@ -713,6 +745,7 @@ export function useRealtimeVoiceInterview({
             if (aiResponse) {
               setCurrentQuestion(aiResponse);
               const targetTurnNum = data.turn_id || turnIdRef.current;
+              const aiAudioUrl = data.audio_url || `/api/v1/voice/audio/${sessionId}/turn_${targetTurnNum}_ai.mp3`;
               setTurns((prev) => {
                 const existingIdx = prev.findIndex(
                   (t) => t.speaker === "ai" && t.turnNumber === targetTurnNum
@@ -722,6 +755,7 @@ export function useRealtimeVoiceInterview({
                   updated[existingIdx] = {
                     ...updated[existingIdx],
                     text: aiResponse,
+                    audioUrl: aiAudioUrl,
                   };
                   return updated;
                 }
@@ -732,6 +766,7 @@ export function useRealtimeVoiceInterview({
                     turnNumber: targetTurnNum,
                     speaker: "ai",
                     text: aiResponse,
+                    audioUrl: aiAudioUrl,
                     timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
                   },
                 ];
@@ -837,5 +872,8 @@ export function useRealtimeVoiceInterview({
     rerollQuestion,
     skipToNextStage,
     endSessionEarly,
+    activeVoice,
+    changeVoice,
+    updateTurnAudioUrl,
   };
 }
