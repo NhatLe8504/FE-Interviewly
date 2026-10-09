@@ -28,6 +28,7 @@ import { ChromaVideoCanvas } from "./components/ChromaVideoCanvas";
 import { VoiceAnswerPanel } from "./components/VoiceAnswerPanel";
 import { InterviewStagesTimeline } from "./components/InterviewStagesTimeline";
 import { StarGuidanceDrawer } from "./components/StarGuidanceDrawer";
+import { SimpleUserSelect } from "@/components/user-component/common";
 import { ConversationTimelineDrawer } from "./components/ConversationTimelineDrawer";
 import { UserTooltip } from "@/components/user-component/common";
 import { Button } from "@/components/ui/button";
@@ -492,18 +493,14 @@ export default function InterviewRoomPage({
                 <label htmlFor="interview-language" className="portal-field-label">
                   {locale === "en" ? "Interview language" : "Ngôn ngữ phỏng vấn"}
                 </label>
-                <select
+                <SimpleUserSelect
                   id="interview-language"
-                  className="portal-input"
                   value={language}
                   disabled={!canSendText}
-                  onChange={(event) => changeInterviewLanguage(event.target.value)}
-                  aria-describedby="interview-language-help"
-                >
-                  {INTERVIEW_LANGUAGES.map((option) => (
-                    <option key={option.code} value={option.code}>{option.label}</option>
-                  ))}
-                </select>
+                  onChange={(val) => changeInterviewLanguage(val)}
+                  options={INTERVIEW_LANGUAGES.map((opt) => ({ value: opt.code, label: opt.label }))}
+                  aria-label={locale === "en" ? "Interview language" : "Ngôn ngữ phỏng vấn"}
+                />
                 <p id="interview-language-help" className="portal-help-text">
                   {locale === "en"
                     ? "Change while AI waits for your answer. Applies to its next response, not the interface."

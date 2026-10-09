@@ -8,6 +8,7 @@ import { ApiError } from "@/services/apiClient";
 import { jdInterviewApi, type JDJobSummary } from "@/services/jdInterviewApi";
 import { PracticeHero } from "./components/PracticeHero";
 import { Button } from "@/components/ui/button";
+import { SimpleUserSelect } from "@/components/user-component/common";
 import { UserPagination } from "@/components/user-component/common/Pagination";
 import styles from "./practice.module.css";
 
@@ -220,9 +221,13 @@ function PracticeJobs() {
         </div>
         <div className={styles.levelField}>
           <label htmlFor="practice-level" className="portal-field-label">Cấp độ</label>
-          <select id="practice-level" className="portal-input" value={levelFilter} onChange={(event) => { setLevelFilter(event.target.value); setCurrentPage(1); }}>
-            {LEVELS.map((level) => <option key={level.value} value={level.value}>{level.label}</option>)}
-          </select>
+          <SimpleUserSelect
+            id="practice-level"
+            value={levelFilter}
+            onChange={(value) => { setLevelFilter(value); setCurrentPage(1); }}
+            options={LEVELS}
+            aria-label="Cấp độ"
+          />
         </div>
         <Button type="button" variant="home-quiet" onClick={refreshJobs} disabled={isLoading}>
           {isLoading && jobs.length > 0 && pageIndex === 0 ? "Đang cập nhật…" : "Cập nhật danh sách"}

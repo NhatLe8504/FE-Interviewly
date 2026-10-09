@@ -21,6 +21,7 @@ import {
 import { COURSES_DATA, COURSE_CATEGORIES } from "@/data/coursesData";
 import type { CourseItem } from "@/types/course";
 import { useI18n } from "@/context/I18nContext";
+import { SimpleUserSelect } from "@/components/user-component/common";
 import styles from "./courses.module.css";
 
 export default function CourseLibraryClient() {
@@ -113,26 +114,30 @@ export default function CourseLibraryClient() {
           </div>
 
           <div className={styles.filterControls}>
-            <select
+            <SimpleUserSelect
               value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className={styles.filterSelect}
-            >
-              <option value="all">Tất cả hình thức</option>
-              <option value="Learning Path">Lộ trình toàn diện (Learning Path)</option>
-              <option value="Course">Khóa học chuyên sâu (Course)</option>
-            </select>
+              onChange={setSelectedType}
+              options={[
+                { value: "all", label: "Tất cả hình thức" },
+                { value: "Learning Path", label: "Lộ trình toàn diện (Learning Path)" },
+                { value: "Course", label: "Khóa học chuyên sâu (Course)" },
+              ]}
+              aria-label="Hình thức khóa học"
+              className="min-w-[190px]"
+            />
 
-            <select
+            <SimpleUserSelect
               value={selectedLevel}
-              onChange={(e) => setSelectedLevel(e.target.value)}
-              className={styles.filterSelect}
-            >
-              <option value="all">Tất cả cấp độ</option>
-              <option value="fresher">Fresher / Junior</option>
-              <option value="mid">Mid-Level</option>
-              <option value="senior">Senior / Lead</option>
-            </select>
+              onChange={setSelectedLevel}
+              options={[
+                { value: "all", label: "Tất cả cấp độ" },
+                { value: "fresher", label: "Fresher / Junior" },
+                { value: "mid", label: "Mid-Level" },
+                { value: "senior", label: "Senior / Lead" },
+              ]}
+              aria-label="Cấp độ khóa học"
+              className="min-w-[160px]"
+            />
 
             {hasActiveFilters && (
               <button
