@@ -52,6 +52,7 @@ export interface QuestionAnswerRecord {
   writtenText: string;
   recordedAudioUrl: string | null;
   recordingSeconds: number;
+  transcript?: string;
   delivery_metrics?: DeliveryMetrics | null;
 }
 
@@ -82,7 +83,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
     searchParams.get("source") === "basket" ||
     searchParams.get("source") === "set" ||
     Boolean(setParam) ||
-    (Boolean(qParam) && qParam.includes(","));
+    Boolean(qParam?.includes(","));
 
   const initialTab = isPracticeView
     ? "practice"

@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { catalogApi } from "@/services/catalogApi";
 import { useI18n } from "@/context/I18nContext";
-import type { QuestionItem, AIEvaluationResult } from "@/types/catalog";
+import type { QuestionDetailOut, AIEvaluationResult } from "@/types/catalog";
 import styles from "../detail.module.css";
 
 interface QuestionResultClientProps {
@@ -35,7 +35,7 @@ export default function QuestionResultClient({ questionId }: QuestionResultClien
   const { t } = useI18n();
 
   const [loading, setLoading] = useState(true);
-  const [questionsList, setQuestionsList] = useState<QuestionItem[]>([]);
+  const [questionsList, setQuestionsList] = useState<QuestionDetailOut[]>([]);
   const [evaluationsMap, setEvaluationsMap] = useState<Record<number, AIEvaluationResult>>({});
   const [answersMap, setAnswersMap] = useState<Record<number, any>>({});
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -88,7 +88,7 @@ export default function QuestionResultClient({ questionId }: QuestionResultClien
           const textContent = (curAns.writtenText || "").trim();
           const cleanWords = textContent.replace(/•?\s*(Tình huống|Nhiệm vụ|Hành động|Kết quả)\s*(\([^)]*\))?:?/gi, "").trim().split(/\s+/).filter(Boolean).length;
           const voiceSec = curAns.recordingSeconds || 0;
-          const tr = (curAns.transcript || "").trim().toLowerCase();
+          const tr: string = typeof curAns.transcript === "string" ? curAns.transcript.trim().toLowerCase() : "";
 
           let voiceScore = 0;
           let voiceFeedback = "Chưa thực hiện ghi âm câu trả lời cho câu này.";
@@ -207,7 +207,8 @@ export default function QuestionResultClient({ questionId }: QuestionResultClien
 
   // Overall Stats across all N questions in the exam
   const totalStats = useMemo(() => {
-    const qList = questionsList.length > 0 ? questionsList : [{ question_id: Number(questionId) }];
+    const qList: Pick<QuestionDetailOut, "question_id" | "quiz_data">[] =
+      questionsList.length > 0 ? questionsList : [{ question_id: Number(questionId) }];
     const totalCount = Math.max(1, qList.length);
 
     let correctQuizCount = 0;
