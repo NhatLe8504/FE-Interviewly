@@ -191,6 +191,8 @@ export interface QuestionOut {
   created_by?: number | null;
   created_at?: string | null;
   updated_at?: string | null;
+  /** Nhãn kỹ năng chuẩn hóa theo taxonomy, phục vụ skill tracking. */
+  skill_ids?: string[];
 }
 
 export interface QuestionDetailOut extends QuestionOut {
@@ -207,6 +209,18 @@ export interface QuestionPageOut {
   total: number;
   limit: number;
   offset: number;
+}
+
+export interface SkillOptionOut {
+  id: string;
+  name: string;
+  category: string;
+  role_tracks: string[];
+}
+
+export interface SkillSuggestionOut {
+  suggested_skill_ids: string[];
+  reason?: string | null;
 }
 
 export interface QuestionFilterParams {

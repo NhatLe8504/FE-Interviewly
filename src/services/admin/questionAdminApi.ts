@@ -7,6 +7,8 @@ import type {
   QuestionSetPageOut,
   DomainOut,
   RoleOut,
+  SkillOptionOut,
+  SkillSuggestionOut,
 } from "@/types/catalog";
 
 export interface QuestionAdminCreateIn {
@@ -21,6 +23,7 @@ export interface QuestionAdminCreateIn {
   sample_answer?: string | null;
   follow_up_questions?: string[] | null;
   tips?: string[] | null;
+  skill_ids?: string[] | null;
 }
 
 export interface QuestionAdminUpdateIn {
@@ -36,6 +39,7 @@ export interface QuestionAdminUpdateIn {
   sample_answer?: string | null;
   follow_up_questions?: string[] | null;
   tips?: string[] | null;
+  skill_ids?: string[] | null;
 }
 
 export interface QuestionSetAdminCreateIn {
@@ -148,5 +152,17 @@ export const questionAdminApi = {
   async getRoles(domainId?: number | null): Promise<RoleOut[]> {
     const qs = domainId ? `?domain_id=${domainId}` : "";
     return request<RoleOut[]>(`/api/v1/catalog/roles${qs}`);
+  },
+
+  // Skill tags
+  async getSkills(): Promise<SkillOptionOut[]> {
+    return request<SkillOptionOut[]>("/api/v1/admin/skills");
+  },
+
+  async suggestSkillIds(questionText: string): Promise<SkillSuggestionOut> {
+    return request<SkillSuggestionOut>("/api/v1/admin/questions/skill-suggestions", {
+      method: "POST",
+      body: JSON.stringify({ question_text: questionText }),
+    });
   },
 };
