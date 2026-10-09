@@ -16,7 +16,7 @@ interface JobThumbnailProps {
 export function JobThumbnail({ job, aspectRatio = "video", className = "" }: JobThumbnailProps) {
   const company = job.company;
   const companyName = company?.company_name || "Chưa rõ doanh nghiệp tuyển dụng";
-  const source = company?.branding_reuse_allowed ? getCompanyImageUrl(company.company_banner_url) : null;
+  const source = company?.branding_reuse_allowed ? getCompanyImageUrl(company.company_banner_url || job.thumbnail_url) : null;
   const [failedSource, setFailedSource] = useState<string | null>(null);
   const [loadedSource, setLoadedSource] = useState<string | null>(null);
   const hasBanner = Boolean(source && failedSource !== source);
