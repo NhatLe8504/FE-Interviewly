@@ -116,14 +116,14 @@
 .mascotDivider {
   position: relative;
   height: 1px;
-  max-width: 460px;
-  margin: 3.25rem auto 0.5rem;
+  max-width: 420px;
+  margin: 2.25rem auto 0.75rem;
   background: var(--line);
 }
 
 .mascotWrapper {
   position: absolute;
-  bottom: -5px;
+  bottom: -6px;
   left: 50%;
   transform: translateX(-50%);
   pointer-events: none;
