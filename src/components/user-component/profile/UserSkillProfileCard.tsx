@@ -43,7 +43,7 @@ export function UserSkillProfileCard() {
     return null;
   }
 
-  const roleName = ROLE_TRACK_LABELS[skillProfile.primary_role_track] || skillProfile.primary_role_track;
+  const roleName = skillProfile.primary_role_track ? (ROLE_TRACK_LABELS[skillProfile.primary_role_track] || skillProfile.primary_role_track) : "Chưa xác định";
   const levelName = LEVEL_LABELS[skillProfile.overall_level] || skillProfile.overall_level;
   const hasSkills = (skillProfile.top_skills && skillProfile.top_skills.length > 0) || (skillProfile.skills && skillProfile.skills.length > 0);
 
