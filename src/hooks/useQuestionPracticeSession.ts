@@ -244,6 +244,7 @@ export function useQuestionPracticeSession() {
           quiz_score: mb ? mb.quiz_score : undefined,
           text_score: mb ? mb.text_score : undefined,
           voice_score: mb ? mb.voice_score : undefined,
+          evaluation_ids: ev?.evaluation_ids,
         };
       });
 

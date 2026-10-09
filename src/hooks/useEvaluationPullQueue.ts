@@ -243,6 +243,9 @@ export function useEvaluationPullQueue() {
         transcript: transcript || undefined,
         delivery_metrics: delivery || undefined,
         sample_better_answer: textResult?.sample_better_answer || "",
+        evaluation_ids: [textResult?.evaluation_id, voiceResult?.evaluation_id].filter(
+          (id: unknown): id is number => typeof id === "number"
+        ),
       };
 
       setTasksMap((prev) => ({
