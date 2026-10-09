@@ -30,7 +30,14 @@ const LEVEL_LABELS: Record<string, string> = {
 
 export function UserSkillProfileCard() {
   const { data: skillProfile, isLoading, error } = useGetMySkillProfileQuery();
-  const [triggerGetEvidence, { data: evidenceList, isLoading: isEvidenceLoading }] = useLazyGetMySkillEvidenceQuery();
+  // Dùng currentData/isFetching thay vì data/isLoading: data của lazy query giữ
+  // kết quả của argument CŨ, nên mở kỹ năng mới sẽ hiện nhầm bằng
+  // chứng của kỹ năng trước đó (LOI P2).
+  const [triggerGetEvidence, {
+    currentData: evidenceList,
+    isFetching: isEvidenceLoading,
+    isError: isEvidenceError,
+  }] = useLazyGetMySkillEvidenceQuery();
   const [selectedSkill, setSelectedSkill] = useState<{ id: string; name: string } | null>(null);
 
   if (isLoading) {
@@ -195,6 +202,10 @@ export function UserSkillProfileCard() {
               {isEvidenceLoading ? (
                 <div className="flex items-center justify-center py-10 text-xs text-[var(--text-secondary)]">
                   <Loader2 className="size-4 animate-spin mr-2" /> Đang tải bằng chứng…
+                </div>
+              ) : isEvidenceError ? (
+                <div className="py-10 text-center text-xs text-[var(--text-secondary)]">
+                  Không tải được bằng chứng cho kỹ năng này. Vui lòng thử lại.
                 </div>
               ) : !evidenceList || evidenceList.length === 0 ? (
                 <div className="py-10 text-center text-xs text-[var(--text-secondary)]">
