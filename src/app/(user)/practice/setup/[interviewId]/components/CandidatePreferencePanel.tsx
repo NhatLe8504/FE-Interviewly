@@ -1,6 +1,7 @@
 "use client";
 
 import styles from "../setup.module.css";
+import { SimpleUserSelect } from "@/components/user-component/common";
 import { INTERVIEW_LANGUAGES, getInterviewLanguage, type InterviewLanguage } from "@/lib/interviewLanguages";
 
 interface CandidatePreferencePanelProps {
@@ -25,15 +26,13 @@ export function CandidatePreferencePanel({
       <div className={styles.preferenceGrid}>
         <div>
           <label htmlFor="setup-interview-language" className="portal-field-label">Ngôn ngữ phỏng vấn</label>
-          <select
+          <SimpleUserSelect
             id="setup-interview-language"
-            className="portal-input"
             value={language}
-            onChange={(event) => onLanguageChange(getInterviewLanguage(event.target.value).code)}
-            aria-describedby="setup-language-help"
-          >
-            {INTERVIEW_LANGUAGES.map((option) => <option key={option.code} value={option.code}>{option.label}</option>)}
-          </select>
+            onChange={(val) => onLanguageChange(getInterviewLanguage(val).code)}
+            options={INTERVIEW_LANGUAGES.map((opt) => ({ value: opt.code, label: opt.label }))}
+            aria-label="Ngôn ngữ phỏng vấn"
+          />
           <p id="setup-language-help" className="portal-help-text">Không phụ thuộc ngôn ngữ JD. Bạn vẫn có thể đổi khi đang luyện tập.</p>
         </div>
 
