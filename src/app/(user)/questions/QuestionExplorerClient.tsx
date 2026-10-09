@@ -16,6 +16,8 @@ import {
   Mic,
   Briefcase,
   HelpCircle,
+  Layers,
+  Languages,
   Flame,
   Award,
   Compass,
@@ -412,9 +414,9 @@ export default function QuestionExplorerClient() {
       ) : (
         <>
       {/* Search & Filter Panel */}
-      <div className={styles.filterCard}>
+      <div className={`${styles.filterCard} space-y-3`}>
         {/* Integrated Compact Tab Switcher */}
-        <div className={styles.tabBar}>
+        <div className="flex items-center justify-between gap-3">
           <div className={styles.tabGroup}>
             <button
               type="button"
@@ -433,174 +435,146 @@ export default function QuestionExplorerClient() {
               <span>Khám Phá Câu Hỏi Lẻ & Bốc Đề</span>
             </button>
           </div>
-
-          <span className={`${styles.tabHint} hidden md:inline`}>
-            Tìm kiếm & thêm câu hỏi vào giỏ đề để tự do ôn luyện
-          </span>
         </div>
 
-        {/* Mascot đứng trên thanh tìm kiếm */}
-        <div className={styles.mascotDivider}>
-          <div className={styles.mascotWrapper}>
-            <PageMascot size={64} />
+        {/* Search & Filter Controls Row: chung hàng, con mèo absolute ở góc phải không chiếm flow */}
+        <div className="relative flex flex-wrap items-center gap-3 pt-3 border-t border-[var(--border-subtle)]">
+          {/* Con mèo absolute bên phải, đứng trên đường gạch ngang */}
+          <div className="absolute -top-[48px] right-6 sm:right-10 pointer-events-none select-none">
+            <PageMascot size={52} />
           </div>
-        </div>
 
-        {/* Search Bar */}
-        <div className={styles.searchBox}>
-          <Search size={18} className={styles.searchIcon} />
-          <input
-            type="text"
-            className={styles.searchInput}
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder={t.questions.searchPlaceholder}
-          />
-          {searchQuery && (
-            <UserTooltip content="Xóa tìm kiếm">
+          {/* Thanh tìm kiếm */}
+          <div className="relative flex items-center w-full sm:w-[260px] lg:w-[290px] shrink-0">
+            <Search size={15} className="absolute left-3 text-[var(--text-secondary)] pointer-events-none" />
+            <input
+              type="text"
+              className="w-full h-9 pl-9 pr-8 text-[13px] rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-paper)] text-[var(--ink)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent-deep)] focus:bg-[var(--surface-card)] transition-colors"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder={t.questions.searchPlaceholder}
+            />
+            {searchQuery && (
               <button
                 type="button"
-                className={styles.clearSearchBtn}
+                className="absolute right-2.5 p-1 text-[var(--text-secondary)] hover:text-[var(--ink)] transition-colors"
                 onClick={() => {
                   setSearchQuery("");
                   setCurrentPage(1);
                 }}
+                aria-label="Xóa tìm kiếm"
               >
-                <X size={16} />
+                <X size={14} />
               </button>
-            </UserTooltip>
-          )}
-        </div>
-
-        {/* Dropdown Filters Grid with Custom UserSelect */}
-        <div className={styles.filterRow}>
-          <div className={styles.filterField}>
-            <label className={styles.filterLabel} htmlFor="domain-select">
-              <Briefcase size={13} />
-              <span>{t.questions.domainLabel}</span>
-            </label>
-            <SimpleUserSelect
-              id="domain-select"
-              value={String(selectedDomain)}
-              onChange={(val) => {
-                setSelectedDomain(val === "all" ? "all" : Number(val));
-                setCurrentPage(1);
-              }}
-              options={[
-                { value: "all", label: t.questions.allDomains },
-                ...domains.map((d) => ({
-                  value: String(d.domain_id),
-                  label: getLocalizedDomainName(d, locale),
-                })),
-              ]}
-              aria-label="Chọn ngành nghề"
-            />
+            )}
           </div>
 
-          <div className={styles.filterField}>
-            <label className={styles.filterLabel} htmlFor="role-select">
-              <Filter size={13} />
-              <span>{t.questions.roleLabel}</span>
-            </label>
-            <SimpleUserSelect
-              id="role-select"
-              value={String(selectedRole)}
-              onChange={(val) => {
-                setSelectedRole(val === "all" ? "all" : Number(val));
-                setCurrentPage(1);
-              }}
-              options={[
-                { value: "all", label: t.questions.allRoles },
-                ...roles.map((r) => ({
-                  value: String(r.role_id),
-                  label: getLocalizedRoleName(r, locale),
-                })),
-              ]}
-              aria-label="Chọn vị trí ứng tuyển"
-            />
-          </div>
+          {/* Ngành nghề: icon trong select */}
+          <SimpleUserSelect
+            id="domain-select"
+            value={String(selectedDomain)}
+            onChange={(val) => {
+              setSelectedDomain(val === "all" ? "all" : Number(val));
+              setCurrentPage(1);
+            }}
+            icon={<Briefcase size={14} />}
+            options={[
+              { value: "all", label: t.questions.allDomains },
+              ...domains.map((d) => ({
+                value: String(d.domain_id),
+                label: getLocalizedDomainName(d, locale),
+              })),
+            ]}
+            aria-label="Chọn ngành nghề"
+            className="w-[175px]"
+          />
 
-          <div className={styles.filterField}>
-            <label className={styles.filterLabel} htmlFor="type-select">
-              <HelpCircle size={13} />
-              <span>{t.questions.typeLabel}</span>
-            </label>
-            <SimpleUserSelect
-              id="type-select"
-              value={selectedType}
-              onChange={(val) => {
-                setSelectedType(val);
-                setCurrentPage(1);
-              }}
-              options={typeOptions.map((opt) => ({
-                value: opt.id,
-                label: opt.label,
-              }))}
-              aria-label="Chọn dạng câu hỏi"
-            />
-          </div>
+          {/* Vị trí: icon trong select */}
+          <SimpleUserSelect
+            id="role-select"
+            value={String(selectedRole)}
+            onChange={(val) => {
+              setSelectedRole(val === "all" ? "all" : Number(val));
+              setCurrentPage(1);
+            }}
+            icon={<Filter size={14} />}
+            options={[
+              { value: "all", label: t.questions.allRoles },
+              ...roles.map((r) => ({
+                value: String(r.role_id),
+                label: getLocalizedRoleName(r, locale),
+              })),
+            ]}
+            aria-label="Chọn vị trí ứng tuyển"
+            className="w-[160px]"
+          />
 
-          <div className={styles.filterField}>
-            <label className={styles.filterLabel} htmlFor="lang-select">
-              <span>{t.questions.langLabel}</span>
-            </label>
-            <SimpleUserSelect
-              id="lang-select"
-              value={selectedLanguage}
-              onChange={(val) => {
-                setSelectedLanguage(val);
-                setCurrentPage(1);
-              }}
-              options={langOptions.map((opt) => ({
-                value: opt.id,
-                label: opt.label,
-              }))}
-              aria-label="Chọn ngôn ngữ"
-            />
-          </div>
-        </div>
+          {/* Cấp độ: icon trong select */}
+          <SimpleUserSelect
+            id="level-select"
+            value={selectedLevel}
+            onChange={(val) => {
+              setSelectedLevel(val);
+              setCurrentPage(1);
+            }}
+            icon={<Layers size={14} />}
+            options={levelOptions.map((opt) => ({
+              value: opt.id,
+              label: opt.label,
+            }))}
+            aria-label="Chọn cấp độ"
+            className="w-[140px]"
+          />
 
-        {/* Level Chips Row */}
-        <div className={styles.chipsRow}>
-          <span className={styles.chipsLabel}>{t.questions.levelLabel}</span>
-          {levelOptions.map((opt) => {
-            const isActive = selectedLevel === opt.id;
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                className={`${styles.chipBtn} ${isActive ? styles.chipBtnActive : ""}`}
-                onClick={() => {
-                setSelectedLevel(opt.id);
-                setCurrentPage(1);
-              }}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
+          {/* Dạng câu hỏi: icon trong select */}
+          <SimpleUserSelect
+            id="type-select"
+            value={selectedType}
+            onChange={(val) => {
+              setSelectedType(val);
+              setCurrentPage(1);
+            }}
+            icon={<HelpCircle size={14} />}
+            options={typeOptions.map((opt) => ({
+              value: opt.id,
+              label: opt.label,
+            }))}
+            aria-label="Chọn dạng câu hỏi"
+            className="w-[145px]"
+          />
 
+          {/* Ngôn ngữ: icon trong select */}
+          <SimpleUserSelect
+            id="lang-select"
+            value={selectedLanguage}
+            onChange={(val) => {
+              setSelectedLanguage(val);
+              setCurrentPage(1);
+            }}
+            icon={<Languages size={14} />}
+            options={langOptions.map((opt) => ({
+              value: opt.id,
+              label: opt.label,
+            }))}
+            aria-label="Chọn ngôn ngữ"
+            className="w-[135px]"
+          />
+
+          {/* Nút đặt lại */}
           {hasActiveFilters && (
             <button
               type="button"
-              className={styles.resetBtn}
+              className={`${styles.chipBtn} h-9 shrink-0`}
               onClick={handleResetFilters}
+              title={t.questions.clearFilter}
             >
-              <RotateCcw size={13} />
-              {t.questions.clearFilter}
+              <RotateCcw size={12} />
+              <span>{t.questions.clearFilter}</span>
             </button>
           )}
-        </div>
-      </div>
-
-      {/* Results Header */}
-      <div className={styles.resultsBar}>
-        <div className={styles.resultsCount}>
-          <span>{t.questions.resultsTitle}</span>
-          <span className={styles.resultsBadge}>{filteredQuestions.length} {t.questions.resultsSuffix}</span>
         </div>
       </div>
 

@@ -271,57 +271,47 @@ export function CuratedQuestionSetsView({
             )}
           </div>
 
-          {/* Ngành nghề: không xuống dòng */}
-          <div className="flex items-center gap-2 shrink-0">
-            <span className={`${pageStyles.filterLabel} whitespace-nowrap shrink-0`}>
-              <Briefcase size={13} aria-hidden="true" />
-              <span>Ngành nghề:</span>
-            </span>
-            <SimpleUserSelect
-              id="sets-domain-select"
-              value={selectedDomain}
-              onChange={(val) => setSelectedDomain(val)}
-              options={[
-                { value: "all", label: "Tất cả ngành nghề" },
-                ...(domainsList.length > 0 ? domainsList : [
-                  { domain_id: 19, domain_name: "Công nghệ thông tin (IT)" },
-                  { domain_id: 20, domain_name: "Marketing & Truyền thông" },
-                  { domain_id: 21, domain_name: "Kinh doanh & Phát triển thị trường" },
-                  { domain_id: 22, domain_name: "Quản trị Nhân sự (HR)" },
-                  { domain_id: 23, domain_name: "Tài chính & Kế toán" },
-                ]).map((d: any) => ({
-                  value: String(d.domain_id),
-                  label: d.domain_name,
-                })),
-              ]}
-              aria-label="Chọn ngành nghề"
-              className="min-w-[170px]"
-            />
-          </div>
+          {/* Ngành nghề: icon lồng trong select, không cần title ngoài */}
+          <SimpleUserSelect
+            id="sets-domain-select"
+            value={selectedDomain}
+            onChange={(val) => setSelectedDomain(val)}
+            icon={<Briefcase size={14} />}
+            options={[
+              { value: "all", label: "Tất cả ngành nghề" },
+              ...(domainsList.length > 0 ? domainsList : [
+                { domain_id: 19, domain_name: "Công nghệ thông tin (IT)" },
+                { domain_id: 20, domain_name: "Marketing & Truyền thông" },
+                { domain_id: 21, domain_name: "Kinh doanh & Phát triển thị trường" },
+                { domain_id: 22, domain_name: "Quản trị Nhân sự (HR)" },
+                { domain_id: 23, domain_name: "Tài chính & Kế toán" },
+              ]).map((d: any) => ({
+                value: String(d.domain_id),
+                label: d.domain_name,
+              })),
+            ]}
+            aria-label="Chọn ngành nghề"
+            className="w-[190px]"
+          />
 
-          {/* Cấp độ: không xuống dòng */}
-          <div className="flex items-center gap-2 shrink-0">
-            <span className={`${pageStyles.filterLabel} whitespace-nowrap shrink-0`}>
-              <Layers size={13} aria-hidden="true" />
-              <span>Cấp độ:</span>
-            </span>
-            <SimpleUserSelect
-              id="sets-level-select"
-              value={selectedLevel}
-              onChange={(val) => setSelectedLevel(val)}
-              options={[
-                { value: "all", label: "Tất cả cấp độ" },
-                { value: "intern", label: "Intern" },
-                { value: "fresher", label: "Fresher" },
-                { value: "junior", label: "Junior" },
-                { value: "mid", label: "Middle" },
-                { value: "senior", label: "Senior" },
-                { value: "lead", label: "Lead / Architect" },
-              ]}
-              aria-label="Chọn cấp độ"
-              className="min-w-[130px]"
-            />
-          </div>
+          {/* Cấp độ: icon lồng trong select, không cần title ngoài */}
+          <SimpleUserSelect
+            id="sets-level-select"
+            value={selectedLevel}
+            onChange={(val) => setSelectedLevel(val)}
+            icon={<Layers size={14} />}
+            options={[
+              { value: "all", label: "Tất cả cấp độ" },
+              { value: "intern", label: "Intern" },
+              { value: "fresher", label: "Fresher" },
+              { value: "junior", label: "Junior" },
+              { value: "mid", label: "Middle" },
+              { value: "senior", label: "Senior" },
+              { value: "lead", label: "Lead / Architect" },
+            ]}
+            aria-label="Chọn cấp độ"
+            className="w-[150px]"
+          />
 
           {(search || selectedDomain !== "all" || selectedLevel !== "all") && (
             <button
