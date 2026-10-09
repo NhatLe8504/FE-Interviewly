@@ -3,8 +3,8 @@
 import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandIcon } from "@/components/user-component/common/BrandIcon";
+import { SimpleUserSelect } from "@/components/user-component/common";
 import { getBrandLabel } from "@/lib/brand-icons";
 import { SENIORITY_LABELS, WORKPLACE_LABELS } from "@/lib/job-presentation";
 import styles from "./jobs.module.css";
@@ -85,31 +85,52 @@ export function JobFilters({
       <div className={styles.primaryFilters}>
         <div className={styles.countryControl}>
           <label className={styles.controlLabel} htmlFor="jobs-country">Thị trường tuyển dụng</label>
-          <select id="jobs-country" className={styles.selectBox} value={countryCode} onChange={(event) => onCountryCodeChange(event.target.value)}>
-            <option value="VN">Việt Nam & remote toàn cầu</option>
-            <option value="">Tất cả quốc gia</option>
-            {countries.filter((country) => country.id !== "VN").map((country) => <option key={country.id} value={country.id}>{country.name}</option>)}
-          </select>
+          <SimpleUserSelect
+            id="jobs-country"
+            value={countryCode}
+            onChange={onCountryCodeChange}
+            options={[
+              { value: "VN", label: "Việt Nam & remote toàn cầu" },
+              { value: "", label: "Tất cả quốc gia" },
+              ...countries.filter((country) => country.id !== "VN").map((country) => ({ value: country.id, label: country.name })),
+            ]}
+            aria-label="Thị trường tuyển dụng"
+          />
         </div>
         <div className={styles.filterControl}>
           <label id="jobs-source-label" className={styles.controlLabel}>Nguồn tuyển dụng</label>
-          <Select value={sourceId || "all"} onValueChange={(value) => onSourceIdChange(value === "all" ? "" : value)} disabled={metadataLoading}>
-            <SelectTrigger className={styles.sourceTrigger} aria-labelledby="jobs-source-label"><SelectValue /></SelectTrigger>
-            <SelectContent className={styles.sourceMenu}>
-              <SelectItem value="all" textValue="Tất cả nguồn">Tất cả nguồn</SelectItem>
-              {sources.map((source) => (
-                <SelectItem key={source.id} value={source.id} textValue={source.name}>
-                  <span className={styles.sourceOption}><BrandIcon name={source.id} size={18} />{source.name}</span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SimpleUserSelect
+            id="jobs-source"
+            value={sourceId || "all"}
+            onChange={(value) => onSourceIdChange(value === "all" ? "" : value)}
+            disabled={metadataLoading}
+            options={[
+              { value: "all", label: "Tất cả nguồn" },
+              ...sources.map((source) => ({
+                value: source.id,
+                label: (
+                  <span className={styles.sourceOption}>
+                    <BrandIcon name={source.id} size={16} />
+                    <span>{source.name}</span>
+                  </span>
+                ),
+              })),
+            ]}
+            aria-label="Nguồn tuyển dụng"
+          />
         </div>
         <div className={styles.filterControl}>
           <label className={styles.controlLabel} htmlFor="jobs-sort">Sắp xếp theo</label>
-          <select id="jobs-sort" className={styles.selectBox} value={sortBy} onChange={(event) => onSortByChange(event.target.value)}>
-            {(sortOptions.length ? sortOptions : SORT_OPTIONS).map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
-          </select>
+          <SimpleUserSelect
+            id="jobs-sort"
+            value={sortBy}
+            onChange={onSortByChange}
+            options={(sortOptions.length ? sortOptions : SORT_OPTIONS).map((option) => ({
+              value: option.id,
+              label: option.name,
+            }))}
+            aria-label="Sắp xếp theo"
+          />
         </div>
       </div>
 
@@ -118,24 +139,43 @@ export function JobFilters({
         <div className={styles.advancedFilters}>
           <div className={styles.filterControl}>
             <label className={styles.controlLabel} htmlFor="jobs-location">Địa điểm cụ thể</label>
-            <select id="jobs-location" className={styles.selectBox} value={location} onChange={(event) => onLocationChange(event.target.value)} disabled={metadataLoading}>
-              <option value="">Mọi địa điểm</option>
-              {locations.map((place) => <option key={place} value={place}>{place}</option>)}
-            </select>
+            <SimpleUserSelect
+              id="jobs-location"
+              value={location}
+              onChange={onLocationChange}
+              disabled={metadataLoading}
+              options={[
+                { value: "", label: "Mọi địa điểm" },
+                ...locations.map((place) => ({ value: place, label: place })),
+              ]}
+              aria-label="Địa điểm cụ thể"
+            />
           </div>
           <div className={styles.filterControl}>
             <label className={styles.controlLabel} htmlFor="jobs-seniority">Cấp bậc</label>
-            <select id="jobs-seniority" className={styles.selectBox} value={seniority} onChange={(event) => onSeniorityChange(event.target.value)}>
-              <option value="">Mọi cấp bậc</option>
-              {Object.entries(SENIORITY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
+            <SimpleUserSelect
+              id="jobs-seniority"
+              value={seniority}
+              onChange={onSeniorityChange}
+              options={[
+                { value: "", label: "Mọi cấp bậc" },
+                ...Object.entries(SENIORITY_LABELS).map(([val, lbl]) => ({ value: val, label: lbl })),
+              ]}
+              aria-label="Cấp bậc"
+            />
           </div>
           <div className={styles.filterControl}>
             <label className={styles.controlLabel} htmlFor="jobs-workplace">Hình thức làm việc</label>
-            <select id="jobs-workplace" className={styles.selectBox} value={workplaceType} onChange={(event) => onWorkplaceTypeChange(event.target.value)}>
-              <option value="">Mọi hình thức</option>
-              {Object.entries(WORKPLACE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
+            <SimpleUserSelect
+              id="jobs-workplace"
+              value={workplaceType}
+              onChange={onWorkplaceTypeChange}
+              options={[
+                { value: "", label: "Mọi hình thức" },
+                ...Object.entries(WORKPLACE_LABELS).map(([val, lbl]) => ({ value: val, label: lbl })),
+              ]}
+              aria-label="Hình thức làm việc"
+            />
           </div>
         </div>
       </details>
