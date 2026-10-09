@@ -437,19 +437,19 @@ export default function QuestionExplorerClient() {
           </div>
         </div>
 
-        {/* Search & Filter Controls Row: chung hàng, con mèo absolute ở góc phải không chiếm flow */}
-        <div className="relative flex items-center gap-2 pt-3 border-t border-[var(--border-subtle)] flex-wrap xl:flex-nowrap">
+        {/* Search & Filter Controls Section: Tìm kiếm dòng trên, Selects dòng dưới */}
+        <div className="relative space-y-3 pt-3 border-t border-[var(--border-subtle)]">
           {/* Con mèo absolute bên phải, đứng trên đường gạch ngang */}
           <div className="absolute -top-[48px] right-6 sm:right-10 pointer-events-none select-none">
             <PageMascot size={52} />
           </div>
 
-          {/* Thanh tìm kiếm */}
-          <div className="relative flex items-center w-full sm:w-[220px] lg:w-[240px] shrink-0">
-            <Search size={15} className="absolute left-3 text-[var(--text-secondary)] pointer-events-none" />
+          {/* Dòng trên: Thanh tìm kiếm */}
+          <div className="relative flex items-center w-full">
+            <Search size={15} className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none" />
             <input
               type="text"
-              className="w-full h-9 pl-9 pr-8 text-[13px] rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-paper)] text-[var(--ink)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent-deep)] focus:bg-[var(--surface-card)] transition-colors"
+              className="w-full h-9.5 pl-10 pr-8 text-[13.5px] rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-paper)] text-[var(--ink)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent-deep)] focus:bg-[var(--surface-card)] transition-colors"
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -472,114 +472,120 @@ export default function QuestionExplorerClient() {
             )}
           </div>
 
-          {/* Ngành nghề: icon trong select */}
-          <SimpleUserSelect
-            id="domain-select"
-            value={String(selectedDomain)}
-            onChange={(val) => {
-              setSelectedDomain(val === "all" ? "all" : Number(val));
-              setCurrentPage(1);
-            }}
-            icon={<Briefcase size={14} />}
-            options={[
-              { value: "all", label: t.questions.allDomains },
-              ...domains.map((d) => ({
-                value: String(d.domain_id),
-                label: getLocalizedDomainName(d, locale),
-              })),
-            ]}
-            aria-label="Chọn ngành nghề"
-            width="175px"
-            className="shrink-0"
-          />
+          {/* Dòng dưới: Các ô select bộ lọc */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Ngành nghề */}
+            <SimpleUserSelect
+              id="domain-select"
+              value={String(selectedDomain)}
+              onChange={(val) => {
+                setSelectedDomain(val === "all" ? "all" : Number(val));
+                setSelectedRole("all");
+                setCurrentPage(1);
+              }}
+              icon={<Briefcase size={14} />}
+              options={[
+                { value: "all", label: t.questions.allDomains },
+                ...domains.map((d) => ({
+                  value: String(d.domain_id),
+                  label: getLocalizedDomainName(d, locale),
+                })),
+              ]}
+              aria-label="Chọn ngành nghề"
+              width="210px"
+              className="shrink-0"
+            />
 
-          {/* Vị trí: icon trong select */}
-          <SimpleUserSelect
-            id="role-select"
-            value={String(selectedRole)}
-            onChange={(val) => {
-              setSelectedRole(val === "all" ? "all" : Number(val));
-              setCurrentPage(1);
-            }}
-            icon={<Filter size={14} />}
-            options={[
-              { value: "all", label: t.questions.allRoles },
-              ...roles.map((r) => ({
-                value: String(r.role_id),
-                label: getLocalizedRoleName(r, locale),
-              })),
-            ]}
-            aria-label="Chọn vị trí ứng tuyển"
-            width="155px"
-            className="shrink-0"
-          />
+            {/* Vị trí */}
+            <SimpleUserSelect
+              id="role-select"
+              value={String(selectedRole)}
+              onChange={(val) => {
+                setSelectedRole(val === "all" ? "all" : Number(val));
+                setCurrentPage(1);
+              }}
+              icon={<Filter size={14} />}
+              options={[
+                { value: "all", label: t.questions.allRoles },
+                ...roles
+                  .filter((r) => selectedDomain === "all" || r.domain_id === selectedDomain)
+                  .map((r) => ({
+                    value: String(r.role_id),
+                    label: getLocalizedRoleName(r, locale),
+                  })),
+              ]}
+              aria-label="Chọn vị trí ứng tuyển"
+              width="180px"
+              className="shrink-0"
+            />
 
-          {/* Cấp độ: icon trong select */}
-          <SimpleUserSelect
-            id="level-select"
-            value={selectedLevel}
-            onChange={(val) => {
-              setSelectedLevel(val);
-              setCurrentPage(1);
-            }}
-            icon={<Layers size={14} />}
-            options={levelOptions.map((opt) => ({
-              value: opt.id,
-              label: opt.label,
-            }))}
-            aria-label="Chọn cấp độ"
-            width="130px"
-            className="shrink-0"
-          />
+            {/* Cấp độ */}
+            <SimpleUserSelect
+              id="level-select"
+              value={selectedLevel}
+              onChange={(val) => {
+                setSelectedLevel(val);
+                setCurrentPage(1);
+              }}
+              icon={<Layers size={14} />}
+              options={levelOptions.map((opt) => ({
+                value: opt.id,
+                label: opt.label,
+              }))}
+              aria-label="Chọn cấp độ"
+              width="165px"
+              className="shrink-0"
+            />
 
-          {/* Dạng câu hỏi: icon trong select */}
-          <SimpleUserSelect
-            id="type-select"
-            value={selectedType}
-            onChange={(val) => {
-              setSelectedType(val);
-              setCurrentPage(1);
-            }}
-            icon={<HelpCircle size={14} />}
-            options={typeOptions.map((opt) => ({
-              value: opt.id,
-              label: opt.label,
-            }))}
-            aria-label="Chọn dạng câu hỏi"
-            width="135px"
-            className="shrink-0"
-          />
+            {/* Dạng câu hỏi */}
+            <SimpleUserSelect
+              id="type-select"
+              value={selectedType}
+              onChange={(val) => {
+                setSelectedType(val);
+                setCurrentPage(1);
+              }}
+              icon={<HelpCircle size={14} />}
+              options={typeOptions.map((opt) => ({
+                value: opt.id,
+                label: opt.label,
+              }))}
+              aria-label="Chọn dạng câu hỏi"
+              width="165px"
+              className="shrink-0"
+            />
 
-          {/* Ngôn ngữ: icon trong select */}
-          <SimpleUserSelect
-            id="lang-select"
-            value={selectedLanguage}
-            onChange={(val) => {
-              setSelectedLanguage(val);
-              setCurrentPage(1);
-            }}
-            icon={<Languages size={14} />}
-            options={langOptions.map((opt) => ({
-              value: opt.id,
-              label: opt.label,
-            }))}
-            aria-label="Chọn ngôn ngữ"
-            width="120px"
-            className="shrink-0"
-          />
+            {/* Ngôn ngữ */}
+            <SimpleUserSelect
+              id="lang-select"
+              value={selectedLanguage}
+              onChange={(val) => {
+                setSelectedLanguage(val);
+                setCurrentPage(1);
+              }}
+              icon={<Languages size={14} />}
+              options={langOptions.map((opt) => ({
+                value: opt.id,
+                label: opt.label,
+              }))}
+              aria-label="Chọn ngôn ngữ"
+              width="155px"
+              className="shrink-0"
+            />
 
-          {/* Nút đặt lại */}
-          {hasActiveFilters && (
-            <button
-              type="button"
-              className={`${styles.chipBtn} h-9 shrink-0`}
-              onClick={handleResetFilters}
-              title={t.questions.clearFilter}
-            >
-              <RotateCcw size={12} />
-              <span>{t.questions.clearFilter}</span>
-            </button>
-          )}
+            {/* Nút đặt lại */}
+            {hasActiveFilters && (
+              <button
+                type="button"
+                className={`${styles.chipBtn} h-9 shrink-0`}
+                onClick={handleResetFilters}
+                title={t.questions.clearFilter}
+              >
+                <RotateCcw size={12} />
+                <span>{t.questions.clearFilter}</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
