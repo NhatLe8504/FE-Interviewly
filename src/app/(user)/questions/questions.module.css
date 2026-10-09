@@ -228,6 +228,8 @@
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .selectCompact {
