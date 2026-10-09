@@ -34,6 +34,8 @@ import type { DomainOut } from "@/types/catalog";
 import { getDomainTheme } from "@/constants/domainThemes";
 import { Button } from "@/components/ui/button";
 import { PageMascot } from "@/components/user-component/common/PageMascot";
+import { SimpleUserSelect } from "@/components/user-component/common";
+import { Briefcase } from "lucide-react";
 import pageStyles from "@/app/(user)/questions/questions.module.css";
 
 export function formatCompactNumber(num: number): string {
@@ -182,7 +184,7 @@ export function CuratedQuestionSetsView({
 
       return true;
     });
-  }, [search, selectedDomain, selectedLevel]);
+  }, [search, selectedDomain, selectedLevel, questionSets]);
 
   // 1-Click Practice Start (Question Set Workspace)
   const handleStartSetPractice = (set: QuestionSetItem) => {
@@ -261,7 +263,7 @@ export function CuratedQuestionSetsView({
         {/* Mascot đứng trên thanh tìm kiếm */}
         <div className={pageStyles.mascotDivider}>
           <div className={pageStyles.mascotWrapper}>
-            <PageMascot size={48} />
+            <PageMascot size={84} />
           </div>
         </div>
 
@@ -287,46 +289,56 @@ export function CuratedQuestionSetsView({
           )}
         </div>
 
-        {/* Filter Dropdowns */}
-        <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-[var(--line)] text-xs">
+        {/* Filter Controls Row */}
+        <div className="flex flex-wrap items-center gap-4 pt-3.5 border-t border-[var(--border-subtle)]">
           <div className="flex items-center gap-2">
-            <span className={pageStyles.filterLabel}>Ngành nghề:</span>
-            <select
+            <span className={pageStyles.filterLabel}>
+              <Briefcase size={13} aria-hidden="true" />
+              <span>Ngành nghề:</span>
+            </span>
+            <SimpleUserSelect
+              id="sets-domain-select"
               value={selectedDomain}
-              onChange={(e) => setSelectedDomain(e.target.value)}
-              className={pageStyles.selectCompact}
-            >
-              <option value="all">Tất cả ngành nghề</option>
-              {(domainsList.length > 0 ? domainsList : [
-                { domain_id: 1, domain_name: "Công nghệ thông tin (IT)" },
-                { domain_id: 2, domain_name: "Tài chính & Ngân hàng (Finance)" },
-                { domain_id: 3, domain_name: "Marketing & Truyền thông" },
-                { domain_id: 4, domain_name: "Bán hàng & Kinh doanh (Sales)" },
-                { domain_id: 5, domain_name: "Quản trị Sản phẩm (Product)" },
-                { domain_id: 6, domain_name: "Quản trị Nhân sự (HR)" },
-              ]).map((d: any) => (
-                <option key={d.domain_id} value={String(d.domain_id)}>
-                  {d.domain_name}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedDomain(val)}
+              options={[
+                { value: "all", label: "Tất cả ngành nghề" },
+                ...(domainsList.length > 0 ? domainsList : [
+                  { domain_id: 19, domain_name: "Công nghệ thông tin (IT)" },
+                  { domain_id: 20, domain_name: "Marketing & Truyền thông" },
+                  { domain_id: 21, domain_name: "Kinh doanh & Phát triển thị trường" },
+                  { domain_id: 22, domain_name: "Quản trị Nhân sự (HR)" },
+                  { domain_id: 23, domain_name: "Tài chính & Kế toán" },
+                ]).map((d: any) => ({
+                  value: String(d.domain_id),
+                  label: d.domain_name,
+                })),
+              ]}
+              aria-label="Chọn ngành nghề"
+              className="min-w-[170px]"
+            />
           </div>
 
           <div className="flex items-center gap-2">
-            <span className={pageStyles.filterLabel}>Cấp độ:</span>
-            <select
+            <span className={pageStyles.filterLabel}>
+              <Layers size={13} aria-hidden="true" />
+              <span>Cấp độ:</span>
+            </span>
+            <SimpleUserSelect
+              id="sets-level-select"
               value={selectedLevel}
-              onChange={(e) => setSelectedLevel(e.target.value)}
-              className={`${pageStyles.selectCompact} capitalize`}
-            >
-              <option value="all">Tất cả cấp độ</option>
-              <option value="intern">Intern</option>
-              <option value="fresher">Fresher</option>
-              <option value="junior">Junior</option>
-              <option value="mid">Middle</option>
-              <option value="senior">Senior</option>
-              <option value="lead">Lead / Architect</option>
-            </select>
+              onChange={(val) => setSelectedLevel(val)}
+              options={[
+                { value: "all", label: "Tất cả cấp độ" },
+                { value: "intern", label: "Intern" },
+                { value: "fresher", label: "Fresher" },
+                { value: "junior", label: "Junior" },
+                { value: "mid", label: "Middle" },
+                { value: "senior", label: "Senior" },
+                { value: "lead", label: "Lead / Architect" },
+              ]}
+              aria-label="Chọn cấp độ"
+              className="min-w-[130px]"
+            />
           </div>
 
           <span className={`ml-auto ${pageStyles.tabHint}`}>
