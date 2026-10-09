@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { History, X, Bot, User, Clock, CheckCircle2, ChevronRight, MessageSquare } from "lucide-react";
+import { History, X, Bot, User, Clock, CheckCircle2, ChevronRight, MessageSquare, Play, Square, Volume2 } from "lucide-react";
+import { useRef } from "react";
 import type { InterviewTurnItem } from "@/hooks/useInterviewSession";
 
 interface ConversationTimelineDrawerProps {
@@ -14,6 +15,46 @@ export function ConversationTimelineDrawer({
   currentTurnNumber,
 }: ConversationTimelineDrawerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+
+  const togglePlayAudio = (id: string, url: string) => {
+    if (playingAudioId === id) {
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+      }
+      setPlayingAudioId(null);
+      return;
+    }
+
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+    }
+
+    const audio = new Audio(url);
+    audioPlayerRef.current = audio;
+    setPlayingAudioId(id);
+
+    audio.onended = () => {
+      setPlayingAudioId(null);
+    };
+
+    audio.onerror = () => {
+      setPlayingAudioId(null);
+    };
+
+    audio.play().catch(() => {
+      setPlayingAudioId(null);
+    });
+  };
+
+  const handleClose = () => {
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+    }
+    setPlayingAudioId(null);
+    setIsOpen(false);
+  };
 
   // Group into Q&A turn pairs
   const aiTurns = turns.filter((t) => t.speaker === "ai");
@@ -76,7 +117,7 @@ export function ConversationTimelineDrawer({
             justifyContent: "flex-start",
             animation: "fadeIn 0.2s ease both",
           }}
-          onClick={() => setIsOpen(false)}
+          onClick={handleClose}
         >
           {/* Drawer Sheet */}
           <div
@@ -131,7 +172,7 @@ export function ConversationTimelineDrawer({
 
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
+                onClick={handleClose}
                 style={{
                   width: "32px",
                   height: "32px",
@@ -250,6 +291,44 @@ export function ConversationTimelineDrawer({
                       >
                         {turn.text}
                       </div>
+
+                      {/* Voice Audio Replay */}
+                      {turn.audioUrl && (
+                        <div style={{ marginTop: "2px" }}>
+                          <button
+                            type="button"
+                            onClick={() => togglePlayAudio(turn.id || `${turn.speaker}-${turn.turnNumber || index}`, turn.audioUrl!)}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              padding: "4px 10px",
+                              borderRadius: "8px",
+                              border: isAi ? "1px solid rgba(217, 130, 54, 0.3)" : "1px solid rgba(16, 185, 129, 0.3)",
+                              background: playingAudioId === (turn.id || `${turn.speaker}-${turn.turnNumber || index}`)
+                                ? (isAi ? "#fed7aa" : "#a7f3d0")
+                                : "#ffffff",
+                              color: isAi ? "#8b4513" : "#065f46",
+                              fontSize: "11px",
+                              fontWeight: "750",
+                              cursor: "pointer",
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            {playingAudioId === (turn.id || `${turn.speaker}-${turn.turnNumber || index}`) ? (
+                              <>
+                                <Square size={11} fill="currentColor" />
+                                <span>Dừng nghe</span>
+                              </>
+                            ) : (
+                              <>
+                                <Play size={11} fill="currentColor" />
+                                <span>Nghe lại giọng nói</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })

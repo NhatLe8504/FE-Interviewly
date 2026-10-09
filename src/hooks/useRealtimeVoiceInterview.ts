@@ -256,7 +256,7 @@ export function useRealtimeVoiceInterview({
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [reconnectCount, setReconnectCount] = useState(0);
   const [aiState, setAiState] = useState<AiVoiceState>("idle");
-  const [activeVoice, setActiveVoice] = useState<string>(options.voice || "vi-VN-HoaiMyNeural");
+  const [activeVoice, setActiveVoice] = useState<string>(voice || "vi-VN-HoaiMyNeural");
   const [isCompleted, setIsCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sessionDurationSeconds, setSessionDurationSeconds] = useState(0);

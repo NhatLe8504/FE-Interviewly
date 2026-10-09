@@ -16,8 +16,8 @@ export function ChromaVideoCanvas({
   videoSrc,
   isPlaying,
   fallbackImageUrl,
-  width = 320,
-  height = 420,
+  width = 240,
+  height = 320,
   className = "",
   characterName = "AI Interviewer",
 }: ChromaVideoCanvasProps) {

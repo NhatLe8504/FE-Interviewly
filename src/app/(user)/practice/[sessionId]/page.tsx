@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { use, useEffect, useState, useMemo, KeyboardEvent } from "react";
+import { use, useEffect, useState, useMemo, useCallback, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
@@ -25,6 +25,8 @@ import { useRealtimeVoiceInterview } from "@/hooks/useRealtimeVoiceInterview";
 import { useVoiceAnswerDraft } from "@/hooks/useVoiceAnswerDraft";
 import type { StageConfigIn } from "@/types/interview";
 import { ChromaVideoCanvas } from "./components/ChromaVideoCanvas";
+import { voiceApi, type VoiceOptionItem, type VoiceOptionsResponse } from "@/services/voiceApi";
+import { toast } from "@/components/user-component/toast/UserToast";
 import { VoiceAnswerPanel } from "./components/VoiceAnswerPanel";
 import { InterviewStagesTimeline } from "./components/InterviewStagesTimeline";
 import { StarGuidanceDrawer } from "./components/StarGuidanceDrawer";
@@ -34,6 +36,7 @@ import { UserTooltip } from "@/components/user-component/common";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/context/I18nContext";
 import { INTERVIEW_LANGUAGES, getInterviewLanguage, type InterviewLanguage } from "@/lib/interviewLanguages";
+import { Lock } from "lucide-react";
 import styles from "./interviewRoom.module.css";
 
 interface SessionMetaStored {
@@ -60,6 +63,9 @@ export default function InterviewRoomPage({
   const { locale } = useI18n();
 
   const [isClientMounted, setIsClientMounted] = useState(false);
+  const [voiceOptions, setVoiceOptions] = useState<VoiceOptionsResponse | null>(null);
+  const [selectedVoice, setSelectedVoice] = useState<string>("vi-VN-HoaiMyNeural");
+  const [selectedSttEngine, setSelectedSttEngine] = useState<string>("browser-speech-api");
   const [meta, setMeta] = useState<SessionMetaStored>({});
   const [currentMode, setCurrentMode] = useState<"voice" | "text">("voice");
   const [language, setLanguage] = useState<InterviewLanguage>("vi");
@@ -115,25 +121,87 @@ export default function InterviewRoomPage({
     endSessionEarly,
     currentIntent,
     rerollQuestion,
+    activeVoice,
+    changeVoice,
+    updateTurnAudioUrl,
   } = useRealtimeVoiceInterview({
     sessionId,
     enabled: isClientMounted,
     roleName,
     level,
     language,
+    voice: selectedVoice,
     selectedStages,
     stageConfigs: meta.stage_configs,
     bargeInInitial: meta.bargeInEnabled ?? false,
   });
 
   const canAnswer = isConnected && aiState === "listening" && !isAudioPlaying && !isCompleted;
+
+  const handleVoiceSubmit = useCallback(
+    (text: string, durationSeconds: number, audioBlob?: Blob | null) => {
+      const localAudioUrl = audioBlob ? URL.createObjectURL(audioBlob) : null;
+      const curTurn = turnId;
+
+      const sent = sendTextMessage(text, durationSeconds, localAudioUrl);
+      if (!sent) return false;
+
+      if (audioBlob) {
+        voiceApi.uploadUserTurnAudio(sessionId, curTurn, audioBlob)
+          .then((res) => {
+            if (res.audio_url) {
+              updateTurnAudioUrl("user", curTurn, res.audio_url);
+            }
+          })
+          .catch((err) => {
+            console.warn("Failed to upload turn audio:", err);
+          });
+      }
+
+      return true;
+    },
+    [sendTextMessage, sessionId, turnId, updateTurnAudioUrl]
+  );
+
   const voiceDraft = useVoiceAnswerDraft({
     enabled: isClientMounted && isVoiceMode && !isCompleted,
     canRecord: canAnswer,
     language,
-    onSubmit: sendTextMessage,
+    onSubmit: handleVoiceSubmit,
   });
   const canSendText = canAnswer && !["requesting", "recording", "processing"].includes(voiceDraft.state);
+
+  const handleVoiceChange = (newVoiceId: string) => {
+    const item = voiceOptions?.voices.find((v) => v.id === newVoiceId);
+    if (item?.is_locked) {
+      toast({
+        title: "Tính năng dành riêng cho gói Pro",
+        description: item.lock_reason || "Giọng đọc biểu cảm cao cấp ElevenLabs dành riêng cho tài khoản Pro / Sprint.",
+        variant: "warning",
+      });
+      return;
+    }
+    setSelectedVoice(newVoiceId);
+    changeVoice(newVoiceId);
+    const updated = { ...meta, voice: newVoiceId };
+    setMeta(updated);
+    try {
+      sessionStorage.setItem(`session_metadata_${sessionId}`, JSON.stringify(updated));
+    } catch {}
+  };
+
+  const handleSttEngineChange = (newEngineId: string) => {
+    const item = voiceOptions?.stt_engines.find((e) => e.id === newEngineId);
+    if (item?.is_locked) {
+      toast({
+        title: "Tính năng dành riêng cho gói Pro",
+        description: item.lock_reason || "Nhận diện giọng nói đa âm sắc Whisper Pro yêu cầu gói Pro.",
+        variant: "warning",
+      });
+      return;
+    }
+    setSelectedSttEngine(newEngineId);
+  };
 
   function changeInterviewLanguage(code: string) {
     if (!canSendText) return;
@@ -432,6 +500,7 @@ export default function InterviewRoomPage({
               {(isAudioPlaying || aiState === "speaking") && (
                 <span className={styles.speakingHaloRing} />
               )}
+              <div className={styles.mediaBackdropStudio} />
 
               {isVoiceMode ? (
                 <ChromaVideoCanvas
@@ -439,8 +508,8 @@ export default function InterviewRoomPage({
                   isPlaying={isAudioPlaying || aiState === "speaking"}
                   fallbackImageUrl={persona.avatarUrl}
                   characterName={persona.name}
-                  width={180}
-                  height={180}
+                  width={240}
+                  height={320}
                 />
               ) : (
                 <div className={styles.textModeAvatarBox}>
@@ -506,6 +575,69 @@ export default function InterviewRoomPage({
                     ? "Change while AI waits for your answer. Applies to its next response, not the interface."
                     : "Đổi khi AI đang chờ bạn trả lời. Áp dụng cho phản hồi tiếp theo, không đổi ngôn ngữ giao diện."}
                 </p>
+              </div>
+
+              
+              {/* AI Voice Selection (TTS Tiering) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="ai-voice-select" className="portal-field-label">
+                    {locale === "en" ? "AI Voice (TTS)" : "Giọng đọc AI (TTS)"}
+                  </label>
+                  {voiceOptions?.is_premium_user ? (
+                    <span className={`${styles.voiceTierBadge} ${styles.tierBadgePro}`}>
+                      <Sparkles size={10} /> Pro
+                    </span>
+                  ) : (
+                    <span className={`${styles.voiceTierBadge} ${styles.tierBadgeFree}`}>
+                      Free
+                    </span>
+                  )}
+                </div>
+                <SimpleUserSelect
+                  id="ai-voice-select"
+                  value={selectedVoice}
+                  disabled={!canSendText}
+                  onChange={handleVoiceChange}
+                  options={(voiceOptions?.voices || [
+                    { id: "vi-VN-HoaiMyNeural", name: "Hoài My (Nữ chuẩn - Edge)", is_locked: false },
+                    { id: "vi-VN-NamMinhNeural", name: "Nam Minh (Nam ấm áp - Edge)", is_locked: false },
+                    { id: "elevenlabs-rachel", name: "Rachel (Nữ biểu cảm - ElevenLabs)", is_locked: true },
+                    { id: "elevenlabs-adam", name: "Adam (Nam chuyên nghiệp - ElevenLabs)", is_locked: true },
+                  ]).map((v) => ({
+                    value: v.id,
+                    label: `${v.is_locked ? "🔒 [Pro] " : ""}${v.name}`,
+                  }))}
+                  aria-label={locale === "en" ? "AI Voice" : "Giọng đọc AI"}
+                />
+                <p className="portal-help-text">
+                  {voiceOptions?.is_premium_user
+                    ? "Mở khóa toàn bộ giọng ElevenLabs biểu cảm cảm xúc cao cấp."
+                    : "Gói Free dùng Edge TTS chuẩn. Nâng cấp Pro để mở khóa giọng ElevenLabs."}
+                </p>
+              </div>
+
+              {/* Speech Recognition Engine (STT Tiering) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="stt-engine-select" className="portal-field-label">
+                    {locale === "en" ? "Voice Recognition (STT)" : "Nhận diện giọng (STT)"}
+                  </label>
+                </div>
+                <SimpleUserSelect
+                  id="stt-engine-select"
+                  value={selectedSttEngine}
+                  disabled={!canSendText}
+                  onChange={handleSttEngineChange}
+                  options={(voiceOptions?.stt_engines || [
+                    { id: "browser-speech-api", name: "Web Speech API (Trình duyệt) [Mặc định]", is_locked: false },
+                    { id: "whisper-pro", name: "Whisper Pro (AI Cloud - Cao cấp)", is_locked: true },
+                  ]).map((eng) => ({
+                    value: eng.id,
+                    label: `${eng.is_locked ? "🔒 [Pro] " : ""}${eng.name}`,
+                  }))}
+                  aria-label={locale === "en" ? "STT Engine" : "Bộ nhận diện giọng nói"}
+                />
               </div>
 
               {/* Mode Toggle */}
