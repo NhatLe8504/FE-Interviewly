@@ -11,7 +11,7 @@
 	right: 0;
 	width: 100%;
 	z-index: 1000;
-	padding: 24px var(--padding);
+	padding: 24px var(--padding) !important;
 	box-sizing: border-box;
 	pointer-events: none;
 }

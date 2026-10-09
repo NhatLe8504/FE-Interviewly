@@ -438,14 +438,14 @@ export default function QuestionExplorerClient() {
         </div>
 
         {/* Search & Filter Controls Row: chung hàng, con mèo absolute ở góc phải không chiếm flow */}
-        <div className="relative flex flex-wrap items-center gap-3 pt-3 border-t border-[var(--border-subtle)]">
+        <div className="relative flex items-center gap-2 pt-3 border-t border-[var(--border-subtle)] flex-wrap xl:flex-nowrap">
           {/* Con mèo absolute bên phải, đứng trên đường gạch ngang */}
           <div className="absolute -top-[48px] right-6 sm:right-10 pointer-events-none select-none">
             <PageMascot size={52} />
           </div>
 
           {/* Thanh tìm kiếm */}
-          <div className="relative flex items-center w-full sm:w-[260px] lg:w-[290px] shrink-0">
+          <div className="relative flex items-center w-full sm:w-[220px] lg:w-[240px] shrink-0">
             <Search size={15} className="absolute left-3 text-[var(--text-secondary)] pointer-events-none" />
             <input
               type="text"
@@ -489,7 +489,7 @@ export default function QuestionExplorerClient() {
               })),
             ]}
             aria-label="Chọn ngành nghề"
-            className="w-[175px]"
+            className="w-[165px] shrink-0"
           />
 
           {/* Vị trí: icon trong select */}
@@ -509,7 +509,7 @@ export default function QuestionExplorerClient() {
               })),
             ]}
             aria-label="Chọn vị trí ứng tuyển"
-            className="w-[160px]"
+            className="w-[145px] shrink-0"
           />
 
           {/* Cấp độ: icon trong select */}
@@ -526,7 +526,7 @@ export default function QuestionExplorerClient() {
               label: opt.label,
             }))}
             aria-label="Chọn cấp độ"
-            className="w-[140px]"
+            className="w-[125px] shrink-0"
           />
 
           {/* Dạng câu hỏi: icon trong select */}
@@ -543,7 +543,7 @@ export default function QuestionExplorerClient() {
               label: opt.label,
             }))}
             aria-label="Chọn dạng câu hỏi"
-            className="w-[145px]"
+            className="w-[130px] shrink-0"
           />
 
           {/* Ngôn ngữ: icon trong select */}
@@ -560,7 +560,7 @@ export default function QuestionExplorerClient() {
               label: opt.label,
             }))}
             aria-label="Chọn ngôn ngữ"
-            className="w-[135px]"
+            className="w-[115px] shrink-0"
           />
 
           {/* Nút đặt lại */}

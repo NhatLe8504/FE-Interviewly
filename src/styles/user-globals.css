@@ -260,8 +260,11 @@ html body[data-scroll-locked] {
   position: static !important;
 }
 
-html body[data-scroll-locked] header,
 html body[data-scroll-locked] [data-radix-popper-content-wrapper] {
   margin-right: 0px !important;
   padding-right: 0px !important;
+}
+
+html body[data-scroll-locked] header {
+  margin-right: 0px !important;
 }
