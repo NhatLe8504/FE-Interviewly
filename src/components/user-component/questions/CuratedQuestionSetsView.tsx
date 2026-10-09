@@ -263,13 +263,13 @@ export function CuratedQuestionSetsView({
         {/* Mascot đứng trên thanh tìm kiếm */}
         <div className={pageStyles.mascotDivider}>
           <div className={pageStyles.mascotWrapper}>
-            <PageMascot size={84} />
+            <PageMascot size={64} />
           </div>
         </div>
 
         {/* Search Input */}
         <div className={pageStyles.searchBox}>
-          <Search size={18} className={pageStyles.searchIcon} />
+          <Search size={16} className={pageStyles.searchIcon} />
           <input
             type="text"
             placeholder="Tìm kiếm bộ đề theo công nghệ (Java, React, K8s, Python), vị trí hoặc ngành nghề..."
@@ -284,7 +284,7 @@ export function CuratedQuestionSetsView({
               className={pageStyles.clearSearchBtn}
               aria-label="Xóa tìm kiếm"
             >
-              <X size={16} />
+              <X size={15} />
             </button>
           )}
         </div>

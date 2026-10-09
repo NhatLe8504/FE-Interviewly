@@ -442,7 +442,7 @@ export default function QuestionExplorerClient() {
         {/* Mascot đứng trên thanh tìm kiếm */}
         <div className={styles.mascotDivider}>
           <div className={styles.mascotWrapper}>
-            <PageMascot size={84} />
+            <PageMascot size={64} />
           </div>
         </div>
 
