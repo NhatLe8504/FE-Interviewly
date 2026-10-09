@@ -279,3 +279,41 @@
   gap: 10px;
   margin-top: 4px;
 }
+
+.engineRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.engineDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--text-secondary);
+  opacity: 0.45;
+}
+
+.engineDotJev {
+  background: var(--accent-deep);
+  opacity: 1;
+}
+
+.recommendedSkills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.recommendedSkill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: var(--surface-subtle);
+  font-size: 12px;
+  color: var(--ink);
+}
