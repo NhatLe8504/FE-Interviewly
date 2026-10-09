@@ -13,6 +13,10 @@ import {
   Star,
   HelpCircle,
   Lightbulb,
+  Loader2,
+  Search,
+  Tags,
+  X,
 } from "lucide-react";
 import {
   Card,
@@ -35,12 +39,21 @@ import {
 import { toast } from "sonner";
 import { questionAdminApi } from "@/services/admin/questionAdminApi";
 import { MOCK_DOMAINS_LIST, MOCK_ROLES_LIST } from "@/mock/adminQuestionsMock";
-import type { QuestionDetailOut, DomainOut, RoleOut } from "@/types/catalog";
+import type { QuestionDetailOut, DomainOut, RoleOut, SkillOptionOut } from "@/types/catalog";
 
 interface SingleQuestionFormProps {
   initialQuestion?: QuestionDetailOut | null;
   isEdit?: boolean;
 }
+
+const SKILL_CATEGORY_LABELS: Record<string, string> = {
+  language: "Ngôn ngữ",
+  framework: "Framework",
+  database: "Database",
+  infra: "Hạ tầng",
+  tool: "Công cụ",
+  concept: "Khái niệm",
+};
 
 export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQuestionFormProps) {
   const router = useRouter();
@@ -60,6 +73,12 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
   const [language, setLanguage] = useState<"vi" | "en">((initialQuestion?.language as any) || "vi");
   const [difficulty, setDifficulty] = useState<number>(3);
   const [isActive, setIsActive] = useState<boolean>(initialQuestion?.is_active !== false);
+
+  // Nhãn kỹ năng phục vụ skill tracking
+  const [skillIds, setSkillIds] = useState<string[]>(initialQuestion?.skill_ids || []);
+  const [skillOptions, setSkillOptions] = useState<SkillOptionOut[]>([]);
+  const [skillSearch, setSkillSearch] = useState("");
+  const [suggestingSkills, setSuggestingSkills] = useState(false);
 
   const [questionText, setQuestionText] = useState<string>(initialQuestion?.question_text || "");
   const [intent, setIntent] = useState<string>((initialQuestion as any)?.intent || "");
@@ -135,6 +154,64 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
     loadMetadata();
   }, [initialQuestion]);
 
+  // Tải taxonomy nhãn kỹ năng (không chặn form nếu lỗi)
+  useEffect(() => {
+    let alive = true;
+    questionAdminApi
+      .getSkills()
+      .then((list) => {
+        if (alive) setSkillOptions(Array.isArray(list) ? list : []);
+      })
+      .catch((e) => console.warn("Failed to load skill taxonomy:", e));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const filteredSkillOptions = useMemo(() => {
+    const term = skillSearch.trim().toLowerCase();
+    if (!term) return skillOptions;
+    return skillOptions.filter((s) => {
+      const category = (SKILL_CATEGORY_LABELS[s.category] || s.category).toLowerCase();
+      return (
+        s.name.toLowerCase().includes(term) ||
+        s.id.toLowerCase().includes(term) ||
+        category.includes(term)
+      );
+    });
+  }, [skillOptions, skillSearch]);
+
+  const toggleSkill = (id: string) => {
+    setSkillIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const handleSuggestSkills = async () => {
+    const text = questionText.trim();
+    if (!text) {
+      toast.error("Nhập nội dung câu hỏi trước khi nhờ LLM gợi ý nhãn!");
+      return;
+    }
+    setSuggestingSkills(true);
+    try {
+      const res = await questionAdminApi.suggestSkillIds(text);
+      const suggested = res.suggested_skill_ids || [];
+      if (suggested.length === 0) {
+        toast.info(
+          res.reason === "llm_not_configured"
+            ? "Backend chưa cấu hình LLM để gợi ý nhãn."
+            : "LLM chưa tìm thấy nhãn phù hợp cho câu hỏi này."
+        );
+        return;
+      }
+      setSkillIds((prev) => Array.from(new Set([...prev, ...suggested])));
+      toast.success(`LLM gợi ý ${suggested.length} nhãn — bạn rà lại rồi lưu nhé.`);
+    } catch (err: any) {
+      toast.error(`Không lấy được gợi ý nhãn: ${err.message || "Lỗi máy chủ"}`);
+    } finally {
+      setSuggestingSkills(false);
+    }
+  };
+
   const availableRoles = useMemo(() => {
     if (!domainId) return roles;
     const filtered = roles.filter((r) => r.domain_id === domainId);
@@ -187,6 +264,7 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
           follow_up_questions: followUps.length > 0 ? followUps : null,
           tips: tipsList.length > 0 ? tipsList : null,
           quiz_data: quizData,
+          skill_ids: skillIds,
           is_active: isActive,
         });
         toast.success(`Đã cập nhật câu hỏi #${initialQuestion.question_id} thành công!`);
@@ -202,6 +280,7 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
           follow_up_questions: followUps.length > 0 ? followUps : null,
           tips: tipsList.length > 0 ? tipsList : null,
           quiz_data: quizData,
+          skill_ids: skillIds.length > 0 ? skillIds : null,
         });
         toast.success(`Đã tạo mới câu hỏi #${created.question_id} vào ngân hàng câu hỏi!`);
       }
@@ -716,6 +795,109 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
             </div>
           </CardContent>
         )}
+      </Card>
+
+      {/* 6. Skill tags for tracking */}
+      <Card className="shadow-xs border-muted/80 bg-card">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+            <div className="space-y-0.5">
+              <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-foreground">
+                <Tags className="size-4 text-primary" />
+                6. Nhãn Kỹ Năng (Skill Tracking)
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Nhãn này giúp hệ thống theo dõi năng lực ứng viên qua từng buổi luyện tập. Bỏ trống khi tạo mới thì hệ thống tự gắn nhãn từ nội dung câu hỏi.
+              </CardDescription>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleSuggestSkills}
+              disabled={suggestingSkills || !questionText.trim()}
+              className="h-7 text-xs font-medium shrink-0"
+            >
+              {suggestingSkills ? (
+                <Loader2 className="size-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Sparkles className="size-3.5 mr-1.5" />
+              )}
+              LLM gợi ý nhãn
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3 pt-1 border-t">
+          {skillIds.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {skillIds.map((sid) => {
+                const opt = skillOptions.find((s) => s.id === sid);
+                return (
+                  <button
+                    key={sid}
+                    type="button"
+                    onClick={() => toggleSkill(sid)}
+                    title="Bấm để bỏ nhãn"
+                    className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary hover:bg-primary/20 transition-colors"
+                  >
+                    {opt?.name || sid}
+                    <X className="size-3" />
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-[11px] text-muted-foreground">
+              Chưa có nhãn nào. Tìm và chọn bên dưới, hoặc để hệ thống tự gắn khi lưu.
+            </p>
+          )}
+
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+            <Input
+              value={skillSearch}
+              onChange={(e) => setSkillSearch(e.target.value)}
+              placeholder="Tìm nhãn theo tên hoặc nhóm (java, sql, framework...)"
+              className="h-8 pl-8 text-xs bg-background"
+            />
+          </div>
+
+          <div className="max-h-44 overflow-y-auto rounded-lg border bg-muted/10 divide-y divide-border/60">
+            {filteredSkillOptions.map((opt) => {
+              const selected = skillIds.includes(opt.id);
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => toggleSkill(opt.id)}
+                  className={`w-full flex items-center justify-between gap-2 px-3 py-1.5 text-left text-xs transition-colors ${
+                    selected ? "bg-primary/10" : "hover:bg-muted/40"
+                  }`}
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span
+                      className={`size-3.5 rounded-sm border flex items-center justify-center shrink-0 ${
+                        selected ? "bg-primary border-primary" : "border-input"
+                      }`}
+                    >
+                      {selected && <CheckCircle2 className="size-3 text-primary-foreground" />}
+                    </span>
+                    <span className="font-medium text-foreground truncate">{opt.name}</span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">{opt.id}</span>
+                  </span>
+                  <Badge variant="secondary" className="text-[10px] shrink-0">
+                    {SKILL_CATEGORY_LABELS[opt.category] || opt.category}
+                  </Badge>
+                </button>
+              );
+            })}
+            {filteredSkillOptions.length === 0 && (
+              <p className="px-3 py-4 text-center text-[11px] text-muted-foreground">
+                Không tìm thấy nhãn phù hợp.
+              </p>
+            )}
+          </div>
+        </CardContent>
       </Card>
 
       {/* Bottom Final Actions */}
