@@ -4,12 +4,18 @@ import type {
   ProfileUpdateIn,
   ChangePasswordIn,
   MessageOut,
+  UserCareerProfileOut,
 } from "@/types/profile";
 
 export const profileApiSlice = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getMyProfile: builder.query<ProfileOut, void>({
       query: () => "/api/v1/profile",
+      providesTags: ["Profile"],
+    }),
+
+    getMySkillProfile: builder.query<UserCareerProfileOut, void>({
+      query: () => "/api/v1/profile/skills",
       providesTags: ["Profile"],
     }),
 
@@ -36,6 +42,8 @@ export const profileApiSlice = baseApi.injectEndpoints({
 export const {
   useGetMyProfileQuery,
   useLazyGetMyProfileQuery,
+  useGetMySkillProfileQuery,
+  useLazyGetMySkillProfileQuery,
   useUpdateProfileMutation,
   useChangePasswordMutation,
 } = profileApiSlice;
