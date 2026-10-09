@@ -943,6 +943,7 @@ export default function PracticeWorkspaceClient() {
             {/* Pipeline A Delivery Telemetry Summary */}
             {(evaluation.delivery_metrics || voiceRecorder.deliveryMetrics) && (() => {
               const dm = evaluation.delivery_metrics || voiceRecorder.deliveryMetrics;
+              if (!dm) return null;
               return (
                 <div className={styles.deliveryBox}>
                   <div style={{ fontWeight: 800, fontSize: 13, color: "var(--ink)", display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
@@ -991,6 +992,7 @@ export default function PracticeWorkspaceClient() {
             <div style={{ position: "relative", marginTop: 4 }}>
               <div style={!isSubscribed ? { filter: "blur(5px)", userSelect: "none", pointerEvents: "none", opacity: 0.55 } : {}}>
                 {/* 4 STAR Breakdown */}
+                {evaluation.star_breakdown && (
                 <div>
                   <h5 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 800 }}>Phân tích 4 thành tố STAR</h5>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
@@ -1027,6 +1029,7 @@ export default function PracticeWorkspaceClient() {
                     </div>
                   </div>
                 </div>
+                )}
 
                 {/* Strengths & Improvements */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12, marginTop: 12 }}>
@@ -1035,7 +1038,7 @@ export default function PracticeWorkspaceClient() {
                       Điểm mạnh cốt lõi
                     </div>
                     <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, lineHeight: 1.6 }}>
-                      {evaluation.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                      {(evaluation.strengths ?? []).map((s, i) => <li key={i}>{s}</li>)}
                     </ul>
                   </div>
 
@@ -1044,7 +1047,7 @@ export default function PracticeWorkspaceClient() {
                       Gợi ý hoàn thiện
                     </div>
                     <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, lineHeight: 1.6 }}>
-                      {evaluation.improvements.map((im, i) => <li key={i}>{im}</li>)}
+                      {(evaluation.improvements ?? []).map((im, i) => <li key={i}>{im}</li>)}
                     </ul>
                   </div>
                 </div>

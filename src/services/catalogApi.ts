@@ -2,7 +2,10 @@ import { request } from "./apiClient";
 import { MOCK_QUESTION_SETS } from "@/mock/questionSetsMock";
 import { MOCK_ADMIN_QUESTIONS } from "@/mock/adminQuestionsMock";
 import type {
+  AIEvaluationResult,
   DomainOut,
+  LeaderboardItem,
+  PracticeHistoryItem,
   RoleOut,
   StarTemplateOut,
   QuestionOut,
@@ -13,6 +16,8 @@ import type {
   QuestionSetOut,
   QuestionSetPageOut,
   QuestionSetDetailOut,
+  QuestionSetReviewItem,
+  QuestionSetReviewsPage,
 } from "@/types/catalog";
 
 export const DEFAULT_RUBRIC_CRITERIA: RubricCriterion[] = [

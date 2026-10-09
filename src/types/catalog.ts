@@ -1,3 +1,5 @@
+import type { DeliveryMetrics } from "@/types/delivery";
+
 export type ExperienceLevel =
   | "intern"
   | "fresher"
@@ -46,7 +48,7 @@ export interface AIEvaluationResult {
   score: number; // 0 - 100
   passed: boolean;
   general_feedback: string;
-  star_breakdown: {
+  star_breakdown?: {
     situation_score: number;
     situation_feedback: string;
     task_score: number;
@@ -56,7 +58,7 @@ export interface AIEvaluationResult {
     result_score: number;
     result_feedback: string;
   };
-  rubric_scores: {
+  rubric_scores?: {
     criterion_id: string;
     criterion_name: string;
     score: number;
@@ -64,8 +66,18 @@ export interface AIEvaluationResult {
     level_label: string;
     feedback: string;
   }[];
-  strengths: string[];
-  improvements: string[];
+  strengths?: string[];
+  improvements?: string[];
+  feedback?: string;
+  text_feedback?: string;
+  text_strengths?: string[];
+  text_improvements?: string[];
+  voice_feedback?: string;
+  voice_strengths?: string[];
+  voice_improvements?: string[];
+  transcript?: string;
+  delivery_metrics?: DeliveryMetrics | null;
+  sample_better_answer?: string;
   modal_breakdown?: MultiModalScoreBreakdown;
 }
 
