@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CheckCircle2, AlertCircle, HelpCircle, Loader2, RefreshCw, ExternalLink, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandIcon } from "@/components/user-component/common/BrandIcon";
@@ -35,23 +34,6 @@ export function JobSkillMatchWidget({ job, onStartPractice, isStarting = false }
       setIsLoading(false);
     }
   };
-
-  // Automatically check once on mount if user wants, or let them click the button
-  useEffect(() => {
-    fetchReadiness(false);
-  }, [job.job_id]);
-
-  if (!hasChecked && isLoading) {
-    return (
-      <section className={styles.readinessPanel} aria-label="Đang kiểm tra độ phù hợp">
-        <h2 className={styles.panelSubtitle}>Độ phù hợp công việc</h2>
-        <div className="flex items-center gap-3 py-6 text-sm text-[var(--text-secondary)]">
-          <Loader2 className="size-5 animate-spin text-[var(--accent-deep)]" aria-hidden="true" />
-          <span>AI đang phân tích JD và đối chiếu hồ sơ năng lực của bạn…</span>
-        </div>
-      </section>
-    );
-  }
 
   const verdictLabel: Record<string, string> = {
     ready: "Đạt chuẩn ứng tuyển",
@@ -105,6 +87,11 @@ export function JobSkillMatchWidget({ job, onStartPractice, isStarting = false }
           <Button type="button" variant="home-outline" size="home-compact" onClick={() => fetchReadiness(true)}>
             <RefreshCw className="size-3.5" /> Thử lại
           </Button>
+        </div>
+      ) : isLoading ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-8 text-center">
+          <Loader2 className="size-6 animate-spin text-[var(--accent-deep)]" aria-hidden="true" />
+          <p className="text-xs text-[var(--text-secondary)]">AI đang phân tích JD và đối chiếu hồ sơ năng lực của bạn…</p>
         </div>
       ) : assessment ? (
         <>
@@ -193,10 +180,17 @@ export function JobSkillMatchWidget({ job, onStartPractice, isStarting = false }
           </div>
         </>
       ) : (
-        <div className="flex flex-col gap-3 py-4 text-center">
-          <p className={styles.panelCopy}>Bấm nút bên dưới để AI phân tích JD và đối chiếu với năng lực thực tế của bạn.</p>
-          <Button type="button" variant="home-primary" onClick={() => fetchReadiness(true)}>
-            <Sparkles className="size-4" /> Kiểm tra trình độ ngay
+        <div className="flex flex-col gap-3 py-3 text-center">
+          <p className={styles.panelCopy}>
+            Bấm nút bên dưới để AI (TypeSafe Jev System One) phân tích JD và đối chiếu hồ sơ năng lực thực tế của bạn.
+          </p>
+          <Button
+            type="button"
+            variant="home-primary"
+            onClick={() => fetchReadiness(true)}
+            className="w-full justify-center"
+          >
+            <Sparkles className="size-4 mr-1.5" /> Kiểm tra trình độ ứng tuyển
           </Button>
         </div>
       )}
