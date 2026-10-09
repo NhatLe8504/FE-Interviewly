@@ -260,17 +260,15 @@ export function CuratedQuestionSetsView({
           </div>
         </div>
 
-        {/* Mascot đứng trên thanh tìm kiếm */}
-        <div className={pageStyles.mascotDivider}>
-          <div className={pageStyles.mascotWrapper}>
-            <PageMascot size={64} />
-          </div>
+        {/* Mascot nằm sát ngay trên đường gạch ngang thứ 2 (bỏ gạch ngắn riêng) */}
+        <div className="flex justify-center -mb-[5px] pt-1 pointer-events-none">
+          <PageMascot size={60} />
         </div>
 
         {/* Search & Filter Controls Row: Ngắn hơn, chung hàng */}
         <div className="flex flex-wrap items-center gap-3.5 pt-3.5 border-t border-[var(--border-subtle)]">
-          {/* Thanh tìm kiếm ngắn hơn nằm bên trái */}
-          <div className="relative flex items-center w-full sm:w-[270px] shrink-0">
+          {/* Thanh tìm kiếm dài hơn nằm bên trái */}
+          <div className="relative flex items-center w-full sm:w-[330px] shrink-0">
             <Search size={15} className="absolute left-3 text-[var(--text-secondary)] pointer-events-none" />
             <input
               type="text"
