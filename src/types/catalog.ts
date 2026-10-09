@@ -79,6 +79,10 @@ export interface AIEvaluationResult {
   delivery_metrics?: DeliveryMetrics | null;
   sample_better_answer?: string;
   modal_breakdown?: MultiModalScoreBreakdown;
+  /** ID bản đánh giá do server lưu cho câu trả lời này (nếu đã đăng nhập). */
+  evaluation_id?: number;
+  /** Danh sách ID các phần đánh giá server đã lưu (nội dung và/hoặc giọng nói). */
+  evaluation_ids?: number[];
 }
 
 export type QuestionType = "behavioral" | "technical" | "situational";
@@ -287,6 +291,7 @@ export interface PracticeHistoryQuestionSummary {
   quiz_score?: number;
   text_score?: number;
   voice_score?: number;
+  evaluation_ids?: number[];
 }
 
 export interface PracticeHistoryItem {

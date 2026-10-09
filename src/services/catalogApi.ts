@@ -710,7 +710,11 @@ export const catalogApi = {
         }),
       });
       if (res && typeof res.score === "number") {
-        return res;
+        // Chuẩn hóa evaluation_id đơn lẻ thành mảng để dùng chung với luồng queue.
+        const evaluationId = typeof res.evaluation_id === "number" ? res.evaluation_id : undefined;
+        return evaluationId
+          ? { ...res, evaluation_ids: res.evaluation_ids || [evaluationId] }
+          : res;
       }
     } catch (err) {
       console.warn("Backend evaluation request failed, using intelligent algorithmic rubric:", err);
@@ -838,6 +842,7 @@ export const catalogApi = {
       quiz_score?: number;
       text_score?: number;
       voice_score?: number;
+      evaluation_ids?: number[];
     }>;
   }): Promise<PracticeHistoryItem | null> {
     try {

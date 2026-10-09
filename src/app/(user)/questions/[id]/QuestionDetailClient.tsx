@@ -259,6 +259,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
               question_text: q.question_text,
               score: ev?.score || 0,
               passed: ev?.passed || false,
+              evaluation_ids: ev?.evaluation_ids,
             };
           }),
         };
