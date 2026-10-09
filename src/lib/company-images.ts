@@ -16,6 +16,7 @@ export const COMPANY_IMAGE_HOSTS = Array.from(new Set([
   "lever-client-logos.s3-us-west-2.amazonaws.com",
   "images.vietnamworks.com",
   "images02.vietnamworks.com",
+  "images.careerviet.vn",
   "cdn.topcv.vn",
   "static.topcv.vn",
   "cdn-new.topcv.vn",

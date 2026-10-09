@@ -7,7 +7,7 @@ import type { JobCompany } from "@/types/job";
 import styles from "./jobs.module.css";
 
 export function CompanyLogo({ company, size = 44 }: { company?: JobCompany | null; size?: number }) {
-  const source = company?.branding_reuse_allowed ? getCompanyImageUrl(company.company_logo_url || company.logo_url) : null;
+  const source = getCompanyImageUrl(company?.company_logo_url || company?.logo_url);
   const [failedSource, setFailedSource] = useState<string | null>(null);
   const companyName = company?.company_name || "";
 
@@ -19,6 +19,7 @@ export function CompanyLogo({ company, size = 44 }: { company?: JobCompany | nul
           alt=""
           width={size}
           height={size}
+          unoptimized
           sizes={size + "px"}
           className={styles.companyLogoImage}
           onError={() => setFailedSource(source)}
