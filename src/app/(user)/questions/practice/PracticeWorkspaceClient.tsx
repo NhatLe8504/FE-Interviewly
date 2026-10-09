@@ -285,7 +285,8 @@ export default function PracticeWorkspaceClient() {
     try {
       const evalResult = await catalogApi.evaluateAnswer(qid, {
         type: "quiz",
-        answer_text: writtenText || session.currentQuestion.sample_answer?.slice(0, 200) || "",
+        // Không gửi đáp án mẫu thay cho câu trả lời của ứng viên.
+        answer_text: writtenText || "",
         audio_duration_seconds: recordingSeconds,
         selected_option_id: selectedOption || undefined,
         is_quiz_correct: isCorrect,
