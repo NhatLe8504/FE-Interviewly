@@ -19,6 +19,8 @@ import {
   ShieldAlert,
   HelpCircle,
   SlidersHorizontal,
+  Globe,
+  Lock,
 } from "lucide-react";
 import { jdInterviewApi, JDJobStatusResponse, InterviewScriptResult, ScriptItem } from "@/services/jdInterviewApi";
 import { Button } from "@/components/ui/button";
@@ -41,6 +43,7 @@ export function JDInterviewWorkspace() {
 
   // Options
   const [durationMinutes, setDurationMinutes] = useState(45);
+  const [isPublic, setIsPublic] = useState(true);
 
   // Workflow state
   const [jobId, setJobId] = useState<string | null>(null);
@@ -90,21 +93,21 @@ export function JDInterviewWorkspace() {
           setIsSubmitting(false);
           return;
         }
-        res = await jdInterviewApi.submitText(jdText, durationMinutes);
+        res = await jdInterviewApi.submitText(jdText, durationMinutes, undefined, "vi", isPublic);
       } else if (activeTab === "url") {
         if (!jdUrl.trim() || !jdUrl.startsWith("http")) {
           setErrorMessage("Vui lòng nhập đường link bài đăng tuyển dụng hợp lệ (http hoặc https).");
           setIsSubmitting(false);
           return;
         }
-        res = await jdInterviewApi.submitUrl(jdUrl, durationMinutes);
+        res = await jdInterviewApi.submitUrl(jdUrl, durationMinutes, undefined, "vi", isPublic);
       } else {
         if (!selectedFile) {
           setErrorMessage("Vui lòng chọn tệp tin JD định dạng PDF, DOCX hoặc TXT.");
           setIsSubmitting(false);
           return;
         }
-        res = await jdInterviewApi.submitFile(selectedFile, durationMinutes);
+        res = await jdInterviewApi.submitFile(selectedFile, durationMinutes, undefined, "vi", isPublic);
       }
 
       setJobId(res.job_id);
@@ -290,10 +293,36 @@ export function JDInterviewWorkspace() {
             </div>
           </div>
 
-          <div className={styles.roomNote}>
-            <p>Bạn chưa cần quyết định mọi thứ.</p>
-            <span>Ngôn ngữ và cách trả lời có thể chọn ngay trong phòng phỏng vấn.</span>
+          <div className="space-y-1.5">
+            <span className="portal-field-label">Chế độ chia sẻ</span>
+            <div className={styles.optionButtons} role="group" aria-label="Chế độ chia sẻ">
+              <Button
+                type="button"
+                variant="home-choice"
+                onClick={() => setIsPublic(true)}
+                className="flex-1"
+                aria-pressed={isPublic}
+              >
+                <Globe size={14} className="mr-1.5 inline-block text-[#2563eb]" />
+                Công khai
+              </Button>
+              <Button
+                type="button"
+                variant="home-choice"
+                onClick={() => setIsPublic(false)}
+                className="flex-1"
+                aria-pressed={!isPublic}
+              >
+                <Lock size={14} className="mr-1.5 inline-block text-[#64748b]" />
+                Riêng tư
+              </Button>
+            </div>
           </div>
+        </div>
+
+        <div className={styles.roomNote}>
+          <p>{isPublic ? "Bộ đề sẽ được chia sẻ cho cộng đồng cùng luyện tập." : "Bộ đề chỉ lưu riêng trong không gian của bạn."}</p>
+          <span>Ngôn ngữ phỏng vấn và hình thức trả lời (giọng nói / văn bản) có thể chọn ngay trong phòng luyện.</span>
         </div>
 
         {/* Error Alert */}

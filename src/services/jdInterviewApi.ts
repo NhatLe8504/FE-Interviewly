@@ -49,6 +49,7 @@ export interface JDJobSummary {
   estimated_minutes: number;
   session_id?: number | null;
   created_at?: string | null;
+  is_public?: boolean;
   error?: string | null;
 }
 
@@ -70,7 +71,8 @@ export const jdInterviewApi = {
     text: string,
     durationMinutes = 45,
     difficulty?: number,
-    language = "vi"
+    language = "vi",
+    isPublic = true
   ): Promise<JDJobStatusResponse> => {
     return request<JDJobStatusResponse>("/api/v1/interviews/from-jd/text", {
       method: "POST",
@@ -79,6 +81,7 @@ export const jdInterviewApi = {
         duration_minutes: durationMinutes,
         difficulty,
         language,
+        is_public: isPublic,
       }),
     });
   },
@@ -87,7 +90,8 @@ export const jdInterviewApi = {
     url: string,
     durationMinutes = 45,
     difficulty?: number,
-    language = "vi"
+    language = "vi",
+    isPublic = true
   ): Promise<JDJobStatusResponse> => {
     return request<JDJobStatusResponse>("/api/v1/interviews/from-jd/url", {
       method: "POST",
@@ -96,6 +100,7 @@ export const jdInterviewApi = {
         duration_minutes: durationMinutes,
         difficulty,
         language,
+        is_public: isPublic,
       }),
     });
   },
@@ -104,7 +109,8 @@ export const jdInterviewApi = {
     file: File,
     durationMinutes = 45,
     difficulty?: number,
-    language = "vi"
+    language = "vi",
+    isPublic = true
   ): Promise<JDJobStatusResponse> => {
     const formData = new FormData();
     formData.append("file", file);
@@ -113,6 +119,7 @@ export const jdInterviewApi = {
       formData.append("difficulty", difficulty.toString());
     }
     formData.append("language", language);
+    formData.append("is_public", isPublic ? "true" : "false");
 
     return request<JDJobStatusResponse>("/api/v1/interviews/from-jd/file", {
       method: "POST",
@@ -128,6 +135,12 @@ export const jdInterviewApi = {
 
   getMyJobs: async (limit = 30, offset = 0): Promise<JDJobSummary[]> => {
     return request<JDJobSummary[]>(`/api/v1/interviews/from-jd/my-jobs?limit=${limit}&offset=${offset}`, {
+      method: "GET",
+    });
+  },
+
+  getCommunityJobs: async (limit = 30, offset = 0): Promise<JDJobSummary[]> => {
+    return request<JDJobSummary[]>(`/api/v1/interviews/from-jd/community-jobs?limit=${limit}&offset=${offset}`, {
       method: "GET",
     });
   },
