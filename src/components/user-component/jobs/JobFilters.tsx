@@ -43,6 +43,8 @@ interface JobFiltersProps {
 const SORT_OPTIONS = [
   { id: "recent", name: "Mới cập nhật dữ liệu" },
   { id: "posted", name: "Mới đăng tuyển" },
+  { id: "match", name: "Phù hợp với tôi" },
+  { id: "salary_desc", name: "Lương cao nhất" },
   { id: "title_asc", name: "Tên công việc A – Z" },
 ];
 
