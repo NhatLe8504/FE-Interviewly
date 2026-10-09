@@ -243,21 +243,22 @@ export function CuratedQuestionSetsView({
           )}
         </div>
 
-        {/* Search & Filter Controls Row: chung hàng, con mèo absolute ở góc phải không chiếm flow */}
-        <div className="relative flex items-center gap-3 pt-3 border-t border-[var(--border-subtle)] flex-wrap sm:flex-nowrap">
+        {/* Search & Filter Controls Section: Tìm kiếm dòng trên, Selects dòng dưới */}
+        <div className="relative space-y-3 pt-3 border-t border-[var(--border-subtle)]">
           {/* Con mèo absolute bên phải, đứng trên đường gạch ngang */}
           <div className="absolute -top-[48px] right-6 sm:right-10 pointer-events-none select-none">
             <PageMascot size={52} />
           </div>
-          {/* Thanh tìm kiếm dài hơn nằm bên trái */}
-          <div className="relative flex items-center w-full sm:w-[300px] shrink-0">
-            <Search size={15} className="absolute left-3 text-[var(--text-secondary)] pointer-events-none" />
+
+          {/* Dòng trên: Thanh tìm kiếm */}
+          <div className="relative flex items-center w-full">
+            <Search size={15} className="absolute left-3.5 text-[var(--text-secondary)] pointer-events-none" />
             <input
               type="text"
-              placeholder="Tìm theo công nghệ, từ khóa..."
+              placeholder="Tìm theo công nghệ, từ khóa hoặc vị trí tuyển dụng..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-9 pl-9 pr-8 text-[13px] rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-paper)] text-[var(--ink)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent-deep)] focus:bg-[var(--surface-card)] transition-colors"
+              className="w-full h-9.5 pl-10 pr-8 text-[13.5px] rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-paper)] text-[var(--ink)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent-deep)] focus:bg-[var(--surface-card)] transition-colors"
             />
             {search && (
               <button
@@ -271,65 +272,68 @@ export function CuratedQuestionSetsView({
             )}
           </div>
 
-          {/* Ngành nghề: icon lồng trong select, không cần title ngoài */}
-          <SimpleUserSelect
-            id="sets-domain-select"
-            value={selectedDomain}
-            onChange={(val) => setSelectedDomain(val)}
-            icon={<Briefcase size={14} />}
-            options={[
-              { value: "all", label: "Tất cả ngành nghề" },
-              ...(domainsList.length > 0 ? domainsList : [
-                { domain_id: 19, domain_name: "Công nghệ thông tin (IT)" },
-                { domain_id: 20, domain_name: "Marketing & Truyền thông" },
-                { domain_id: 21, domain_name: "Kinh doanh & Phát triển thị trường" },
-                { domain_id: 22, domain_name: "Quản trị Nhân sự (HR)" },
-                { domain_id: 23, domain_name: "Tài chính & Kế toán" },
-              ]).map((d: any) => ({
-                value: String(d.domain_id),
-                label: d.domain_name,
-              })),
-            ]}
-            aria-label="Chọn ngành nghề"
-            width="200px"
-            className="shrink-0"
-          />
+          {/* Dòng dưới: Các ô select bộ lọc */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Ngành nghề */}
+            <SimpleUserSelect
+              id="sets-domain-select"
+              value={selectedDomain}
+              onChange={(val) => setSelectedDomain(val)}
+              icon={<Briefcase size={14} />}
+              options={[
+                { value: "all", label: "Tất cả ngành nghề" },
+                ...(domainsList.length > 0 ? domainsList : [
+                  { domain_id: 19, domain_name: "Công nghệ thông tin (IT)" },
+                  { domain_id: 20, domain_name: "Marketing & Truyền thông" },
+                  { domain_id: 21, domain_name: "Kinh doanh & Phát triển thị trường" },
+                  { domain_id: 22, domain_name: "Quản trị Nhân sự (HR)" },
+                  { domain_id: 23, domain_name: "Tài chính & Kế toán" },
+                ]).map((d: any) => ({
+                  value: String(d.domain_id),
+                  label: d.domain_name,
+                })),
+              ]}
+              aria-label="Chọn ngành nghề"
+              width="210px"
+              className="shrink-0"
+            />
 
-          {/* Cấp độ: icon lồng trong select, không cần title ngoài */}
-          <SimpleUserSelect
-            id="sets-level-select"
-            value={selectedLevel}
-            onChange={(val) => setSelectedLevel(val)}
-            icon={<Layers size={14} />}
-            options={[
-              { value: "all", label: "Tất cả cấp độ" },
-              { value: "intern", label: "Intern" },
-              { value: "fresher", label: "Fresher" },
-              { value: "junior", label: "Junior" },
-              { value: "mid", label: "Middle" },
-              { value: "senior", label: "Senior" },
-              { value: "lead", label: "Lead / Architect" },
-            ]}
-            aria-label="Chọn cấp độ"
-            width="150px"
-            className="shrink-0"
-          />
+            {/* Cấp độ */}
+            <SimpleUserSelect
+              id="sets-level-select"
+              value={selectedLevel}
+              onChange={(val) => setSelectedLevel(val)}
+              icon={<Layers size={14} />}
+              options={[
+                { value: "all", label: "Tất cả cấp độ" },
+                { value: "intern", label: "Intern" },
+                { value: "fresher", label: "Fresher" },
+                { value: "junior", label: "Junior" },
+                { value: "mid", label: "Middle" },
+                { value: "senior", label: "Senior" },
+                { value: "lead", label: "Lead / Architect" },
+              ]}
+              aria-label="Chọn cấp độ"
+              width="165px"
+              className="shrink-0"
+            />
 
-          {(search || selectedDomain !== "all" || selectedLevel !== "all") && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearch("");
-                setSelectedDomain("all");
-                setSelectedLevel("all");
-              }}
-              className={`${pageStyles.chipBtn} h-9 shrink-0`}
-              title="Đặt lại bộ lọc"
-            >
-              <RotateCcw size={12} />
-              <span>Đặt lại</span>
-            </button>
-          )}
+            {(search || selectedDomain !== "all" || selectedLevel !== "all") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setSelectedDomain("all");
+                  setSelectedLevel("all");
+                }}
+                className={`${pageStyles.chipBtn} h-9 shrink-0`}
+                title="Đặt lại bộ lọc"
+              >
+                <RotateCcw size={12} />
+                <span>Đặt lại</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
