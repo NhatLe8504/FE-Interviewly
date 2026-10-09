@@ -244,13 +244,13 @@ export function CuratedQuestionSetsView({
         </div>
 
         {/* Search & Filter Controls Row: chung hàng, con mèo absolute ở góc phải không chiếm flow */}
-        <div className="relative flex flex-wrap items-center gap-3.5 pt-3 border-t border-[var(--border-subtle)]">
+        <div className="relative flex items-center gap-3 pt-3 border-t border-[var(--border-subtle)] flex-wrap sm:flex-nowrap">
           {/* Con mèo absolute bên phải, đứng trên đường gạch ngang */}
           <div className="absolute -top-[48px] right-6 sm:right-10 pointer-events-none select-none">
             <PageMascot size={52} />
           </div>
           {/* Thanh tìm kiếm dài hơn nằm bên trái */}
-          <div className="relative flex items-center w-full sm:w-[330px] shrink-0">
+          <div className="relative flex items-center w-full sm:w-[300px] shrink-0">
             <Search size={15} className="absolute left-3 text-[var(--text-secondary)] pointer-events-none" />
             <input
               type="text"
@@ -291,7 +291,7 @@ export function CuratedQuestionSetsView({
               })),
             ]}
             aria-label="Chọn ngành nghề"
-            className="w-[190px]"
+            className="w-[185px] shrink-0"
           />
 
           {/* Cấp độ: icon lồng trong select, không cần title ngoài */}
@@ -310,7 +310,7 @@ export function CuratedQuestionSetsView({
               { value: "lead", label: "Lead / Architect" },
             ]}
             aria-label="Chọn cấp độ"
-            className="w-[150px]"
+            className="w-[145px] shrink-0"
           />
 
           {(search || selectedDomain !== "all" || selectedLevel !== "all") && (
