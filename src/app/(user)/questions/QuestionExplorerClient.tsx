@@ -21,6 +21,8 @@ import {
   Compass,
 } from "lucide-react";
 import { catalogApi } from "@/services/catalogApi";
+import { Button } from "@/components/ui/button";
+import { PageMascot } from "@/components/user-component/common/PageMascot";
 import { useI18n } from "@/context/I18nContext";
 import { interviewApi } from "@/services/interviewApi";
 import type {
@@ -412,12 +414,12 @@ export default function QuestionExplorerClient() {
       {/* Search & Filter Panel */}
       <div className={styles.filterCard}>
         {/* Integrated Compact Tab Switcher */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 mb-4 border-b border-[rgba(106,72,49,0.12)]">
-          <div className="flex items-center gap-1 p-1 rounded-2xl bg-[#f5efe6] border border-[rgba(106,72,49,0.15)] shrink-0 self-start md:self-auto">
+        <div className={styles.tabBar}>
+          <div className={styles.tabGroup}>
             <button
               type="button"
               onClick={() => setActiveTab("sets")}
-              className="px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer text-[#8b4513]/70 hover:text-[#211914] hover:bg-white/40"
+              className={styles.tabBtn}
             >
               <FolderKanban size={13} />
               <span>Bộ Đề Tuyển Dụng ({questionSetsCount})</span>
@@ -425,21 +427,25 @@ export default function QuestionExplorerClient() {
             <button
               type="button"
               onClick={() => setActiveTab("individual")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
-                activeTab === "individual"
-                  ? "bg-gradient-to-r from-[#d98236] to-[#8b4513] text-white shadow-xs"
-                  : "text-[#8b4513]/70 hover:text-[#211914] hover:bg-white/40"
-              }`}
+              className={`${styles.tabBtn} ${activeTab === "individual" ? styles.tabBtnActive : ""}`}
             >
               <HelpCircle size={13} />
               <span>Khám Phá Câu Hỏi Lẻ & Bốc Đề</span>
             </button>
           </div>
 
-          <span className="text-xs text-[#8b4513]/70 font-semibold hidden md:inline">
+          <span className={`${styles.tabHint} hidden md:inline`}>
             Tìm kiếm & thêm câu hỏi vào giỏ đề để tự do ôn luyện
           </span>
         </div>
+
+        {/* Mascot đứng trên thanh tìm kiếm */}
+        <div className={styles.mascotDivider}>
+          <div className={styles.mascotWrapper}>
+            <PageMascot size={48} />
+          </div>
+        </div>
+
         {/* Search Bar */}
         <div className={styles.searchBox}>
           <Search size={18} className={styles.searchIcon} />
@@ -659,13 +665,12 @@ export default function QuestionExplorerClient() {
 
                 {/* Action Buttons */}
                 <div className={styles.cardActions}>
-                  <Link
-                    href={`/questions/${q.question_id}`}
-                    className={styles.btnDetail}
-                  >
-                    <BookOpen size={14} />
-                    <span>{t.questions.viewStarBtn}</span>
-                  </Link>
+                  <Button asChild variant="home-outline" size="home-compact">
+                    <Link href={`/questions/${q.question_id}`}>
+                      <BookOpen size={14} aria-hidden="true" />
+                      <span>{t.questions.viewStarBtn}</span>
+                    </Link>
+                  </Button>
 
                                     {/* Nút Thêm vào giỏ đề (icon +, không chữ) */}
                   <UserTooltip
@@ -700,14 +705,13 @@ export default function QuestionExplorerClient() {
                     </button>
                   </UserTooltip>
 
-                  <Link
-                    href={`/questions/practice?q=${q.question_id}&source=single`}
-                    className={styles.btnPractice}
-                  >
-                    <Sparkles size={14} />
-                    <span>{t.questions.practiceBtn}</span>
-                    <ArrowRight size={13} />
-                  </Link>
+                  <Button asChild variant="home-primary" size="home-compact">
+                    <Link href={`/questions/practice?q=${q.question_id}&source=single`}>
+                      <Sparkles size={14} aria-hidden="true" />
+                      <span>{t.questions.practiceBtn}</span>
+                      <ArrowRight size={13} aria-hidden="true" />
+                    </Link>
+                  </Button>
                 </div>
               </div>
             );
@@ -733,15 +737,15 @@ export default function QuestionExplorerClient() {
           </div>
           <h3 className={styles.emptyTitle}>{t.questions.emptyTitle}</h3>
           <p className={styles.emptyDesc}>{t.questions.emptyDesc}</p>
-          <button
+          <Button
             type="button"
-            className={styles.btnPractice}
+            variant="home-primary"
+            size="home-compact"
             onClick={handleResetFilters}
-            style={{ marginTop: 6 }}
           >
-            <RotateCcw size={14} />
+            <RotateCcw size={14} aria-hidden="true" />
             <span>{t.questions.resetFiltersBtn}</span>
-          </button>
+          </Button>
         </div>
       )}
 
