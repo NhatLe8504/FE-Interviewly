@@ -7,7 +7,7 @@ import type { JobCompany } from "@/types/job";
 import styles from "./jobs.module.css";
 
 export function CompanyLogo({ company, size = 44 }: { company?: JobCompany | null; size?: number }) {
-  const source = company?.branding_reuse_allowed ? getCompanyImageUrl(company.company_logo_url) : null;
+  const source = company?.branding_reuse_allowed ? getCompanyImageUrl(company.company_logo_url || company.logo_url) : null;
   const [failedSource, setFailedSource] = useState<string | null>(null);
   const companyName = company?.company_name || "";
 
