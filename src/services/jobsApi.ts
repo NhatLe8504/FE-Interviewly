@@ -4,6 +4,7 @@ import {
   JobFilterMetadata,
   JobFilterParams,
   JobListResponse,
+  JobReadinessAssessment,
   JobSkillMatch,
   StartPracticeResponse,
 } from "@/types/job";
@@ -38,6 +39,12 @@ export const jobsApi = {
 
   getSkillMatch: async (jobId: string): Promise<JobSkillMatch> => {
     return request<JobSkillMatch>(`/api/v1/jobs/${jobId}/skill-match`);
+  },
+
+  checkJobReadiness: async (jobId: string, force = false): Promise<JobReadinessAssessment> => {
+    return request<JobReadinessAssessment>(`/api/v1/jobs/${jobId}/readiness${force ? "?force=true" : ""}`, {
+      method: "POST",
+    });
   },
 
   startPractice: async (jobId: string): Promise<StartPracticeResponse> => {

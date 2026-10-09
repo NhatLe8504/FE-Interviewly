@@ -51,6 +51,7 @@ import type {
 import { SimpleUserSelect } from "@/components/user-component/common";
 import styles from "./profile.module.css";
 import { MascotPreferencePanel } from "@/components/user-component/profile/MascotPreferencePanel";
+import { UserSkillProfileCard } from "@/components/user-component/profile/UserSkillProfileCard";
 
 // Helper to resize image client-side to ensure lightweight, fast uploads
 function resizeImageToDataUrl(file: File, maxWidth = 400, maxHeight = 400): Promise<string> {
@@ -1055,7 +1056,9 @@ export default function ProfileClient() {
       )}
 
       {activeTab === "career" && (
-        <div className={styles.card}>
+        <>
+          <UserSkillProfileCard />
+          <div className={styles.card}>
           <div className={styles.cardHeader}>
             <h2 className={styles.cardTitle}>
               <Briefcase size={18} />
@@ -1189,6 +1192,7 @@ export default function ProfileClient() {
             </div>
           </form>
         </div>
+        </>
       )}
       {activeTab === "security" && (
         <div className={styles.card}>

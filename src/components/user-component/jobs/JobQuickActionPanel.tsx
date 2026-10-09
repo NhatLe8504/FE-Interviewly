@@ -16,6 +16,8 @@ interface JobQuickActionPanelProps {
 export function JobQuickActionPanel({ job, onStartPractice, isStarting = false }: JobQuickActionPanelProps) {
   return (
     <div className="flex flex-col gap-5">
+      <JobSkillMatchWidget job={job} onStartPractice={onStartPractice} isStarting={isStarting} />
+
       <section className={styles.actionPanel} aria-labelledby="job-practice-title">
         <p className={styles.panelEyebrow}>Chuẩn bị cho cơ hội này</p>
         <h2 id="job-practice-title" className={styles.panelTitle}>Từ yêu cầu công việc đến buổi phỏng vấn.</h2>
@@ -30,7 +32,6 @@ export function JobQuickActionPanel({ job, onStartPractice, isStarting = false }
         </div>
         <p className={styles.panelNote}>Ứng tuyển trực tiếp tại {getSourceLabel(job)}. Interviewly không tiếp nhận hồ sơ ứng tuyển cho vị trí này.</p>
       </section>
-      <JobSkillMatchWidget jobId={job.job_id} />
     </div>
   );
 }

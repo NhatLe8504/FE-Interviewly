@@ -45,3 +45,36 @@ export interface ChangePasswordIn {
 export interface MessageOut {
   message: string;
 }
+
+export interface SkillLevelItem {
+  skill_id: string;
+  name: string;
+  ability_score: number;
+  level: string;
+  confidence: number;
+  evidence_count: number;
+  max_difficulty_passed: number;
+}
+
+export interface UserCareerProfileOut {
+  user_id: number;
+  primary_role_track: string;
+  secondary_role_track: string | null;
+  role_confidence: number;
+  overall_level: string;
+  top_skills: Array<{
+    skill_id: string;
+    name: string;
+    level: string;
+    ability_score: number;
+    confidence: number;
+  }>;
+  weak_skills: Array<{
+    skill_id: string;
+    name: string;
+    level: string;
+    ability_score: number;
+    confidence: number;
+  }>;
+  skills: SkillLevelItem[];
+}

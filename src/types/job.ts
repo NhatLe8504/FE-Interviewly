@@ -73,6 +73,27 @@ export interface JobSkillMatch {
   has_candidate_skills?: boolean;
 }
 
+export interface JobReadinessRequirement {
+  skill_id: string;
+  name: string;
+  importance: "must" | "nice";
+  required_level: string;
+  user_level: string;
+  status: "met" | "partial" | "gap" | "unknown";
+  confidence: number;
+  level_assumed: boolean;
+}
+
+export interface JobReadinessAssessment {
+  job_id: string;
+  match_percent: number;
+  verdict: "ready" | "almost" | "not_ready" | "insufficient_data";
+  data_coverage: number;
+  requirements: JobReadinessRequirement[];
+  explanation: string;
+  recommended_skills: string[];
+}
+
 export interface StartPracticeResponse {
   interview_id: string;
   job_id: string;

@@ -5,6 +5,7 @@ import type {
   ProfileUpdateIn,
   ChangePasswordIn,
   MessageOut,
+  UserCareerProfileOut,
 } from "@/types/profile";
 
 export const profileApi = {
@@ -13,6 +14,13 @@ export const profileApi = {
    */
   async getMyProfile(): Promise<ProfileOut> {
     return store.dispatch(profileApiSlice.endpoints.getMyProfile.initiate()).unwrap();
+  },
+
+  /**
+   * Fetches the detected user skill and career profile from GET /api/v1/profile/skills
+   */
+  async getMySkillProfile(): Promise<UserCareerProfileOut> {
+    return store.dispatch(profileApiSlice.endpoints.getMySkillProfile.initiate()).unwrap();
   },
 
   /**
