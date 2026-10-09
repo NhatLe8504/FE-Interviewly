@@ -6,6 +6,22 @@ const configuredHosts = (process.env.NEXT_PUBLIC_COMPANY_IMAGE_HOSTS || "")
 export const COMPANY_IMAGE_HOSTS = Array.from(new Set([
   "res.cloudinary.com",
   "assets.ubuntu.com",
+  "itviec.com",
+  "www.itviec.com",
+  "recruiting.cdn.greenhouse.io",
+  "s8-recruiting.cdn.greenhouse.io",
+  "job-boards.greenhouse.io",
+  "boards.greenhouse.io",
+  "lever-client-logos.s3.us-west-2.amazonaws.com",
+  "lever-client-logos.s3-us-west-2.amazonaws.com",
+  "images.vietnamworks.com",
+  "images02.vietnamworks.com",
+  "cdn.topcv.vn",
+  "static.topcv.vn",
+  "cdn-new.topcv.vn",
+  "d20fxs96r49620.cloudfront.net",
+  "career.vng.com.vn",
+  "media.licdn.com",
   ...configuredHosts,
 ]));
 
