@@ -10,6 +10,7 @@ import { PracticeHero } from "./components/PracticeHero";
 import { Button } from "@/components/ui/button";
 import { SimpleUserSelect } from "@/components/user-component/common";
 import { UserPagination } from "@/components/user-component/common/Pagination";
+import { Layers, Globe, Lock, User, Users } from "lucide-react";
 import styles from "./practice.module.css";
 
 const PAGE_SIZE = 30;
@@ -47,9 +48,10 @@ const DATE_FORMAT = new Intl.DateTimeFormat("vi-VN", {
 
 type StatusFilter = typeof STATUS_FILTERS[number]["value"];
 type LoadError = { message: string; authenticationRequired: boolean };
+type PracticeScope = "my" | "community";
 
 function normalizeSearch(value: string) {
-  return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").trim();
+  return value.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").trim();
 }
 
 function normalizeLevel(value: string) {
@@ -70,7 +72,7 @@ function getJobThumbnail(role: string) {
   return "/images/practice/engineering.webp";
 }
 
-function JobRow({ job }: { job: JDJobSummary }) {
+function JobRow({ job, isCommunity = false }: { job: JDJobSummary; isCommunity?: boolean }) {
   const isReady = job.status === "COMPLETED";
   const isFailed = job.status === "FAILED";
   const jobId = encodeURIComponent(job.job_id);
@@ -95,7 +97,22 @@ function JobRow({ job }: { job: JDJobSummary }) {
           />
         </div>
         <div className={styles.jobContent}>
-          <p className={styles.jobCompany}>{job.company_name || "Phỏng vấn theo JD"}</p>
+          <div className={styles.companyRow}>
+            <p className={styles.jobCompany}>{job.company_name || "Phỏng vấn theo JD"}</p>
+            {isCommunity ? (
+              <span className={styles.publicBadge} title="Bộ đề được chia sẻ từ cộng đồng">
+                <Globe size={11} /> Cộng đồng
+              </span>
+            ) : job.is_public ? (
+              <span className={styles.publicBadge} title="Bộ đề đang công khai">
+                <Globe size={11} /> Công khai
+              </span>
+            ) : (
+              <span className={styles.privateBadge} title="Bộ đề riêng tư">
+                <Lock size={11} /> Riêng tư
+              </span>
+            )}
+          </div>
           <h3 className={styles.jobTitle}>{job.role || "Buổi phỏng vấn theo mô tả công việc"}</h3>
           <div className={styles.jobMeta}>
             {level && <span>{level}</span>}
@@ -108,8 +125,8 @@ function JobRow({ job }: { job: JDJobSummary }) {
           <p className={`${styles.jobStatus} ${isReady ? styles.statusReady : isFailed ? styles.statusFailed : ""}`}>
             {JOB_STATUSES[job.status]}{progress}
           </p>
-          {dateLabel && <time dateTime={job.created_at ?? undefined} className={styles.jobDate}>Tạo ngày {dateLabel}</time>}
-          <span className={styles.jobAction}>{isReady ? "Thiết lập buổi luyện" : isFailed ? "Xem chi tiết lỗi" : "Xem tiến độ"}</span>
+          {dateLabel && <time dateTime={job.created_at ?? undefined} className={styles.jobDate}>{dateLabel}</time>}
+          <span className={styles.jobAction}>{isReady ? "Bắt đầu luyện tập →" : "Tiếp tục chuẩn bị →"}</span>
         </div>
       </Link>
     </li>
@@ -132,7 +149,12 @@ function LoadingJobs() {
   );
 }
 
-function PracticeJobs() {
+interface PracticeJobsProps {
+  scope: PracticeScope;
+  isLoggedIn: boolean;
+}
+
+function PracticeJobs({ scope, isLoggedIn }: PracticeJobsProps) {
   const [jobs, setJobs] = useState<JDJobSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<LoadError | null>(null);
@@ -146,7 +168,14 @@ function PracticeJobs() {
 
   useEffect(() => {
     let mounted = true;
-    jdInterviewApi.getMyJobs(PAGE_SIZE, pageIndex * PAGE_SIZE)
+    setIsLoading(true);
+    setLoadError(null);
+
+    const fetchPromise = scope === "community"
+      ? jdInterviewApi.getCommunityJobs(PAGE_SIZE, pageIndex * PAGE_SIZE)
+      : jdInterviewApi.getMyJobs(PAGE_SIZE, pageIndex * PAGE_SIZE);
+
+    fetchPromise
       .then((result) => {
         if (!mounted) return;
         setJobs((previous) => pageIndex === 0
@@ -166,20 +195,23 @@ function PracticeJobs() {
       })
       .finally(() => { if (mounted) setIsLoading(false); });
     return () => { mounted = false; };
-  }, [pageIndex, reloadKey]);
+  }, [scope, pageIndex, reloadKey]);
 
   const filteredJobs = useMemo(() => {
     const search = normalizeSearch(query);
     return jobs.filter((job) => {
-      if (statusFilter === "ready" && job.status !== "COMPLETED") return false;
-      if (statusFilter === "failed" && job.status !== "FAILED") return false;
-      if (statusFilter === "processing" && ["COMPLETED", "FAILED"].includes(job.status)) return false;
+      if (scope === "my") {
+        if (statusFilter === "ready" && job.status !== "COMPLETED") return false;
+        if (statusFilter === "failed" && job.status !== "FAILED") return false;
+        if (statusFilter === "processing" && ["COMPLETED", "FAILED"].includes(job.status)) return false;
+      }
       if (levelFilter !== "all" && normalizeLevel(job.seniority) !== levelFilter) return false;
       const searchable = [job.role, job.company_name, job.seniority, ...(job.focus_areas || [])].join(" ");
       return !search || normalizeSearch(searchable).includes(search);
     });
-  }, [jobs, query, statusFilter, levelFilter]);
-  const hasFilters = Boolean(query.trim()) || statusFilter !== "all" || levelFilter !== "all";
+  }, [jobs, query, statusFilter, levelFilter, scope]);
+
+  const hasFilters = Boolean(query.trim()) || (scope === "my" && statusFilter !== "all") || levelFilter !== "all";
   const totalPages = Math.max(1, Math.ceil(filteredJobs.length / INTERVIEWS_PER_PAGE));
   const visiblePage = Math.min(currentPage, totalPages);
   const firstJobIndex = (visiblePage - 1) * INTERVIEWS_PER_PAGE;
@@ -212,20 +244,39 @@ function PracticeJobs() {
     setPageIndex((previous) => previous + 1);
   }
 
+  if (scope === "my" && !isLoggedIn) {
+    return (
+      <div className={styles.emptyState}>
+        <p className={styles.emptyEyebrow}>KHÔNG GIAN LUYỆN TẬP CỦA BẠN</p>
+        <h3>Đăng nhập để xem buổi luyện cá nhân.</h3>
+        <p>Xem lại các buổi bạn đã tạo hoặc chuyển sang tab Bộ đề cộng đồng để luyện tập ngay các đề mở.</p>
+        <Button asChild variant="home-outline"><Link href="/login">Đăng nhập</Link></Button>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.workspace} aria-busy={isLoading}>
       <div className={styles.toolbar}>
         <div className={styles.searchField}>
-          <label htmlFor="practice-search" className="portal-field-label">Tìm buổi luyện</label>
-          <input id="practice-search" className="portal-input" type="search" value={query} onChange={(event) => { setQuery(event.target.value); setCurrentPage(1); }} placeholder="Vị trí, công ty hoặc kỹ năng" autoComplete="off" />
+          <input
+            id="practice-search"
+            className="portal-input"
+            type="search"
+            value={query}
+            onChange={(event) => { setQuery(event.target.value); setCurrentPage(1); }}
+            placeholder="Vị trí, công ty hoặc kỹ năng…"
+            aria-label="Tìm kiếm theo vị trí, công ty hoặc kỹ năng"
+            autoComplete="off"
+          />
         </div>
         <div className={styles.levelField}>
-          <label htmlFor="practice-level" className="portal-field-label">Cấp độ</label>
           <SimpleUserSelect
             id="practice-level"
             value={levelFilter}
             onChange={(value) => { setLevelFilter(value); setCurrentPage(1); }}
             options={LEVELS}
+            icon={<Layers size={14} className="text-[#8b4513]" />}
             aria-label="Cấp độ"
           />
         </div>
@@ -234,14 +285,16 @@ function PracticeJobs() {
         </Button>
       </div>
 
-      <div className={styles.filterBar}>
-        <div className={styles.statusFilters} role="group" aria-label="Lọc theo trạng thái">
-          {STATUS_FILTERS.map((filter) => (
-            <Button key={filter.value} type="button" variant="home-tab" aria-pressed={statusFilter === filter.value} onClick={() => { setStatusFilter(filter.value); setCurrentPage(1); }}>{filter.label}</Button>
-          ))}
+      {scope === "my" && (
+        <div className={styles.filterBar}>
+          <div className={styles.statusFilters} role="group" aria-label="Lọc theo trạng thái">
+            {STATUS_FILTERS.map((filter) => (
+              <Button key={filter.value} type="button" variant="home-tab" aria-pressed={statusFilter === filter.value} onClick={() => { setStatusFilter(filter.value); setCurrentPage(1); }}>{filter.label}</Button>
+            ))}
+          </div>
+          {hasFilters && <Button type="button" variant="home-quiet" size="home-compact" onClick={resetFilters}>Bỏ bộ lọc</Button>}
         </div>
-        {hasFilters && <Button type="button" variant="home-quiet" size="home-compact" onClick={resetFilters}>Bỏ bộ lọc</Button>}
-      </div>
+      )}
 
       {loadError && (
         <div className={styles.errorState} role="alert">
@@ -256,19 +309,42 @@ function PracticeJobs() {
         <>
           {jobs.length > 0 && (
             <p className={styles.resultCount} role="status">
-              {hasFilters ? `${filteredJobs.length} trên ${jobs.length} buổi đã tải` : `${jobs.length} buổi đã tải`}<span>Mới nhất trước</span>
+              {hasFilters ? `${filteredJobs.length} trên ${jobs.length} buổi đã tải` : `${jobs.length} buổi đã tải`}
+              <span>{scope === "community" ? "Đề chuẩn hóa cộng đồng" : "Mới nhất trước"}</span>
             </p>
           )}
           {filteredJobs.length > 0 ? (
-            <ul id="practice-job-list" className={styles.jobList}>{pageJobs.map((job) => <JobRow key={job.job_id} job={job} />)}</ul>
+            <ul id="practice-job-list" className={styles.jobList}>
+              {pageJobs.map((job) => <JobRow key={job.job_id} job={job} isCommunity={scope === "community"} />)}
+            </ul>
           ) : !loadError && (
             <div className={styles.emptyState}>
-              <p className={styles.emptyEyebrow}>{jobs.length > 0 ? "CHƯA CÓ KẾT QUẢ PHÙ HỢP" : "BẮT ĐẦU TỪ CÔNG VIỆC BẠN MUỐN"}</p>
-              <h3>{jobs.length > 0 ? "Thử tìm theo một cách khác." : "Buổi luyện đầu tiên đang chờ bạn."}</h3>
-              <p>{jobs.length > 0 ? "Đổi từ khóa hoặc bỏ bộ lọc để xem lại các buổi đã tải." : "Thêm mô tả công việc để tạo câu hỏi theo vị trí bạn đang ứng tuyển. Các buổi đã tạo sẽ xuất hiện tại đây."}</p>
-              {jobs.length > 0
-                ? <Button type="button" variant="home-outline" onClick={resetFilters}>Xem tất cả buổi đã tải</Button>
-                : <Button asChild variant="home-primary"><Link href="/practice/new">Tạo buổi luyện đầu tiên</Link></Button>}
+              <p className={styles.emptyEyebrow}>
+                {jobs.length > 0
+                  ? "CHƯA CÓ KẾT QUẢ PHÙ HỢP"
+                  : scope === "community"
+                  ? "BỘ ĐỀ CỘNG ĐỒNG"
+                  : "BẮT ĐẦU TỪ CÔNG VIỆC BẠN MUỐN"}
+              </p>
+              <h3>
+                {jobs.length > 0
+                  ? "Thử tìm theo một cách khác."
+                  : scope === "community"
+                  ? "Chưa có bộ đề nào được chia sẻ."
+                  : "Buổi luyện đầu tiên đang chờ bạn."}
+              </h3>
+              <p>
+                {jobs.length > 0
+                  ? "Đổi từ khóa hoặc bộ lọc để xem lại các bộ đề đã tải."
+                  : scope === "community"
+                  ? "Hãy là người đầu tiên tạo buổi luyện theo JD và bật chế độ chia sẻ công khai!"
+                  : "Thêm mô tả công việc để tạo câu hỏi theo vị trí bạn đang ứng tuyển. Các buổi đã tạo sẽ xuất hiện tại đây."}
+              </p>
+              {jobs.length > 0 ? (
+                <Button type="button" variant="home-outline" onClick={resetFilters}>Xem tất cả bộ đề</Button>
+              ) : (
+                <Button asChild variant="home-primary"><Link href="/practice/new">Tạo buổi luyện từ JD</Link></Button>
+              )}
             </div>
           )}
           {filteredJobs.length > 0 && (
@@ -286,7 +362,7 @@ function PracticeJobs() {
           )}
           {hasMore && (
             <div className={styles.loadMore}>
-              <Button type="button" variant="home-outline" onClick={loadMore} disabled={isLoading || Boolean(loadError)}>{isLoading ? "Đang tải thêm…" : "Tải thêm buổi luyện"}</Button>
+              <Button type="button" variant="home-outline" onClick={loadMore} disabled={isLoading || Boolean(loadError)}>{isLoading ? "Đang tải thêm…" : "Tải thêm bộ đề"}</Button>
               <p>Tìm kiếm và bộ lọc áp dụng cho các buổi đã tải.</p>
             </div>
           )}
@@ -298,22 +374,63 @@ function PracticeJobs() {
 
 export default function PracticeOverviewPage() {
   const { user, isLoading } = useAuth();
+  const [scope, setScope] = useState<PracticeScope>("my");
+
+  // Nếu chưa login khi load xong thì mặc định sang tab cộng đồng để người dùng có thể xem được nội dung
+  useEffect(() => {
+    if (!isLoading && !user) {
+      setScope("community");
+    }
+  }, [isLoading, user]);
 
   return (
     <div className={styles.pageShell}>
       <PracticeHero />
       <section id="practice-sessions" className={styles.sessions} aria-labelledby="sessions-title">
         <div className={styles.sectionHeader}>
-          <div><p className={styles.sectionEyebrow}>TIẾP TỤC TỪ ĐÂY</p><h2 id="sessions-title">Buổi luyện đã tạo</h2></div>
-          <p>Chọn một buổi để thiết lập và bắt đầu.<br />Giọng nói hay văn bản, bạn quyết định.</p>
-        </div>
-        {isLoading ? <LoadingJobs /> : user ? <PracticeJobs key={user.user_id} /> : (
-          <div className={styles.emptyState}>
-            <p className={styles.emptyEyebrow}>KHÔNG GIAN LUYỆN TẬP CỦA BẠN</p>
-            <h3>Đăng nhập để tiếp tục.</h3>
-            <p>Xem lại các buổi đã tạo và chuẩn bị cho lần phỏng vấn tiếp theo.</p>
-            <Button asChild variant="home-outline"><Link href="/login">Đăng nhập</Link></Button>
+          <div>
+            <p className={styles.sectionEyebrow}>
+              {scope === "my" ? "TIẾP TỤC TỪ ĐÂY" : "KHÁM PHÁ CỘNG ĐỒNG"}
+            </p>
+            <h2 id="sessions-title">
+              {scope === "my" ? "Buổi luyện đã tạo" : "Bộ đề từ cộng đồng"}
+            </h2>
           </div>
+          <p>
+            {scope === "my"
+              ? <>Chọn một buổi để thiết lập và bắt đầu.<br />Giọng nói hay văn bản, bạn quyết định.</>
+              : <>Luyện tập với các bộ câu hỏi thực tế được tạo từ JD do cộng đồng chia sẻ.<br />Đầy đủ tiêu chí đánh giá và thời lượng chuẩn hóa.</>}
+          </p>
+        </div>
+
+        {/* Tab switch giữa Buổi luyện của tôi và Bộ đề cộng đồng */}
+        <div className={styles.scopeTabs} role="tablist" aria-label="Phạm vi hiển thị bộ đề">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={scope === "my"}
+            className={`${styles.scopeTab} ${scope === "my" ? styles.scopeTabActive : ""}`}
+            onClick={() => setScope("my")}
+          >
+            <User size={14} />
+            <span>Buổi luyện của tôi</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={scope === "community"}
+            className={`${styles.scopeTab} ${scope === "community" ? styles.scopeTabActive : ""}`}
+            onClick={() => setScope("community")}
+          >
+            <Users size={14} />
+            <span>Bộ đề từ cộng đồng</span>
+          </button>
+        </div>
+
+        {isLoading ? (
+          <LoadingJobs />
+        ) : (
+          <PracticeJobs scope={scope} isLoggedIn={Boolean(user)} />
         )}
       </section>
     </div>
