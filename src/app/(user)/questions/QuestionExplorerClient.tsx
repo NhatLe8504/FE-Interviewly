@@ -417,11 +417,7 @@ export default function QuestionExplorerClient() {
             <button
               type="button"
               onClick={() => setActiveTab("sets")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
-                activeTab === "sets"
-                  ? "bg-gradient-to-r from-[#d98236] to-[#8b4513] text-white shadow-xs"
-                  : "text-[#8b4513]/70 hover:text-[#211914] hover:bg-white/40"
-              }`}
+              className="px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer text-[#8b4513]/70 hover:text-[#211914] hover:bg-white/40"
             >
               <FolderKanban size={13} />
               <span>Bộ Đề Tuyển Dụng ({questionSetsCount})</span>
