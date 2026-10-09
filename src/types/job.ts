@@ -92,6 +92,7 @@ export interface JobReadinessAssessment {
   requirements: JobReadinessRequirement[];
   explanation: string;
   recommended_skills: string[];
+  analysis_engine?: "jev" | "heuristic";
 }
 
 export interface StartPracticeResponse {

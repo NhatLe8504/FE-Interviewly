@@ -91,7 +91,7 @@ export function JobSkillMatchWidget({ job, onStartPractice, isStarting = false }
       ) : isLoading ? (
         <div className="flex flex-col items-center justify-center gap-3 py-8 text-center">
           <Loader2 className="size-6 animate-spin text-[var(--accent-deep)]" aria-hidden="true" />
-          <p className="text-xs text-[var(--text-secondary)]">AI đang phân tích JD và đối chiếu hồ sơ năng lực của bạn…</p>
+          <p className="text-xs text-[var(--text-secondary)]">Đang phân tích JD và đối chiếu hồ sơ năng lực của bạn…</p>
         </div>
       ) : assessment ? (
         <>
@@ -126,6 +126,18 @@ export function JobSkillMatchWidget({ job, onStartPractice, isStarting = false }
 
           <p className={styles.readinessExplanation}>{assessment.explanation}</p>
 
+          <div className={styles.engineRow}>
+            <span
+              className={`${styles.engineDot} ${assessment.analysis_engine === "jev" ? styles.engineDotJev : ""}`}
+              aria-hidden="true"
+            />
+            <span>
+              {assessment.analysis_engine === "jev"
+                ? "Phân tích bởi TypeSafe Jev System One"
+                : "Phân tích bằng thuật toán nội bộ của Interviewly"}
+            </span>
+          </div>
+
           {assessment.requirements.length > 0 && (
             <div className="flex flex-col gap-2 pt-1">
               <span className="text-xs font-medium text-[var(--text-secondary)]">Đối chiếu từng kỹ năng theo JD:</span>
@@ -142,6 +154,24 @@ export function JobSkillMatchWidget({ job, onStartPractice, isStarting = false }
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {assessment.recommended_skills.length > 0 && (
+            <div className="flex flex-col gap-2 pt-1">
+              <span className="text-xs font-medium text-[var(--text-secondary)]">Ưu tiên luyện tập:</span>
+              <div className={styles.recommendedSkills}>
+                {assessment.recommended_skills.map((skillId) => {
+                  const displayName =
+                    assessment.requirements.find((req) => req.skill_id === skillId)?.name ?? skillId;
+                  return (
+                    <span key={skillId} className={styles.recommendedSkill}>
+                      <BrandIcon name={skillId} size={14} />
+                      {getBrandLabel(displayName)}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -175,14 +205,14 @@ export function JobSkillMatchWidget({ job, onStartPractice, isStarting = false }
               className="text-xs text-[var(--text-secondary)] self-center"
             >
               {isLoading ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
-              Đánh giá lại bằng AI
+              Đánh giá lại
             </Button>
           </div>
         </>
       ) : (
         <div className="flex flex-col gap-3 py-3 text-center">
           <p className={styles.panelCopy}>
-            Bấm nút bên dưới để AI (TypeSafe Jev System One) phân tích JD và đối chiếu hồ sơ năng lực thực tế của bạn.
+            Bấm nút bên dưới để hệ thống phân tích JD và đối chiếu với hồ sơ năng lực đã kiểm chứng của bạn.
           </p>
           <Button
             type="button"
