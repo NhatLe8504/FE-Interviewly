@@ -13,6 +13,7 @@ export interface InterviewTurnItem {
   speaker: "ai" | "user";
   text: string;
   durationSeconds?: number;
+  audioUrl?: string | null;
 }
 
 export interface SessionMetadata {

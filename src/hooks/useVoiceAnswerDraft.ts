@@ -26,7 +26,7 @@ interface VoiceDraftOptions {
   enabled: boolean;
   canRecord: boolean;
   language: string;
-  onSubmit: (text: string, durationSeconds: number) => boolean;
+  onSubmit: (text: string, durationSeconds: number, audioBlob?: Blob | null) => boolean;
 }
 
 const AUTO_SEND_SILENCE_MS = 3000;
@@ -54,6 +54,7 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
   const contextRef = useRef<AudioContext | null>(null);
   const frameRef = useRef<number | null>(null);
   const audioUrlRef = useRef<string | null>(null);
+  const audioBlobRef = useRef<Blob | null>(null);
   const captureIdRef = useRef(0);
   const stopRef = useRef<(automatic?: boolean) => Promise<void>>(async () => {});
   const recognitionEndedRef = useRef<(() => void) | null>(null);
@@ -76,6 +77,7 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
   const clearAudioUrl = useCallback(() => {
     if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
     audioUrlRef.current = null;
+    audioBlobRef.current = null;
     setAudioUrl(null);
   }, []);
 
@@ -99,7 +101,7 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
       setError("Chưa nhận diện được lời nói. Bạn có thể nhập lại nội dung hoặc thu âm lại.");
       return;
     }
-    if (!optionsRef.current.canRecord || !optionsRef.current.onSubmit(answer, durationSeconds)) {
+    if (!optionsRef.current.canRecord || !optionsRef.current.onSubmit(answer, durationSeconds, audioBlobRef.current)) {
       setError("Chưa thể gửi lúc này. Bản thu vẫn được giữ lại; hãy đợi AI sẵn sàng hoặc kết nối lại.");
       return;
     }
@@ -235,6 +237,7 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
         releaseAudio();
         clearAudioUrl();
         if (blob.size > 0) {
+          audioBlobRef.current = blob;
           audioUrlRef.current = URL.createObjectURL(blob);
           setAudioUrl(audioUrlRef.current);
         }
@@ -245,7 +248,7 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
         setInterimTranscript("");
         updateState("review");
         if (automatic && autoSubmitRef.current && optionsRef.current.enabled && optionsRef.current.canRecord && answer) {
-          if (optionsRef.current.onSubmit(answer, duration)) discard();
+          if (optionsRef.current.onSubmit(answer, duration, blob)) discard();
           else setError("Không gửi được câu trả lời. Bản thu được giữ lại để bạn gửi lại.");
         } else if (!answer) {
           setError("Chưa nhận diện được lời nói. Nghe lại bản thu rồi nhập nội dung, hoặc thu âm lại.");
@@ -326,7 +329,7 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
   }, [releaseAudio]);
 
   return {
-    state, transcript, interimTranscript, audioUrl, durationSeconds, volume, error, sttSupported,
+    state, transcript, interimTranscript, audioUrl, durationSeconds, volume, error, sttSupported, audioBlob: audioBlobRef.current,
     autoSubmit, silenceRemaining, startRecording, stopRecording: () => stopRef.current(), discard, submit,
     editTranscript: (text: string) => { transcriptRef.current = text; setTranscript(text); },
     toggleAutoSubmit: () => {
