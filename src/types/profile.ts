@@ -78,3 +78,15 @@ export interface UserCareerProfileOut {
   }>;
   skills: SkillLevelItem[];
 }
+export interface SkillEvidenceItem {
+  id: number;
+  skill_id: string;
+  source_type: string;
+  source_id: string;
+  score: number;
+  question_difficulty: number;
+  grader_confidence: number;
+  evidence_quote?: string | null;
+  input_mode: string;
+  created_at: string;
+}

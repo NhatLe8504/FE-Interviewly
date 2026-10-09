@@ -5,6 +5,7 @@ import type {
   ChangePasswordIn,
   MessageOut,
   UserCareerProfileOut,
+  SkillEvidenceItem,
 } from "@/types/profile";
 
 export const profileApiSlice = baseApi.injectEndpoints({
@@ -17,6 +18,10 @@ export const profileApiSlice = baseApi.injectEndpoints({
     getMySkillProfile: builder.query<UserCareerProfileOut, void>({
       query: () => "/api/v1/profile/skills",
       providesTags: ["Profile"],
+    }),
+
+    getMySkillEvidence: builder.query<SkillEvidenceItem[], string>({
+      query: (skillId) => `/api/v1/profile/skills/${encodeURIComponent(skillId)}/evidence`,
     }),
 
     updateProfile: builder.mutation<ProfileOut, ProfileUpdateIn>({
@@ -44,6 +49,8 @@ export const {
   useLazyGetMyProfileQuery,
   useGetMySkillProfileQuery,
   useLazyGetMySkillProfileQuery,
+  useGetMySkillEvidenceQuery,
+  useLazyGetMySkillEvidenceQuery,
   useUpdateProfileMutation,
   useChangePasswordMutation,
 } = profileApiSlice;
