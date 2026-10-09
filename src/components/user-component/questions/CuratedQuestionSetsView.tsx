@@ -267,32 +267,33 @@ export function CuratedQuestionSetsView({
           </div>
         </div>
 
-        {/* Search Input */}
-        <div className={pageStyles.searchBox}>
-          <Search size={16} className={pageStyles.searchIcon} />
-          <input
-            type="text"
-            placeholder="Tìm kiếm bộ đề theo công nghệ (Java, React, K8s, Python), vị trí hoặc ngành nghề..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className={pageStyles.searchInput}
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              className={pageStyles.clearSearchBtn}
-              aria-label="Xóa tìm kiếm"
-            >
-              <X size={15} />
-            </button>
-          )}
-        </div>
+        {/* Search & Filter Controls Row: Ngắn hơn, chung hàng */}
+        <div className="flex flex-wrap items-center gap-3.5 pt-3.5 border-t border-[var(--border-subtle)]">
+          {/* Thanh tìm kiếm ngắn hơn nằm bên trái */}
+          <div className="relative flex items-center w-full sm:w-[270px] shrink-0">
+            <Search size={15} className="absolute left-3 text-[var(--text-secondary)] pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Tìm theo công nghệ, từ khóa..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-9 pl-9 pr-8 text-[13px] rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-paper)] text-[var(--ink)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent-deep)] focus:bg-[var(--surface-card)] transition-colors"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-2.5 p-1 text-[var(--text-secondary)] hover:text-[var(--ink)] transition-colors"
+                aria-label="Xóa tìm kiếm"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
 
-        {/* Filter Controls Row */}
-        <div className="flex flex-wrap items-center gap-4 pt-3.5 border-t border-[var(--border-subtle)]">
-          <div className="flex items-center gap-2">
-            <span className={pageStyles.filterLabel}>
+          {/* Ngành nghề: không xuống dòng */}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`${pageStyles.filterLabel} whitespace-nowrap shrink-0`}>
               <Briefcase size={13} aria-hidden="true" />
               <span>Ngành nghề:</span>
             </span>
@@ -318,8 +319,9 @@ export function CuratedQuestionSetsView({
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className={pageStyles.filterLabel}>
+          {/* Cấp độ: không xuống dòng */}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`${pageStyles.filterLabel} whitespace-nowrap shrink-0`}>
               <Layers size={13} aria-hidden="true" />
               <span>Cấp độ:</span>
             </span>
@@ -340,10 +342,6 @@ export function CuratedQuestionSetsView({
               className="min-w-[130px]"
             />
           </div>
-
-          <span className={`ml-auto ${pageStyles.tabHint}`}>
-            Tìm thấy <strong>{filteredSets.length}</strong> bộ đề chuẩn hóa
-          </span>
         </div>
       </div>
 
