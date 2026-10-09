@@ -3,7 +3,6 @@ import type {
   QuestionDetailOut,
   QuestionOut,
   QuestionPageOut,
-  QuestionSetOut,
   QuestionSetDetailOut,
   QuestionSetPageOut,
   DomainOut,

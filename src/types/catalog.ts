@@ -221,14 +221,14 @@ export interface QuestionFilterParams {
 // QUESTION SET (BỘ CÂU HỎI PHỎNG VẤN)
 // ==========================================
 
-export interface QuestionSetItem {
+export interface QuestionSetOut {
   set_id: number;
   title: string;
   description: string;
   domain_id: number;
-  domain_name: string;
-  role_id: number;
-  role_name: string;
+  domain_name: string | null;
+  role_id: number | null;
+  role_name: string | null;
   experience_level: string;
   tech_stack: string[];
   language: string;
@@ -236,19 +236,26 @@ export interface QuestionSetItem {
   estimated_duration_minutes: number;
   is_curated: boolean;
   is_active: boolean;
-  moderation_status: QuestionModerationStatus | "draft";
-  source: QuestionSource | "imported_doc" | "imported_url";
-  source_metadata?: {
-    url?: string | null;
-    doc_name?: string | null;
-    extracted_keywords?: string[];
-  };
-  questions: QuestionDetailOut[];
   question_count: number;
   practice_count: number;
   avg_score: number;
   pass_rate: number;
   created_at?: string | null;
+}
+
+export interface QuestionSetDetailOut extends QuestionSetOut {
+  questions: QuestionDetailOut[];
+}
+
+export interface QuestionSetItem extends QuestionSetOut {
+  moderation_status?: QuestionModerationStatus | "draft";
+  source?: QuestionSource | "imported_doc" | "imported_url";
+  source_metadata?: {
+    url?: string | null;
+    doc_name?: string | null;
+    extracted_keywords?: string[];
+  };
+  questions?: QuestionDetailOut[];
   updated_at?: string | null;
 }
 

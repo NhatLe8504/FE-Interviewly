@@ -98,7 +98,7 @@ export function CuratedQuestionSetsView({
     try {
       const detailed = await catalogApi.getQuestionSetDetail(s.set_id);
       if (detailed && detailed.set_id) {
-        setDetailSet(detailed as any);
+        setDetailSet(detailed);
       }
     } catch (err) {
       console.warn("Failed to load real set detail:", err);
@@ -161,8 +161,8 @@ export function CuratedQuestionSetsView({
       if (search.trim()) {
         const kw = search.trim().toLowerCase();
         const matchTitle = s.title.toLowerCase().includes(kw);
-        const matchDomain = s.domain_name.toLowerCase().includes(kw);
-        const matchRole = s.role_name.toLowerCase().includes(kw);
+        const matchDomain = s.domain_name?.toLowerCase().includes(kw) ?? false;
+        const matchRole = s.role_name?.toLowerCase().includes(kw) ?? false;
         const matchTech = s.tech_stack.some((t) => t.toLowerCase().includes(kw));
         if (!matchTitle && !matchDomain && !matchRole && !matchTech) {
           return false;
@@ -348,7 +348,7 @@ export function CuratedQuestionSetsView({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {filteredSets.map((s) => {
-            const theme = getDomainTheme(s.domain_id, s.domain_name);
+            const theme = getDomainTheme(s.domain_id, s.domain_name ?? undefined);
 
             return (
               <div
@@ -370,7 +370,7 @@ export function CuratedQuestionSetsView({
                   <div className="absolute inset-0 bg-gradient-to-t from-[#211914] via-[#211914]/40 to-black/20 flex flex-col justify-between p-3.5">
                     <div className="flex items-center justify-between">
                       <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-extrabold uppercase tracking-wider bg-white/95 text-[#211914] shadow-xs backdrop-blur-xs">
-                        {s.domain_name.split("(")[0].trim()}
+                        {s.domain_name?.split("(")[0].trim()}
                       </span>
 
                       {s.is_curated && (
@@ -434,7 +434,7 @@ export function CuratedQuestionSetsView({
                     <span className="text-[10px] font-bold text-[#8b4513] uppercase tracking-wider block">
                       Câu hỏi tiêu biểu trong bộ đề:
                     </span>
-                    {s.questions.slice(0, 2).map((q, idx) => (
+                    {s.questions?.slice(0, 2).map((q, idx) => (
                       <p key={idx} className="text-xs text-[#211914] truncate flex items-center gap-1.5">
                         <span className="size-1.5 rounded-full bg-[#d98236] shrink-0" />
                         <span>{q.question_text}</span>
@@ -531,7 +531,7 @@ export function CuratedQuestionSetsView({
                     {detailSet.experience_level}
                   </span>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">
-                    {detailSet.questions.length} câu hỏi chuẩn hóa
+                    {detailSet.questions?.length ?? detailSet.question_count} câu hỏi chuẩn hóa
                   </span>
                 </div>
                 <h2 className="font-extrabold text-base text-[#211914] leading-snug">
@@ -563,7 +563,7 @@ export function CuratedQuestionSetsView({
                 }`}
               >
                 <BookOpen size={13} />
-                <span>Câu hỏi ({detailSet.questions.length})</span>
+                <span>Câu hỏi ({detailSet.questions?.length ?? detailSet.question_count})</span>
               </button>
 
               <button
@@ -614,10 +614,10 @@ export function CuratedQuestionSetsView({
 
               <div className="pt-2 border-t border-[rgba(106,72,49,0.1)] space-y-3">
                 <span className="font-bold text-[#211914] text-xs block">
-                  Danh sách {detailSet.questions.length} câu hỏi trong đề:
+                  Danh sách {detailSet.questions?.length ?? detailSet.question_count} câu hỏi trong đề:
                 </span>
 
-                {detailSet.questions.map((q, idx) => (
+                {(detailSet.questions ?? []).map((q, idx) => (
                   <div
                     key={idx}
                     className="p-3.5 rounded-2xl bg-white border border-[rgba(106,72,49,0.14)] space-y-2 shadow-xs"
