@@ -138,7 +138,7 @@ export function QuestionSetDataTable({
           ...detail,
           questions: detail.questions || [],
           tech_stack: detail.tech_stack || [],
-        } as any);
+        });
       }
     } catch (e) {
       console.warn("Failed to load question set detail:", e);
@@ -197,8 +197,8 @@ export function QuestionSetDataTable({
       if (search.trim()) {
         const kw = search.trim().toLowerCase();
         const matchesTitle = s.title.toLowerCase().includes(kw);
-        const matchesDomain = s.domain_name.toLowerCase().includes(kw);
-        const matchesRole = s.role_name.toLowerCase().includes(kw);
+        const matchesDomain = s.domain_name?.toLowerCase().includes(kw) ?? false;
+        const matchesRole = s.role_name?.toLowerCase().includes(kw) ?? false;
         const matchesTech = s.tech_stack.some((t) => t.toLowerCase().includes(kw));
         if (!matchesTitle && !matchesDomain && !matchesRole && !matchesTech) {
           return false;

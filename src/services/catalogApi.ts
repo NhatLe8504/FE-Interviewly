@@ -13,7 +13,6 @@ import type {
   QuestionPageOut,
   QuestionFilterParams,
   RubricCriterion,
-  QuestionSetOut,
   QuestionSetPageOut,
   QuestionSetDetailOut,
   QuestionSetReviewItem,
