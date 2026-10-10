@@ -384,55 +384,57 @@ export default function PracticeOverviewPage() {
   }, [isLoading, user]);
 
   return (
-    <div className={styles.pageShell}>
-      <PracticeHero />
-      <section id="practice-sessions" className={styles.sessions} aria-labelledby="sessions-title">
-        <div className={styles.sectionHeader}>
-          <div>
-            <p className={styles.sectionEyebrow}>
-              {scope === "my" ? "TIẾP TỤC TỪ ĐÂY" : "KHÁM PHÁ CỘNG ĐỒNG"}
+    <main className={styles.pageWrapper}>
+      <div className={styles.pageShell}>
+        <PracticeHero />
+        <section id="practice-sessions" className={styles.sessions} aria-labelledby="sessions-title">
+          <div className={styles.sectionHeader}>
+            <div>
+              <p className={styles.sectionEyebrow}>
+                {scope === "my" ? "TIẾP TỤC TỪ ĐÂY" : "KHÁM PHÁ CỘNG ĐỒNG"}
+              </p>
+              <h2 id="sessions-title">
+                {scope === "my" ? "Buổi luyện đã tạo" : "Bộ đề từ cộng đồng"}
+              </h2>
+            </div>
+            <p>
+              {scope === "my"
+                ? <>Chọn một buổi để thiết lập và bắt đầu.<br />Giọng nói hay văn bản, bạn quyết định.</>
+                : <>Luyện tập với các bộ câu hỏi thực tế được tạo từ JD do cộng đồng chia sẻ.<br />Đầy đủ tiêu chí đánh giá và thời lượng chuẩn hóa.</>}
             </p>
-            <h2 id="sessions-title">
-              {scope === "my" ? "Buổi luyện đã tạo" : "Bộ đề từ cộng đồng"}
-            </h2>
           </div>
-          <p>
-            {scope === "my"
-              ? <>Chọn một buổi để thiết lập và bắt đầu.<br />Giọng nói hay văn bản, bạn quyết định.</>
-              : <>Luyện tập với các bộ câu hỏi thực tế được tạo từ JD do cộng đồng chia sẻ.<br />Đầy đủ tiêu chí đánh giá và thời lượng chuẩn hóa.</>}
-          </p>
-        </div>
 
-        {/* Tab switch giữa Buổi luyện của tôi và Bộ đề cộng đồng */}
-        <div className={styles.scopeTabs} role="tablist" aria-label="Phạm vi hiển thị bộ đề">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={scope === "my"}
-            className={`${styles.scopeTab} ${scope === "my" ? styles.scopeTabActive : ""}`}
-            onClick={() => setScope("my")}
-          >
-            <User size={14} />
-            <span>Buổi luyện của tôi</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={scope === "community"}
-            className={`${styles.scopeTab} ${scope === "community" ? styles.scopeTabActive : ""}`}
-            onClick={() => setScope("community")}
-          >
-            <Users size={14} />
-            <span>Bộ đề từ cộng đồng</span>
-          </button>
-        </div>
+          {/* Tab switch giữa Buổi luyện của tôi và Bộ đề cộng đồng */}
+          <div className={styles.scopeTabs} role="tablist" aria-label="Phạm vi hiển thị bộ đề">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={scope === "my"}
+              className={`${styles.scopeTab} ${scope === "my" ? styles.scopeTabActive : ""}`}
+              onClick={() => setScope("my")}
+            >
+              <User size={14} />
+              <span>Buổi luyện của tôi</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={scope === "community"}
+              className={`${styles.scopeTab} ${scope === "community" ? styles.scopeTabActive : ""}`}
+              onClick={() => setScope("community")}
+            >
+              <Users size={14} />
+              <span>Bộ đề từ cộng đồng</span>
+            </button>
+          </div>
 
-        {isLoading ? (
-          <LoadingJobs />
-        ) : (
-          <PracticeJobs scope={scope} isLoggedIn={Boolean(user)} />
-        )}
-      </section>
-    </div>
+          {isLoading ? (
+            <LoadingJobs />
+          ) : (
+            <PracticeJobs scope={scope} isLoggedIn={Boolean(user)} />
+          )}
+        </section>
+      </div>
+    </main>
   );
 }
