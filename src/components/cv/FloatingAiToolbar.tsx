@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cvApi } from "@/services/cvApi";
 import { SelectionRefineAction } from "@/types/cv";
+import s from "@/app/(user)/cv-builder/cvBuilder.module.css";
 
 interface FloatingAiToolbarProps {
   selectedText: string;
@@ -112,25 +113,25 @@ export const FloatingAiToolbar: React.FC<FloatingAiToolbarProps> = ({
     <div
       ref={toolbarRef}
       style={{ top: `${top}px`, left: `${left}px` }}
-      className="fixed z-50 animate-in fade-in zoom-in-95 duration-150"
+      className={s.floatingToolbar}
     >
       {/* MAIN FLOATING TOOLBAR */}
-      <div className="flex items-center gap-1 p-1.5 bg-slate-900/95 backdrop-blur-md text-white border border-slate-700/80 rounded-xl shadow-2xl">
-        <div className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg text-[11px] font-bold text-white shadow-sm">
+      <div className={s.toolbarMain}>
+        <div className={s.toolbarBranding}>
           <Sparkles className="w-3.5 h-3.5 animate-pulse" />
           <span>AI Chỉnh Sửa</span>
         </div>
 
-        <div className="h-4 w-[1px] bg-slate-700 mx-0.5" />
+        <div className={s.toolbarDivider} />
 
         {/* Action 1: STAR Metrics */}
         <button
           onClick={() => handleRefine("star_metrics")}
           disabled={loading}
-          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium hover:bg-slate-800 text-slate-200 hover:text-white rounded-lg transition disabled:opacity-50"
+          className={s.toolbarActionBtn}
           title="Chuyển sang công thức STAR với số liệu định lượng %"
         >
-          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          <Sparkles className={s.iconStar} />
           <span>STAR + Số liệu</span>
         </button>
 
@@ -138,10 +139,10 @@ export const FloatingAiToolbar: React.FC<FloatingAiToolbarProps> = ({
         <button
           onClick={() => handleRefine("tailor_to_job")}
           disabled={loading}
-          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium hover:bg-slate-800 text-slate-200 hover:text-white rounded-lg transition disabled:opacity-50"
+          className={s.toolbarActionBtn}
           title="Căn chỉnh sát theo tiêu chí và từ khóa JD"
         >
-          <Target className="w-3.5 h-3.5 text-emerald-400" />
+          <Target className={s.iconTarget} />
           <span>Khớp JD</span>
         </button>
 
@@ -149,10 +150,10 @@ export const FloatingAiToolbar: React.FC<FloatingAiToolbarProps> = ({
         <button
           onClick={() => handleRefine("strong_verbs")}
           disabled={loading}
-          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium hover:bg-slate-800 text-slate-200 hover:text-white rounded-lg transition disabled:opacity-50"
+          className={s.toolbarActionBtn}
           title="Đổi thành động từ hành động mạnh mẽ (Architected, Spearheaded...)"
         >
-          <Zap className="w-3.5 h-3.5 text-blue-400" />
+          <Zap className={s.iconVerb} />
           <span>Động từ mạnh</span>
         </button>
 
@@ -160,10 +161,10 @@ export const FloatingAiToolbar: React.FC<FloatingAiToolbarProps> = ({
         <button
           onClick={() => handleRefine("shorten")}
           disabled={loading}
-          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium hover:bg-slate-800 text-slate-200 hover:text-white rounded-lg transition disabled:opacity-50"
+          className={s.toolbarActionBtn}
           title="Rút gọn xúc tích tối ưu quét ATS 3 giây"
         >
-          <Scissors className="w-3.5 h-3.5 text-rose-400" />
+          <Scissors className={s.iconShorten} />
           <span>Rút gọn</span>
         </button>
 
@@ -171,18 +172,16 @@ export const FloatingAiToolbar: React.FC<FloatingAiToolbarProps> = ({
         <button
           onClick={() => setShowCustomPrompt(!showCustomPrompt)}
           disabled={loading}
-          className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg transition ${
-            showCustomPrompt ? "bg-slate-800 text-white" : "hover:bg-slate-800 text-slate-300"
-          }`}
+          className={`${s.toolbarActionBtn} ${showCustomPrompt ? s.active : ""}`}
           title="Nhập yêu cầu riêng cho AI"
         >
-          <MessageSquare className="w-3.5 h-3.5 text-purple-400" />
+          <MessageSquare className={s.iconCustom} />
         </button>
 
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+          className={s.toolbarCloseBtn}
           title="Đóng thanh công cụ"
         >
           <X className="w-3.5 h-3.5" />
@@ -191,7 +190,7 @@ export const FloatingAiToolbar: React.FC<FloatingAiToolbarProps> = ({
 
       {/* CUSTOM PROMPT INPUT DROPDOWN */}
       {showCustomPrompt && (
-        <div className="mt-2 p-2.5 bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-xl shadow-2xl flex items-center gap-2 max-w-sm">
+        <div className={s.toolbarCustom}>
           <input
             type="text"
             value={customPrompt}
@@ -202,13 +201,13 @@ export const FloatingAiToolbar: React.FC<FloatingAiToolbarProps> = ({
               }
             }}
             placeholder="Ví dụ: Nhấn mạnh kỹ năng giải quyết sự cố..."
-            className="flex-1 bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded-lg border border-slate-700 focus:outline-none focus:border-blue-500"
+            className={s.toolbarCustomInput}
             autoFocus
           />
           <button
             onClick={() => handleRefine("custom", customPrompt.trim())}
             disabled={!customPrompt.trim() || loading}
-            className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition"
+            className={s.toolbarCustomSubmit}
           >
             Chạy
           </button>
@@ -217,44 +216,44 @@ export const FloatingAiToolbar: React.FC<FloatingAiToolbarProps> = ({
 
       {/* LOADING CARD */}
       {loading && (
-        <div className="mt-2 p-3 bg-slate-900/95 backdrop-blur-md border border-blue-500/30 rounded-xl shadow-2xl flex items-center gap-2.5 text-white text-xs">
-          <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+        <div className={s.toolbarLoading}>
+          <Loader2 className={s.loadingIcon} />
           <span>AI đang phân tích và tối ưu hóa văn phong...</span>
         </div>
       )}
 
       {/* RESULT & DIFF COMPARISON PREVIEW */}
       {refinedResult && !loading && (
-        <div className="mt-2 w-[420px] p-4 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 text-white rounded-xl shadow-2xl space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
+        <div className={s.toolbarResult}>
+          <div className={s.resultHeader}>
+            <div className={s.resultTitle}>
               <Sparkles className="w-3.5 h-3.5" />
               <span>Gợi ý hoàn thiện từ AI</span>
             </div>
-            <span className="text-[10px] text-slate-400">{sectionContext}</span>
+            <span className={s.resultContext}>{sectionContext}</span>
           </div>
 
           {/* Explanation */}
           {refinedResult.explanation && (
-            <p className="text-[11px] text-slate-300 italic bg-slate-800/60 p-2 rounded-lg border border-slate-800">
+            <p className={s.resultExplanation}>
               💡 {refinedResult.explanation}
             </p>
           )}
 
           {/* Comparison */}
-          <div className="space-y-2 text-xs">
-            <div className="p-2 bg-rose-950/30 border border-rose-900/50 rounded-lg">
-              <span className="text-[10px] font-bold text-rose-400 block mb-0.5">VĂN BẢN GỐC:</span>
-              <p className="text-slate-300 line-through opacity-75">{selectedText}</p>
+          <div>
+            <div className={s.originalBlock}>
+              <span className={s.originalLabel}>VĂN BẢN GỐC:</span>
+              <p className={s.originalText}>{selectedText}</p>
             </div>
 
-            <div className="p-2 bg-emerald-950/30 border border-emerald-900/50 rounded-lg">
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
-                  <Check className="w-3 h-3" /> PHIÊN BẢN ĐÃ TỐI ƯU:
+            <div className={s.refinedBlock}>
+              <div>
+                <span className={s.refinedLabel}>
+                  <Check className="w-3 h-3 inline mr-1" /> PHIÊN BẢN ĐÃ TỐI ƯU:
                 </span>
               </div>
-              <p className="text-emerald-100 font-medium leading-relaxed">
+              <p className={s.refinedText}>
                 {refinedResult.refined_text}
               </p>
             </div>
@@ -264,13 +263,13 @@ export const FloatingAiToolbar: React.FC<FloatingAiToolbarProps> = ({
           <div className="flex items-center justify-end gap-2 pt-1">
             <button
               onClick={() => setRefinedResult(null)}
-              className="px-2.5 py-1 text-xs text-slate-400 hover:text-white rounded-lg transition"
+              className={s.resultDiscardBtn}
             >
               Bỏ qua
             </button>
             <button
               onClick={handleApply}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-lg shadow-md transition"
+              className={s.resultApplyBtn}
             >
               <span>Áp dụng vào CV</span>
               <ArrowRight className="w-3.5 h-3.5" />
