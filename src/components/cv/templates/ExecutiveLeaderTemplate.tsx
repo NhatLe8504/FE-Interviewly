@@ -56,10 +56,9 @@ export const ExecutiveLeaderTemplate: React.FC<TemplateProps> = ({
             isEditable={isEditable}
             size={90}
           />
-          <div>
-            <EditableText
-              tag="h1"
-              value={cv.personal_info.full_name || "NGUYỄN VĂN A"}
+          <EditableText
+            tag="h1"
+            value={cv.personal_info.full_name || "NGUYỄN VĂN A"}
               onChange={(v) => updatePersonalInfo("full_name", v)}
               isEditable={isEditable}
               sectionContext="personal_info"

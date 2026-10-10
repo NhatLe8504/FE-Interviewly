@@ -53,23 +53,22 @@ export const MinimalistAtsTemplate: React.FC<TemplateProps> = ({
       style={{ fontFamily: font.cssFamily }}
     >
       {/* HEADER: Centered & Classic ATS Format */}
-      <div className="flex flex-col items-center pb-4 mb-4 border-b border-black gap-3">
+      <div className="flex flex-col items-center pb-4 mb-4 border-b border-black gap-3 text-center">
         <CvAvatar
           avatarUrl={cv.personal_info.avatar_url}
           onChange={(url) => updatePersonalInfo("avatar_url", url)}
           isEditable={isEditable}
           size={80}
         />
-        <div className="text-center w-full">
-          <EditableText
-            tag="h1"
-            value={cv.personal_info.full_name || "HỌ VÀ TÊN"}
-            onChange={(v) => updatePersonalInfo("full_name", v)}
-            isEditable={isEditable}
-            sectionContext="personal_info"
-            onTextSelect={onTextSelect}
-            className="text-2xl md:text-3xl font-bold tracking-wider uppercase block"
-          />
+        <EditableText
+          tag="h1"
+          value={cv.personal_info.full_name || "HỌ VÀ TÊN"}
+          onChange={(v) => updatePersonalInfo("full_name", v)}
+          isEditable={isEditable}
+          sectionContext="personal_info"
+          onTextSelect={onTextSelect}
+          className="text-2xl md:text-3xl font-bold tracking-wider uppercase block"
+        />
         <EditableText
           tag="div"
           value={cv.personal_info.title || "Vị trí ứng tuyển"}
