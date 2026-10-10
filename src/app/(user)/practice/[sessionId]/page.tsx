@@ -22,6 +22,8 @@ import {
   Briefcase,
   Handshake,
   Trash2,
+  CheckCircle2,
+  MessageSquare,
 } from "lucide-react";
 import { useRealtimeVoiceInterview } from "@/hooks/useRealtimeVoiceInterview";
 import { useVoiceAnswerDraft } from "@/hooks/useVoiceAnswerDraft";
@@ -29,13 +31,19 @@ import type { StageConfigIn } from "@/types/interview";
 import { ChromaVideoCanvas } from "./components/ChromaVideoCanvas";
 import { AudioWaveformVisualizer } from "./components/AudioWaveformVisualizer";
 import { StarGuidanceDrawer } from "./components/StarGuidanceDrawer";
-import { StageTransitionDialog } from "./components/StageTransitionDialog";
 import { SimpleUserSelect } from "@/components/user-component/common";
 import { voiceApi, type VoiceOptionsResponse } from "@/services/voiceApi";
 import { toast } from "@/components/user-component/toast/UserToast";
 import { useI18n } from "@/context/I18nContext";
 import { INTERVIEW_LANGUAGES, getInterviewLanguage, type InterviewLanguage } from "@/lib/interviewLanguages";
 import styles from "./interviewRoom.module.css";
+
+const STAGE_LABELS: Record<string, string> = {
+  warmup: "Chặng 1 (Khởi động)",
+  technical: "Chặng 2 (Chuyên môn)",
+  closing: "Chặng 3 (Chào kết & Q&A)",
+  completed: "Tổng kết buổi phỏng vấn",
+};
 
 interface SessionMetaStored {
   roleLabel?: string;
@@ -696,6 +704,39 @@ function changeInterviewLanguage(code: string) {
                           )}
                         </button>
                       )}
+
+                      {/* Nut mau xanh dong y qua chang tiep theo inline ngay tren cau tro chuyen nay cua AI */}
+                      {pendingTransition && (turn.turnNumber === pendingTransition.turnId || idx === turns.length - 1) && (
+                        <div className={styles.inlineStageTransitionCard}>
+                          <div className={styles.inlineStageHeader}>
+                            <Sparkles size={13} />
+                            <span>Đề xuất: Sẵn sàng qua {STAGE_LABELS[pendingTransition.nextStage] || "Chặng tiếp theo"}</span>
+                          </div>
+                          <p className={styles.inlineStageNotice}>
+                            Bấm nút màu xanh bên dưới hoặc nói/chat &quot;Đồng ý&quot; để tiếp tục, hoặc bạn có thể trả lời tiếp câu hỏi ở trên.
+                          </p>
+                          <div className={styles.inlineStageActions}>
+                            <button
+                              type="button"
+                              className={styles.btnGreenStageConfirm}
+                              onClick={confirmStageTransition}
+                              title="Đồng ý chuyển sang chặng tiếp theo"
+                            >
+                              <CheckCircle2 size={15} />
+                              <span>Đồng ý qua {STAGE_LABELS[pendingTransition.nextStage] || "Chặng tiếp theo"} →</span>
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.btnSecondaryStageDefer}
+                              onClick={() => deferStageTransition()}
+                              title="Tiếp tục trao đổi thêm ở chặng hiện tại"
+                            >
+                              <MessageSquare size={13} />
+                              <span>Nói tiếp ở chặng này</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -850,8 +891,8 @@ function changeInterviewLanguage(code: string) {
                 </div>
               )}
 
-              {/* Bong bong dang go chu khi AI noi */}
-              {aiState === "speaking" && currentQuestion && (
+              {/* Bong bong dang go chu khi AI noi (chong trung lap voi turn da add vao turns) */}
+              {aiState === "speaking" && currentQuestion && !turns.some((t) => t.speaker === "ai" && (t.text.trim() === currentQuestion.trim() || (turnId && t.turnNumber === turnId))) && (
                 <div className={styles.turnRowAi}>
                   <div className={styles.aiStreamingBubble}>
                     <div className={styles.bubbleMeta}>
@@ -1319,14 +1360,6 @@ function changeInterviewLanguage(code: string) {
           setTypedText((prev) => (prev ? `${prev}\n\n${starter}` : starter));
           setIsStarOpen(false);
         }}
-      />
-
-      {/* Adaptive 3-Stage Transition Confirmation Modal */}
-      <StageTransitionDialog
-        proposal={pendingTransition}
-        onConfirm={confirmStageTransition}
-        onDefer={deferStageTransition}
-        mockMode={mockMode}
       />
     </div>
   );
