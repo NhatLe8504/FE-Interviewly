@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { CvDocument, CvAtsScoreResponse } from "@/types/cv";
 import { cvApi } from "@/services/cvApi";
@@ -14,128 +14,38 @@ import {
   Loader2,
   ChevronRight,
   ChevronLeft,
+  Plus,
 } from "lucide-react";
 import s from "./cvBuilder.module.css";
 
-const INITIAL_FALLBACK_CV: CvDocument = {
+const AVATAR_STORAGE_KEY = "interviewly_cv_avatar";
+
+const BLANK_CV: CvDocument = {
   id: 0,
-  user_id: 1,
+  user_id: 0,
   template_id: "modern_tech",
-  title: "CV Chuyên Nghiệp - Bản Chuẩn",
+  title: "",
   color_theme: "navy",
   font_family: "inter",
   personal_info: {
-    full_name: "Nguyễn Văn A",
-    email: "nguyenvana@example.com",
-    phone: "+84 912 345 678",
-    title: "Senior Fullstack Engineer",
-    location: "Hà Nội, Việt Nam",
-    linkedin: "linkedin.com/in/nguyenvana",
-    github: "github.com/nguyenvana",
-    portfolio: "https://portfolio.dev",
+    full_name: "",
+    email: "",
+    phone: "",
+    title: "",
+    location: "",
+    linkedin: "",
+    github: "",
+    portfolio: "",
     avatar_url: "",
   },
-  summary:
-    "Kỹ sư phần mềm giàu kinh nghiệm với thế mạnh về kiến trúc hệ thống phân tán, xử lý tải cao và phát triển ứng dụng hiện đại. Thành thạo TypeScript, React, Next.js, Node.js, FastAPI, PostgreSQL và Docker. Đam mê tối ưu hóa trải nghiệm người dùng, tự động hóa quy trình CI/CD và luôn hướng tới việc tạo ra giá trị kinh doanh thực tế.",
-  work_experiences: [
-    {
-      id: "exp-1",
-      company: "Tech Innovation Corp",
-      role: "Senior Fullstack Engineer",
-      location: "Hà Nội, Việt Nam",
-      start_date: "2023-01",
-      end_date: "",
-      is_current: true,
-      description: "Chịu trách nhiệm kiến trúc nền tảng và phát triển hệ thống lõi phục vụ hơn 200,000 người dùng hàng tháng.",
-      highlights: [
-        "Tái cấu trúc kiến trúc microservices giúp giảm 45% thời gian phản hồi API (p99 latency từ 850ms xuống 460ms).",
-        "Thiết kế và triển khai pipeline CI/CD tự động hoá với Docker và GitHub Actions, rút ngắn chu kỳ deploy từ 2 giờ xuống 15 phút.",
-        "Dẫn dắt đội ngũ 6 kỹ sư, triển khai quy chuẩn Unit & Integration Testing nâng cao code coverage từ 55% lên 88%.",
-      ],
-    },
-    {
-      id: "exp-2",
-      company: "VTI Cloud Solutions",
-      role: "Backend Engineer",
-      location: "Hà Nội, Việt Nam",
-      start_date: "2021-06",
-      end_date: "2022-12",
-      is_current: false,
-      description: "Tham gia phát triển các sản phẩm SaaS và tích hợp hệ thống thanh toán điện tử.",
-      highlights: [
-        "Xây dựng tính năng thanh toán đa cổng kết nối xử lý thành công 50,000+ giao dịch mỗi ngày với độ ổn định 99.98%.",
-        "Tối ưu hóa các truy vấn PostgreSQL và lập chỉ mục (indexing), giảm tải database 30% trong giờ cao điểm.",
-      ],
-    },
-  ],
-  projects: [
-    {
-      id: "proj-1",
-      name: "High-Throughput E-Commerce Platform",
-      role: "Lead Architect & Developer",
-      start_date: "2023-05",
-      end_date: "2023-11",
-      technologies: ["Next.js", "FastAPI", "PostgreSQL", "Redis", "Kafka"],
-      link: "https://github.com/project/demo",
-      description: "Nền tảng thương mại điện tử chịu tải cao với khả năng đồng bộ kho hàng theo thời gian thực.",
-      highlights: [
-        "Triển khai cơ chế cache đa tầng với Redis giúp chịu tải 10,000 req/s trong các đợt flash sale.",
-        "Áp dụng Clean Architecture và Domain-Driven Design giúp việc mở rộng tính năng mới nhanh hơn 35%.",
-      ],
-    },
-    {
-      id: "proj-2",
-      name: "AI Interview Coach Assistant",
-      role: "Core AI & Backend Engineer",
-      start_date: "2024-01",
-      end_date: "2024-06",
-      technologies: ["Python", "FastAPI", "WebSockets", "Groq LPU", "WebRTC"],
-      link: "https://github.com/project/interview-coach",
-      description: "Hệ thống luyện phỏng vấn thông minh với phản hồi giọng nói thời gian thực dưới 300ms.",
-      highlights: [
-        "Tích hợp mô hình ngôn ngữ lớn LLM và Edge TTS để sinh phản hồi phỏng vấn mượt mà theo phương pháp STAR.",
-        "Xây dựng pipeline phân tích chỉ số ATS và phát hiện lỗ hổng kỹ năng của ứng viên tự động.",
-      ],
-    },
-  ],
-  skills: [
-    "TypeScript",
-    "React / Next.js",
-    "Node.js",
-    "Python / FastAPI",
-    "PostgreSQL",
-    "Redis",
-    "Docker / K8s",
-    "CI/CD Pipeline",
-    "Microservices",
-    "RESTful APIs",
-    "System Architecture",
-  ],
-  educations: [
-    {
-      id: "edu-1",
-      institution: "Đại học Bách Khoa Hà Nội",
-      degree: "Kỹ sư",
-      field_of_study: "Công nghệ Thông tin",
-      start_date: "2018",
-      end_date: "2022",
-      gpa: "3.5/4.0",
-      honors: "Tốt nghiệp loại Giỏi",
-    },
-  ],
-  certifications: [
-    {
-      id: "cert-1",
-      name: "AWS Certified Solutions Architect – Associate",
-      issuer: "Amazon Web Services",
-      issue_date: "2023-08",
-      expiration_date: "2026-08",
-      credential_id: "AWS-PSA-894721",
-      url: "https://aws.amazon.com",
-    },
-  ],
+  summary: "",
+  work_experiences: [],
+  projects: [],
+  skills: [],
+  educations: [],
+  certifications: [],
   section_order: ["summary", "experience", "projects", "skills", "education", "certifications"],
-  ats_score: 88,
+  ats_score: null,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };
@@ -147,23 +57,34 @@ export default function CvBuilderClient() {
   const cvIdParam = searchParams.get("id");
   const jobIdParam = searchParams.get("jobId");
 
-  const [cv, setCv] = useState<CvDocument>(INITIAL_FALLBACK_CV);
+  const [cv, setCv] = useState<CvDocument>(BLANK_CV);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [zoom, setZoom] = useState(1.0);
   const [showAtsSidebar, setShowAtsSidebar] = useState(true);
   const [showAiDraftModal, setShowAiDraftModal] = useState(false);
 
-  // Text selection state for Floating AI Toolbar
   const [selection, setSelection] = useState<{
     text: string;
     rect: DOMRect | null;
     sectionContext: string;
   } | null>(null);
 
-  // ATS score state
   const [atsScoreData, setAtsScoreData] = useState<CvAtsScoreResponse | null>(null);
   const [atsLoading, setAtsLoading] = useState(false);
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  // Load saved avatar from localStorage on mount
+  useEffect(() => {
+    const savedAvatar = localStorage.getItem(AVATAR_STORAGE_KEY);
+    if (savedAvatar) {
+      setCv((prev) => ({
+        ...prev,
+        personal_info: { ...prev.personal_info, avatar_url: savedAvatar },
+      }));
+    }
+  }, []);
 
   // Load or initialize CV
   useEffect(() => {
@@ -173,11 +94,8 @@ export default function CvBuilderClient() {
         if (cvIdParam) {
           const fetched = await cvApi.getCv(Number(cvIdParam));
           setCv(fetched);
-          if (fetched.ats_feedback) {
-            setAtsScoreData(fetched.ats_feedback);
-          }
+          if (fetched.ats_feedback) setAtsScoreData(fetched.ats_feedback);
         } else if (jobIdParam) {
-          // Initialize CV targeted to this job
           const created = await cvApi.createCv({
             title: `CV Ứng Tuyển - ${new Date().toLocaleDateString("vi-VN")}`,
             target_job_id: jobIdParam,
@@ -186,7 +104,6 @@ export default function CvBuilderClient() {
           setCv(created);
           router.replace(`/cv-builder?id=${created.id}`);
         } else {
-          // Check if user has an existing CV, else create a new one
           const list = await cvApi.listCvs();
           if (list.length > 0) {
             const latest = await cvApi.getCv(list[0].id);
@@ -194,7 +111,7 @@ export default function CvBuilderClient() {
             router.replace(`/cv-builder?id=${latest.id}`);
           } else {
             const created = await cvApi.createCv({
-              title: "My Professional Tech CV",
+              title: "",
               load_from_user_skills: true,
             });
             setCv(created);
@@ -202,16 +119,22 @@ export default function CvBuilderClient() {
           }
         }
       } catch (err) {
-        console.warn("Failed to load CV from server, using local template:", err);
+        console.warn("Failed to load CV from server, using blank template:", err);
+        // Restore avatar from localStorage even for fallback
+        const savedAvatar = localStorage.getItem(AVATAR_STORAGE_KEY);
+        if (savedAvatar) {
+          setCv((prev) => ({
+            ...prev,
+            personal_info: { ...prev.personal_info, avatar_url: savedAvatar },
+          }));
+        }
       } finally {
         setLoading(false);
       }
     }
-
     initCv();
   }, [cvIdParam, jobIdParam, router]);
 
-  // Update CV in state
   const handleUpdate = useCallback((updated: Partial<CvDocument>) => {
     setCv((prev) => ({
       ...prev,
@@ -220,7 +143,6 @@ export default function CvBuilderClient() {
     }));
   }, []);
 
-  // Save CV to backend
   const handleSave = async () => {
     if (!cv.id) return;
     setSaving(true);
@@ -248,26 +170,20 @@ export default function CvBuilderClient() {
     }
   };
 
-  // Text selection handler triggered from inside EditableText
   const handleTextSelect = (sel: { text: string; rect: DOMRect; sectionContext: string }) => {
     setSelection(sel);
   };
 
-  // Replace selected text with refined version
   const handleApplyReplacement = (newText: string) => {
     if (!selection) return;
-
-    // Direct replacement in summary or highlights
     const oldText = selection.text;
 
-    // Check summary
     if (cv.summary && cv.summary.includes(oldText)) {
       handleUpdate({ summary: cv.summary.replace(oldText, newText) });
       setSelection(null);
       return;
     }
 
-    // Check work experiences
     const updatedExps = cv.work_experiences.map((exp) => {
       const newHighlights = exp.highlights.map((hl) =>
         hl.includes(oldText) ? hl.replace(oldText, newText) : hl
@@ -279,7 +195,6 @@ export default function CvBuilderClient() {
     });
     handleUpdate({ work_experiences: updatedExps });
 
-    // Check projects
     const updatedProjs = cv.projects.map((proj) => {
       const newHighlights = proj.highlights.map((hl) =>
         hl.includes(oldText) ? hl.replace(oldText, newText) : hl
@@ -290,11 +205,9 @@ export default function CvBuilderClient() {
       return { ...proj, highlights: newHighlights, description: newDesc };
     });
     handleUpdate({ projects: updatedProjs });
-
     setSelection(null);
   };
 
-  // Calculate ATS score
   const handleRefreshAts = async () => {
     if (!cv.id) return;
     setAtsLoading(true);
@@ -309,14 +222,12 @@ export default function CvBuilderClient() {
     }
   };
 
-  // Append missing keyword from ATS widget to CV skills
   const handleAddSkill = (skill: string) => {
     if (!cv.skills.includes(skill)) {
       handleUpdate({ skills: [...cv.skills, skill] });
     }
   };
 
-  // Apply AI Draft into current CV
   const handleApplyDraft = (draft: Partial<CvDocument>) => {
     handleUpdate({
       ...draft,
@@ -327,20 +238,36 @@ export default function CvBuilderClient() {
     });
   };
 
+  // Avatar upload handler — save to localStorage for next CV session
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      // Save to localStorage for persistence across CV sessions
+      localStorage.setItem(AVATAR_STORAGE_KEY, dataUrl);
+      handleUpdate({
+        personal_info: { ...cv.personal_info, avatar_url: dataUrl },
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
   if (loading) {
     return (
       <div className={s.loadingContainer}>
         <Loader2 className={`${s.loadingSpinner} animate-spin`} style={{ width: 32, height: 32 }} />
-        <p className={s.loadingText}>
-          Đang khởi tạo không gian thiết kế CV AI...
-        </p>
+        <p className={s.loadingText}>Đang khởi tạo không gian thiết kế CV...</p>
       </div>
     );
   }
 
   return (
     <div className={s.pageContainer}>
-      {/* TOP CONTROL BAR */}
+      {/* LEFT VERTICAL SIDEBAR TOOLBAR */}
       <CvTopBar
         cv={cv}
         onUpdate={handleUpdate}
@@ -353,12 +280,40 @@ export default function CvBuilderClient() {
 
       {/* WORKSPACE CONTENT AREA */}
       <div className={s.workspace}>
-        {/* CENTER: Canvas A4 Paper Sheet with zoom scale */}
         <main className={s.canvas}>
           <div
             style={{ transform: `scale(${zoom})`, transformOrigin: "top center" }}
             className={s.canvasZoomWrapper}
           >
+            {/* Avatar Upload Circle — positioned above the CV template */}
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+              <div
+                className={s.avatarUpload}
+                onClick={() => avatarInputRef.current?.click()}
+                title="Tải lên ảnh đại diện"
+              >
+                {cv.personal_info.avatar_url ? (
+                  <img
+                    src={cv.personal_info.avatar_url}
+                    alt="Avatar"
+                    className={s.avatarUploadImage}
+                  />
+                ) : (
+                  <div className={s.avatarUploadPlaceholder}>
+                    <Plus className={s.avatarUploadIcon} />
+                    <span className={s.avatarUploadLabel}>Ảnh</span>
+                  </div>
+                )}
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  className={s.avatarHiddenInput}
+                />
+              </div>
+            </div>
+
             <TemplateRenderer
               cv={cv}
               onUpdate={handleUpdate}
@@ -380,16 +335,12 @@ export default function CvBuilderClient() {
           />
         )}
 
-        {/* RIGHT DRAWER: ATS Analysis & Guidance */}
+        {/* RIGHT DRAWER: ATS Analysis */}
         <aside
           className={`${s.atsSidebar} ${showAtsSidebar ? s.atsSidebarOpen : s.atsSidebarClosed}`}
           style={{ display: "none" }}
-          ref={(el) => {
-            // Show after mount to avoid SSR flash
-            if (el) el.style.display = "flex";
-          }}
+          ref={(el) => { if (el) el.style.display = "flex"; }}
         >
-          {/* Toggle Tab */}
           <button
             onClick={() => setShowAtsSidebar(!showAtsSidebar)}
             className={s.atsSidebarToggle}
@@ -398,7 +349,6 @@ export default function CvBuilderClient() {
             {showAtsSidebar ? <ChevronRight style={{ width: 16, height: 16 }} /> : <ChevronLeft style={{ width: 16, height: 16 }} />}
           </button>
 
-          {/* Sidebar Body */}
           <div className={s.atsSidebarBody}>
             <AtsScoreWidget
               scoreData={atsScoreData}
@@ -408,7 +358,6 @@ export default function CvBuilderClient() {
               onAddSkill={handleAddSkill}
             />
 
-            {/* Quick Tips */}
             <div className={s.tipsCard}>
               <h4 className={s.tipsTitle}>
                 <Sparkles className={s.tipsTitleIcon} style={{ width: 14, height: 14 }} />
@@ -416,7 +365,7 @@ export default function CvBuilderClient() {
               </h4>
               <ul className={s.tipsList}>
                 <li className={s.tipsItem}>Bôi đen bất kỳ đoạn văn nào để AI viết lại chuẩn STAR có số liệu %.</li>
-                <li className={s.tipsItem}>Nhấp trực tiếp vào tên công ty, chức danh, kỹ năng để sửa trực tiếp.</li>
+                <li className={s.tipsItem}>Nhấp trực tiếp vào tên, chức danh, kỹ năng để sửa trực tiếp.</li>
                 <li className={s.tipsItem}>Thêm từ khóa còn thiếu từ bảng ATS để tăng tỷ lệ được mời phỏng vấn.</li>
               </ul>
             </div>
@@ -424,7 +373,6 @@ export default function CvBuilderClient() {
         </aside>
       </div>
 
-      {/* AI DRAFT MODAL */}
       <AiDraftModal
         isOpen={showAiDraftModal}
         onClose={() => setShowAiDraftModal(false)}
