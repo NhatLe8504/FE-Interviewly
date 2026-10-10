@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { Sparkles, X, CheckCircle2, PlusCircle, Check } from "lucide-react";
@@ -69,9 +69,10 @@ export function StarGuidanceDrawer({
   return (
     <>
       {/* Floating Toggle Button */}
-      <button
-        type="button"
-        onClick={handleOpen}
+      {showTrigger && (
+        <button
+          type="button"
+          onClick={handleOpen}
         style={{
           position: "fixed",
           right: "24px",
@@ -101,6 +102,7 @@ export function StarGuidanceDrawer({
         <Sparkles size={16} />
         <span>Gợi ý STAR</span>
       </button>
+      )}
 
       {/* Backdrop */}
       {isOpen && (

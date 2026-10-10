@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
    IMMERSIVE FIXED SINGLE-SCREEN AI INTERVIEW ROOM (SKETCH-EXACT LAYOUT)
 ========================================================= */
 
@@ -28,6 +28,8 @@
   margin-inline: auto;
   padding-top: 0;
   padding-bottom: 16px;
+  flex: 1;
+  min-height: 0;
   height: 100%;
   max-height: 100%;
   display: flex;
@@ -39,6 +41,7 @@
 /* CHUNG 1 KHUNG HÌNH (UNIFIED STAGE CARD) */
 .unifiedStageCard {
   flex: 1;
+  min-height: 0;
   position: relative;
   overflow: hidden;
   border-radius: 26px;
@@ -1033,4 +1036,31 @@
   border-color: #d98236;
   color: #b45309;
   font-weight: 800;
+}
+
+.pitchPreviewBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8c4a17;
+  background: #fdf3eb;
+  border: 1px solid rgba(217, 130, 54, 0.35);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pitchPreviewBtn:hover:not(:disabled) {
+  background: #fce8d7;
+  border-color: #d98236;
+}
+
+.pitchPreviewBtn:active:not(:disabled) {
+  transform: scale(0.98);
 }

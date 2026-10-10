@@ -38,6 +38,14 @@ export const voiceApi = {
     });
   },
 
+  getVoicePreviewUrl: (voice: string, pitch?: string, text?: string): string => {
+    const params = new URLSearchParams();
+    if (voice) params.append("voice", voice);
+    if (pitch) params.append("pitch", pitch);
+    if (text) params.append("text", text);
+    return `/api/v1/voice/preview?${params.toString()}`;
+  },
+
   uploadUserTurnAudio: async (
     sessionId: number | string,
     turnId: number,
