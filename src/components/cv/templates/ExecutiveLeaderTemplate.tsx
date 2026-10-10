@@ -4,6 +4,7 @@ import React from "react";
 import { CvDocument } from "@/types/cv";
 import { CV_COLOR_THEMES, CV_FONT_FAMILIES } from "../cvThemes";
 import { EditableText } from "../EditableText";
+import { CvAvatar } from "../CvAvatar";
 import { TemplateProps } from "./ModernTechTemplate";
 
 export const ExecutiveLeaderTemplate: React.FC<TemplateProps> = ({
@@ -40,7 +41,7 @@ export const ExecutiveLeaderTemplate: React.FC<TemplateProps> = ({
 
   return (
     <div
-      className={`w-full max-w-[850px] min-h-[1100px] bg-[#fdfdfd] text-slate-900 shadow-2xl rounded-none mx-auto p-12 md:p-16 border-t-8 print:shadow-none print:m-0 print:p-8 print:w-full ${font.fontClass}`}
+      className={`w-[794px] min-w-[794px] max-w-[794px] min-h-[1123px] box-border shrink-0 bg-[#fdfdfd] text-slate-900 shadow-2xl rounded-none mx-auto p-12 md:p-14 border-t-8 print:shadow-none print:m-0 print:p-8 print:w-full ${font.fontClass}`}
       style={{
         borderTopColor: theme.primary,
         fontFamily: font.cssFamily,
@@ -48,17 +49,24 @@ export const ExecutiveLeaderTemplate: React.FC<TemplateProps> = ({
     >
       {/* EXECUTIVE HEADER */}
       <div className="border-b-2 pb-6 mb-6" style={{ borderColor: theme.border }}>
-        <div className="flex flex-col items-center text-center">
-          <EditableText
-            tag="h1"
-            value={cv.personal_info.full_name || "NGUYỄN VĂN A"}
-            onChange={(v) => updatePersonalInfo("full_name", v)}
+        <div className="flex flex-col items-center text-center gap-3">
+          <CvAvatar
+            avatarUrl={cv.personal_info.avatar_url}
+            onChange={(url) => updatePersonalInfo("avatar_url", url)}
             isEditable={isEditable}
-            sectionContext="personal_info"
-            onTextSelect={onTextSelect}
-            className="text-3xl md:text-4xl font-serif font-black tracking-widest uppercase"
-            placeholder="HỌ VÀ TÊN LÃNH ĐẠO"
+            size={90}
           />
+          <div>
+            <EditableText
+              tag="h1"
+              value={cv.personal_info.full_name || "NGUYỄN VĂN A"}
+              onChange={(v) => updatePersonalInfo("full_name", v)}
+              isEditable={isEditable}
+              sectionContext="personal_info"
+              onTextSelect={onTextSelect}
+              className="text-3xl md:text-4xl font-serif font-black tracking-widest uppercase"
+              placeholder="HỌ VÀ TÊN LÃNH ĐẠO"
+            />
           <div
             className="text-sm font-semibold tracking-widest uppercase mt-1.5"
             style={{ color: theme.primaryLight }}

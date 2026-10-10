@@ -4,6 +4,7 @@ import React from "react";
 import { CvDocument } from "@/types/cv";
 import { CV_COLOR_THEMES, CV_FONT_FAMILIES } from "../cvThemes";
 import { EditableText } from "../EditableText";
+import { CvAvatar } from "../CvAvatar";
 import { TemplateProps } from "./ModernTechTemplate";
 
 export const CompactSwissTemplate: React.FC<TemplateProps> = ({
@@ -40,29 +41,37 @@ export const CompactSwissTemplate: React.FC<TemplateProps> = ({
 
   return (
     <div
-      className={`w-full max-w-[850px] min-h-[1100px] bg-white text-neutral-900 shadow-2xl mx-auto p-10 md:p-12 print:shadow-none print:m-0 print:p-8 print:w-full ${font.fontClass}`}
+      className={`w-[794px] min-w-[794px] max-w-[794px] min-h-[1123px] box-border shrink-0 bg-white text-neutral-900 shadow-2xl mx-auto p-12 print:shadow-none print:m-0 print:p-8 print:w-full ${font.fontClass}`}
       style={{ fontFamily: font.cssFamily }}
     >
       {/* SWISS TOP BAR */}
-      <div className="grid grid-cols-12 gap-6 border-b-4 border-black pb-6 mb-6">
-        <div className="col-span-12 md:col-span-8">
-          <EditableText
-            tag="h1"
-            value={cv.personal_info.full_name || "NGUYỄN VĂN A"}
-            onChange={(v) => updatePersonalInfo("full_name", v)}
+      <div className="grid grid-cols-12 gap-6 border-b-4 border-black pb-6 mb-6 items-center">
+        <div className="col-span-12 md:col-span-8 flex items-center gap-5">
+          <CvAvatar
+            avatarUrl={cv.personal_info.avatar_url}
+            onChange={(url) => updatePersonalInfo("avatar_url", url)}
             isEditable={isEditable}
-            sectionContext="personal_info"
-            onTextSelect={onTextSelect}
-            className="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none"
+            size={84}
           />
-          <div className="text-sm font-bold tracking-tight uppercase text-neutral-600 mt-2">
+          <div className="flex-1">
             <EditableText
-              value={cv.personal_info.title || "SOFTWARE ARCHITECT"}
-              onChange={(v) => updatePersonalInfo("title", v)}
+              tag="h1"
+              value={cv.personal_info.full_name || "NGUYỄN VĂN A"}
+              onChange={(v) => updatePersonalInfo("full_name", v)}
               isEditable={isEditable}
               sectionContext="personal_info"
               onTextSelect={onTextSelect}
+              className="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none"
             />
+            <div className="text-sm font-bold tracking-tight uppercase text-neutral-600 mt-2">
+              <EditableText
+                value={cv.personal_info.title || "SOFTWARE ARCHITECT"}
+                onChange={(v) => updatePersonalInfo("title", v)}
+                isEditable={isEditable}
+                sectionContext="personal_info"
+                onTextSelect={onTextSelect}
+              />
+            </div>
           </div>
         </div>
         <div className="col-span-12 md:col-span-4 text-xs font-mono space-y-1 text-neutral-700 flex flex-col justify-end">

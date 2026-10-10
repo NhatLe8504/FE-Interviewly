@@ -4,6 +4,7 @@ import React from "react";
 import { CvDocument } from "@/types/cv";
 import { CV_COLOR_THEMES, CV_FONT_FAMILIES } from "../cvThemes";
 import { EditableText } from "../EditableText";
+import { CvAvatar } from "../CvAvatar";
 import {
   Mail,
   Phone,
@@ -130,34 +131,42 @@ export const ModernTechTemplate: React.FC<TemplateProps> = ({
 
   return (
     <div
-      className={`w-full max-w-[850px] min-h-[1100px] bg-white text-slate-800 shadow-2xl rounded-xl mx-auto p-8 md:p-12 print:shadow-none print:m-0 print:p-8 print:w-full print:rounded-none ${font.fontClass}`}
+      className={`w-[794px] min-w-[794px] max-w-[794px] min-h-[1123px] box-border shrink-0 bg-white text-slate-800 shadow-2xl rounded-xl mx-auto p-10 print:shadow-none print:m-0 print:p-8 print:w-full print:rounded-none ${font.fontClass}`}
       style={{ fontFamily: font.cssFamily }}
     >
       {/* HEADER SECTION */}
       <div className="border-b-2 pb-6 mb-6" style={{ borderColor: theme.border }}>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex-1">
-            <EditableText
-              tag="h1"
-              value={cv.personal_info.full_name || "Họ và Tên"}
-              onChange={(v) => updatePersonalInfo("full_name", v)}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="flex items-center gap-5 flex-1">
+            <CvAvatar
+              avatarUrl={cv.personal_info.avatar_url}
+              onChange={(url) => updatePersonalInfo("avatar_url", url)}
               isEditable={isEditable}
-              sectionContext="personal_info"
-              onTextSelect={onTextSelect}
-              className="text-3xl md:text-4xl font-extrabold tracking-tight"
-              placeholder="Họ và Tên"
+              size={86}
             />
-            <div className="mt-1">
+            <div className="flex-1">
               <EditableText
-                tag="h2"
-                value={cv.personal_info.title || "Vị trí ứng tuyển"}
-                onChange={(v) => updatePersonalInfo("title", v)}
+                tag="h1"
+                value={cv.personal_info.full_name || "Họ và Tên"}
+                onChange={(v) => updatePersonalInfo("full_name", v)}
                 isEditable={isEditable}
                 sectionContext="personal_info"
                 onTextSelect={onTextSelect}
-                className="text-lg md:text-xl font-semibold tracking-wide"
-                placeholder="Vị trí chuyên môn"
+                className="text-3xl md:text-4xl font-extrabold tracking-tight"
+                placeholder="Họ và Tên"
               />
+              <div className="mt-1">
+                <EditableText
+                  tag="h2"
+                  value={cv.personal_info.title || "Vị trí ứng tuyển"}
+                  onChange={(v) => updatePersonalInfo("title", v)}
+                  isEditable={isEditable}
+                  sectionContext="personal_info"
+                  onTextSelect={onTextSelect}
+                  className="text-lg md:text-xl font-semibold tracking-wide"
+                  placeholder="Vị trí chuyên môn"
+                />
+              </div>
             </div>
           </div>
 

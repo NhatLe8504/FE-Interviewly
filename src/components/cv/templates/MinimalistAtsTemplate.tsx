@@ -4,6 +4,7 @@ import React from "react";
 import { CvDocument } from "@/types/cv";
 import { CV_COLOR_THEMES, CV_FONT_FAMILIES } from "../cvThemes";
 import { EditableText } from "../EditableText";
+import { CvAvatar } from "../CvAvatar";
 import { Plus, Trash2 } from "lucide-react";
 import { TemplateProps } from "./ModernTechTemplate";
 
@@ -48,20 +49,27 @@ export const MinimalistAtsTemplate: React.FC<TemplateProps> = ({
 
   return (
     <div
-      className={`w-full max-w-[850px] min-h-[1100px] bg-white text-black shadow-2xl rounded-sm mx-auto p-10 md:p-14 print:shadow-none print:m-0 print:p-8 print:w-full ${font.fontClass}`}
+      className={`w-[794px] min-w-[794px] max-w-[794px] min-h-[1123px] box-border shrink-0 bg-white text-black shadow-2xl rounded-sm mx-auto p-12 print:shadow-none print:m-0 print:p-8 print:w-full ${font.fontClass}`}
       style={{ fontFamily: font.cssFamily }}
     >
       {/* HEADER: Centered & Classic ATS Format */}
-      <div className="text-center pb-4 mb-4 border-b border-black">
-        <EditableText
-          tag="h1"
-          value={cv.personal_info.full_name || "HỌ VÀ TÊN"}
-          onChange={(v) => updatePersonalInfo("full_name", v)}
+      <div className="flex flex-col items-center pb-4 mb-4 border-b border-black gap-3">
+        <CvAvatar
+          avatarUrl={cv.personal_info.avatar_url}
+          onChange={(url) => updatePersonalInfo("avatar_url", url)}
           isEditable={isEditable}
-          sectionContext="personal_info"
-          onTextSelect={onTextSelect}
-          className="text-2xl md:text-3xl font-bold tracking-wider uppercase block"
+          size={80}
         />
+        <div className="text-center w-full">
+          <EditableText
+            tag="h1"
+            value={cv.personal_info.full_name || "HỌ VÀ TÊN"}
+            onChange={(v) => updatePersonalInfo("full_name", v)}
+            isEditable={isEditable}
+            sectionContext="personal_info"
+            onTextSelect={onTextSelect}
+            className="text-2xl md:text-3xl font-bold tracking-wider uppercase block"
+          />
         <EditableText
           tag="div"
           value={cv.personal_info.title || "Vị trí ứng tuyển"}
