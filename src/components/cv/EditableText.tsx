@@ -6,6 +6,7 @@ interface EditableTextProps {
   value: string;
   onChange?: (val: string) => void;
   className?: string;
+  style?: React.CSSProperties;
   placeholder?: string;
   tag?: "h1" | "h2" | "h3" | "h4" | "p" | "span" | "div";
   isEditable?: boolean;
@@ -17,6 +18,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
   value,
   onChange,
   className = "",
+  style,
   placeholder = "Nhập nội dung...",
   tag: Tag = "span",
   isEditable = true,
@@ -74,6 +76,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
       onBlur={handleBlur}
       onMouseUp={handleMouseUp}
       onKeyUp={handleKeyUp}
+      style={style}
       className={`outline-none transition-colors duration-150 ${
         isEditable ? "hover:bg-amber-500/10 focus:bg-amber-500/15 focus:ring-1 focus:ring-amber-400/50 rounded-sm" : ""
       } ${className}`}

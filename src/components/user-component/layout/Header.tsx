@@ -19,6 +19,7 @@ import {
   LogOut,
   ChevronDown,
   CreditCard,
+  FileText,
 } from "lucide-react";
 import { toast } from "@/components/user-component/toast";
 import styles from "./Header.module.css";
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { href: "/", label: "HOME" },
   { href: "/practice", label: "MOCK INTERVIEW" },
   { href: "/jobs", label: "JOBS" },
+  { href: "/cv-builder", label: "AI CV BUILDER" },
   { href: "/questions", label: "QUESTION BANK" },
   { href: "/courses", label: "COURSES" },
 ];
@@ -54,6 +56,7 @@ export default function Header() {
       { href: "/", label: lang === "vi" ? "TRANG CHỦ" : "HOME" },
       { href: "/practice", label: lang === "vi" ? "GIẢ LẬP PHỎNG VẤN" : "MOCK INTERVIEW" },
       { href: "/jobs", label: lang === "vi" ? "TÌM VIỆC" : "JOBS" },
+      { href: "/cv-builder", label: lang === "vi" ? "TẠO CV AI" : "AI CV BUILDER" },
       { href: "/questions", label: lang === "vi" ? "NGÂN HÀNG CÂU HỎI" : "QUESTION BANK" },
       { href: "/courses", label: lang === "vi" ? "KHÓA HỌC" : "COURSES" },
     ],
@@ -272,6 +275,18 @@ export default function Header() {
                   <span className={styles.dropdownItemLeft}>
                     <User size={14} className={styles.dropdownItemIcon} />
                     {lang === "vi" ? "Hồ sơ cá nhân" : "My Profile"}
+                  </span>
+                </Link>
+
+                <Link
+                  href="/cv-builder"
+                  className={styles.dropdownItem}
+                  role="menuitem"
+                  onClick={handleCloseMenu}
+                >
+                  <span className={styles.dropdownItemLeft}>
+                    <FileText size={14} className={styles.dropdownItemIcon} />
+                    {lang === "vi" ? "Tạo CV với AI" : "AI CV Builder"}
                   </span>
                 </Link>
 
