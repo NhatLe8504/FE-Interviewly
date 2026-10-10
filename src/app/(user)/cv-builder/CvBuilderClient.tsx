@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { CvDocument, CvTemplateId, CvColorTheme, CvFontFamily, CvAtsScoreResponse } from "@/types/cv";
+import { CvDocument, CvAtsScoreResponse } from "@/types/cv";
 import { cvApi } from "@/services/cvApi";
 import { CvTopBar } from "@/components/cv/CvTopBar";
 import { TemplateRenderer } from "@/components/cv/templates/TemplateRenderer";
@@ -11,15 +11,11 @@ import { AtsScoreWidget } from "@/components/cv/AtsScoreWidget";
 import { AiDraftModal } from "@/components/cv/AiDraftModal";
 import {
   Sparkles,
-  BarChart3,
   Loader2,
   ChevronRight,
   ChevronLeft,
-  FileText,
-  Plus,
-  Briefcase,
-  History,
 } from "lucide-react";
+import s from "./cvBuilder.module.css";
 
 const INITIAL_FALLBACK_CV: CvDocument = {
   id: 0,
@@ -333,9 +329,9 @@ export default function CvBuilderClient() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-3" />
-        <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+      <div className={s.loadingContainer}>
+        <Loader2 className={`${s.loadingSpinner} animate-spin`} style={{ width: 32, height: 32 }} />
+        <p className={s.loadingText}>
           Đang khởi tạo không gian thiết kế CV AI...
         </p>
       </div>
@@ -343,7 +339,7 @@ export default function CvBuilderClient() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col">
+    <div className={s.pageContainer}>
       {/* TOP CONTROL BAR */}
       <CvTopBar
         cv={cv}
@@ -356,12 +352,12 @@ export default function CvBuilderClient() {
       />
 
       {/* WORKSPACE CONTENT AREA */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className={s.workspace}>
         {/* CENTER: Canvas A4 Paper Sheet with zoom scale */}
-        <main className="flex-1 overflow-auto p-4 md:p-8 flex justify-center items-start">
+        <main className={s.canvas}>
           <div
             style={{ transform: `scale(${zoom})`, transformOrigin: "top center" }}
-            className="transition-transform duration-200 w-full flex justify-center"
+            className={s.canvasZoomWrapper}
           >
             <TemplateRenderer
               cv={cv}
@@ -386,21 +382,24 @@ export default function CvBuilderClient() {
 
         {/* RIGHT DRAWER: ATS Analysis & Guidance */}
         <aside
-          className={`print:hidden fixed lg:relative right-0 top-[53px] lg:top-0 h-[calc(100vh-53px)] lg:h-auto z-30 transition-all duration-300 flex ${
-            showAtsSidebar ? "w-80 md:w-96" : "w-0"
-          }`}
+          className={`${s.atsSidebar} ${showAtsSidebar ? s.atsSidebarOpen : s.atsSidebarClosed}`}
+          style={{ display: "none" }}
+          ref={(el) => {
+            // Show after mount to avoid SSR flash
+            if (el) el.style.display = "flex";
+          }}
         >
           {/* Toggle Tab */}
           <button
             onClick={() => setShowAtsSidebar(!showAtsSidebar)}
-            className="absolute -left-9 top-1/2 -translate-y-1/2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-l-xl shadow-lg text-slate-600 dark:text-slate-300 hover:text-blue-600 transition"
+            className={s.atsSidebarToggle}
             title={showAtsSidebar ? "Thu gọn phân tích ATS" : "Mở phân tích ATS"}
           >
-            {showAtsSidebar ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            {showAtsSidebar ? <ChevronRight style={{ width: 16, height: 16 }} /> : <ChevronLeft style={{ width: 16, height: 16 }} />}
           </button>
 
           {/* Sidebar Body */}
-          <div className="w-full h-full bg-slate-50/95 dark:bg-slate-900/95 border-l border-slate-200 dark:border-slate-800 p-4 overflow-y-auto space-y-4">
+          <div className={s.atsSidebarBody}>
             <AtsScoreWidget
               scoreData={atsScoreData}
               score={cv.ats_score}
@@ -410,15 +409,15 @@ export default function CvBuilderClient() {
             />
 
             {/* Quick Tips */}
-            <div className="bg-white/80 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700/60 text-xs space-y-2">
-              <h4 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <div className={s.tipsCard}>
+              <h4 className={s.tipsTitle}>
+                <Sparkles className={s.tipsTitleIcon} style={{ width: 14, height: 14 }} />
                 <span>Mẹo tối ưu hóa với AI</span>
               </h4>
-              <ul className="space-y-1 text-slate-600 dark:text-slate-400 list-disc list-inside">
-                <li>Bôi đen bất kỳ đoạn văn nào để AI viết lại chuẩn STAR có số liệu %.</li>
-                <li>Nhấp trực tiếp vào tên công ty, chức danh, kỹ năng để sửa trực tiếp.</li>
-                <li>Thêm từ khóa còn thiếu từ bảng ATS để tăng tỷ lệ được mời phỏng vấn.</li>
+              <ul className={s.tipsList}>
+                <li className={s.tipsItem}>Bôi đen bất kỳ đoạn văn nào để AI viết lại chuẩn STAR có số liệu %.</li>
+                <li className={s.tipsItem}>Nhấp trực tiếp vào tên công ty, chức danh, kỹ năng để sửa trực tiếp.</li>
+                <li className={s.tipsItem}>Thêm từ khóa còn thiếu từ bảng ATS để tăng tỷ lệ được mời phỏng vấn.</li>
               </ul>
             </div>
           </div>

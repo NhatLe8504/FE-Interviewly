@@ -12,8 +12,30 @@ export default function CvBuilderPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#f8f4ee",
+          }}
+        >
+          <Loader2
+            style={{ width: 32, height: 32, color: "#d98236" }}
+            className="animate-spin"
+          />
+          <p
+            style={{
+              fontSize: 14,
+              color: "#5e5d59",
+              fontWeight: 500,
+              marginTop: 12,
+            }}
+          >
+            Đang khởi tạo không gian thiết kế CV...
+          </p>
         </div>
       }
     >
