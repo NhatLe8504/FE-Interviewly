@@ -1,8 +1,13 @@
 .pageContainer {
   min-height: 100vh;
-  background: #f8f4ee;
+  background:
+    radial-gradient(ellipse 40% 45% at 78% 12%, rgba(255, 239, 190, 0.5) 0%, rgba(255, 219, 165, 0.22) 40%, transparent 70%),
+    radial-gradient(ellipse 45% 55% at 15% 45%, rgba(248, 186, 128, 0.16) 0%, transparent 65%),
+    radial-gradient(ellipse 35% 35% at 85% 85%, rgba(255, 224, 175, 0.2) 0%, transparent 70%),
+    linear-gradient(180deg, #f8f4ee 0%, #f7efe6 30%, #f7eadc 65%, #f5e7d7 100%);
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .loadingContainer {
@@ -30,26 +35,20 @@
   left: 24px;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 40;
+  z-index: 100;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 12px;
+  padding: 10px;
   border-radius: 20px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.06) 45%, rgba(255, 224, 190, 0.12) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.12) 45%, rgba(255, 224, 190, 0.18) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(32px) saturate(220%) brightness(1.06);
   -webkit-backdrop-filter: blur(32px) saturate(220%) brightness(1.06);
-  box-shadow: 0 10px 30px -10px rgba(106, 72, 49, 0.12),
-    inset 0 1px 2px rgba(255, 255, 255, 0.85),
+  box-shadow: 0 10px 30px -10px rgba(106, 72, 49, 0.15),
+    inset 0 1px 2px rgba(255, 255, 255, 0.9),
     inset 0 -1px 2px rgba(255, 224, 190, 0.35);
-  max-height: calc(100vh - 140px);
-  overflow-y: auto;
-  scrollbar-width: none;
-}
-
-.topBar::-webkit-scrollbar {
-  display: none;
+  overflow: visible;
 }
 
 .topBarInner {
@@ -133,14 +132,17 @@
 
 .dropdown {
   position: absolute;
-  left: 0;
-  margin-top: 8px;
-  background: var(--surface-card);
+  left: calc(100% + 14px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
-  box-shadow: 0 12px 32px -4px rgba(45, 31, 23, 0.14);
-  padding: 6px;
-  z-index: 50;
+  box-shadow: 0 16px 40px -4px rgba(45, 31, 23, 0.2), 0 2px 6px rgba(45, 31, 23, 0.06);
+  padding: 8px;
+  z-index: 200;
   animation: dropdownPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -375,7 +377,7 @@
 .canvas {
   flex: 1;
   overflow: auto;
-  padding: 32px 32px 32px 90px;
+  padding: 100px 380px 80px 100px;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -383,111 +385,48 @@
 
 .canvasZoomWrapper {
   transition: transform 200ms ease;
-}
-
-.avatarUpload {
-  position: relative;
-  width: 80px;
-  height: 80px;
-  border-radius: 9999px;
-  border: 2px dashed var(--border-subtle);
-  background: var(--surface-paper);
   display: flex;
-  align-items: center;
   justify-content: center;
-  cursor: pointer;
-  overflow: hidden;
-  transition: all 200ms ease;
 }
 
-.avatarUpload:hover {
-  border-color: var(--accent-deep);
-  background: rgba(217, 130, 54, 0.06);
-}
-
-.avatarUploadImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 9999px;
-}
-
-.avatarUploadPlaceholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  color: var(--ink-muted);
-}
-
-.avatarUploadIcon {
-  width: 20px;
-  height: 20px;
-  color: var(--accent-deep);
-}
-
-.avatarUploadLabel {
-  font-size: 9px;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-.avatarHiddenInput {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.atsSidebar {
+.atsFloatingContainer {
   position: fixed;
-  right: 0;
-  top: 53px;
-  height: calc(100vh - 53px);
-  z-index: 30;
-  transition: width 300ms cubic-bezier(0.16, 1, 0.3, 1);
-  display: flex;
-}
-
-.atsSidebarOpen {
-  width: 320px;
-}
-
-.atsSidebarClosed {
-  width: 0;
-  overflow: hidden;
-}
-
-.atsSidebarBody {
-  width: 100%;
-  height: 100%;
-  background: var(--surface-paper);
-  border-left: 1px solid var(--border-subtle);
-  padding: 16px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.atsSidebarToggle {
-  position: absolute;
-  left: -36px;
+  right: 28px;
   top: 50%;
   transform: translateY(-50%);
-  background: var(--surface-card);
-  border: 1px solid var(--border-subtle);
-  padding: 8px;
-  border-radius: 10px 0 0 10px;
-  cursor: pointer;
-  color: var(--text-secondary);
-  transition: all 180ms ease;
-  box-shadow: -2px 0 8px rgba(45, 31, 23, 0.06);
+  z-index: 50;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.atsSidebarToggle:hover {
-  color: var(--accent-deep);
-  background: var(--surface-subtle);
+.atsMascotWrapper {
+  position: absolute;
+  top: -54px;
+  right: 24px;
+  pointer-events: none;
+  user-select: none;
+  z-index: 10;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 4px 14px rgba(84, 50, 27, 0.18));
+}
+
+.atsFloatingContainer:hover .atsMascotWrapper {
+  transform: translateY(-6px) scale(1.06);
+}
+
+.atsCardWrapper {
+  width: 100%;
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 16px 40px -10px rgba(84, 50, 27, 0.14), 0 2px 6px rgba(84, 50, 27, 0.05);
+  scrollbar-width: thin;
 }
 
 .atsWidget {
@@ -1273,14 +1212,12 @@
   box-shadow: 0 0 0 1px rgba(139, 69, 19, 0.25);
 }
 
-@media (min-width: 1024px) {
-  .atsSidebar {
-    position: relative;
-    top: 0;
-    height: auto;
+@media (max-width: 1300px) {
+  .atsFloatingContainer {
+    display: none;
   }
-  .atsSidebarOpen {
-    width: 384px;
+  .canvas {
+    padding: 90px 40px 80px 90px;
   }
 }
 
@@ -1291,11 +1228,26 @@
 }
 
 @media (max-width: 700px) {
-  .topBarInner {
-    flex-wrap: wrap;
+  .topBar {
+    left: 12px;
   }
   .canvas {
-    padding: 16px;
+    padding: 80px 16px 60px 60px;
+  }
+}
+
+@media print {
+  .topBar,
+  .atsFloatingContainer,
+  .floatingToolbar {
+    display: none !important;
+  }
+  .canvas {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  .pageContainer {
+    background: #ffffff !important;
   }
 }
 
@@ -1305,7 +1257,7 @@
   .controlBtn,
   .saveBtn,
   .aiDraftBtn,
-  .atsSidebar,
+  .atsFloatingContainer,
   .resultApplyBtn,
   .canvasZoomWrapper {
     animation: none;
