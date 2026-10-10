@@ -73,7 +73,13 @@ export function JobCard({ job, onStartPractice, isStarting = false }: JobCardPro
           </a>
         </Button>
         <Button type="button" variant="home-primary" size="home-compact" className={styles.practiceAction} disabled={isStarting} onClick={() => onStartPractice(job)}>
-          {isStarting ? <><Loader2 className="size-4 animate-spin" aria-hidden="true" />Đang chuẩn bị</> : "Luyện phỏng vấn AI"}
+          {isStarting ? (
+            <><Loader2 className="size-4 animate-spin" aria-hidden="true" />{job.has_practice_session ? "Đang mở…" : "Đang chuẩn bị…"}</>
+          ) : job.has_practice_session ? (
+            "Luyện ngay"
+          ) : (
+            "Luyện phỏng vấn AI"
+          )}
         </Button>
       </div>
     </article>

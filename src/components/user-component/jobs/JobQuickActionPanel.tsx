@@ -24,7 +24,13 @@ export function JobQuickActionPanel({ job, onStartPractice, isStarting = false }
         <p className={styles.panelCopy}>Luyện trả lời cùng AI với kịch bản được tạo từ mô tả tuyển dụng, trước khi bước vào buổi phỏng vấn thật.</p>
         <div className={styles.panelButtons}>
           <Button type="button" variant="home-primary" disabled={isStarting} onClick={onStartPractice}>
-            {isStarting ? <><Loader2 className="size-4 animate-spin" aria-hidden="true" />Đang chuẩn bị…</> : "Luyện phỏng vấn AI"}
+            {isStarting ? (
+              <><Loader2 className="size-4 animate-spin" aria-hidden="true" />{job.has_practice_session ? "Đang mở…" : "Đang chuẩn bị…"}</>
+            ) : job.has_practice_session ? (
+              "Luyện ngay"
+            ) : (
+              "Luyện phỏng vấn AI"
+            )}
           </Button>
           <Button asChild variant="home-secondary">
             <a href={job.original_apply_url} target="_blank" rel="noopener noreferrer">Tin gốc & ứng tuyển<ExternalLink className="size-4" aria-hidden="true" /></a>

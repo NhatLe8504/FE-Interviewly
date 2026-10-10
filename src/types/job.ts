@@ -38,6 +38,8 @@ export interface JobItem {
   country_codes?: string[];
   is_global_remote?: boolean;
   company?: JobCompany | null;
+  has_practice_session?: boolean;
+  practice_interview_id?: string | null;
 }
 
 export interface JobDetail extends JobItem {
@@ -99,6 +101,7 @@ export interface StartPracticeResponse {
   interview_id: string;
   job_id: string;
   redirect_url: string;
+  has_existing_session?: boolean;
 }
 
 export interface JobFilterParams {
