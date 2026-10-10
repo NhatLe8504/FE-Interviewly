@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef } from "react";
 
@@ -93,12 +93,12 @@ export function AudioWaveformVisualizer({
         // Gradient bar styling
         const gradient = ctx.createLinearGradient(0, y, 0, y + currentH);
         if (isRecording) {
-          gradient.addColorStop(0, "rgba(255, 122, 69, 0.95)");
-          gradient.addColorStop(0.5, "rgba(255, 77, 79, 0.9)");
-          gradient.addColorStop(1, "rgba(255, 178, 107, 0.8)");
+          gradient.addColorStop(0, "rgba(217, 130, 54, 0.95)");
+          gradient.addColorStop(0.5, "rgba(235, 155, 88, 0.9)");
+          gradient.addColorStop(1, "rgba(245, 180, 124, 0.8)");
         } else {
-          gradient.addColorStop(0, "rgba(160, 170, 185, 0.3)");
-          gradient.addColorStop(1, "rgba(140, 150, 170, 0.15)");
+          gradient.addColorStop(0, "rgba(106, 72, 49, 0.22)");
+          gradient.addColorStop(1, "rgba(106, 72, 49, 0.08)");
         }
 
         ctx.fillStyle = gradient;

@@ -553,7 +553,7 @@ function changeInterviewLanguage(code: string) {
               <span className={styles.timerPill}>
                 <Clock size={11} /> {formatTimer(sessionDurationSeconds)}
               </span>
-              <span>• {persona.name}</span>
+              <span className={styles.personaMetaName}>• {persona.name}</span>
             </div>
 
             {/* TOP CENTER: 3 CHẶNG TRÒN (O)-(O)-(O) */}
@@ -562,7 +562,7 @@ function changeInterviewLanguage(code: string) {
                 const isFinished = idx < currentStageIdx;
                 const isCurrent = idx === currentStageIdx;
                 return (
-                  <div key={stage.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div key={stage.id} className={styles.stepperGroup}>
                     <div
                       className={`${styles.stepCircleItem} ${
                         isCurrent
@@ -576,7 +576,7 @@ function changeInterviewLanguage(code: string) {
                         {isFinished ? (
                           <Check size={10} strokeWidth={3.5} />
                         ) : isCurrent ? (
-                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff" }} />
+                          <span className={styles.stepActiveDot} />
                         ) : (
                           <span>{idx + 1}</span>
                         )}
@@ -865,11 +865,11 @@ function changeInterviewLanguage(code: string) {
               {isVoiceMode ? (
                 voiceDraft.state === "recording" ? (
                   <p className={styles.capsuleStatusText}>
-                    <span style={{ color: "#059669", fontWeight: 750 }}>● Đang thu âm...</span> Lời nói hiển thị trực tiếp trên khung chat. Nói xong bấm Dừng nói.
+                    <span className={styles.statusDotRecording}>● Đang thu âm...</span> Lời nói hiển thị trực tiếp trên khung chat. Nói xong bấm Dừng nói.
                   </p>
                 ) : voiceDraft.state === "review" ? (
                   <p className={styles.capsuleStatusText}>
-                    <span style={{ color: "#d98236", fontWeight: 750 }}>✓ Đã có bản thu:</span> Xem lại trên khung chat và bấm &quot;Xác nhận gửi&quot;.
+                    <span className={styles.statusDotReview}>✓ Đã có bản thu:</span> Xem lại trên khung chat và bấm &quot;Xác nhận gửi&quot;.
                   </p>
                 ) : (
                   <p className={styles.capsuleStatusText}>
@@ -1159,7 +1159,7 @@ function changeInterviewLanguage(code: string) {
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   <button
                     type="button"
-                    style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(106,72,49,0.2)", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, fontWeight: 700 }}
+                    className={styles.settingsActionBtn}
                     onClick={() => {
                       rerollQuestion();
                       setIsSettingsOpen(false);
@@ -1171,7 +1171,7 @@ function changeInterviewLanguage(code: string) {
                   </button>
                   <button
                     type="button"
-                    style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(106,72,49,0.2)", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, fontWeight: 700 }}
+                    className={styles.settingsActionBtn}
                     onClick={() => {
                       skipToNextStage();
                       setIsSettingsOpen(false);
@@ -1183,7 +1183,7 @@ function changeInterviewLanguage(code: string) {
                   </button>
                   <button
                     type="button"
-                    style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(217,130,54,0.3)", background: "#fff7ed", color: "#8b4513", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, fontWeight: 700 }}
+                    className={styles.settingsStarBtn}
                     onClick={() => {
                       setIsSettingsOpen(false);
                       setIsStarOpen(true);
