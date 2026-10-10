@@ -186,6 +186,8 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
   const questionBankLanguage = "vi";
   const [language, setLanguage] = useState<InterviewLanguage>(locale);
   const [bargeInEnabled, setBargeInEnabled] = useState(false);
+  const [totalDurationMinutes, setTotalDurationMinutes] = useState<number>(interview?.durationMinutes || 45);
+  const [mockMode, setMockMode] = useState<"strict" | "guided">("guided");
   const [stageSourceModes, setStageSourceModes] = useState(DEFAULT_STAGE_SOURCE_MODES);
   const [stageTurns, setStageTurns] = useState(DEFAULT_STAGE_TURN_BUDGETS);
   const [stageSelectedQuestions, setStageSelectedQuestions] = useState(DEFAULT_STAGE_QUESTION_SELECTIONS);
@@ -271,6 +273,8 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
             mode,
             voice: cachedVoice,
             bargeInEnabled,
+            totalDurationMinutes,
+            mockMode,
             selected_stages: selectedStages,
             stage_configs: stageConfigs,
             selected_question_ids: selectedQuestionIds,
@@ -341,6 +345,10 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
             onLanguageChange={setLanguage}
             bargeInEnabled={bargeInEnabled}
             onBargeInChange={setBargeInEnabled}
+            totalDurationMinutes={totalDurationMinutes}
+            onTotalDurationMinutesChange={setTotalDurationMinutes}
+            mockMode={mockMode}
+            onMockModeChange={setMockMode}
           />
 
           <StageConfigEditor
@@ -349,9 +357,9 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
             sourceModes={stageSourceModes}
             turnBudgets={stageTurns}
             selectedQuestionIds={stageSelectedQuestions}
+            totalDurationMinutes={totalDurationMinutes}
             onToggleStage={toggleStage}
             onSourceModesChange={setStageSourceModes}
-            onTurnBudgetsChange={setStageTurns}
             onChooseQuestions={setSelectingStageKey}
           />
 
@@ -359,6 +367,7 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
             stageDefinitions={STAGE_DEFINITIONS}
             selectedStages={selectedStages}
             totalTurns={getTotalTurnBudget(stageConfigs)}
+            totalDurationMinutes={totalDurationMinutes}
             isLaunching={isLaunching}
             isPlanValid={!planValidationError}
             validationMessage={planValidationError}

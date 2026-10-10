@@ -47,9 +47,84 @@
 .setupHeader h1 { margin: 0; color: var(--ink); font-size: 26px; line-height: 1.5; font-weight: 500; letter-spacing: -0.04em; }
 .setupHeader p { margin: 5px 0 0; color: var(--ink-soft); font-size: 14px; line-height: 1.65; }
 
-.preferencePanel { display: flex; flex-direction: column; gap: 12px; }
+.preferencePanel { display: flex; flex-direction: column; gap: 14px; }
 .sectionLabel { margin: 0; }
 .preferenceGrid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+
+.durationGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.timelineBar {
+  display: flex;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  gap: 2px;
+  background: var(--line);
+  margin-top: 8px;
+}
+
+.timelineSegmentWarmup {
+  background: #38bdf8;
+  height: 100%;
+}
+
+.timelineSegmentTech {
+  background: #f59e0b;
+  height: 100%;
+}
+
+.timelineSegmentClosing {
+  background: #10b981;
+  height: 100%;
+}
+
+.timelineLegend {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.mockModeGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.mockModeCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-subtle);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.mockModeCardActive {
+  border-color: #d98236;
+  background: rgba(217, 130, 54, 0.08);
+}
+
+.mockModeCard strong {
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.mockModeCard small {
+  font-size: 11px;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
 .bargeInControl { display: flex; align-items: flex-start; gap: 12px; min-height: 56px; padding: 14px 16px; background: var(--surface-subtle); color: var(--accent-deep); cursor: pointer; }
 .bargeInControl input { margin: 3px 0 0; accent-color: #d98236; }
 .bargeInControl span { display: flex; flex-direction: column; gap: 2px; }
