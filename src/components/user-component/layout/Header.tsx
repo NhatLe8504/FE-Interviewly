@@ -38,6 +38,16 @@ function isActive(pathname: string, href: string) {
 
 export default function Header() {
   const pathname = usePathname();
+  const isPracticeRoom =
+    Boolean(pathname?.startsWith("/practice/")) &&
+    pathname !== "/practice" &&
+    pathname !== "/practice/new" &&
+    !pathname?.endsWith("/result") &&
+    !pathname?.endsWith("/report");
+
+  if (isPracticeRoom) {
+    return null;
+  }
   const { user, isAuthenticated, logout } = useAuth();
   const { locale: lang, toggleLocale: toggleLang } = useI18n();
   const { isSubscribed } = useUserSubscription();
