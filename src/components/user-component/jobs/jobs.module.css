@@ -289,16 +289,11 @@
 }
 
 .engineDot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 9999px;
-  background: var(--text-secondary);
-  opacity: 0.45;
-}
-
-.engineDotJev {
-  background: var(--accent-deep);
-  opacity: 1;
+  background: var(--accent-deep, #ff6b35);
+  box-shadow: 0 0 6px rgba(255, 107, 53, 0.4);
 }
 
 .recommendedSkills {

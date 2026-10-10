@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { CheckCircle2, AlertCircle, HelpCircle, Loader2, RefreshCw, ExternalLink, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandIcon } from "@/components/user-component/common/BrandIcon";
@@ -39,7 +39,7 @@ export function JobSkillMatchWidget({ job, onStartPractice, isStarting = false }
     ready: "Đạt chuẩn ứng tuyển",
     almost: "Gần đạt yêu cầu",
     not_ready: "Cần cải thiện thêm",
-    insufficient_data: "Chưa đủ dữ liệu",
+    insufficient_data: "Chưa đủ kỹ năng",
   };
 
   const verdictClass: Record<string, string> = {
@@ -62,6 +62,33 @@ export function JobSkillMatchWidget({ job, onStartPractice, isStarting = false }
     gap: styles.statusGap,
     unknown: styles.statusUnknown,
   };
+
+  const formattedExplanation = useMemo(() => {
+    if (!assessment) return "";
+    let text = assessment.explanation || "";
+
+    // Ẩn hoàn toàn tên công nghệ / engine nội bộ đằng sau
+    text = text.replace(/TypeSafe Jev System One/gi, "Interviewly AI");
+    text = text.replace(/Jev System One/gi, "Interviewly AI");
+    text = text.replace(/TypeSafe Jev/gi, "Interviewly AI");
+    text = text.replace(/Jev\s+/gi, "Interviewly AI ");
+    text = text.replace(/\(độ tin cậy \d+%\)\.?/gi, "");
+
+    // Xử lý các câu mơ hồ, mâu thuẫn từ dữ liệu cũ (ví dụ: đạt 0% độ tin cậy 100%, bằng chứng còn ít...)
+    if (
+      assessment.match_percent === 0 ||
+      assessment.verdict === "insufficient_data" ||
+      text.includes("đạt 0%") ||
+      text.includes("Bằng chứng kiểm chứng còn ít") ||
+      text.includes("chưa có đủ dữ liệu")
+    ) {
+      const recIndex = text.indexOf("Ưu tiên luyện tập:");
+      const recPart = recIndex !== -1 ? text.slice(recIndex) : "";
+      text = `Interviewly AI đánh giá bạn chưa có kỹ năng để ứng tuyển vị trí này. Hãy hoàn thành các buổi luyện tập phỏng vấn theo các kỹ năng yêu cầu bên dưới để nâng cao độ phù hợp. ${recPart}`.trim();
+    }
+
+    return text;
+  }, [assessment]);
 
   return (
     <section className={styles.readinessPanel} aria-label="Kiểm tra mức độ phù hợp với JD">
@@ -96,8 +123,8 @@ export function JobSkillMatchWidget({ job, onStartPractice, isStarting = false }
       ) : assessment ? (
         <>
           <div className={styles.readinessScoreRow}>
-            {assessment.verdict === "insufficient_data" && assessment.match_percent === 0 ? (
-              <span className={styles.readinessScoreBig} style={{ fontSize: "22px" }}>Chưa đủ dữ liệu</span>
+            {assessment.match_percent === 0 || assessment.verdict === "insufficient_data" ? (
+              <span className={styles.readinessScoreBig} style={{ fontSize: "20px" }}>Chưa có kỹ năng phù hợp</span>
             ) : (
               <>
                 <strong className={styles.readinessScoreBig}>{assessment.match_percent}%</strong>
@@ -124,18 +151,11 @@ export function JobSkillMatchWidget({ job, onStartPractice, isStarting = false }
             <strong>{Math.round(assessment.data_coverage * 100)}%</strong>
           </div>
 
-          <p className={styles.readinessExplanation}>{assessment.explanation}</p>
+          <p className={styles.readinessExplanation}>{formattedExplanation}</p>
 
           <div className={styles.engineRow}>
-            <span
-              className={`${styles.engineDot} ${assessment.analysis_engine === "jev" ? styles.engineDotJev : ""}`}
-              aria-hidden="true"
-            />
-            <span>
-              {assessment.analysis_engine === "jev"
-                ? "Phân tích bởi TypeSafe Jev System One"
-                : "Phân tích bằng thuật toán nội bộ của Interviewly"}
-            </span>
+            <span className={styles.engineDot} aria-hidden="true" />
+            <span>Đánh giá bởi Interviewly AI</span>
           </div>
 
           {assessment.requirements.length > 0 && (
