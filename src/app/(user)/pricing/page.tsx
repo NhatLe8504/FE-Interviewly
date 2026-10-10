@@ -190,7 +190,7 @@ export default function PricingPage() {
         {/* Billing cycle toggle */}
         <div className={styles.toggleContainer}>
           <div className={styles.mascotBadgeWrap}>
-            <PageMascot size={52} />
+            <PageMascot size={68} />
           </div>
           <div className={styles.toggleWrapper} role="tablist" aria-label="Chu kỳ thanh toán">
             <button

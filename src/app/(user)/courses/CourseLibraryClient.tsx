@@ -149,7 +149,7 @@ export default function CourseLibraryClient() {
         <div className={styles.filterBar}>
           {/* Mascot con mèo/con bot đứng phía trên bên phải của thanh tìm kiếm */}
           <div className={styles.mascotBadgeWrap}>
-            <PageMascot size={52} />
+            <PageMascot size={68} />
           </div>
 
           <div className={styles.searchRow}>

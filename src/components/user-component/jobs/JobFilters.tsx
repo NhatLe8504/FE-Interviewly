@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BrandIcon } from "@/components/user-component/common/BrandIcon";
 import { SimpleUserSelect } from "@/components/user-component/common";
+import { PageMascot } from "@/components/user-component/common/PageMascot";
 import { getBrandLabel } from "@/lib/brand-icons";
 import { SENIORITY_LABELS, WORKPLACE_LABELS } from "@/lib/job-presentation";
 import styles from "./jobs.module.css";
@@ -78,6 +79,10 @@ export function JobFilters({
               <X className="size-4" aria-hidden="true" />
             </Button>
           )}
+          {/* Con mèo nằm ở góc bên phải trên thanh tìm kiếm */}
+          <div className={styles.searchMascotWrap}>
+            <PageMascot size={64} />
+          </div>
         </div>
         {hasActiveFilters && <Button type="button" variant="home-quiet" size="home-compact" onClick={onResetFilters}>Xóa bộ lọc</Button>}
       </div>

@@ -441,8 +441,8 @@ export default function QuestionExplorerClient() {
         {/* Search & Filter Controls Section: Tìm kiếm dòng trên, Selects dòng dưới */}
         <div className="relative space-y-3 pt-3 border-t border-[var(--border-subtle)]">
           {/* Con mèo absolute bên phải, đứng trên đường gạch ngang */}
-          <div className="absolute -top-[48px] right-6 sm:right-10 pointer-events-none select-none">
-            <PageMascot size={52} />
+          <div className="absolute -top-[62px] right-6 sm:right-10 pointer-events-none select-none">
+            <PageMascot size={68} />
           </div>
 
           {/* Dòng trên: Thanh tìm kiếm */}

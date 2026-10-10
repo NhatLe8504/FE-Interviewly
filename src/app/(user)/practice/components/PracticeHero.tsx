@@ -27,7 +27,7 @@ export function PracticeHero() {
         </ol>
       </aside>
       <div className={styles.mascotOnLine}>
-        <PageMascot size={52} />
+        <PageMascot size={68} />
       </div>
     </section>
   );
