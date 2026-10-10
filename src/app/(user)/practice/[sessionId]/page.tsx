@@ -88,17 +88,24 @@ export default function InterviewRoomPage({
 
   const isVoiceMode = currentMode === "voice";
 
-  // Fetch Voice & STT Options
+// Fetch Voice & STT Options (tự động lọc theo ngôn ngữ & hỗ trợ giọng đa ngôn ngữ)
   useEffect(() => {
     let isSubscribed = true;
     voiceApi
-      .getVoiceOptions()
+      .getVoiceOptions(language)
       .then((res) => {
         if (!isSubscribed) return;
         setVoiceOptions(res);
-        const def = res.voices.find((v) => v.is_default);
-        if (def && !meta.voice) {
-          setSelectedVoice(def.id);
+        const isCurrentVoiceCompatible = res.voices.some((v) => v.id === selectedVoice);
+        if (!isCurrentVoiceCompatible && res.voices.length > 0) {
+          const def = res.voices.find((v) => v.is_default && !v.is_locked) || res.voices[0];
+          if (def) {
+            setSelectedVoice(def.id);
+            changeVoice(def.id);
+          }
+        } else if (!meta.voice) {
+          const def = res.voices.find((v) => v.is_default);
+          if (def) setSelectedVoice(def.id);
         }
       })
       .catch((err) => {
@@ -107,7 +114,7 @@ export default function InterviewRoomPage({
     return () => {
       isSubscribed = false;
     };
-  }, [meta.voice]);
+  }, [language, meta.voice]);
 
   // Load session meta from sessionStorage
   useEffect(() => {
@@ -304,24 +311,52 @@ export default function InterviewRoomPage({
     }
   };
 
-  // Audio Replay Player Toggle
-  const togglePlayAudio = (key: string, url: string) => {
+// Audio Replay Player Toggle (chuẩn hóa URL blob, relative và origin để phát lại mượt mà)
+  const togglePlayAudio = (key: string, rawUrl: string) => {
+    if (!rawUrl) return;
     if (playingAudioKey === key) {
       if (audioPlayerRef.current) {
         audioPlayerRef.current.pause();
+        audioPlayerRef.current = null;
       }
       setPlayingAudioKey(null);
       return;
     }
     if (audioPlayerRef.current) {
       audioPlayerRef.current.pause();
+      audioPlayerRef.current = null;
     }
-    const audio = new Audio(url);
-    audioPlayerRef.current = audio;
-    setPlayingAudioKey(key);
-    audio.onended = () => setPlayingAudioKey(null);
-    audio.onerror = () => setPlayingAudioKey(null);
-    audio.play().catch(() => setPlayingAudioKey(null));
+
+    const resolvedUrl =
+      rawUrl.startsWith("blob:") ||
+      rawUrl.startsWith("data:") ||
+      rawUrl.startsWith("http://") ||
+      rawUrl.startsWith("https://")
+        ? rawUrl
+        : `${window.location.origin}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
+
+    try {
+      const audio = new Audio(resolvedUrl);
+      audioPlayerRef.current = audio;
+      setPlayingAudioKey(key);
+      audio.onended = () => {
+        setPlayingAudioKey(null);
+        audioPlayerRef.current = null;
+      };
+      audio.onerror = (e) => {
+        console.warn("Audio playback error on url:", resolvedUrl, e);
+        setPlayingAudioKey(null);
+        audioPlayerRef.current = null;
+      };
+      audio.play().catch((err) => {
+        console.warn("audio.play() failed:", err);
+        setPlayingAudioKey(null);
+        audioPlayerRef.current = null;
+      });
+    } catch (err) {
+      console.warn("Failed to initialize Audio element:", err);
+      setPlayingAudioKey(null);
+    }
   };
 
   // Auto scroll khung chat chung xuong tin nhan moi nhat
@@ -631,6 +666,26 @@ export default function InterviewRoomPage({
                         </button>
                       ) : (
                         <>
+{voiceDraft.audioUrl && (
+                            <button
+                              type="button"
+                              className={styles.btnPreviewSecondary}
+                              onClick={() => togglePlayAudio("preview-draft", voiceDraft.audioUrl!)}
+                              title="Nghe lại giọng nói vừa thu"
+                            >
+                              {playingAudioKey === "preview-draft" ? (
+                                <>
+                                  <Square size={11} fill="currentColor" />
+                                  <span>Dừng</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Play size={11} fill="currentColor" />
+                                  <span>Nghe lại</span>
+                                </>
+                              )}
+                            </button>
+                          )}
                           <button
                             type="button"
                             className={`${styles.btnPreviewSecondary} ${styles.btnPreviewDanger}`}
@@ -894,26 +949,31 @@ export default function InterviewRoomPage({
                     </span>
                   )}
                 </div>
-                <SimpleUserSelect
+<SimpleUserSelect
                   id="settings-voice-select"
                   value={selectedVoice}
                   disabled={!canSendText}
                   onChange={handleVoiceChange}
                   options={(voiceOptions?.voices || [
-                    { id: "vi-VN-HoaiMyNeural", name: "Hoài My (Nữ - Edge)", is_locked: false },
-                    { id: "vi-VN-NamMinhNeural", name: "Nam Minh (Nam - Edge)", is_locked: false },
-                    { id: "JBFqnCBsd6RMkjVDRZzb", name: "George (Nam - ElevenLabs)", is_locked: true },
-                    { id: "EXAVITQu4vr4xnSDxMaL", name: "Sarah (Nữ - ElevenLabs)", is_locked: true },
-                    { id: "pNInz6obpgDQGcFmaJgB", name: "Adam (Nam - ElevenLabs)", is_locked: true },
-                    { id: "TX3LPaxmHKxFdv7VOQHJ", name: "Liam (Nam - ElevenLabs)", is_locked: true },
-                    { id: "pFZP5JQG7iQjIQuC4Bku", name: "Lily (Nữ - ElevenLabs)", is_locked: true },
-                    { id: "Xb7hH8MSUJpSbSDYk0k2", name: "Alice (Nữ - ElevenLabs)", is_locked: true },
+                    { id: "vi-VN-HoaiMyNeural", name: "Hoài My (Nữ - Tiếng Việt)", is_locked: false },
+                    { id: "vi-VN-NamMinhNeural", name: "Nam Minh (Nam - Tiếng Việt)", is_locked: false },
+                    { id: "JBFqnCBsd6RMkjVDRZzb", name: "George (Tech Leader • Song ngữ Anh - Việt)", is_locked: true },
+                    { id: "EXAVITQu4vr4xnSDxMaL", name: "Sarah (Chuyên gia • Song ngữ Anh - Việt)", is_locked: true },
+                    { id: "pNInz6obpgDQGcFmaJgB", name: "Adam (Executive • Đa ngôn ngữ)", is_locked: true },
+                    { id: "TX3LPaxmHKxFdv7VOQHJ", name: "Liam (Startup • Đa ngôn ngữ)", is_locked: true },
+                    { id: "pFZP5JQG7iQjIQuC4Bku", name: "Lily (Warm • Đa ngôn ngữ)", is_locked: true },
+                    { id: "Xb7hH8MSUJpSbSDYk0k2", name: "Alice (Professional • Đa ngôn ngữ)", is_locked: true },
                   ]).map((v) => ({
                     value: v.id,
                     label: `${v.is_locked ? "🔒 [Pro] " : ""}${v.name}`,
                   }))}
                   aria-label="AI Voice"
                 />
+                <p className={styles.settingsHelper}>
+                  {language === "vi"
+                    ? "Tự động ưu tiên giọng tiếng Việt và giọng đa ngôn ngữ (xử lý tự nhiên khi câu hỏi chứa thuật ngữ tiếng Anh)."
+                    : "Giọng đọc tương thích với ngôn ngữ phỏng vấn đã chọn."}
+                </p>
               </div>
 
               {/* Bộ nhận diện giọng nói (STT) */}
