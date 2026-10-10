@@ -29,6 +29,7 @@ import type { StageConfigIn } from "@/types/interview";
 import { ChromaVideoCanvas } from "./components/ChromaVideoCanvas";
 import { AudioWaveformVisualizer } from "./components/AudioWaveformVisualizer";
 import { StarGuidanceDrawer } from "./components/StarGuidanceDrawer";
+import { StageTransitionDialog } from "./components/StageTransitionDialog";
 import { SimpleUserSelect } from "@/components/user-component/common";
 import { voiceApi, type VoiceOptionsResponse } from "@/services/voiceApi";
 import { toast } from "@/components/user-component/toast/UserToast";
@@ -49,6 +50,9 @@ interface SessionMetaStored {
   stage_configs?: StageConfigIn[];
   totalQuestions?: number;
   voice?: string;
+  totalDurationMinutes?: number;
+  mockMode?: "strict" | "guided";
+  selected_question_ids?: string[];
 }
 
 const PREFERRED_VOICE_STORAGE_KEY = "interviewly_preferred_voice";
@@ -200,6 +204,28 @@ export default function InterviewRoomPage({
   const level = meta.levelLabel || "Senior";
   const selectedStages = useMemo(() => meta.selected_stages || ["warmup", "technical", "closing"], [meta.selected_stages]);
 
+  // Persona Character setup
+  const isLeadLevel =
+    level.toLowerCase().includes("lead") ||
+    level.toLowerCase().includes("staff") ||
+    level.toLowerCase().includes("architect");
+
+  const persona = isLeadLevel
+    ? {
+        name: "Marcus Chen",
+        title: `${roleName} • Lead Panelist`,
+        avatarUrl:
+          "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80",
+        videoUrl: "/videos/leader.mp4",
+      }
+    : {
+        name: "Alex Vance",
+        title: `${roleName} • Senior Interviewer`,
+        avatarUrl:
+          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
+        videoUrl: "/videos/senior.mp4",
+      };
+
   // Realtime Voice Interview Hook
   const {
     isConnected,
@@ -227,6 +253,18 @@ export default function InterviewRoomPage({
     changeVoice,
     changePitch,
     updateTurnAudioUrl,
+    // Adaptive 3-Stage Transition & Hint State
+    pendingTransition,
+    confirmStageTransition,
+    deferStageTransition,
+    currentHint,
+    isRequestingHint,
+    requestHint,
+    clearHint,
+    mockMode,
+    changeMockMode,
+    stageElapsedSeconds,
+    stageMaxSeconds,
   } = useRealtimeVoiceInterview({
     sessionId,
     enabled: isClientMounted,
@@ -237,6 +275,11 @@ export default function InterviewRoomPage({
     pitch: selectedPitch >= 0 ? `+${selectedPitch}Hz` : `${selectedPitch}Hz`,
     selectedStages,
     stageConfigs: meta.stage_configs,
+    selectedQuestionIds: meta.selected_question_ids,
+    personaName: persona.name,
+    companyName: meta.companyName,
+    mockMode: meta.mockMode || "guided",
+    totalDurationMinutes: meta.totalDurationMinutes || 45,
     bargeInInitial: meta.bargeInEnabled ?? false,
   });
 
@@ -355,28 +398,6 @@ function changeInterviewLanguage(code: string) {
       sessionStorage.setItem(`session_metadata_${sessionId}`, JSON.stringify(updated));
     } catch {}
   }
-
-  // Persona Character setup
-  const isLeadLevel =
-    level.toLowerCase().includes("lead") ||
-    level.toLowerCase().includes("staff") ||
-    level.toLowerCase().includes("architect");
-
-  const persona = isLeadLevel
-    ? {
-        name: "Marcus Chen",
-        title: `${roleName} • Lead Panelist`,
-        avatarUrl:
-          "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80",
-        videoUrl: "/videos/leader.mp4",
-      }
-    : {
-        name: "Alex Vance",
-        title: `${roleName} • Senior Interviewer`,
-        avatarUrl:
-          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
-        videoUrl: "/videos/senior.mp4",
-      };
 
   const formatTimer = (totalSec: number) => {
     const mins = Math.floor(totalSec / 60);
@@ -554,6 +575,18 @@ function changeInterviewLanguage(code: string) {
                 <Clock size={11} /> {formatTimer(sessionDurationSeconds)}
               </span>
               <span className={styles.personaMetaName}>• {persona.name}</span>
+              <span
+                className={`${styles.modeBadgePill} ${
+                  mockMode === "strict" ? styles.modeBadgeStrict : styles.modeBadgeGuided
+                }`}
+                title={
+                  mockMode === "strict"
+                    ? "Chế độ thực chiến: AI phản biện sâu theo level, không có gợi ý"
+                    : "Chế độ huấn luyện: Có hỗ trợ gợi ý STAR khi cần"
+                }
+              >
+                {mockMode === "strict" ? "Thực chiến" : "Huấn luyện"}
+              </span>
             </div>
 
             {/* TOP CENTER: 3 CHẶNG TRÒN (O)-(O)-(O) */}
@@ -856,6 +889,28 @@ function changeInterviewLanguage(code: string) {
               <div className={styles.aiNameText}>{persona.name}</div>
             </div>
           </div>
+
+          {/* Floating STAR coaching hint card */}
+          {currentHint && (
+            <div className={styles.hintFloatingCard}>
+              <div className={styles.hintCardHeader}>
+                <div className={styles.hintTitleBox}>
+                  <Sparkles size={14} />
+                  <span>Gợi ý STAR từ Huấn luyện viên AI</span>
+                </div>
+                <button
+                  type="button"
+                  className={styles.hintCloseBtn}
+                  onClick={clearHint}
+                  title="Đóng gợi ý"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+              <div className={styles.hintContent}>{currentHint}</div>
+            </div>
+          )}
+
           {/* =========================================================
               BOTTOM ROW: THANH ĐIỀU KHIỂN BO TRÒN THEO PHÁC THẢO [  INPUT  ] [O] [O] [O]
           ========================================================= */}
@@ -980,6 +1035,19 @@ function changeInterviewLanguage(code: string) {
               >
                 {isAudioMuted ? <VolumeX size={16} color="#dc2626" /> : <Volume2 size={16} />}
               </button>
+
+              {/* Nút STAR Coaching Hint (chỉ hiển thị khi ở chế độ Huấn luyện Guided) */}
+              {mockMode === "guided" && (
+                <button
+                  type="button"
+                  className={`${styles.roundActionBtn} ${styles.btnStarHint}`}
+                  onClick={requestHint}
+                  disabled={!canAnswer || isRequestingHint}
+                  title={isRequestingHint ? "Đang phân tích câu hỏi để tạo gợi ý STAR..." : "Xin gợi ý cấu trúc STAR từ Huấn luyện viên AI"}
+                >
+                  <Sparkles size={16} />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1153,6 +1221,34 @@ function changeInterviewLanguage(code: string) {
 
               <div className={styles.settingsDivider} />
 
+              {/* Chế độ Mock Interview */}
+              <div className={styles.settingsSection}>
+                <label className={styles.settingsSectionLabel}>Chế độ Mock Interview</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    className={`${styles.pitchQuickBtn} ${mockMode === "guided" ? styles.pitchQuickBtnActive : ""}`}
+                    onClick={() => changeMockMode("guided")}
+                  >
+                    Huấn luyện (Guided)
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.pitchQuickBtn} ${mockMode === "strict" ? styles.pitchQuickBtnActive : ""}`}
+                    onClick={() => changeMockMode("strict")}
+                  >
+                    Thực chiến (Strict)
+                  </button>
+                </div>
+                <p className={styles.settingsHelper}>
+                  {mockMode === "strict"
+                    ? "Thực chiến: Áp lực cao, không có gợi ý, AI phản biện sâu bám sát CV & JD."
+                    : "Huấn luyện: Hỗ trợ nút xin gợi ý STAR khi bạn cần hướng dẫn trả lời."}
+                </p>
+              </div>
+
+              <div className={styles.settingsDivider} />
+
               {/* Điều khiển phiên */}
               <div className={styles.settingsSection}>
                 <label className={styles.settingsSectionLabel}>Thao tác phiên</label>
@@ -1223,6 +1319,14 @@ function changeInterviewLanguage(code: string) {
           setTypedText((prev) => (prev ? `${prev}\n\n${starter}` : starter));
           setIsStarOpen(false);
         }}
+      />
+
+      {/* Adaptive 3-Stage Transition Confirmation Modal */}
+      <StageTransitionDialog
+        proposal={pendingTransition}
+        onConfirm={confirmStageTransition}
+        onDefer={deferStageTransition}
+        mockMode={mockMode}
       />
     </div>
   );
