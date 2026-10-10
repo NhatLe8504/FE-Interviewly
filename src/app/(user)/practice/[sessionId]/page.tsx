@@ -1,42 +1,45 @@
-﻿"use client";
+"use client";
 
-import { use, useEffect, useState, useMemo, useCallback, KeyboardEvent } from "react";
+import { use, useEffect, useState, useMemo, useCallback, useRef, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
   Mic,
   Keyboard,
   Send,
-  StopCircle,
   Clock,
   Check,
   BrainCircuit,
   Volume2,
   VolumeX,
   Loader2,
-  ChevronRight,
   Wifi,
   WifiOff,
   AlertCircle,
   FastForward,
   RotateCcw,
+  Settings,
+  X,
+  Play,
+  Square,
+  Coffee,
+  Briefcase,
+  Handshake,
+  Bot,
+  User,
+  Trash2,
 } from "lucide-react";
 import { useRealtimeVoiceInterview } from "@/hooks/useRealtimeVoiceInterview";
 import { useVoiceAnswerDraft } from "@/hooks/useVoiceAnswerDraft";
 import type { StageConfigIn } from "@/types/interview";
 import { ChromaVideoCanvas } from "./components/ChromaVideoCanvas";
-import { voiceApi, type VoiceOptionItem, type VoiceOptionsResponse } from "@/services/voiceApi";
-import { toast } from "@/components/user-component/toast/UserToast";
-import { VoiceAnswerPanel } from "./components/VoiceAnswerPanel";
-import { InterviewStagesTimeline } from "./components/InterviewStagesTimeline";
+import { AudioWaveformVisualizer } from "./components/AudioWaveformVisualizer";
 import { StarGuidanceDrawer } from "./components/StarGuidanceDrawer";
 import { SimpleUserSelect } from "@/components/user-component/common";
-import { ConversationTimelineDrawer } from "./components/ConversationTimelineDrawer";
-import { UserTooltip } from "@/components/user-component/common";
-import { Button } from "@/components/ui/button";
+import { voiceApi, type VoiceOptionItem, type VoiceOptionsResponse } from "@/services/voiceApi";
+import { toast } from "@/components/user-component/toast/UserToast";
 import { useI18n } from "@/context/I18nContext";
 import { INTERVIEW_LANGUAGES, getInterviewLanguage, type InterviewLanguage } from "@/lib/interviewLanguages";
-import { Lock } from "lucide-react";
 import styles from "./interviewRoom.module.css";
 
 interface SessionMetaStored {
@@ -51,27 +54,69 @@ interface SessionMetaStored {
   selected_stages?: string[];
   stage_configs?: StageConfigIn[];
   totalQuestions?: number;
+  voice?: string;
 }
+
+const THREE_STAGES = [
+  { id: "warmup", label: "Khởi động", icon: Coffee },
+  { id: "technical", label: "Chuyên môn", icon: Briefcase },
+  { id: "closing", label: "Chào kết", icon: Handshake },
+];
 
 export default function InterviewRoomPage({
   params,
 }: {
   params: Promise<{ sessionId: string }>;
 }) {
-  const { sessionId } = use(params);
   const router = useRouter();
+  const { sessionId } = use(params);
   const { locale } = useI18n();
 
   const [isClientMounted, setIsClientMounted] = useState(false);
-  const [voiceOptions, setVoiceOptions] = useState<VoiceOptionsResponse | null>(null);
-  const [selectedVoice, setSelectedVoice] = useState<string>("vi-VN-HoaiMyNeural");
-  const [selectedSttEngine, setSelectedSttEngine] = useState<string>("browser-speech-api");
   const [meta, setMeta] = useState<SessionMetaStored>({});
   const [currentMode, setCurrentMode] = useState<"voice" | "text">("voice");
   const [language, setLanguage] = useState<InterviewLanguage>("vi");
   const [typedText, setTypedText] = useState("");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isStarOpen, setIsStarOpen] = useState(false);
+
+  // Voice & STT Tiering states
+  const [voiceOptions, setVoiceOptions] = useState<VoiceOptionsResponse | null>(null);
+  const [selectedVoice, setSelectedVoice] = useState<string>("vi-VN-HoaiMyNeural");
+  const [selectedSttEngine, setSelectedSttEngine] = useState<string>("browser-speech-api");
+
+  // Audio replay in Messenger feeds
+  const [playingAudioKey, setPlayingAudioKey] = useState<string | null>(null);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+
+  // Auto-scroll refs
+  const aiScrollRef = useRef<HTMLDivElement | null>(null);
+  const userScrollRef = useRef<HTMLDivElement | null>(null);
+
   const isVoiceMode = currentMode === "voice";
 
+  // Fetch Voice & STT Options
+  useEffect(() => {
+    let isSubscribed = true;
+    voiceApi
+      .getVoiceOptions()
+      .then((res) => {
+        if (!isSubscribed) return;
+        setVoiceOptions(res);
+        const def = res.voices.find((v) => v.is_default);
+        if (def && !meta.voice) {
+          setSelectedVoice(def.id);
+        }
+      })
+      .catch((err) => {
+        console.warn("Failed to load voice options:", err);
+      });
+    return () => {
+      isSubscribed = false;
+    };
+  }, [meta.voice]);
+
+  // Load session meta from sessionStorage
   useEffect(() => {
     const initialLanguage = new URL(window.location.href).searchParams.get("language") ?? "vi";
     try {
@@ -81,6 +126,7 @@ export default function InterviewRoomPage({
         setMeta(stored);
         setCurrentMode(stored.mode === "text" ? "text" : "voice");
         setLanguage(getInterviewLanguage(stored.language ?? (stored.languageLabel === "English" ? "en" : initialLanguage)).code);
+        if (stored.voice) setSelectedVoice(stored.voice);
       } else {
         setLanguage(getInterviewLanguage(initialLanguage).code);
       }
@@ -94,11 +140,10 @@ export default function InterviewRoomPage({
   const level = meta.levelLabel || "Senior";
   const selectedStages = useMemo(() => meta.selected_stages || ["warmup", "technical", "closing"], [meta.selected_stages]);
 
-  // Realtime Voice Interview Hook (WebSocket + STT + Audio Queue + Barge-in)
+  // Realtime Voice Interview Hook
   const {
     isConnected,
     isReconnecting,
-    reconnectCount,
     aiState,
     isCompleted,
     error,
@@ -119,9 +164,7 @@ export default function InterviewRoomPage({
     interruptAi,
     skipToNextStage,
     endSessionEarly,
-    currentIntent,
     rerollQuestion,
-    activeVoice,
     changeVoice,
     updateTurnAudioUrl,
   } = useRealtimeVoiceInterview({
@@ -138,6 +181,7 @@ export default function InterviewRoomPage({
 
   const canAnswer = isConnected && aiState === "listening" && !isAudioPlaying && !isCompleted;
 
+  // Candidate Voice Answer Submission with Audio Cache upload
   const handleVoiceSubmit = useCallback(
     (text: string, durationSeconds: number, audioBlob?: Blob | null) => {
       const localAudioUrl = audioBlob ? URL.createObjectURL(audioBlob) : null;
@@ -147,7 +191,8 @@ export default function InterviewRoomPage({
       if (!sent) return false;
 
       if (audioBlob) {
-        voiceApi.uploadUserTurnAudio(sessionId, curTurn, audioBlob)
+        voiceApi
+          .uploadUserTurnAudio(sessionId, curTurn, audioBlob)
           .then((res) => {
             if (res.audio_url) {
               updateTurnAudioUrl("user", curTurn, res.audio_url);
@@ -169,8 +214,10 @@ export default function InterviewRoomPage({
     language,
     onSubmit: handleVoiceSubmit,
   });
+
   const canSendText = canAnswer && !["requesting", "recording", "processing"].includes(voiceDraft.state);
 
+  // Settings Handlers
   const handleVoiceChange = (newVoiceId: string) => {
     const item = voiceOptions?.voices.find((v) => v.id === newVoiceId);
     if (item?.is_locked) {
@@ -211,12 +258,10 @@ export default function InterviewRoomPage({
     setMeta(updated);
     try {
       sessionStorage.setItem(`session_metadata_${sessionId}`, JSON.stringify(updated));
-    } catch {
-      return;
-    }
+    } catch {}
   }
 
-  // Character Persona
+  // Persona Character setup
   const isLeadLevel =
     level.toLowerCase().includes("lead") ||
     level.toLowerCase().includes("staff") ||
@@ -238,7 +283,6 @@ export default function InterviewRoomPage({
         videoUrl: "/videos/senior.mp4",
       };
 
-  // Clock format mm:ss
   const formatTimer = (totalSec: number) => {
     const mins = Math.floor(totalSec / 60);
     const secs = totalSec % 60;
@@ -268,6 +312,49 @@ export default function InterviewRoomPage({
     }
   };
 
+  // Audio Replay Player Toggle
+  const togglePlayAudio = (key: string, url: string) => {
+    if (playingAudioKey === key) {
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+      }
+      setPlayingAudioKey(null);
+      return;
+    }
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+    }
+    const audio = new Audio(url);
+    audioPlayerRef.current = audio;
+    setPlayingAudioKey(key);
+    audio.onended = () => setPlayingAudioKey(null);
+    audio.onerror = () => setPlayingAudioKey(null);
+    audio.play().catch(() => setPlayingAudioKey(null));
+  };
+
+  // Separate AI turns and Candidate turns
+  const aiTurns = useMemo(() => turns.filter((t) => t.speaker === "ai"), [turns]);
+  const userTurns = useMemo(() => turns.filter((t) => t.speaker === "user"), [turns]);
+
+  // Auto scroll messenger streams
+  useEffect(() => {
+    aiScrollRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [aiTurns.length, currentQuestion]);
+
+  useEffect(() => {
+    userScrollRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [userTurns.length]);
+
+  // Determine current stage index among the 3 stages: warmup -> technical -> closing
+  const currentStageIdx = useMemo(() => {
+    const sid = (currentStage.id || "").toLowerCase();
+    if (sid.includes("warm") || sid.includes("khởi")) return 0;
+    if (sid.includes("tech") || sid.includes("chuyên")) return 1;
+    if (sid.includes("clos") || sid.includes("kết")) return 2;
+    return Math.min(Math.max((currentStage.index || 1) - 1, 0), 2);
+  }, [currentStage]);
+
+  // Spacebar to interrupt AI
   useEffect(() => {
     const handleGlobalSpace = (e: globalThis.KeyboardEvent) => {
       if (e.code === "Space" && (aiState === "speaking" || isAudioPlaying)) {
@@ -283,136 +370,44 @@ export default function InterviewRoomPage({
     return () => window.removeEventListener("keydown", handleGlobalSpace);
   }, [aiState, isAudioPlaying, interruptAi]);
 
-  // AI State Badge
   const renderStateBadge = () => {
     switch (aiState) {
       case "speaking":
         return (
-          <span
-            className={`${styles.aiStatePill} ${styles.stateSpeaking}`}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "4px 12px",
-              borderRadius: "999px",
-              fontSize: "12px",
-              fontWeight: "800",
-              background: "rgba(217, 130, 54, 0.15)",
-              color: "#d98236",
-              border: "1px solid rgba(217, 130, 54, 0.3)",
-            }}
-          >
-            <span
-              style={{
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
-                background: "#d98236",
-                boxShadow: "0 0 0 3px rgba(217, 130, 54, 0.3)",
-                animation: "pulse 1.5s infinite",
-              }}
-            />
-            <Volume2 size={12} />
-            <span>AI Đang Đặt Câu Hỏi (Nói để ngắt lời)</span>
+          <span className={`${styles.aiStatePill} ${styles.stateSpeaking}`}>
+            <span className={styles.statePulseDot} />
+            <Volume2 size={11} />
+            <span>AI đang nói...</span>
           </span>
         );
       case "listening":
         return (
-          <span
-            className={`${styles.aiStatePill} ${styles.stateListening}`}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "4px 12px",
-              borderRadius: "999px",
-              fontSize: "12px",
-              fontWeight: "800",
-              background: "rgba(16, 185, 129, 0.12)",
-              color: "#059669",
-              border: "1px solid rgba(16, 185, 129, 0.3)",
-            }}
-          >
-            <span
-              style={{
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
-                background: "#10b981",
-                boxShadow: "0 0 0 3px rgba(16, 185, 129, 0.3)",
-              }}
-            />
-            <Mic size={12} />
-            <span>{voiceDraft.state === "recording" ? "Đang thu câu trả lời" : voiceDraft.state === "review" ? "Chờ bạn gửi câu trả lời" : "Sẵn sàng nhận câu trả lời"}</span>
+          <span className={`${styles.aiStatePill} ${styles.stateListening}`}>
+            <span className={styles.statePulseDot} />
+            <Mic size={11} />
+            <span>Đang lắng nghe bạn</span>
           </span>
         );
       case "thinking":
         return (
-          <span
-            className={`${styles.aiStatePill} ${styles.stateThinking}`}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "4px 12px",
-              borderRadius: "999px",
-              fontSize: "12px",
-              fontWeight: "800",
-              background: "rgba(245, 158, 11, 0.12)",
-              color: "#d97706",
-              border: "1px solid rgba(245, 158, 11, 0.3)",
-            }}
-          >
-            <span
-              style={{
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
-                background: "#f59e0b",
-                boxShadow: "0 0 0 3px rgba(245, 158, 11, 0.3)",
-              }}
-            />
-            <BrainCircuit size={12} />
-            <span>AI Đang Phân Tích Câu Trả Lời...</span>
+          <span className={`${styles.aiStatePill} ${styles.stateThinking}`}>
+            <span className={styles.statePulseDot} />
+            <BrainCircuit size={11} />
+            <span>AI đang phân tích...</span>
           </span>
         );
       case "completed":
         return (
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "4px 12px",
-              borderRadius: "999px",
-              fontSize: "12px",
-              fontWeight: "800",
-              background: "rgba(16, 185, 129, 0.15)",
-              color: "#059669",
-            }}
-          >
-            <Check size={12} />
-            <span>Buổi phỏng vấn đã hoàn tất</span>
+          <span className={`${styles.aiStatePill} ${styles.stateIdle}`}>
+            <Check size={11} />
+            <span>Đã hoàn tất phiên</span>
           </span>
         );
       default:
         return (
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "4px 12px",
-              borderRadius: "999px",
-              fontSize: "12px",
-              fontWeight: "800",
-              background: "rgba(106, 72, 49, 0.1)",
-              color: "rgba(33,25,20,0.6)",
-            }}
-          >
-            <Wifi size={12} />
-            <span>Đang kết nối AI...</span>
+          <span className={`${styles.aiStatePill} ${styles.stateIdle}`}>
+            <Wifi size={11} />
+            <span>Sẵn sàng</span>
           </span>
         );
     }
@@ -420,82 +415,244 @@ export default function InterviewRoomPage({
 
   return (
     <div className={styles.roomShell}>
-      <header className={styles.roomHeading}>
-        <div>
-          <span className={styles.roomEyebrow}>INTERVIEWLY / PHÒNG LUYỆN TẬP</span>
-          <h1>Luyện phỏng vấn theo nhịp của bạn</h1>
-          <p>Nghe câu hỏi. Thu câu trả lời. Chỉ gửi khi bạn đã sẵn sàng.</p>
-        </div>
-        <span className={styles.sessionModeBadge}>{isVoiceMode ? <Mic size={16} /> : <Keyboard size={16} />}{isVoiceMode ? "Giọng nói" : "Văn bản"}</span>
-      </header>
-      {/* Side Drawers */}
-      <ConversationTimelineDrawer
-        turns={turns.map((t) => ({
-          id: t.id,
-          turnNumber: t.turnNumber,
-          speaker: t.speaker,
-          text: t.text,
-        }))}
-        currentTurnNumber={turnId}
-      />
-      <StarGuidanceDrawer
-        starTip="Tập trung trả lời theo cấu trúc STAR: Situation (Bối cảnh) → Task (Nhiệm vụ) → Action (Hành động) → Result (Kết quả định lượng)."
-        onInsertStarter={(starter) => {
-          setCurrentMode("text");
-          setTypedText((prev) => (prev ? `${prev}\n\n${starter}` : starter))
-        }}
-      />
-
-      {/* Main Card */}
-      <main className={styles.mainInterviewCard}>
-        <span className={styles.stageGlow} />
-
-        {/* 3-COLUMN LAYOUT: LEFT (STAGES) | CENTER (AI AVATAR) | RIGHT (CONTROLS) */}
-        <div className={styles.threePanelRow}>
-          {/* =========================================================
-              LEFT: DYNAMIC INTERVIEW STAGES TIMELINE
-          ========================================================= */}
-          <div className={styles.leftPanel}>
-            <InterviewStagesTimeline
-              selectedStages={selectedStages}
-              currentStageId={currentStage.id}
-              currentStageIndex={currentStage.index - 1}
-              currentTurnInStage={turnInStage}
-              targetTurnsInStage={targetTurnsInStage}
-              locale={locale}
+      {/* =========================================================
+          TOP NAVIGATION BAR (ROOM HEADER)
+      ========================================================= */}
+      <header className={styles.topBar}>
+        {/* Left: Brand, Role & Connection */}
+        <div className={styles.topBarLeft}>
+          <div className={styles.brandLogo}>
+            <span>✦</span> interviewly
+          </div>
+          <span className={styles.topDivider} />
+          <div className={styles.roleBadgePill} title={`${persona.name} • ${roleName}`}>
+            <span
+              className={`${styles.wsStatusDot} ${
+                isReconnecting
+                  ? styles.wsReconnecting
+                  : isConnected
+                  ? styles.wsConnected
+                  : styles.wsDisconnected
+              }`}
+              title={isConnected ? "Kết nối Realtime Live" : "Đang kết nối lại"}
             />
+            <span>{persona.name} • {roleName}</span>
+          </div>
+        </div>
 
-            {/* Skip to Next Stage Button */}
-            {!isCompleted && !currentStage.is_last && (
-              <button
-                type="button"
-                onClick={skipToNextStage}
-                disabled={!canAnswer || voiceDraft.state !== "idle"}
-                style={{
-                  marginTop: "10px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "6px 12px",
-                  borderRadius: "10px",
-                  fontSize: "11px",
-                  fontWeight: "700",
-                  color: "#8b4513",
-                  background: "rgba(217, 130, 54, 0.08)",
-                  border: "1px solid rgba(217, 130, 54, 0.25)",
-                  cursor: "pointer",
-                }}
-              >
-                <FastForward size={12} />
-                <span>Chuyển sang chặng tiếp theo</span>
-              </button>
-            )}
+        {/* Center: 3 STAGES PROGRESS STEPPER (KHỞI ĐỘNG - CHUYÊN MÔN - CHÀO KẾT) */}
+        <div className={styles.topBarCenter}>
+          <div className={styles.topStagesContainer}>
+            {THREE_STAGES.map((stage, idx) => {
+              const isFinished = idx < currentStageIdx;
+              const isCurrent = idx === currentStageIdx;
+              return (
+                <div key={stage.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div
+                    className={`${styles.stageStepItem} ${
+                      isCurrent
+                        ? styles.stageStepActive
+                        : isFinished
+                        ? styles.stageStepCompleted
+                        : ""
+                    }`}
+                  >
+                    <span className={styles.stageStepDot}>
+                      {isFinished ? (
+                        <Check size={10} strokeWidth={3.5} />
+                      ) : isCurrent ? (
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff" }} />
+                      ) : (
+                        <span>{idx + 1}</span>
+                      )}
+                    </span>
+                    <span className={styles.stageStepLabel}>{stage.label}</span>
+                    {isCurrent && (
+                      <span className={styles.stageStepTurnBadge}>
+                        {turnInStage}/{targetTurnsInStage}
+                      </span>
+                    )}
+                  </div>
+                  {idx < THREE_STAGES.length - 1 && (
+                    <div
+                      className={`${styles.stageStepLine} ${
+                        idx < currentStageIdx ? styles.stageStepLineFilled : ""
+                      }`}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right: Timer, Speaker Mute, STAR, Settings Drawer Button & End */}
+        <div className={styles.topBarRight}>
+          <div className={styles.timerPill}>
+            <Clock size={12} />
+            <span>{formatTimer(sessionDurationSeconds)}</span>
           </div>
 
-          {/* =========================================================
-              CENTER: AI INTERVIEWER CHARACTER STAGE
-          ========================================================= */}
-          <div className={styles.centerPanel}>
+          <button
+            type="button"
+            className={styles.btnTopAction}
+            onClick={toggleAudioMute}
+            title={isAudioMuted ? "Bật âm thanh AI" : "Tắt âm thanh AI"}
+          >
+            {isAudioMuted ? <VolumeX size={13} color="#dc2626" /> : <Volume2 size={13} color="#d98236" />}
+            <span>Loa: {isAudioMuted ? "TẮT" : "BẬT"}</span>
+          </button>
+
+          <button
+            type="button"
+            className={styles.btnTopAction}
+            onClick={() => setIsStarOpen(true)}
+            title="Xem gợi ý cấu trúc trả lời STAR"
+          >
+            <Sparkles size={13} color="#d98236" />
+            <span>STAR</span>
+          </button>
+
+          {/* Settings Drawer Button (Ẩn vào, bấm nút thì nhảy qua) */}
+          <button
+            type="button"
+            className={styles.btnTopAction}
+            onClick={() => setIsSettingsOpen(true)}
+            title="Mở cài đặt cuộc trò chuyện (Ngôn ngữ, Giọng đọc AI, STT...)"
+          >
+            <Settings size={13} color="#d98236" />
+            <span>Cài đặt</span>
+          </button>
+
+          {!isCompleted && (
+            <button
+              type="button"
+              className={styles.btnEndEarly}
+              onClick={handleEndInterview}
+              title="Kết thúc phỏng vấn sớm và xem bảng điểm"
+            >
+              <span>Kết thúc</span>
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* =========================================================
+          MAIN 3-COLUMN FIXED STAGE (100% FIXED, NO WINDOW SCROLLBAR)
+      ========================================================= */}
+      <main className={styles.mainGrid}>
+        {/* =========================================================
+            COLUMN 1 (LEFT): LỊCH SỬ CÂU HỎI AI (MESSENGER INCOMING STYLE)
+        ========================================================= */}
+        <section className={styles.aiHistoryColumn} aria-label="Lịch sử câu hỏi từ AI">
+          <div className={styles.columnHeader}>
+            <div className={styles.columnHeaderLeft}>
+              <div className={styles.columnHeaderIconAi}>
+                <Bot size={15} />
+              </div>
+              <div>
+                <h3 className={styles.columnTitle}>AI Interviewer</h3>
+                <p className={styles.columnSub}>Dòng câu hỏi & tình huống đào sâu</p>
+              </div>
+            </div>
+            <span className={styles.columnBadge}>{aiTurns.length} câu hỏi</span>
+          </div>
+
+          <div className={styles.messagesScrollArea}>
+            {aiTurns.length === 0 ? (
+              <div className={styles.emptyStreamHint}>
+                <Bot size={28} className="text-[#d98236] opacity-70" />
+                <p>AI đang chuẩn bị câu hỏi khởi động cho bạn...</p>
+              </div>
+            ) : (
+              aiTurns.map((turn, idx) => (
+                <div key={turn.id || idx} className={styles.aiBubbleWrapper}>
+                  <div className={styles.bubbleMetaRow}>
+                    <span>Câu #{turn.turnNumber || idx + 1}</span>
+                    <span>•</span>
+                    <span>{turn.timestamp}</span>
+                  </div>
+                  <div className={styles.aiBubble}>{turn.text}</div>
+                  {turn.audioUrl && (
+                    <button
+                      type="button"
+                      className={`${styles.audioReplayBtn} ${
+                        playingAudioKey === (turn.id || `ai-${idx}`) ? styles.audioReplayBtnActive : ""
+                      }`}
+                      onClick={() => togglePlayAudio(turn.id || `ai-${idx}`, turn.audioUrl!)}
+                    >
+                      {playingAudioKey === (turn.id || `ai-${idx}`) ? (
+                        <>
+                          <Square size={10} fill="currentColor" />
+                          <span>Dừng</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play size={10} fill="currentColor" />
+                          <span>Nghe lại</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+
+            {/* Realtime Live Speech Bubble when AI is actively speaking */}
+            {aiState === "speaking" && currentQuestion && (
+              <div className={styles.aiBubbleWrapper}>
+                <div className={styles.liveSpeakingIndicator}>
+                  <span className={styles.statePulseDot} />
+                  <span>AI đang hỏi lượt #{turnId}...</span>
+                </div>
+                <div className={styles.activeAiStreamingBubble}>
+                  {currentQuestion}
+                  <span className={styles.typewriterCursor} />
+                </div>
+              </div>
+            )}
+
+            <div ref={aiScrollRef} />
+          </div>
+        </section>
+
+        {/* =========================================================
+            COLUMN 2 (CENTER): AI INTERVIEWER CHARACTER STAGE
+        ========================================================= */}
+        <section className={styles.interviewerCenterColumn} aria-label="Người phỏng vấn AI">
+          {/* Top Status & Intent */}
+          <div className={styles.centerTopMetaRow}>
+            {renderStateBadge()}
+            <div className={styles.quickActionGroup}>
+              {!isCompleted && aiState === "listening" && (
+                <button
+                  type="button"
+                  className={styles.btnQuickAction}
+                  onClick={rerollQuestion}
+                  disabled={voiceDraft.state !== "idle"}
+                  title="Yêu cầu AI đổi tình huống khác trong ngân hàng đã duyệt"
+                >
+                  <RotateCcw size={11} />
+                  <span>Đổi câu hỏi</span>
+                </button>
+              )}
+              {!isCompleted && !currentStage.is_last && (
+                <button
+                  type="button"
+                  className={styles.btnQuickAction}
+                  onClick={skipToNextStage}
+                  disabled={!canAnswer || voiceDraft.state !== "idle"}
+                  title="Chuyển sang chặng phỏng vấn tiếp theo"
+                >
+                  <FastForward size={11} />
+                  <span>Qua chặng</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Center: Character Portrait Video Canvas */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div className={styles.interviewerMediaStage}>
               {(isAudioPlaying || aiState === "speaking") && (
                 <span className={styles.speakingHaloRing} />
@@ -508,8 +665,8 @@ export default function InterviewRoomPage({
                   isPlaying={isAudioPlaying || aiState === "speaking"}
                   fallbackImageUrl={persona.avatarUrl}
                   characterName={persona.name}
-                  width={240}
-                  height={320}
+                  width={220}
+                  height={290}
                 />
               ) : (
                 <div className={styles.textModeAvatarBox}>
@@ -523,67 +680,315 @@ export default function InterviewRoomPage({
               )}
             </div>
 
-            {/* AI State Badge & Character Name */}
-            <div className={styles.interviewerMetaRow}>
-              {renderStateBadge()}
-              <h2 className={styles.interviewerName} suppressHydrationWarning>{persona.name}</h2>
-              <p className={styles.interviewerTitle} suppressHydrationWarning>
-                {isClientMounted
-                  ? `${persona.title} • ${meta.companyName || "Doanh nghiệp mục tiêu"}`
-                  : "AI Interviewer • Doanh nghiệp mục tiêu"}
-              </p>
-            </div>
+            <h2 className={styles.interviewerName}>{persona.name}</h2>
+            <p className={styles.interviewerTitle}>
+              {persona.title} • {meta.companyName || "Doanh nghiệp mục tiêu"}
+            </p>
           </div>
 
-          {/* =========================================================
-              RIGHT: SESSION CONTROLS & TIMESTAMPS
-          ========================================================= */}
-          <div className={styles.rightPanel}>
-            <div className={styles.rightControlsBox}>
-              {/* Duration Timer */}
-              <div className={styles.controlTimerRow}>
-                <span
-                  style={{
-                    color: "rgba(45, 31, 23, 0.65)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 5,
-                    fontSize: "12px",
-                  }}
-                >
-                  <Clock size={13} /> Thời gian
-                </span>
-                <span className={styles.controlTimerText}>
-                  {formatTimer(sessionDurationSeconds)}
-                </span>
+          {/* Bottom: Live Spoken Subtitle Box */}
+          <div className={styles.centerSubtitleBox}>
+            <p className={styles.centerSubtitleText}>
+              &ldquo;
+              {currentSubtitle ||
+                currentQuestion ||
+                "Lắng nghe kỹ yêu cầu trước khi trả lời..."}
+              &rdquo;
+              {aiState === "speaking" && <span className={styles.typewriterCursor} />}
+            </p>
+            {audioBlockedByAutoplay && (
+              <button
+                type="button"
+                className={styles.audioResumeBanner}
+                onClick={() => void resumeAudio()}
+              >
+                <Volume2 size={14} />
+                <span>Bật tiếng AI để nghe câu hỏi</span>
+              </button>
+            )}
+            {error && (
+              <div style={{ color: "#dc2626", fontSize: 11, marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                <AlertCircle size={12} />
+                <span>{error}</span>
               </div>
+            )}
+          </div>
+        </section>
 
-              <div className="space-y-2">
-                <label htmlFor="interview-language" className="portal-field-label">
-                  {locale === "en" ? "Interview language" : "Ngôn ngữ phỏng vấn"}
+        {/* =========================================================
+            COLUMN 3 (RIGHT): CÂU TRẢ LỜI CỦA BẠN (MESSENGER OUTGOING STYLE & INPUT)
+        ========================================================= */}
+        <section className={styles.candidateHistoryColumn} aria-label="Câu trả lời của bạn">
+          {/* Header */}
+          <div className={styles.columnHeader}>
+            <div className={styles.columnHeaderLeft}>
+              <div className={styles.columnHeaderIconUser}>
+                <User size={15} />
+              </div>
+              <div>
+                <h3 className={styles.columnTitle}>Câu trả lời của bạn</h3>
+                <p className={styles.columnSub}>Dòng phản hồi ứng viên</p>
+              </div>
+            </div>
+            <span className={styles.columnBadgeEmerald}>{userTurns.length} lượt trả lời</span>
+          </div>
+
+          {/* Messages Stream (Messenger Outgoing Style) */}
+          <div className={styles.messagesScrollArea}>
+            {userTurns.length === 0 ? (
+              <div className={styles.emptyStreamHint}>
+                <User size={28} className="text-[#10b981] opacity-70" />
+                <p>Chưa có câu trả lời nào. Hãy lắng nghe AI rồi bắt đầu trả lời.</p>
+              </div>
+            ) : (
+              userTurns.map((turn, idx) => (
+                <div key={turn.id || idx} className={styles.userBubbleWrapper}>
+                  <div className={styles.userBubbleMetaRow}>
+                    <span>Bạn trả lời</span>
+                    {turn.durationSeconds !== undefined && turn.durationSeconds !== null && (
+                      <>
+                        <span>•</span>
+                        <span>{turn.durationSeconds}s</span>
+                      </>
+                    )}
+                    <span>•</span>
+                    <span>{turn.timestamp}</span>
+                  </div>
+                  <div className={styles.userBubble}>{turn.text}</div>
+                  {turn.audioUrl && (
+                    <button
+                      type="button"
+                      className={`${styles.userAudioReplayBtn} ${
+                        playingAudioKey === (turn.id || `user-${idx}`) ? styles.audioReplayBtnActive : ""
+                      }`}
+                      onClick={() => togglePlayAudio(turn.id || `user-${idx}`, turn.audioUrl!)}
+                    >
+                      {playingAudioKey === (turn.id || `user-${idx}`) ? (
+                        <>
+                          <Square size={10} fill="currentColor" />
+                          <span>Dừng</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play size={10} fill="currentColor" />
+                          <span>Nghe lại giọng bạn</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+            <div ref={userScrollRef} />
+          </div>
+
+          {/* Candidate Response Console (Anchored at Bottom of Right Column) */}
+          <div className={styles.candidateBottomConsole}>
+            <div className={styles.consoleHeaderRow}>
+              <span className={styles.consoleTitle}>
+                {isVoiceMode ? "PHẢN HỒI BẰNG GIỌNG NÓI" : "PHẢN HỒI BẰNG VĂN BẢN"}
+              </span>
+              <button
+                type="button"
+                className={styles.modeToggleLink}
+                onClick={() => setCurrentMode(isVoiceMode ? "text" : "voice")}
+              >
+                {isVoiceMode ? "Chuyển sang văn bản ⌨️" : "Chuyển sang giọng nói 🎙️"}
+              </button>
+            </div>
+
+            {/* Voice Mode Controls */}
+            {isVoiceMode ? (
+              <div className={styles.voiceActiveArea}>
+                {voiceDraft.state === "review" ? (
+                  /* Reviewing recorded voice */
+                  <div className={styles.voiceReviewConsole}>
+                    {voiceDraft.audioUrl && (
+                      <audio controls src={voiceDraft.audioUrl} className={styles.voiceReviewAudio} />
+                    )}
+                    <textarea
+                      value={voiceDraft.transcript}
+                      onChange={(e) => voiceDraft.editTranscript(e.target.value)}
+                      placeholder="Chỉnh sửa bản chép lời nếu cần..."
+                      className={styles.voiceReviewTextarea}
+                    />
+                    <div className={styles.voiceReviewActions}>
+                      <button
+                        type="button"
+                        className={styles.btnSecondaryVoice}
+                        onClick={voiceDraft.discard}
+                        title="Xóa bản nháp"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.btnSecondaryVoice}
+                        onClick={() => void voiceDraft.startRecording()}
+                        disabled={!canAnswer || !voiceDraft.sttSupported}
+                      >
+                        <RotateCcw size={13} /> Thu lại
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.btnPrimaryVoice}
+                        onClick={voiceDraft.submit}
+                        disabled={!canAnswer || !voiceDraft.transcript.trim()}
+                      >
+                        <Send size={13} /> Gửi câu trả lời
+                      </button>
+                    </div>
+                  </div>
+                ) : voiceDraft.state === "recording" ? (
+                  /* Actively Recording */
+                  <div className="flex flex-col gap-2">
+                    <AudioWaveformVisualizer
+                      isRecording
+                      volume={voiceDraft.volume}
+                      barCount={28}
+                      height={32}
+                    />
+                    <div className="flex items-center justify-between text-[11px] text-[#059669] font-bold">
+                      <span>Đang thu âm: {Math.floor(voiceDraft.durationSeconds / 60).toString().padStart(2, "0")}:{(voiceDraft.durationSeconds % 60).toString().padStart(2, "0")}</span>
+                      {voiceDraft.silenceRemaining !== null && (
+                        <span>Tự gửi sau {voiceDraft.silenceRemaining}s im lặng</span>
+                      )}
+                    </div>
+                    <p className="text-[11.5px] text-[#211914] italic bg-[#faf7f2] p-2 rounded border border-[#e7dace] max-h-12 overflow-y-auto">
+                      {[voiceDraft.transcript, voiceDraft.interimTranscript].filter(Boolean).join(" ") || "Hãy nói câu trả lời của bạn..."}
+                    </p>
+                    <button
+                      type="button"
+                      className={styles.btnStopVoice}
+                      onClick={() => void voiceDraft.stopRecording()}
+                    >
+                      <Square size={13} fill="currentColor" /> Dừng & nghe lại
+                    </button>
+                  </div>
+                ) : (
+                  /* Idle / Waiting for AI */
+                  <div className="flex flex-col gap-2">
+                    <p className={styles.voiceStatusText}>
+                      {isAudioPlaying || aiState === "speaking"
+                        ? "Lắng nghe câu hỏi từ AI trước khi trả lời..."
+                        : canAnswer
+                        ? "Đến lượt bạn trả lời. Nhấn nút để bắt đầu thu âm."
+                        : "Đang chờ kết nối máy chủ..."}
+                    </p>
+                    <div className={styles.voiceActionRow}>
+                      {isAudioPlaying || aiState === "speaking" ? (
+                        <button
+                          type="button"
+                          className={styles.btnSecondaryVoice}
+                          onClick={interruptAi}
+                          style={{ width: "100%" }}
+                        >
+                          <Square size={13} /> Dừng AI để trả lời
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles.btnPrimaryVoice}
+                          onClick={() => void voiceDraft.startRecording()}
+                          disabled={!canAnswer || !voiceDraft.sttSupported}
+                        >
+                          <Mic size={14} /> Bắt đầu trả lời
+                        </button>
+                      )}
+                    </div>
+                    <div className={styles.autoSendToggleRow}>
+                      <span>Tự động gửi sau 3s ngừng nói</span>
+                      <button
+                        type="button"
+                        className={styles.switchSmall}
+                        onClick={voiceDraft.toggleAutoSubmit}
+                      >
+                        {voiceDraft.autoSubmit ? "🟢 Bật" : "⚪ Tắt"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Text Mode Controls */
+              <div className={styles.textModeInputArea}>
+                <textarea
+                  className={styles.textInputArea}
+                  placeholder="Nhập câu trả lời chi tiết của bạn…"
+                  value={typedText}
+                  onChange={(e) => setTypedText(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                />
+                <div className={styles.textInputFooter}>
+                  <span className={styles.textInputHint}>
+                    {canSendText ? "Ctrl + Enter để gửi" : "Đợi AI nói xong"}
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.btnSubmitText}
+                    onClick={handleSendText}
+                    disabled={!typedText.trim() || !canSendText}
+                  >
+                    <span>Gửi</span>
+                    <Send size={12} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+
+      {/* =========================================================
+          SETTINGS DRAWER (ẨN VÀO, BẤM NÚT CÀI ĐẶT THÌ NHẢY QUA)
+      ========================================================= */}
+      {isSettingsOpen && (
+        <div className={styles.settingsDrawerBackdrop} onClick={() => setIsSettingsOpen(false)}>
+          <div className={styles.settingsDrawerSheet} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.settingsDrawerHeader}>
+              <div className={styles.settingsDrawerTitleBox}>
+                <div className={styles.settingsDrawerIcon}>
+                  <Settings size={18} />
+                </div>
+                <div>
+                  <h3 className={styles.settingsDrawerTitle}>Cài Đặt Cuộc Trò Chuyện</h3>
+                  <p className={styles.settingsDrawerSub}>Ngôn ngữ, Giọng đọc AI & Thiết bị</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className={styles.btnCloseDrawer}
+                onClick={() => setIsSettingsOpen(false)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className={styles.settingsDrawerContent}>
+              {/* Ngôn ngữ phỏng vấn (8 ngôn ngữ) */}
+              <div className={styles.settingsSection}>
+                <label className={styles.settingsSectionLabel}>
+                  {locale === "en" ? "Interview Language" : "Ngôn ngữ phỏng vấn"}
                 </label>
                 <SimpleUserSelect
-                  id="interview-language"
+                  id="settings-lang-select"
                   value={language}
                   disabled={!canSendText}
                   onChange={(val) => changeInterviewLanguage(val)}
                   options={INTERVIEW_LANGUAGES.map((opt) => ({ value: opt.code, label: opt.label }))}
-                  aria-label={locale === "en" ? "Interview language" : "Ngôn ngữ phỏng vấn"}
+                  aria-label="Interview Language"
                 />
-                <p id="interview-language-help" className="portal-help-text">
-                  {locale === "en"
-                    ? "Change while AI waits for your answer. Applies to its next response, not the interface."
-                    : "Đổi khi AI đang chờ bạn trả lời. Áp dụng cho phản hồi tiếp theo, không đổi ngôn ngữ giao diện."}
+                <p className={styles.settingsHelper}>
+                  Hỗ trợ 8 ngôn ngữ phổ biến. AI sẽ áp dụng cho câu trả lời tiếp theo.
                 </p>
               </div>
 
-              
-              {/* AI Voice Selection (TTS Tiering) */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="ai-voice-select" className="portal-field-label">
-                    {locale === "en" ? "AI Voice (TTS)" : "Giọng đọc AI (TTS)"}
-                  </label>
+              <div className={styles.settingsDivider} />
+
+              {/* Giọng đọc AI (TTS Tiering) */}
+              <div className={styles.settingsSection}>
+                <div className={styles.settingsSectionLabel}>
+                  <span>Giọng đọc AI (TTS)</span>
                   {voiceOptions?.is_premium_user ? (
                     <span className={`${styles.voiceTierBadge} ${styles.tierBadgePro}`}>
                       <Sparkles size={10} /> Pro
@@ -595,334 +1000,138 @@ export default function InterviewRoomPage({
                   )}
                 </div>
                 <SimpleUserSelect
-                  id="ai-voice-select"
+                  id="settings-voice-select"
                   value={selectedVoice}
                   disabled={!canSendText}
                   onChange={handleVoiceChange}
                   options={(voiceOptions?.voices || [
-                    { id: "vi-VN-HoaiMyNeural", name: "Hoài My (Nữ chuẩn - Edge)", is_locked: false },
-                    { id: "vi-VN-NamMinhNeural", name: "Nam Minh (Nam ấm áp - Edge)", is_locked: false },
-                    { id: "elevenlabs-rachel", name: "Rachel (Nữ biểu cảm - ElevenLabs)", is_locked: true },
-                    { id: "elevenlabs-adam", name: "Adam (Nam chuyên nghiệp - ElevenLabs)", is_locked: true },
+                    { id: "vi-VN-HoaiMyNeural", name: "Hoài My (Nữ - Edge)", is_locked: false },
+                    { id: "vi-VN-NamMinhNeural", name: "Nam Minh (Nam - Edge)", is_locked: false },
+                    { id: "elevenlabs-rachel", name: "Rachel (Nữ - ElevenLabs)", is_locked: true },
+                    { id: "elevenlabs-adam", name: "Adam (Nam - ElevenLabs)", is_locked: true },
                   ]).map((v) => ({
                     value: v.id,
                     label: `${v.is_locked ? "🔒 [Pro] " : ""}${v.name}`,
                   }))}
-                  aria-label={locale === "en" ? "AI Voice" : "Giọng đọc AI"}
+                  aria-label="AI Voice"
                 />
-                <p className="portal-help-text">
+                <p className={styles.settingsHelper}>
                   {voiceOptions?.is_premium_user
-                    ? "Mở khóa toàn bộ giọng ElevenLabs biểu cảm cảm xúc cao cấp."
-                    : "Gói Free dùng Edge TTS chuẩn. Nâng cấp Pro để mở khóa giọng ElevenLabs."}
+                    ? "Đã mở khóa các giọng ElevenLabs studio cao cấp."
+                    : "Gói Free dùng Edge TTS chuẩn. Nâng cấp Pro để mở khóa ElevenLabs."}
                 </p>
               </div>
 
-              {/* Speech Recognition Engine (STT Tiering) */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="stt-engine-select" className="portal-field-label">
-                    {locale === "en" ? "Voice Recognition (STT)" : "Nhận diện giọng (STT)"}
-                  </label>
+              {/* Nhận diện giọng nói (STT Engine) */}
+              <div className={styles.settingsSection}>
+                <div className={styles.settingsSectionLabel}>
+                  <span>Bộ nhận diện giọng nói (STT)</span>
                 </div>
                 <SimpleUserSelect
-                  id="stt-engine-select"
+                  id="settings-stt-select"
                   value={selectedSttEngine}
                   disabled={!canSendText}
                   onChange={handleSttEngineChange}
                   options={(voiceOptions?.stt_engines || [
                     { id: "browser-speech-api", name: "Web Speech API (Trình duyệt) [Mặc định]", is_locked: false },
-                    { id: "whisper-pro", name: "Whisper Pro (AI Cloud - Cao cấp)", is_locked: true },
+                    { id: "whisper-pro", name: "Whisper Pro (AI Cloud)", is_locked: true },
                   ]).map((eng) => ({
                     value: eng.id,
                     label: `${eng.is_locked ? "🔒 [Pro] " : ""}${eng.name}`,
                   }))}
-                  aria-label={locale === "en" ? "STT Engine" : "Bộ nhận diện giọng nói"}
+                  aria-label="STT Engine"
                 />
               </div>
 
-              {/* Mode Toggle */}
-              <div className={styles.modeToggleGroup}>
-                <Button
-                  type="button"
-                  variant="home-choice"
-                  size="home-compact"
-                  onClick={() => setCurrentMode("voice")}
-                  className="flex-1"
-                  aria-pressed={isVoiceMode}
-                  title="Trả lời bằng giọng nói"
-                >
-                  <Mic size={12} />
-                  <span>Giọng nói</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="home-choice"
-                  size="home-compact"
-                  onClick={() => setCurrentMode("text")}
-                  className="flex-1"
-                  aria-pressed={!isVoiceMode}
-                  title="Trả lời bằng văn bản"
-                >
-                  <Keyboard size={12} />
-                  <span>Văn bản</span>
-                </Button>
-              </div>
+              <div className={styles.settingsDivider} />
 
-
-              {/* Speaker Mute Toggle */}
-              {audioBlockedByAutoplay && <button type="button" className={styles.audioResumeButton} onClick={() => void resumeAudio()}><Volume2 size={17} />Bật tiếng AI để nghe câu hỏi</button>}
-              <button
-                type="button"
-                onClick={toggleAudioMute}
-                title={isAudioMuted ? "Bật âm thanh AI" : "Tắt âm thanh AI"}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "6px 10px",
-                  borderRadius: "10px",
-                  background: isAudioMuted ? "rgba(220, 38, 38, 0.08)" : "rgba(106, 72, 49, 0.05)",
-                  border: isAudioMuted ? "1px solid rgba(220, 38, 38, 0.3)" : "1px solid rgba(106, 72, 49, 0.1)",
-                  fontSize: "11px",
-                  cursor: "pointer",
-                  color: isAudioMuted ? "#dc2626" : "inherit",
-                }}
-              >
-                <span style={{ fontWeight: "700", display: "flex", alignItems: "center", gap: 5 }}>
-                  {isAudioMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
-                  Loa AI:
-                </span>
-                <span style={{ fontWeight: "800" }}>{isAudioMuted ? "TẮT" : "BẬT"}</span>
-              </button>
-
-              {/* Connection Status */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  fontSize: "11px",
-                  color: isReconnecting ? "#d97706" : isConnected ? "#059669" : "#dc2626",
-                  fontWeight: "700",
-                }}
-              >
-                {isReconnecting ? (
-                  <>
-                    <Loader2 size={12} className="animate-spin" />
-                    <span>Đang nối lại... ({reconnectCount}/5)</span>
-                  </>
-                ) : isConnected ? (
-                  <>
-                    <Wifi size={12} />
-                    <span>Realtime WebSocket</span>
-                  </>
-                ) : (
-                  <>
-                    <WifiOff size={12} />
-                    <span>Mất kết nối</span>
-                  </>
-                )}
-              </div>
-
-              {/* End Interview Button */}
-              {!isCompleted && (
-                <button
-                  type="button"
-                  className={styles.btnEndEarly}
-                  onClick={handleEndInterview}
-                  title="Kết thúc buổi phỏng vấn và xem kết quả"
-                >
-                  <StopCircle size={13} />
-                  <span>Kết thúc phỏng vấn</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* =========================================================
-            REALTIME NATURAL SUBTITLE CAPSULE (AI QUESTION STREAMING)
-        ========================================================= */}
-        <div className={styles.subtitleGlassBox}>
-          <div className={styles.subtitleTopRow}>
-            <span>
-              Lượt trao đổi #{turnId} • Chặng {currentStage.index}/{currentStage.total}:{" "}
-              {currentStage.name}
-            </span>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              {/* Reroll question button */}
-              {!isCompleted && aiState === "listening" && (
-                <button
-                  type="button"
-                  onClick={rerollQuestion}
-                  disabled={voiceDraft.state !== "idle"}
-                  title="Yêu cầu AI đổi tình huống / câu hỏi khác trong ngân hàng đã duyệt"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    padding: "3px 8px",
-                    borderRadius: "8px",
-                    fontSize: "10.5px",
-                    fontWeight: "700",
-                    color: "#8b4513",
-                    background: "rgba(217, 130, 54, 0.12)",
-                    border: "1px solid rgba(217, 130, 54, 0.3)",
-                    cursor: "pointer",
-                  }}
-                >
-                  <RotateCcw size={11} />
-                  <span>Đổi tình huống</span>
-                </button>
-              )}
-
-            </div>
-          </div>
-
-          {/* Competency / Intent Badge */}
-          {currentIntent && (
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "3px 10px",
-                borderRadius: "999px",
-                background: "rgba(217, 130, 54, 0.1)",
-                border: "1px solid rgba(217, 130, 54, 0.25)",
-                fontSize: "11px",
-                fontWeight: "700",
-                color: "#8b4513",
-                marginBottom: "4px",
-                width: "fit-content",
-              }}
-            >
-              <span>Chủ đề kiểm tra:</span>
-              <span style={{ color: "#211914", fontWeight: "800" }}>
-                {currentIntent.topic_label || currentIntent.intent}
-              </span>
-              <span style={{ fontSize: "10px", color: "rgba(45,31,23,0.55)" }}>
-                (AI đặt theo tình huống thực tế)
-              </span>
-            </div>
-          )}
-
-          {/* Currently Spoken AI Subtitle */}
-          <p className={styles.subtitleSpeechText}>
-            &ldquo;
-            {currentQuestion ||
-              currentSubtitle ||
-              "Xin chào, AI đang chuẩn bị câu hỏi mở đầu cho bạn..."}
-            &rdquo;
-            {aiState === "speaking" && <span className={styles.typewriterCursor} />}
-          </p>
-          {currentSubtitle && (isAudioPlaying || aiState === "speaking") && <p className={styles.spokenCaption}>Đang nói: {currentSubtitle}</p>}
-
-
-          {/* Error notice if any */}
-          {error && (
-            <div
-              style={{
-                marginTop: "8px",
-                padding: "8px 12px",
-                borderRadius: "10px",
-                background: "rgba(239, 68, 68, 0.08)",
-                border: "1px solid rgba(239, 68, 68, 0.2)",
-                fontSize: "12px",
-                color: "#dc2626",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
-            >
-              <AlertCircle size={14} />
-              <span>{error}</span>
-            </div>
-          )}
-        </div>
-
-        {/* =========================================================
-            CANDIDATE RESPONSE CONSOLE (VOICE + TEXT INPUT)
-        ========================================================= */}
-        {!isCompleted ? (
-          isVoiceMode ? (
-            <VoiceAnswerPanel
-              draft={voiceDraft}
-              canRecord={canAnswer}
-              isConnected={isConnected}
-              isAiSpeaking={aiState === "speaking" || isAudioPlaying}
-              onInterrupt={interruptAi}
-              onSwitchToText={() => setCurrentMode("text")}
-            />
-          ) : (
-            <section className={styles.responseConsole} aria-labelledby="text-answer-title">
-              <div className={styles.consoleTopBar}>
-                <label id="text-answer-title" htmlFor="typed-answer" className={styles.consoleHint}>Câu trả lời của bạn • Chỉ gửi khi bạn đã sẵn sàng</label>
-              </div>
-              <div className={styles.inputAreaWrapper}>
-                <textarea id="typed-answer" className={styles.candidateTextarea} placeholder="Nhập câu trả lời chi tiết của bạn…" value={typedText} onChange={(event) => setTypedText(event.target.value)} onKeyDown={handleKeyDown} rows={4} />
-                <div className={styles.inputActionRow}>
-                  <span className={styles.charCounter}>{canSendText ? "Ctrl / ⌘ + Enter để gửi" : "Đợi AI nói xong để gửi câu trả lời"}</span>
-                  <button type="button" className={styles.btnSubmitAnswer} onClick={handleSendText} disabled={!typedText.trim() || !canSendText}><span>Gửi câu trả lời</span><Send size={16} /></button>
+              {/* Chế độ & Loa */}
+              <div className={styles.settingsSection}>
+                <div className={styles.settingsActionRow}>
+                  <span>Loa AI phát âm câu hỏi:</span>
+                  <button
+                    type="button"
+                    onClick={toggleAudioMute}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: 8,
+                      border: "1px solid rgba(106, 72, 49, 0.2)",
+                      background: isAudioMuted ? "#fee2e2" : "#ffffff",
+                      color: isAudioMuted ? "#dc2626" : "#211914",
+                      fontWeight: 750,
+                      cursor: "pointer",
+                      fontSize: 11.5,
+                    }}
+                  >
+                    {isAudioMuted ? "Đang TẮT" : "Đang BẬT"}
+                  </button>
                 </div>
               </div>
-            </section>
-          )
-        ) : (
-          /* When interview is completed */
-          <div
-            style={{
-              padding: "24px",
-              borderRadius: "18px",
-              background: "rgba(16, 185, 129, 0.1)",
-              border: "1.5px solid rgba(16, 185, 129, 0.3)",
-              textAlign: "center",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "12px",
-            }}
-          >
-            <div
-              style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "50%",
-                background: "#10b981",
-                display: "grid",
-                placeItems: "center",
-                color: "#fff",
-              }}
-            >
-              <Check size={24} strokeWidth={3} />
+
+              <div className={styles.settingsDivider} />
+
+              {/* Điều khiển phiên */}
+              <div className={styles.settingsSection}>
+                <label className={styles.settingsSectionLabel}>Thao tác phiên</label>
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    className={styles.btnQuickAction}
+                    style={{ justifyContent: "center", padding: "8px 12px", width: "100%" }}
+                    onClick={() => {
+                      rerollQuestion();
+                      setIsSettingsOpen(false);
+                    }}
+                    disabled={!canAnswer || voiceDraft.state !== "idle"}
+                  >
+                    <RotateCcw size={13} />
+                    <span>Đổi tình huống / câu hỏi khác</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.btnQuickAction}
+                    style={{ justifyContent: "center", padding: "8px 12px", width: "100%" }}
+                    onClick={() => {
+                      skipToNextStage();
+                      setIsSettingsOpen(false);
+                    }}
+                    disabled={!canAnswer || voiceDraft.state !== "idle" || currentStage.is_last}
+                  >
+                    <FastForward size={13} />
+                    <span>Bỏ qua sang chặng tiếp theo</span>
+                  </button>
+                </div>
+
+                {!isCompleted && (
+                  <button
+                    type="button"
+                    className={styles.btnEndInterviewFull}
+                    onClick={() => {
+                      setIsSettingsOpen(false);
+                      handleEndInterview();
+                    }}
+                  >
+                    <span>Kết thúc phỏng vấn sớm</span>
+                  </button>
+                )}
+              </div>
             </div>
-            <h3 style={{ fontSize: "16px", fontWeight: "900", color: "#065f46", margin: 0 }}>
-              Chúc mừng bạn đã hoàn thành buổi phỏng vấn!
-            </h3>
-            <p style={{ fontSize: "13px", color: "rgba(6, 95, 70, 0.8)", margin: 0, maxWidth: "500px" }}>
-              Bạn đã kết thúc phiên luyện tập. Có thể mở trang kết quả để xem dữ liệu hiện có của phiên.
-            </p>
-            <button
-              type="button"
-              onClick={() => router.push(`/practice/${sessionId}/result`)}
-              style={{
-                padding: "10px 24px",
-                borderRadius: "12px",
-                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                color: "#fff",
-                fontSize: "13px",
-                fontWeight: "800",
-                border: "none",
-                cursor: "pointer",
-                boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)",
-              }}
-            >
-              Xem kết quả và bảng điểm Rubric →
-            </button>
           </div>
-        )}
-      </main>
+        </div>
+      )}
+
+      {/* STAR Guidance Drawer */}
+      <StarGuidanceDrawer
+        isOpen={isStarOpen}
+        onClose={() => setIsStarOpen(false)}
+        showTrigger={false}
+        starTip="Tập trung trả lời theo cấu trúc STAR: Situation → Task → Action → Result."
+        onInsertStarter={(starter) => {
+          setCurrentMode("text");
+          setTypedText((prev) => (prev ? `${prev}\n\n${starter}` : starter));
+          setIsStarOpen(false);
+        }}
+      />
     </div>
   );
 }

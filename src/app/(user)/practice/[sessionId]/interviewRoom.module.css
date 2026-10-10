@@ -1,197 +1,522 @@
 /* =========================================================
-   IMMERSIVE SINGLE-SCREEN AI INTERVIEW ROOM (NO-SCROLL LAYOUT)
+   IMMERSIVE FIXED SINGLE-SCREEN AI INTERVIEW ROOM (NO-SCROLL LAYOUT)
 ========================================================= */
 
 .roomShell {
-  width: min(1200px, calc(100% - 32px));
-  margin-inline: auto;
-  padding: 86px 0 32px;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at 50% 12%, #fffdfa 0%, #f7f3ec 100%);
+  color: #211914;
+  z-index: 1000;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+/* =========================================================
+   TOP NAVIGATION BAR (ROOM HEADER)
+========================================================= */
+
+.topBar {
+  height: 56px;
+  min-height: 56px;
+  max-height: 56px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(106, 72, 49, 0.12);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px);
+  z-index: 20;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.topBarLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.brandLogo {
+  font-size: 14px;
+  font-weight: 850;
+  letter-spacing: -0.02em;
   color: #211914;
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-height: calc(100vh - 90px);
-  justify-content: flex-start;
-}
-
-.roomHeading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 4px; }
-.roomEyebrow { color: #905029; font-size: 11px; font-weight: 750; letter-spacing: 0.12em; }
-.roomHeading h1 { margin: 7px 0; font-size: clamp(22px, 3vw, 30px); line-height: 1.3; letter-spacing: -0.025em; font-weight: 750; }
-.roomHeading p { margin: 0; color: #6c5b50; font-size: 14px; line-height: 1.6; }
-.sessionModeBadge { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; background: #fff9f3; border: 1px solid #e7dace; border-radius: 999px; color: #905029; font-size: 13px; font-weight: 650; flex-shrink: 0; }
-.spokenCaption { margin: 4px 0 0; color: #6c5b50; font-size: 12px; line-height: 1.6; padding-top: 10px; border-top: 1px solid #e7dace; }
-.audioResumeButton { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 12px; border: 1px solid #905029; border-radius: 12px; background: #905029; color: #fff; font-size: 13px; font-weight: 650; cursor: pointer; }
-.roomShell button:focus-visible, .roomShell textarea:focus-visible { outline: 3px solid #c07f50; outline-offset: 3px; }
-.roomShell button:disabled { cursor: not-allowed; opacity: 0.5; }
-
-@media (max-width: 640px) {
-  .roomHeading { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .roomShell { width: calc(100% - 24px); }
-  .mainInterviewCard { padding: 18px 14px !important; }
-  .threePanelRow { grid-template-columns: 1fr !important; align-items: start; gap: 14px; }
-  .leftPanel { grid-column: 1 / -1; }
-  .rightPanel { align-items: stretch; }
-  .rightControlsBox { max-width: none; }
-  .subtitleTopRow { flex-wrap: wrap; gap: 10px; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .roomShell *, .roomShell *::before, .roomShell *::after { animation: none !important; transition: none !important; }
-}
-
-/* =========================================================
-   MAIN 3-COLUMN HERO STAGE: LEFT (STAGES) - CENTER (AI) - RIGHT (CONTROLS)
-========================================================= */
-
-.mainInterviewCard {
-  position: relative;
-  overflow: hidden;
-  border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.88);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 248, 240, 0.85) 100%);
-  box-shadow: 0 20px 55px -12px rgba(84, 50, 27, 0.14),
-              inset 0 1px 2px rgba(255, 255, 255, 1);
-  padding: 22px 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.stageGlow {
-  position: absolute;
-  top: -100px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 480px;
-  height: 300px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(217, 130, 54, 0.18), transparent 70%);
-  filter: blur(45px);
-  pointer-events: none;
-}
-
-/* Three-Panel Row: Left Stages | Center AI Avatar | Right Session Controls */
-.threePanelRow {
-  display: grid;
-  grid-template-columns: minmax(190px, 1fr) minmax(250px, 1.25fr) minmax(210px, 1fr);
   align-items: center;
-  gap: 20px;
-  width: 100%;
+  gap: 4px;
 }
 
-@media (max-width: 992px) {
-  .threePanelRow {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
+.brandLogo span {
+  color: #d98236;
 }
 
-/* Left Panel: Stages */
-.leftPanel {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  width: 100%;
+.topDivider {
+  width: 1px;
+  height: 16px;
+  background: rgba(106, 72, 49, 0.18);
 }
 
-/* Center Panel: AI Character & Identity */
-.centerPanel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  position: relative;
-}
-
-/* Right Panel: Time, Mode & Actions */
-.rightPanel {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 12px;
-  width: 100%;
-}
-
-@media (max-width: 992px) {
-  .rightPanel {
-    align-items: center;
-  }
-}
-
-/* =========================================================
-   CHARACTER MEDIA STAGE (CHROMA CANVAS / AVATAR)
-========================================================= */
-
-.interviewerMediaStage {
-  position: relative;
-  width: 240px;
-  height: 320px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto;
-  border-radius: 20px;
-}
-
-/* Speaking Halo Wave when AI is speaking */
-.speakingHaloRing {
-  position: absolute;
-  inset: -8px;
-  border-radius: 24px;
-  background: radial-gradient(circle, rgba(217, 130, 54, 0.38) 0%, rgba(217, 130, 54, 0) 70%);
-  animation: speakingPulse 2s ease-out infinite;
-  pointer-events: none;
-}
-
-@keyframes speakingPulse {
-  0% {
-    transform: scale(0.92);
-    opacity: 0.85;
-  }
-  50% {
-    transform: scale(1.15);
-    opacity: 0.2;
-  }
-  100% {
-    transform: scale(0.92);
-    opacity: 0.85;
-  }
-}
-
-/* Text Mode Portrait Avatar */
-.textModeAvatarBox {
-  width: 220px;
-  height: 290px;
-  border-radius: 20px;
-  overflow: hidden;
-  border: 3.5px solid #ffffff;
-  box-shadow: 0 16px 36px -8px rgba(139, 69, 19, 0.28),
-              0 0 0 1px rgba(217, 130, 54, 0.25);
-  position: relative;
-  transition: transform 0.3s ease;
-}
-
-.textModeAvatarBox:hover {
-  transform: scale(1.03);
-}
-
-.textModeAvatarImg {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* AI State Badge */
-.aiStatePill {
+.roleBadgePill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6c5b50;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.wsStatusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.wsConnected {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+
+.wsReconnecting {
+  background: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+}
+
+.wsDisconnected {
+  background: #ef4444;
+}
+
+/* =========================================================
+   TOP CENTER: 3 STAGES PROGRESS STEPPER (KHỞI ĐỘNG - CHUYÊN MÔN - CHÀO KẾT)
+========================================================= */
+
+.topBarCenter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.topStagesContainer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(217, 130, 54, 0.24);
+  border-radius: 9999px;
+  box-shadow: 0 2px 10px rgba(84, 50, 27, 0.05);
+}
+
+.stageStepItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: #786558;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.stageStepDot {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 9.5px;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  background: rgba(106, 72, 49, 0.08);
+  color: #786558;
+  border: 1.5px solid rgba(106, 72, 49, 0.2);
+  transition: all 0.25s ease;
+}
+
+.stageStepLabel {
+  letter-spacing: -0.01em;
+}
+
+.stageStepActive .stageStepDot {
+  background: #d98236;
+  color: #ffffff;
+  border-color: #d98236;
+  box-shadow: 0 0 0 3px rgba(217, 130, 54, 0.25);
+}
+
+.stageStepActive .stageStepLabel {
+  color: #8b4513;
+  font-weight: 800;
+}
+
+.stageStepCompleted .stageStepDot {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+}
+
+.stageStepCompleted .stageStepLabel {
+  color: #065f46;
+  font-weight: 700;
+}
+
+.stageStepTurnBadge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(217, 130, 54, 0.15);
+  color: #8b4513;
+}
+
+.stageStepLine {
+  width: 16px;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(106, 72, 49, 0.15);
+}
+
+.stageStepLineFilled {
+  background: #10b981;
+}
+
+/* =========================================================
+   TOP RIGHT: TIMER, AUDIO, SETTINGS & ACTIONS
+========================================================= */
+
+.topBarRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.timerPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(106, 72, 49, 0.06);
+  font-size: 11.5px;
+  font-weight: 750;
+  color: #6c5b50;
+  font-variant-numeric: tabular-nums;
+}
+
+.btnTopAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(106, 72, 49, 0.16);
+  background: #ffffff;
+  color: #211914;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnTopAction:hover {
+  background: #faf7f2;
+  border-color: #d98236;
+  color: #8b4513;
+}
+
+.btnEndEarly {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  background: #fff5f5;
+  color: #dc2626;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnEndEarly:hover {
+  background: #fee2e2;
+  border-color: #dc2626;
+}
+
+/* =========================================================
+   MAIN 3-COLUMN GRID LAYOUT (100% FIXED, NO WINDOW SCROLL)
+========================================================= */
+
+.mainGrid {
+  flex: 1;
+  height: calc(100vh - 56px);
+  max-height: calc(100vh - 56px);
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(360px, 1.25fr) minmax(320px, 1.15fr);
+  gap: 14px;
+  padding: 10px 16px 12px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1024px) {
+  .mainGrid {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+  .roomShell {
+    overflow-y: auto;
+    position: relative;
+    height: auto;
+  }
+}
+
+/* =========================================================
+   COLUMN 1 (LEFT): LỊCH SỬ CÂU HỎI AI (MESSENGER INCOMING STYLE)
+========================================================= */
+
+.aiHistoryColumn {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(217, 130, 54, 0.18);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(84, 50, 27, 0.04);
+  backdrop-filter: blur(14px);
+  box-sizing: border-box;
+}
+
+.columnHeader {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(106, 72, 49, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 248, 240, 0.4) 100%);
+  flex-shrink: 0;
+}
+
+.columnHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.columnHeaderIconAi {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #d98236 0%, #8b4513 100%);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.columnHeaderIconUser {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.columnTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: #211914;
+}
+
+.columnSub {
+  margin: 0;
+  font-size: 10.5px;
+  color: rgba(45, 31, 23, 0.6);
+}
+
+.columnBadge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(217, 130, 54, 0.12);
+  color: #8b4513;
+}
+
+.columnBadgeEmerald {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #065f46;
+}
+
+.messagesScrollArea {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-sizing: border-box;
+}
+
+.messagesScrollArea::-webkit-scrollbar {
+  width: 4px;
+}
+
+.messagesScrollArea::-webkit-scrollbar-thumb {
+  background: rgba(106, 72, 49, 0.18);
+  border-radius: 999px;
+}
+
+.emptyStreamHint {
+  text-align: center;
+  padding: 32px 14px;
+  color: rgba(45, 31, 23, 0.55);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* AI Message Bubble (Messenger Incoming Style) */
+.aiBubbleWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  max-width: 95%;
+}
+
+.bubbleMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 750;
+  color: #8b4513;
+  padding-left: 4px;
+}
+
+.aiBubble {
+  background: #ffffff;
+  border: 1px solid rgba(217, 130, 54, 0.22);
+  border-radius: 14px 14px 14px 3px;
+  padding: 9px 12px;
+  color: #211914;
+  font-size: 12.5px;
+  line-height: 1.5;
+  box-shadow: 0 2px 6px rgba(84, 50, 27, 0.03);
+}
+
+.activeAiStreamingBubble {
+  background: linear-gradient(135deg, rgba(255, 248, 238, 0.95) 0%, #ffffff 100%);
+  border: 1.5px solid #d98236;
+  border-radius: 14px 14px 14px 3px;
+  padding: 10px 12px;
+  color: #211914;
+  font-size: 12.5px;
+  line-height: 1.5;
+  box-shadow: 0 0 14px rgba(217, 130, 54, 0.15);
+  position: relative;
+}
+
+.liveSpeakingIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #d98236;
+  margin-bottom: 4px;
+}
+
+.audioReplayBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-top: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(217, 130, 54, 0.25);
+  background: rgba(217, 130, 54, 0.08);
+  color: #8b4513;
+  font-size: 10.5px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.audioReplayBtn:hover {
+  background: #fed7aa;
+}
+
+.audioReplayBtnActive {
+  background: #d98236 !important;
+  color: #fff !important;
+  border-color: #d98236 !important;
+}
+
+/* =========================================================
+   COLUMN 2 (CENTER): AI INTERVIEWER CHARACTER STAGE
+========================================================= */
+
+.interviewerCenterColumn {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 248, 238, 0.75) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 12px 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(84, 50, 27, 0.05);
+  backdrop-filter: blur(16px);
+  position: relative;
+  box-sizing: border-box;
+}
+
+.centerTopMetaRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* AI State Pill */
+.aiStatePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 .stateSpeaking {
@@ -227,134 +552,144 @@
 }
 
 @keyframes pulseDot {
-  0%, 100% { transform: scale(0.9); opacity: 0.7; }
-  50% { transform: scale(1.3); opacity: 1; }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.quickActionGroup {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btnQuickAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 7px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #8b4513;
+  background: rgba(217, 130, 54, 0.1);
+  border: 1px solid rgba(217, 130, 54, 0.25);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnQuickAction:hover:not(:disabled) {
+  background: #fed7aa;
+}
+
+.btnQuickAction:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Character Media Stage */
+.interviewerMediaStage {
+  position: relative;
+  width: 220px;
+  height: 290px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 2px auto;
+  border-radius: 18px;
+  flex-shrink: 0;
+}
+
+.speakingHaloRing {
+  position: absolute;
+  inset: -6px;
+  border-radius: 22px;
+  background: radial-gradient(circle, rgba(217, 130, 54, 0.38) 0%, rgba(217, 130, 54, 0) 70%);
+  animation: speakingPulse 2s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes speakingPulse {
+  0% { transform: scale(0.95); opacity: 0.85; }
+  50% { transform: scale(1.1); opacity: 0.2; }
+  100% { transform: scale(0.95); opacity: 0.85; }
+}
+
+.mediaBackdropStudio {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 248, 240, 0.7) 0%, rgba(255, 238, 222, 0.45) 100%);
+  border: 1px solid rgba(217, 130, 54, 0.16);
+  box-shadow: inset 0 2px 8px rgba(255, 255, 255, 0.9), 0 10px 24px rgba(84, 50, 27, 0.05);
+  pointer-events: none;
+}
+
+.textModeAvatarBox {
+  width: 200px;
+  height: 260px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 3px solid #ffffff;
+  box-shadow: 0 12px 28px -6px rgba(139, 69, 19, 0.25);
+  position: relative;
+}
+
+.textModeAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .interviewerName {
   margin: 4px 0 0;
-  font-size: 17px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 850;
   color: #211914;
   letter-spacing: -0.015em;
+  text-align: center;
 }
 
 .interviewerTitle {
   margin: 1px 0 0;
-  font-size: 11.5px;
+  font-size: 11px;
   color: rgba(45, 31, 23, 0.65);
   font-weight: 600;
+  text-align: center;
 }
 
-/* =========================================================
-   RIGHT PANEL CONTROLS BOX
-========================================================= */
-
-.rightControlsBox {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* Center Bottom Live Caption */
+.centerSubtitleBox {
   width: 100%;
-  max-width: 230px;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(106, 72, 49, 0.12);
-  border-radius: 18px;
-  padding: 12px 14px;
+  border-radius: 12px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(217, 130, 54, 0.2);
+  box-shadow: 0 2px 8px rgba(84, 50, 27, 0.03);
+  text-align: center;
+  flex-shrink: 0;
 }
 
-.controlTimerRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-}
-
-.controlTimerText {
-  font-variant-numeric: tabular-nums;
-  font-weight: 800;
-  color: #211914;
-  font-size: 14px;
-}
-
-.modeToggleGroup {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px;
-  border-radius: 999px;
-  background: rgba(106, 72, 49, 0.08);
-  border: 1px solid rgba(106, 72, 49, 0.12);
-  width: 100%;
-}
-
-
-
-.btnEndEarly {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  padding: 7px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  background: rgba(239, 68, 68, 0.08);
-  color: #dc2626;
-  font-size: 11.5px;
-  font-weight: 750;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btnEndEarly:hover {
-  background: rgba(239, 68, 68, 0.18);
-  border-color: #dc2626;
-}
-
-/* =========================================================
-   REALTIME NATURAL SUBTITLE CAPSULE (BELOW CHARACTER)
-========================================================= */
-
-.subtitleGlassBox {
-  width: 100%;
-  border-radius: 18px;
-  padding: 14px 20px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(106, 72, 49, 0.15);
-  box-shadow: 0 3px 14px rgba(84, 50, 27, 0.04);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  text-align: left;
-}
-
-.subtitleTopRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 10.5px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #8b4513;
-}
-
-.subtitleSpeechText {
+.centerSubtitleText {
   margin: 0;
-  font-size: 17px;
-  font-weight: 650;
-  line-height: 1.55;
+  font-size: 12px;
+  line-height: 1.45;
   color: #211914;
-  letter-spacing: -0.01em;
+  font-style: italic;
+  max-height: 48px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .typewriterCursor {
   display: inline-block;
   width: 2px;
-  height: 15px;
+  height: 13px;
+  margin-left: 3px;
+  vertical-align: middle;
   background: #d98236;
-  margin-left: 4px;
-  vertical-align: -2px;
   animation: blink 0.8s infinite;
 }
 
@@ -363,328 +698,429 @@
   50% { opacity: 0; }
 }
 
-.quickAudioBtn {
+.audioResumeBanner {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: #905029;
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+}
+
+/* =========================================================
+   COLUMN 3 (RIGHT): CÂU TRẢ LỜI CỦA BẠN (MESSENGER OUTGOING STYLE)
+========================================================= */
+
+.candidateHistoryColumn {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(84, 50, 27, 0.04);
+  backdrop-filter: blur(14px);
+  box-sizing: border-box;
+}
+
+/* User Message Bubble (Messenger Outgoing Style) */
+.userBubbleWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  max-width: 95%;
+  align-self: flex-end;
+}
+
+.userBubbleMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 750;
+  color: #059669;
+  padding-right: 4px;
+}
+
+.userBubble {
+  background: rgba(16, 185, 129, 0.09);
+  border: 1px solid rgba(16, 185, 129, 0.26);
+  border-radius: 14px 14px 3px 14px;
+  padding: 9px 12px;
+  color: #111827;
+  font-size: 12.5px;
+  line-height: 1.5;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.03);
+}
+
+.userAudioReplayBtn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid rgba(106, 72, 49, 0.18);
-  background: rgba(255, 255, 255, 0.9);
-  color: #8b4513;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: #ffffff;
+  color: #065f46;
   font-size: 10.5px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.userAudioReplayBtn:hover {
+  background: #a7f3d0;
+}
+
+/* Candidate Response Console (Anchored at Bottom of Right Column) */
+.candidateBottomConsole {
+  border-top: 1px solid rgba(16, 185, 129, 0.22);
+  background: rgba(255, 255, 255, 0.94);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.consoleHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.consoleTitle {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #065f46;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.modeToggleLink {
+  background: none;
+  border: none;
+  color: #8b4513;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.modeToggleLink:hover {
+  text-decoration: underline;
+}
+
+.voiceActiveArea {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.voiceStatusText {
+  font-size: 12px;
+  color: #6c5b50;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.voiceActionRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btnPrimaryVoice {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: #059669;
+  border: 1px solid #047857;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnPrimaryVoice:hover:not(:disabled) {
+  background: #047857;
+}
+
+.btnPrimaryVoice:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnStopVoice {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: #dc2626;
+  border: 1px solid #b91c1c;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 750;
+  cursor: pointer;
+  animation: pulseStop 1.5s infinite;
+}
+
+@keyframes pulseStop {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+}
+
+.btnSecondaryVoice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid rgba(106, 72, 49, 0.2);
+  color: #211914;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
 }
 
-/* =========================================================
-   COMPACT IN-FRAME CANDIDATE RESPONSE CONSOLE (VOICE & TEXT)
-========================================================= */
-
-.responseConsole {
-  width: 100%;
-  border-radius: 20px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 248, 240, 0.9) 100%);
-  border: 1px solid rgba(217, 130, 54, 0.3);
-  padding: 14px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  box-shadow: 0 6px 20px -4px rgba(139, 69, 19, 0.1);
-}
-
-/* Voice Inline Row: Big Mic + Waveform Canvas + Actions */
-.voiceInlineRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  width: 100%;
-}
-
-.bigMicButton {
-  position: relative;
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  border: none;
-  background: linear-gradient(135deg, #d98236 0%, #8b4513 100%);
-  color: #ffffff;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  box-shadow: 0 6px 18px -2px rgba(139, 69, 19, 0.4);
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.bigMicButton:hover {
-  transform: scale(1.08);
-  box-shadow: 0 8px 24px -2px rgba(139, 69, 19, 0.55);
-}
-
-.bigMicRecording {
-  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
-  box-shadow: 0 0 24px rgba(239, 68, 68, 0.6) !important;
-  animation: recordingPulse 1.4s infinite;
-}
-
-@keyframes recordingPulse {
-  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-  70% { box-shadow: 0 0 0 14px rgba(239, 68, 68, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-}
-
-.waveformCenterWrap {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.waveformStatusRow {
+.autoSendToggleRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-size: 11px;
-  font-weight: 700;
-  color: #543a2a;
+  color: #6c5b50;
 }
 
-.btnSubmitTurn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 10px 20px;
-  border-radius: 999px;
-  border: none;
-  background: #211914;
-  color: #fffaf4;
-  font-size: 12.5px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+.switchSmall {
   cursor: pointer;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(33, 25, 20, 0.2);
+  font-weight: 700;
+  color: #8b4513;
 }
 
-.btnSubmitTurn:hover:not(:disabled) {
-  background: #d98236;
-  transform: translateY(-1.5px);
-  box-shadow: 0 6px 18px rgba(217, 130, 54, 0.35);
+/* Review Mode inside Candidate Console */
+.voiceReviewConsole {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.btnSubmitTurn:disabled {
-  opacity: 0.55;
-  cursor: wait;
-}
-
-/* Compact Editable Transcript Preview */
-.liveTranscriptSnippet {
+.voiceReviewAudio {
   width: 100%;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(106, 72, 49, 0.14);
-  padding: 8px 12px;
-  font-size: 13px;
-  line-height: 1.5;
+  height: 36px;
+}
+
+.voiceReviewTextarea {
+  width: 100%;
+  height: 52px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.45;
   color: #211914;
-  outline: none;
   resize: none;
   box-sizing: border-box;
 }
 
-/* Text Mode Compact Layout */
-.textModeInputRow {
+.voiceReviewActions {
   display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  width: 100%;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Text Mode Input */
+.textModeInputArea {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .textInputArea {
-  flex: 1;
-  min-height: 52px;
-  max-height: 110px;
-  border-radius: 14px;
-  border: 1px solid rgba(106, 72, 49, 0.18);
-  background: rgba(255, 255, 255, 0.9);
-  padding: 10px 14px;
-  font-size: 13.5px;
-  color: #211914;
-  line-height: 1.5;
-  outline: none;
-  resize: vertical;
-  box-sizing: border-box;
-}
-
-.textInputArea:focus {
-  border-color: #d98236;
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(217, 130, 54, 0.18);
-}
-
-/* Completed Banner */
-.completedBanner {
-  border-radius: 20px;
-  padding: 20px 24px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(255, 255, 255, 0.95) 100%);
-  border: 1.5px solid rgba(16, 185, 129, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.btnViewResult {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 11px 22px;
-  border-radius: 9999px;
-  background: linear-gradient(135deg, #211914 0%, #3a2215 100%);
-  color: #fffaf4;
-  font-size: 12.5px;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  text-decoration: none;
-  box-shadow: 0 6px 20px -4px rgba(33, 25, 20, 0.4);
-  transition: transform 0.2s ease;
-}
-
-.btnViewResult:hover {
-  transform: translateY(-2px);
-}
-
-
-/* =========================================================
-   HYBRID INPUT CONSOLE & CONTROLS STYLES
-========================================================= */
-
-.inputAreaWrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
   width: 100%;
-}
-
-.candidateTextarea {
-  width: 100%;
-  min-height: 56px;
-  max-height: 120px;
-  border-radius: 14px;
-  border: 1px solid rgba(217, 130, 54, 0.25);
-  background: rgba(255, 255, 255, 0.95);
-  padding: 10px 14px;
-  font-size: 13px;
+  height: 64px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.45;
   color: #211914;
-  line-height: 1.5;
-  outline: none;
   resize: none;
   box-sizing: border-box;
-  transition: all 0.2s ease;
 }
 
-.candidateTextarea:focus {
-  border-color: #d98236;
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(217, 130, 54, 0.15);
-}
-
-.inputActionRow {
+.textInputFooter {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
 }
 
-.charCounter {
-  font-size: 11px;
-  color: rgba(45, 31, 23, 0.5);
-  font-weight: 500;
+.textInputHint {
+  font-size: 10.5px;
+  color: rgba(45, 31, 23, 0.55);
 }
 
-.btnSubmitAnswer {
+.btnSubmitText {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 18px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #211914 0%, #3a2215 100%);
-  color: #fffaf4;
-  font-size: 12px;
-  font-weight: 700;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: #059669;
   border: none;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 750;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(33, 25, 20, 0.25);
+  transition: all 0.15s ease;
 }
 
-.btnSubmitAnswer:hover:not(:disabled) {
-  background: linear-gradient(135deg, #d98236 0%, #8b4513 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(217, 130, 54, 0.35);
-}
-
-.btnSubmitAnswer:disabled {
+.btnSubmitText:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
-.consoleTopBar {
+/* =========================================================
+   SETTINGS DRAWER (NHẢY QUA TỪ BÊN PHẢI KHI BẤM NÚT CÀI ĐẶT)
+========================================================= */
+
+.settingsDrawerBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+  background: rgba(33, 25, 20, 0.45);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: flex-end;
+  animation: fadeIn 0.2s ease both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.settingsDrawerSheet {
+  width: 440px;
+  max-width: calc(100vw - 32px);
+  height: 100%;
+  background: #ffffff;
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  animation: slideInRight 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.settingsDrawerHeader {
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(106, 72, 49, 0.12);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  width: 100%;
+  background: linear-gradient(135deg, rgba(217, 130, 54, 0.1) 0%, #ffffff 100%);
+  flex-shrink: 0;
 }
 
-.consoleHint {
-  font-size: 11.5px;
+.settingsDrawerTitleBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settingsDrawerIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #d98236 0%, #8b4513 100%);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.settingsDrawerTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #211914;
+}
+
+.settingsDrawerSub {
+  margin: 2px 0 0;
+  font-size: 11px;
   color: rgba(45, 31, 23, 0.65);
-  font-weight: 500;
 }
 
-
-/* Studio Background Behind Portrait Video */
-.mediaBackdropStudio {
-  position: absolute;
-  inset: 0;
-  border-radius: 20px;
-  background: linear-gradient(180deg, rgba(255, 248, 240, 0.7) 0%, rgba(255, 238, 222, 0.45) 100%);
-  border: 1px solid rgba(217, 130, 54, 0.16);
-  box-shadow: inset 0 2px 8px rgba(255, 255, 255, 0.9), 0 12px 28px rgba(84, 50, 27, 0.06);
-  pointer-events: none;
+.btnCloseDrawer {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(106, 72, 49, 0.15);
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: #211914;
 }
 
-/* Voice & STT Engine Controls */
-.voiceSelectSection {
+.settingsDrawerContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.settingsSection {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: 100%;
 }
 
-.voiceSelectHeader {
+.settingsSectionLabel {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  font-size: 12px;
+  font-weight: 800;
+  color: #211914;
+  letter-spacing: -0.01em;
 }
 
 .voiceTierBadge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
+  gap: 3px;
+  padding: 2px 7px;
   border-radius: 999px;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.02em;
 }
 
 .tierBadgeFree {
@@ -697,4 +1133,47 @@
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 130, 54, 0.2) 100%);
   color: #b45309;
   border: 1px solid rgba(217, 130, 54, 0.35);
+}
+
+.settingsHelper {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: rgba(45, 31, 23, 0.6);
+  line-height: 1.45;
+}
+
+.settingsDivider {
+  height: 1px;
+  background: rgba(106, 72, 49, 0.1);
+  margin: 4px 0;
+}
+
+.settingsActionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #faf7f2;
+  border: 1px solid rgba(106, 72, 49, 0.1);
+  font-size: 12px;
+  font-weight: 650;
+  color: #211914;
+}
+
+.btnEndInterviewFull {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: #dc2626;
+  border: none;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+  margin-top: 10px;
 }

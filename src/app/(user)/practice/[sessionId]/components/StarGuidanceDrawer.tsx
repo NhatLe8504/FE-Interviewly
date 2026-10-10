@@ -6,10 +6,25 @@ import { Sparkles, X, CheckCircle2, PlusCircle, Check } from "lucide-react";
 interface StarGuidanceDrawerProps {
   starTip?: string;
   onInsertStarter?: (starterText: string) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  showTrigger?: boolean;
 }
 
-export function StarGuidanceDrawer({ starTip, onInsertStarter }: StarGuidanceDrawerProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function StarGuidanceDrawer({
+  starTip,
+  onInsertStarter,
+  isOpen: controlledIsOpen,
+  onClose: controlledOnClose,
+  showTrigger = false,
+}: StarGuidanceDrawerProps) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+  const handleClose = () => {
+    if (controlledOnClose) controlledOnClose();
+    else setInternalIsOpen(false);
+  };
+  const handleOpen = () => setInternalIsOpen(true);
   const [insertedLetter, setInsertedLetter] = useState<string | null>(null);
 
   const starFramework = [
@@ -56,7 +71,7 @@ export function StarGuidanceDrawer({ starTip, onInsertStarter }: StarGuidanceDra
       {/* Floating Toggle Button */}
       <button
         type="button"
-        onClick={() => setIsOpen(true)}
+        onClick={handleOpen}
         style={{
           position: "fixed",
           right: "24px",
@@ -90,7 +105,7 @@ export function StarGuidanceDrawer({ starTip, onInsertStarter }: StarGuidanceDra
       {/* Backdrop */}
       {isOpen && (
         <div
-          onClick={() => setIsOpen(false)}
+          onClick={handleClose}
           style={{
             position: "fixed",
             inset: 0,
@@ -155,7 +170,7 @@ export function StarGuidanceDrawer({ starTip, onInsertStarter }: StarGuidanceDra
           </div>
           <button
             type="button"
-            onClick={() => setIsOpen(false)}
+            onClick={handleClose}
             style={{
               background: "none",
               border: "none",
