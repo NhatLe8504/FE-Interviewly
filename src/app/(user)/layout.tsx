@@ -1,10 +1,11 @@
-﻿import "@/styles/user-globals.css";
+import "@/styles/user-globals.css";
 import Header from "@/components/user-component/layout/Header";
 import Footer from "@/components/user-component/layout/Footer";
 import { UserToaster } from "@/components/user-component/toast";
 
 import { UserOnboardingGuard } from "@/components/auth/UserOnboardingGuard";
 import { MascotProvider } from "@/context/MascotContext";
+import { FreeProFloatingBanner } from "@/components/user-component/common/FreeProFloatingBanner";
 
 export default function UserLayout({
   children,
@@ -21,6 +22,7 @@ export default function UserLayout({
       <main className="flex-1">
         <UserOnboardingGuard>{children}</UserOnboardingGuard>
       </main>
+      <FreeProFloatingBanner />
       {auth}
       <Footer />
     </div>
