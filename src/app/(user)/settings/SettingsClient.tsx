@@ -242,7 +242,7 @@ export default function SettingsClient() {
       default:
         return { score: 0, text: "", color: "" };
     }
-  }, [newPassword]);
+  }, [newPassword, t]);
 
   const initials = useMemo(() => {
     const name = user?.full_name || "U";
