@@ -218,6 +218,31 @@
   border-color: #d98236;
 }
 
+.roundEndSessionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 36px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(220, 38, 38, 0.35);
+  background: #ffffff;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.08);
+  transition: all 0.2s ease;
+}
+
+.roundEndSessionBtn:hover {
+  background: #fef2f2;
+  border-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+}
+
+
 /* =========================================================
    MIDDLE STAGE: KHUNG CHAT CHUNG (ZIGZAG) + VIDEO AI CO DINH O GIUA
 ========================================================= */
@@ -493,6 +518,125 @@
   background: #a7f3d0;
 }
 
+/* Bong bong xem truoc loi noi truc tiep cua nguoi dung tren khung chat */
+.userLivePreviewBubble {
+  background: #ffffff;
+  border: 1.5px solid #10b981;
+  border-radius: 18px 18px 4px 18px;
+  padding: 12px 14px;
+  color: #111827;
+  font-size: 13px;
+  line-height: 1.5;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.16);
+  max-width: min(calc(50% - 148px), 560px);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: bubblePop 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.previewWaveRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.previewTranscriptText {
+  color: #1f2937;
+  font-size: 13px;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+.previewEditingInput {
+  width: 100%;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #111827;
+  background: #f9fbf9;
+  outline: none;
+  resize: vertical;
+  min-height: 52px;
+  box-sizing: border-box;
+}
+
+.previewEditingInput:focus {
+  border-color: #10b981;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15);
+}
+
+.previewActionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(16, 185, 129, 0.2);
+}
+
+.btnPreviewConfirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #10b981;
+  border: 1px solid #059669;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.btnPreviewConfirm:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.btnPreviewConfirm:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btnPreviewSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  border: 1px solid rgba(107, 114, 128, 0.2);
+  color: #374151;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnPreviewSecondary:hover {
+  background: #e5e7eb;
+}
+
+.btnPreviewDanger {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.btnPreviewDanger:hover {
+  background: #fee2e2;
+}
+
+
 /* Responsive: man hinh hep thi thu nho / doi video de khong de len chat */
 @media (max-width: 1200px) {
   .centerAiBox {
@@ -628,18 +772,20 @@
 }
 
 /* =========================================================
-   SETTINGS DRAWER (SLIDE-OVER NHẢY QUA KHI BẤM NÚT)
+   SETTINGS POPUP / MODAL (POPUP Ở GIỮA MÀN HÌNH THEO YÊU CẦU)
 ========================================================= */
 
-.settingsDrawerBackdrop {
+.settingsModalBackdrop {
   position: fixed;
   inset: 0;
   z-index: 10020;
-  background: rgba(33, 25, 20, 0.45);
-  backdrop-filter: blur(8px);
+  background: rgba(33, 25, 20, 0.52);
+  backdrop-filter: blur(6px);
   display: flex;
-  justify-content: flex-end;
-  animation: fadeIn 0.2s ease both;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.18s ease both;
 }
 
 @keyframes fadeIn {
@@ -647,29 +793,32 @@
   to { opacity: 1; }
 }
 
-.settingsDrawerSheet {
-  width: 440px;
+.settingsModalCard {
+  width: 500px;
   max-width: calc(100vw - 32px);
-  height: 100%;
+  max-height: calc(100vh - 64px);
   background: #ffffff;
-  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.18);
+  border-radius: 22px;
+  border: 1.5px solid rgba(217, 130, 54, 0.25);
+  box-shadow: 0 24px 64px rgba(45, 31, 23, 0.28);
   display: flex;
   flex-direction: column;
-  animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  overflow: hidden;
+  animation: modalScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-@keyframes slideInRight {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+@keyframes modalScaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-.settingsDrawerHeader {
-  padding: 18px 20px;
+.settingsModalHeader {
+  padding: 16px 20px;
   border-bottom: 1px solid rgba(106, 72, 49, 0.12);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(135deg, rgba(217, 130, 54, 0.1) 0%, #ffffff 100%);
+  background: linear-gradient(135deg, rgba(217, 130, 54, 0.12) 0%, #ffffff 100%);
   flex-shrink: 0;
 }
 
@@ -712,9 +861,15 @@
   place-items: center;
   cursor: pointer;
   color: #211914;
+  transition: all 0.15s ease;
 }
 
-.settingsDrawerContent {
+.btnCloseDrawer:hover {
+  background: #fdfaf6;
+  border-color: #d98236;
+}
+
+.settingsModalContent {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
