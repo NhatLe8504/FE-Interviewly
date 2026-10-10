@@ -813,10 +813,21 @@ export function useRealtimeVoiceInterview({
   }, [sendMessage]);
 
   const getWsUrl = useCallback(() => {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = window.location.hostname;
-    const port = process.env.NEXT_PUBLIC_API_PORT || "8000";
-    return `${protocol}//${host}:${port}/api/v1/voice/ws/${sessionId}`;
+    if (process.env.NEXT_PUBLIC_WS_URL) {
+      const base = process.env.NEXT_PUBLIC_WS_URL.replace(/\/+$/, "");
+      return `${base}/api/v1/voice/ws/${sessionId}`;
+    }
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL;
+    if (apiBase) {
+      const wsBase = apiBase.replace(/^http/, "ws").replace(/\/+$/, "");
+      return `${wsBase}/api/v1/voice/ws/${sessionId}`;
+    }
+    if (typeof window !== "undefined") {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const host = window.location.host;
+      return `${protocol}//${host}/api/v1/voice/ws/${sessionId}`;
+    }
+    return `ws://localhost:8000/api/v1/voice/ws/${sessionId}`;
   }, [sessionId]);
 
   // Main WebSocket Lifecycle

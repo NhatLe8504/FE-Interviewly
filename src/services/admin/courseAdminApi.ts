@@ -519,7 +519,8 @@ export const courseAdminApi = {
       formData.append("resource_type", "video");
 
       const token = typeof window !== "undefined" ? localStorage.getItem("interviewly_token") : null;
-      const res = await fetch("http://127.0.0.1:8000/api/v1/upload", {
+      const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
+      const res = await fetch(`${apiBase}/api/v1/upload`, {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
