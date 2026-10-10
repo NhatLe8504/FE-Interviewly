@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import Image from "next/image";
 import { Award, Building2, Clock, Layers, Sparkles, Star, User, ExternalLink, Briefcase } from "lucide-react";
 import type { PreMadeInterview } from "@/data/mockInterviews";
 import styles from "../setup.module.css";
@@ -41,7 +42,14 @@ export function InterviewProfile({ interview }: InterviewProfileProps) {
         <aside className={styles.jobOriginBanner}>
           <div className={styles.jobOriginHeader}>
             {interview.companyLogoUrl ? (
-              <img src={interview.companyLogoUrl} alt={interview.company} className={styles.jobOriginLogo} />
+              <Image
+                src={interview.companyLogoUrl}
+                alt={interview.company}
+                width={40}
+                height={40}
+                unoptimized
+                className={styles.jobOriginLogo}
+              />
             ) : (
               <div className={styles.jobOriginLogo} style={{ display: "grid", placeItems: "center" }}>
                 <Briefcase size={20} color="#d98236" />

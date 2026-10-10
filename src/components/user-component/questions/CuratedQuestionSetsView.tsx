@@ -454,7 +454,7 @@ export function CuratedQuestionSetsView({
                         title={`Thời lượng ước tính: ~${s.estimated_duration_minutes} phút`}
                       >
                         <Clock className="size-3.5 text-[var(--accent-deep)] shrink-0" />
-                        <span>~{s.estimated_duration_minutes}'</span>
+                        <span>~{s.estimated_duration_minutes}&apos;</span>
                       </span>
 
                       <span
