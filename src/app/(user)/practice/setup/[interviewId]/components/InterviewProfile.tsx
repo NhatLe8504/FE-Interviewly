@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { Award, Building2, Clock, Layers, Sparkles, Star, User } from "lucide-react";
+import { Award, Building2, Clock, Layers, Sparkles, Star, User, ExternalLink, Briefcase } from "lucide-react";
 import type { PreMadeInterview } from "@/data/mockInterviews";
 import styles from "../setup.module.css";
 
@@ -36,6 +36,33 @@ export function InterviewProfile({ interview }: InterviewProfileProps) {
           </p>
         </div>
       </header>
+
+      {interview.originJobId && (
+        <aside className={styles.jobOriginBanner}>
+          <div className={styles.jobOriginHeader}>
+            {interview.companyLogoUrl ? (
+              <img src={interview.companyLogoUrl} alt={interview.company} className={styles.jobOriginLogo} />
+            ) : (
+              <div className={styles.jobOriginLogo} style={{ display: "grid", placeItems: "center" }}>
+                <Briefcase size={20} color="#d98236" />
+              </div>
+            )}
+            <div className={styles.jobOriginInfo}>
+              <span className={styles.jobOriginBadge}>Liên kết tin tuyển dụng</span>
+              <p className={styles.jobOriginName}>{interview.company} • {interview.title}</p>
+            </div>
+          </div>
+          <a
+            href={`/jobs/${interview.originJobId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.jobOriginLink}
+          >
+            <span>Xem chi tiết mô tả công việc (JD)</span>
+            <ExternalLink size={13} />
+          </a>
+        </aside>
+      )}
 
       <dl className={styles.statsGrid}>
         {stats.map(({ Icon, label, detail }) => (

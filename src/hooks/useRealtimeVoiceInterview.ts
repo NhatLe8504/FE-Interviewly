@@ -320,6 +320,121 @@ export function useRealtimeVoiceInterview({
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [audioBlockedByAutoplay, setAudioBlockedByAutoplay] = useState(false);
 
+  // TTS Engine: 'edge' (Cloud AI) or 'browser' (Web Speech API - 0ms latency)
+  const [ttsEngine, setTtsEngineState] = useState<"edge" | "browser">(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("preferred_tts_engine");
+        if (saved === "browser" || saved === "edge") return saved;
+      } catch {}
+    }
+    return "edge";
+  });
+  const ttsEngineRef = useRef<"edge" | "browser">(ttsEngine);
+  ttsEngineRef.current = ttsEngine;
+
+  const [selectedBrowserVoice, setSelectedBrowserVoiceState] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return localStorage.getItem("preferred_browser_voice") || null;
+      } catch {}
+    }
+    return null;
+  });
+  const browserVoiceRef = useRef<string | null>(selectedBrowserVoice);
+  browserVoiceRef.current = selectedBrowserVoice;
+
+  const setTtsEngine = useCallback((engine: "edge" | "browser") => {
+    setTtsEngineState(engine);
+    ttsEngineRef.current = engine;
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("preferred_tts_engine", engine);
+      } catch {}
+      if (engine === "edge" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    }
+  }, []);
+
+  const setSelectedBrowserVoice = useCallback((voiceName: string | null) => {
+    setSelectedBrowserVoiceState(voiceName);
+    browserVoiceRef.current = voiceName;
+    if (typeof window !== "undefined" && voiceName) {
+      try {
+        localStorage.setItem("preferred_browser_voice", voiceName);
+      } catch {}
+    }
+  }, []);
+
+  const browserTtsPendingCountRef = useRef(0);
+  const isAudioMutedRef = useRef(false);
+  isAudioMutedRef.current = isAudioMuted;
+
+  const speakWithBrowserTTS = useCallback((text: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const clean = text.trim();
+    if (!clean) return;
+
+    try {
+      const utterance = new SpeechSynthesisUtterance(clean);
+      const voices = window.speechSynthesis.getVoices();
+
+      let voiceToUse: SpeechSynthesisVoice | undefined;
+      if (browserVoiceRef.current) {
+        voiceToUse = voices.find((v) => v.name === browserVoiceRef.current);
+      }
+      if (!voiceToUse) {
+        const langCode = (optionsRef.current.language || "vi").toLowerCase();
+        if (langCode === "vi") {
+          voiceToUse = voices.find((v) => v.lang.toLowerCase().startsWith("vi"));
+        } else {
+          voiceToUse = voices.find((v) => v.lang.toLowerCase().startsWith(langCode));
+        }
+      }
+      if (voiceToUse) {
+        utterance.voice = voiceToUse;
+      }
+
+      const pitchHz = parseInt(activePitch, 10) || 0;
+      utterance.pitch = Math.max(0.6, Math.min(1.4, 1.0 + (pitchHz * 0.03)));
+      utterance.rate = 1.0;
+      utterance.volume = isAudioMutedRef.current ? 0 : 1;
+
+      browserTtsPendingCountRef.current += 1;
+
+      utterance.onstart = () => {
+        setIsAudioPlaying(true);
+        setAiState("speaking");
+        setCurrentSubtitle(clean);
+      };
+
+      utterance.onend = () => {
+        browserTtsPendingCountRef.current = Math.max(0, browserTtsPendingCountRef.current - 1);
+        if (browserTtsPendingCountRef.current === 0) {
+          setIsAudioPlaying(false);
+          if (serverHasFinishedTurnRef.current && !submissionPendingRef.current) {
+            setAiState("listening");
+          }
+        }
+      };
+
+      utterance.onerror = () => {
+        browserTtsPendingCountRef.current = Math.max(0, browserTtsPendingCountRef.current - 1);
+        if (browserTtsPendingCountRef.current === 0) {
+          setIsAudioPlaying(false);
+          if (serverHasFinishedTurnRef.current && !submissionPendingRef.current) {
+            setAiState("listening");
+          }
+        }
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.warn("Browser SpeechSynthesis error:", err);
+    }
+  }, [activePitch]);
+
   // State References for safe async callbacks
   const aiStateRef = useRef<AiVoiceState>("idle");
   aiStateRef.current = aiState;
@@ -484,6 +599,10 @@ export function useRealtimeVoiceInterview({
     setIsAudioMuted((prev) => {
       const next = !prev;
       playerRef.current?.setMuted(next);
+      if (typeof window !== "undefined" && window.speechSynthesis && next) {
+        window.speechSynthesis.cancel();
+        browserTtsPendingCountRef.current = 0;
+      }
       return next;
     });
   }, []);
@@ -493,6 +612,10 @@ export function useRealtimeVoiceInterview({
     if (activeGenerationRef.current) ignoredGenerationsRef.current.add(activeGenerationRef.current);
     if (playerRef.current) {
       playerRef.current.stop();
+    }
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      browserTtsPendingCountRef.current = 0;
     }
     setIsAudioPlaying(false);
     serverHasFinishedTurnRef.current = false;
@@ -513,6 +636,10 @@ export function useRealtimeVoiceInterview({
   const rerollQuestion = useCallback(() => {
     if (!sendMessage({ type: "reroll_question" })) return;
     if (playerRef.current) playerRef.current.stop();
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      browserTtsPendingCountRef.current = 0;
+    }
     serverHasFinishedTurnRef.current = false;
     submissionPendingRef.current = true;
     setAiState("thinking");
@@ -522,6 +649,10 @@ export function useRealtimeVoiceInterview({
   const skipToNextStage = useCallback(() => {
     if (!sendMessage({ type: "next_stage" })) return;
     if (playerRef.current) playerRef.current.stop();
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      browserTtsPendingCountRef.current = 0;
+    }
     serverHasFinishedTurnRef.current = false;
     submissionPendingRef.current = true;
     setAiState("thinking");
@@ -532,6 +663,10 @@ export function useRealtimeVoiceInterview({
     if (!sendMessage({ type: "stage_transition_confirm" })) return;
     setPendingTransition(null);
     if (playerRef.current) playerRef.current.stop();
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      browserTtsPendingCountRef.current = 0;
+    }
     serverHasFinishedTurnRef.current = false;
     submissionPendingRef.current = true;
     setAiState("thinking");
@@ -566,6 +701,10 @@ export function useRealtimeVoiceInterview({
   const endSessionEarly = useCallback(() => {
     isManuallyClosedRef.current = true;
     if (playerRef.current) playerRef.current.stop();
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      browserTtsPendingCountRef.current = 0;
+    }
     sendMessage({ type: "stop_session" });
     setIsCompleted(true);
     setAiState("completed");
@@ -580,6 +719,10 @@ export function useRealtimeVoiceInterview({
       submissionPendingRef.current = true;
 
       if (playerRef.current) playerRef.current.stop();
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        browserTtsPendingCountRef.current = 0;
+      }
       serverHasFinishedTurnRef.current = false;
       aiStateRef.current = "thinking";
       setAiState("thinking");
@@ -856,7 +999,14 @@ export function useRealtimeVoiceInterview({
             setCurrentQuestion(fullAiTextAccumulatorRef.current);
           } else if (type === "subtitle") {
             subtitlesRef.current.set(data.sentence_index, data.sentence || "");
+            if (ttsEngineRef.current === "browser" && data.sentence) {
+              speakWithBrowserTTS(data.sentence);
+            }
           } else if (type === "audio") {
+            if (ttsEngineRef.current === "browser") {
+              // Bo qua am thanh tu backend khi nguoi dung chon Browser Web Speech API
+              return;
+            }
             setAiState("speaking");
             if (data.audio_data && playerRef.current) {
               setAudioBlockedByAutoplay(playerRef.current.getAudioContext().state === "suspended");
@@ -867,6 +1017,10 @@ export function useRealtimeVoiceInterview({
           } else if (type === "interrupted") {
             if (generation) ignoredGenerationsRef.current.add(generation);
             if (playerRef.current) playerRef.current.stop();
+            if (typeof window !== "undefined" && window.speechSynthesis) {
+              window.speechSynthesis.cancel();
+              browserTtsPendingCountRef.current = 0;
+            }
             serverHasFinishedTurnRef.current = false;
             if (!submissionPendingRef.current) setAiState("listening");
             fullAiTextAccumulatorRef.current = "";
@@ -875,6 +1029,10 @@ export function useRealtimeVoiceInterview({
             submissionPendingRef.current = false;
             serverHasFinishedTurnRef.current = true;
             playerRef.current?.setExpectingMoreAudio(false);
+            if (ttsEngineRef.current === "browser" && browserTtsPendingCountRef.current === 0) {
+              setIsAudioPlaying(false);
+              setAiState("listening");
+            }
             const aiResponse = (data.full_text || fullAiTextAccumulatorRef.current || "").trim();
             if (aiResponse) {
               const targetTurnNum = data.turn_id || turnIdRef.current;
@@ -1023,5 +1181,9 @@ export function useRealtimeVoiceInterview({
     changeMockMode,
     stageElapsedSeconds,
     stageMaxSeconds,
+    ttsEngine,
+    setTtsEngine,
+    selectedBrowserVoice,
+    setSelectedBrowserVoice,
   };
 }

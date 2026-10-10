@@ -24,6 +24,7 @@ import {
   Trash2,
   CheckCircle2,
   MessageSquare,
+  ExternalLink,
 } from "lucide-react";
 import { useRealtimeVoiceInterview } from "@/hooks/useRealtimeVoiceInterview";
 import { useVoiceAnswerDraft } from "@/hooks/useVoiceAnswerDraft";
@@ -61,6 +62,8 @@ interface SessionMetaStored {
   totalDurationMinutes?: number;
   mockMode?: "strict" | "guided";
   selected_question_ids?: string[];
+  origin_job_id?: string | null;
+  company_logo_url?: string | null;
 }
 
 const PREFERRED_VOICE_STORAGE_KEY = "interviewly_preferred_voice";
@@ -181,6 +184,12 @@ export default function InterviewRoomPage({
         targetLang = getInterviewLanguage(stored.language ?? (stored.languageLabel === "English" ? "en" : initialLanguage)).code;
         if (stored.voice) targetVoice = stored.voice;
       }
+      try {
+        const fallbackOriginJobId = sessionStorage.getItem("target_origin_job_id");
+        if (fallbackOriginJobId) {
+          setMeta((prev) => ({ ...prev, origin_job_id: prev.origin_job_id || fallbackOriginJobId }));
+        }
+      } catch {}
       setLanguage(targetLang);
 
       // Khôi phục giọng đã cache nếu trong session_metadata chưa có
@@ -207,6 +216,28 @@ export default function InterviewRoomPage({
     }
     setIsClientMounted(true);
   }, [sessionId]);
+
+  // Browser Speech Synthesis voices cache
+  const [browserVoices, setBrowserVoices] = useState<SpeechSynthesisVoice[]>([]);
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const updateVoices = () => {
+      const all = window.speechSynthesis.getVoices();
+      if (!all || all.length === 0) return;
+      const langPrefix = (language || "vi").toLowerCase();
+      const filtered = all.filter((v) =>
+        langPrefix === "vi" ? v.lang.toLowerCase().startsWith("vi") : v.lang.toLowerCase().startsWith(langPrefix)
+      );
+      setBrowserVoices(filtered.length > 0 ? filtered : all.slice(0, 20));
+    };
+    updateVoices();
+    window.speechSynthesis.onvoiceschanged = updateVoices;
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.onvoiceschanged = null;
+      }
+    };
+  }, [language]);
 
   const roleName = meta.roleLabel || "Software Engineer";
   const level = meta.levelLabel || "Senior";
@@ -273,6 +304,11 @@ export default function InterviewRoomPage({
     changeMockMode,
     stageElapsedSeconds,
     stageMaxSeconds,
+    // TTS Engine & Browser Voice
+    ttsEngine,
+    setTtsEngine,
+    selectedBrowserVoice,
+    setSelectedBrowserVoice,
   } = useRealtimeVoiceInterview({
     sessionId,
     enabled: isClientMounted,
@@ -643,6 +679,18 @@ function changeInterviewLanguage(code: string) {
 
 {/* TOP RIGHT: NÚT KẾT THÚC & NÚT CÀI ĐẶT TRÒN GÓC PHẢI */}
             <div className={styles.topRightActions}>
+              {meta.origin_job_id && (
+                <a
+                  href={`/jobs/${meta.origin_job_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.topJdLink}
+                  title={`Xem tin tuyển dụng: ${meta.roleLabel || ""} tại ${meta.companyName || ""}`}
+                >
+                  <ExternalLink size={12} />
+                  <span>Xem JD</span>
+                </a>
+              )}
               {!isCompleted && (
                 <button
                   type="button"
@@ -1140,31 +1188,84 @@ function changeInterviewLanguage(code: string) {
 
               <div className={styles.settingsDivider} />
 
-              {/* Giọng đọc AI (TTS Tiering) */}
+              {/* Công nghệ phát giọng nói (TTS Engine) */}
               <div className={styles.settingsSection}>
                 <div className={styles.settingsSectionLabel}>
-                  <span>Giọng đọc AI (TTS)</span>
-                  <span className={`${styles.voiceTierBadge} ${styles.tierBadgeFree}`}>
-                    Miễn phí
-                  </span>
+                  <span>Công nghệ phát giọng nói (TTS Engine)</span>
                 </div>
-                <SimpleUserSelect
-                  id="settings-voice-select"
-                  value={selectedVoice}
-                  disabled={!canSendText}
-                  onChange={handleVoiceChange}
-                  options={filteredVoices.map((v) => ({
-                    value: v.id,
-                    label: v.name,
-                  }))}
-                  aria-label="AI Voice"
-                />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    className={`${styles.pitchQuickBtn} ${ttsEngine === "edge" ? styles.pitchQuickBtnActive : ""}`}
+                    onClick={() => setTtsEngine("edge")}
+                  >
+                    Edge TTS (Cloud AI)
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.pitchQuickBtn} ${ttsEngine === "browser" ? styles.pitchQuickBtnActive : ""}`}
+                    onClick={() => setTtsEngine("browser")}
+                  >
+                    Web Speech (Trình duyệt - 0ms)
+                  </button>
+                </div>
                 <p className={styles.settingsHelper}>
-                  {language === "vi"
-                    ? "Tự động ưu tiên giọng tiếng Việt và giọng đa ngôn ngữ (xử lý tự nhiên khi câu hỏi chứa thuật ngữ tiếng Anh)."
-                    : "Giọng đọc tương thích với ngôn ngữ phỏng vấn đã chọn."}
+                  {ttsEngine === "browser"
+                    ? "Web Speech API: Phát âm trực tiếp trên trình duyệt máy bạn, độ trễ thấp nhất (0ms network delay)."
+                    : "Edge TTS: Giọng đọc Microsoft Cloud AI tự nhiên và truyền cảm."}
                 </p>
               </div>
+
+              {/* Giọng đọc AI */}
+              {ttsEngine === "edge" ? (
+                <div className={styles.settingsSection}>
+                  <div className={styles.settingsSectionLabel}>
+                    <span>Giọng đọc Edge TTS</span>
+                    <span className={`${styles.voiceTierBadge} ${styles.tierBadgeFree}`}>
+                      Miễn phí
+                    </span>
+                  </div>
+                  <SimpleUserSelect
+                    id="settings-voice-select"
+                    value={selectedVoice}
+                    disabled={!canSendText}
+                    onChange={handleVoiceChange}
+                    options={filteredVoices.map((v) => ({
+                      value: v.id,
+                      label: v.name,
+                    }))}
+                    aria-label="AI Voice"
+                  />
+                  <p className={styles.settingsHelper}>
+                    {language === "vi"
+                      ? "Tự động ưu tiên giọng tiếng Việt và giọng đa ngôn ngữ (xử lý tự nhiên khi câu hỏi chứa thuật ngữ tiếng Anh)."
+                      : "Giọng đọc tương thích với ngôn ngữ phỏng vấn đã chọn."}
+                  </p>
+                </div>
+              ) : (
+                <div className={styles.settingsSection}>
+                  <div className={styles.settingsSectionLabel}>
+                    <span>Giọng đọc Trình duyệt (Web Speech API)</span>
+                    <span className={`${styles.voiceTierBadge} ${styles.tierBadgeFree}`}>
+                      0ms Delay
+                    </span>
+                  </div>
+                  <SimpleUserSelect
+                    id="settings-browser-voice-select"
+                    value={selectedBrowserVoice || (browserVoices[0]?.name || "")}
+                    disabled={!canSendText}
+                    onChange={(name) => setSelectedBrowserVoice(name)}
+                    options={browserVoices.map((v) => ({
+                      value: v.name,
+                      label: `${v.name} (${v.lang})`,
+                    }))}
+                    aria-label="Browser Voice"
+                  />
+                  <p className={styles.settingsHelper}>
+                    Danh sách giọng đọc được cung cấp bởi hệ điều hành / trình duyệt của thiết bị bạn.
+                  </p>
+                </div>
+              )}
 
               {/* Độ cao / thấp giọng đọc (Pitch Control) */}
               <div className={styles.settingsSection}>

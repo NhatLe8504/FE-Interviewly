@@ -195,5 +195,78 @@
 @media (max-width: 640px) { .pageShell { width: min(100% - 28px, 1160px); padding-top: 82px; } .profileOverlay { padding: 18px; } .statsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .setupCard { padding: 17px; } .stageSettings { padding-left: 12px; } .drawer { padding: 18px 14px; } .drawerFilters { grid-template-columns: 1fr; } }
 .topbar { position: relative; display: flex; align-items: flex-end; min-height: 96px; padding: 0 120px 20px 0; margin-bottom: 32px; border-bottom: 1px solid var(--line); }
 .mascot { position: absolute !important; right: 8px; bottom: 0; }
-.stageToggle:has(input:focus-visible), .bargeInControl:has(input:focus-visible), .questionOption:has(input:focus-visible) { outline: 2px solid var(--accent-deep); outline-offset: 3px; }
 @media (max-width: 640px) { .topbar { padding-right: 100px; } .setupCard { padding: 22px; } }
+
+.jobOriginBanner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--surface-subtle);
+  border: 1px solid rgba(217, 130, 54, 0.25);
+  border-radius: 12px;
+}
+
+.jobOriginHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.jobOriginLogo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 2px;
+}
+
+.jobOriginInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.jobOriginBadge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #d98236;
+}
+
+.jobOriginName {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jobOriginLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.jobOriginLink:hover {
+  background: rgba(217, 130, 54, 0.08);
+  border-color: #d98236;
+  color: #d98236;
+}
