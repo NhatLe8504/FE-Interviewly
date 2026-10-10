@@ -18,6 +18,7 @@ import {
   Globe,
   LogOut,
   ChevronDown,
+  CreditCard,
 } from "lucide-react";
 import { toast } from "@/components/user-component/toast";
 import styles from "./Header.module.css";
@@ -28,7 +29,6 @@ const NAV_ITEMS = [
   { href: "/jobs", label: "JOBS" },
   { href: "/questions", label: "QUESTION BANK" },
   { href: "/courses", label: "COURSES" },
-  { href: "/pricing", label: "PRICING" },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -53,9 +53,9 @@ export default function Header() {
     () => [
       { href: "/", label: lang === "vi" ? "TRANG CHỦ" : "HOME" },
       { href: "/practice", label: lang === "vi" ? "GIẢ LẬP PHỎNG VẤN" : "MOCK INTERVIEW" },
+      { href: "/jobs", label: lang === "vi" ? "TÌM VIỆC" : "JOBS" },
       { href: "/questions", label: lang === "vi" ? "NGÂN HÀNG CÂU HỎI" : "QUESTION BANK" },
       { href: "/courses", label: lang === "vi" ? "KHÓA HỌC" : "COURSES" },
-      { href: "/pricing", label: lang === "vi" ? "BẢNG GIÁ" : "PRICING" },
     ],
     [lang]
   );
@@ -314,6 +314,19 @@ export default function Header() {
                     <Sparkles size={14} className="text-[#d98236]" />
                     {lang === "vi" ? "Vào phòng phỏng vấn thử (AI)" : "Start Mock Interview"}
                   </span>
+                </Link>
+
+                <Link
+                  href="/pricing"
+                  className={styles.dropdownItem}
+                  role="menuitem"
+                  onClick={handleCloseMenu}
+                >
+                  <span className={styles.dropdownItemLeft}>
+                    <CreditCard size={14} className={styles.dropdownItemIcon} />
+                    {lang === "vi" ? "Bảng giá & Gói cước" : "Pricing & Plans"}
+                  </span>
+                  <span className={styles.dropdownItemTag}>PRO</span>
                 </Link>
 
                 <div className={styles.dropdownDivider} />
