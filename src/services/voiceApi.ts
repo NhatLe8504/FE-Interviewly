@@ -31,8 +31,9 @@ export interface VoiceOptionsResponse {
 }
 
 export const voiceApi = {
-  getVoiceOptions: async (): Promise<VoiceOptionsResponse> => {
-    return request<VoiceOptionsResponse>("/api/v1/voice/options", {
+  getVoiceOptions: async (language?: string): Promise<VoiceOptionsResponse> => {
+    const query = language ? `?language=${encodeURIComponent(language)}` : "";
+    return request<VoiceOptionsResponse>(`/api/v1/voice/options${query}`, {
       method: "GET",
     });
   },
