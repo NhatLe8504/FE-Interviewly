@@ -30,7 +30,7 @@ import styles from "./jdInterviewWorkspace.module.css";
 export function JDInterviewWorkspace() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const queryJobId = searchParams.get("job_id");
+  const queryJobId = searchParams.get("job_id") || searchParams.get("jobId");
 
   // Input tabs
   const [activeTab, setActiveTab] = useState<"text" | "url" | "file">("text");

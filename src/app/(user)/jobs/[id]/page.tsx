@@ -15,6 +15,9 @@ import { formatJobTimestamp, getJobTechnologies, SENIORITY_LABELS, WORKPLACE_LAB
 import { getBrandLabel } from "@/lib/brand-icons";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "@/components/user-component/toast";
+import { useUserSubscription } from "@/hooks/useUserSubscription";
+import { useAuth } from "@/context/AuthContext";
+import { ProUpgradeJobModal } from "@/components/user-component/jobs/ProUpgradeJobModal";
 import styles from "./jobDetail.module.css";
 
 interface JobDetailPageProps {
@@ -25,6 +28,10 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
   const resolvedParams = use(params);
   const jobId = resolvedParams.id;
   const router = useRouter();
+
+  const { isSubscribed } = useUserSubscription();
+  const { isAuthenticated } = useAuth();
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
 
   const [jobResponse, setJobResponse] = useState<{ jobId: string; retryAttempt: number; job: JobDetail | null } | null>(null);
   const [isStarting, setIsStarting] = useState(false);
@@ -51,18 +58,37 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
 
   const handleStartPractice = async () => {
     if (!job) return;
+
+    // Nếu chưa có buổi luyện và tài khoản là Free -> mở modal nâng cấp Pro ngay
+    if (!job.has_practice_session && !isSubscribed) {
+      setUpgradeModalOpen(true);
+      return;
+    }
+
     setIsStarting(true);
     try {
       const res = await jobsApi.startPractice(job.job_id);
-      toast.success(`Đã chuẩn bị kịch bản phỏng vấn cho vị trí: ${job.title}!`);
+      if (res.has_existing_session) {
+        toast.success("Buổi luyện đã sẵn sàng! Đang chuyển đến phòng luyện tập...");
+      } else {
+        toast.success(`Đã chuẩn bị kịch bản phỏng vấn cho vị trí: ${job.title}!`);
+      }
       if (typeof window !== "undefined") {
         sessionStorage.setItem("target_job_title", job.title);
         sessionStorage.setItem("target_company_name", job.company?.company_name || "");
       }
       router.push(res.redirect_url);
-    } catch (err) {
-      toast.error("Không thể khởi tạo buổi phỏng vấn. Vui lòng thử lại!");
+    } catch (err: any) {
       setIsStarting(false);
+      const errMsg = err?.message || err?.data?.detail || "";
+      if (err?.status === 403 || errMsg.toLowerCase().includes("pro")) {
+        setUpgradeModalOpen(true);
+      } else if (err?.status === 401 || !isAuthenticated) {
+        toast.error("Vui lòng đăng nhập để bắt đầu buổi luyện phỏng vấn!");
+        router.push(`/auth/login?redirect=/jobs/${job.job_id}`);
+      } else {
+        toast.error("Không thể khởi tạo buổi phỏng vấn. Vui lòng thử lại!");
+      }
     }
   };
 
@@ -142,6 +168,12 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
           )}
         </section>
       </div>
+
+      <ProUpgradeJobModal
+        open={upgradeModalOpen}
+        onOpenChange={setUpgradeModalOpen}
+        jobTitle={job?.title}
+      />
     </div>
   );
 }
