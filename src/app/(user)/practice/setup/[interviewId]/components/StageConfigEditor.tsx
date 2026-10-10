@@ -26,9 +26,10 @@ interface StageConfigEditorProps {
   sourceModes: StageSourceModes;
   turnBudgets: StageTurnBudgets;
   selectedQuestionIds: StageQuestionSelections;
+  totalDurationMinutes?: number;
   onToggleStage: (stageKey: PracticeStageKey) => void;
   onSourceModesChange: (nextSourceModes: StageSourceModes) => void;
-  onTurnBudgetsChange: (nextTurnBudgets: StageTurnBudgets) => void;
+  onTurnBudgetsChange?: (nextTurnBudgets: StageTurnBudgets) => void;
   onChooseQuestions: (stageKey: PracticeStageKey) => void;
 }
 
@@ -44,9 +45,9 @@ export function StageConfigEditor({
   sourceModes,
   turnBudgets,
   selectedQuestionIds,
+  totalDurationMinutes = 45,
   onToggleStage,
   onSourceModesChange,
-  onTurnBudgetsChange,
   onChooseQuestions,
 }: StageConfigEditorProps) {
   return (
@@ -62,6 +63,10 @@ export function StageConfigEditor({
           const sourceMode = sourceModes[stage.id];
           const selectedCount = selectedQuestionIds[stage.id].length;
           const Icon = stage.icon;
+
+          const stageDurationMins = Math.round(
+            totalDurationMinutes * (stage.id === "technical" ? 4 / 6 : 1 / 6)
+          );
 
           return (
             <article
@@ -86,7 +91,7 @@ export function StageConfigEditor({
                   <strong>{stage.label}</strong>
                   <small>{stage.description}</small>
                 </span>
-                {isActive ? <em>~{turnBudgets[stage.id]} lượt</em> : null}
+                {isActive ? <em>Tối đa ~{stageDurationMins}p</em> : null}
               </label>
 
               {isActive ? (
@@ -110,30 +115,6 @@ export function StageConfigEditor({
                           }
                         >
                           {option.label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className={styles.compactControl}>
-                    <span>Số lượt hỏi</span>
-                    <div className={styles.segmentedControl} role="group" aria-label={`Số lượt hỏi · ${stage.label}`}>
-                      {[1, 2, 3].map((turns) => (
-                        <Button
-                          key={turns}
-                          variant="home-choice"
-                          size="home-compact"
-                          className="flex-1"
-                          type="button"
-                          aria-pressed={turnBudgets[stage.id] === turns}
-                          onClick={() =>
-                            onTurnBudgetsChange({
-                              ...turnBudgets,
-                              [stage.id]: turns,
-                            })
-                          }
-                        >
-                          {turns}
                         </Button>
                       ))}
                     </div>

@@ -10,6 +10,7 @@ interface PlanSummaryProps {
   stageDefinitions: readonly StageDefinition[];
   selectedStages: PracticeStageKey[];
   totalTurns: number;
+  totalDurationMinutes?: number;
   isLaunching: boolean;
   isPlanValid: boolean;
   validationMessage: string | null;
@@ -21,6 +22,7 @@ export function PlanSummary({
   stageDefinitions,
   selectedStages,
   totalTurns,
+  totalDurationMinutes = 45,
   isLaunching,
   isPlanValid,
   validationMessage,
@@ -38,7 +40,7 @@ export function PlanSummary({
         <Sparkles size={16} aria-hidden="true" />
         <div>
           <h2 id="plan-summary-heading">Kế hoạch phiên</h2>
-          <p>{totalTurns} lượt hỏi dự kiến</p>
+          <p>Thời lượng: {totalDurationMinutes} phút (~{totalTurns} chủ đề)</p>
         </div>
       </div>
 
