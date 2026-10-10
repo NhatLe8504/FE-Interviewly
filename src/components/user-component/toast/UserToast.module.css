@@ -1,6 +1,7 @@
 /* =========================================================
-   USER LIQUID GLASS TOASTER NOTIFICATION SYSTEM
-   Exclusively styled for (user) with dynamic SVG animations
+   MODERN HIGH-END TOASTER NOTIFICATION SYSTEM
+   Clean, Elegant, Non-AI SaaS Aesthetic (Linear/Stripe style)
+   Smooth SVG Micro-interactions for Success, Error, Warning, Info
 ========================================================= */
 
 .toasterContainer {
@@ -10,10 +11,20 @@
   z-index: 99999999;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   pointer-events: none;
-  max-width: 430px;
+  max-width: 420px;
   width: calc(100vw - 48px);
+}
+
+@media (max-width: 640px) {
+  .toasterContainer {
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    width: auto;
+    max-width: none;
+  }
 }
 
 .toastItem {
@@ -22,306 +33,433 @@
   overflow: hidden;
   display: flex;
   align-items: flex-start;
-  gap: 15px;
-  padding: 16px 18px;
-  border-radius: 22px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 248, 240, 0.92) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(32px) saturate(210%);
-  -webkit-backdrop-filter: blur(32px) saturate(210%);
-  box-shadow: 0 20px 50px -10px rgba(84, 50, 27, 0.18),
-              0 4px 16px rgba(84, 50, 27, 0.06),
-              inset 0 1px 2px rgba(255, 255, 255, 1);
-  color: #211914;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow:
+    0 12px 32px -4px rgba(15, 23, 42, 0.1),
+    0 4px 12px -2px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  color: #0f172a;
   user-select: none;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  animation: toastSlideIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, box-shadow 0.2s ease;
+  animation: toastSlideIn 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+:global(.dark) .toastItem {
+  background: rgba(24, 24, 27, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 16px 36px -4px rgba(0, 0, 0, 0.55),
+    0 4px 12px -2px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
 }
 
 .toastExiting {
-  animation: toastSlideOut 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: toastSlideOut 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes toastSlideIn {
   from {
     opacity: 0;
-    transform: translateX(35px) scale(0.93);
+    transform: translate3d(24px, -6px, 0) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
 @keyframes toastSlideOut {
   from {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
   }
   to {
     opacity: 0;
-    transform: translateX(45px) scale(0.9);
+    transform: translate3d(32px, 0, 0) scale(0.94);
   }
 }
 
+/* Variant Subtle Accents */
+.toastSuccess {
+  border-left: 3.5px solid #10b981;
+}
+
+.toastError {
+  border-left: 3.5px solid #ef4444;
+}
+
+.toastWarning {
+  border-left: 3.5px solid #f59e0b;
+}
+
+.toastInfo {
+  border-left: 3.5px solid #3b82f6;
+}
+
 /* =========================================================
-   DYNAMIC ANIMATED GRAPHICS (SUCCESS / ERROR / WARNING / INFO)
+   ANIMATED STATUS BADGES & MICRO-INTERACTIONS (NON-AI)
 ========================================================= */
 
 .animWrapper {
   position: relative;
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border-radius: 50%;
   margin-top: 1px;
 }
 
-.animPulseAura {
+/* Single-shot Ripple on Mount (not continuous AI pulse glow) */
+.animRipple {
   position: absolute;
-  inset: -6px;
+  inset: -4px;
   border-radius: 50%;
   pointer-events: none;
-  animation: auraPulse 2.4s ease-out infinite;
+  animation: singleRipple 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.auraSuccess {
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.45) 0%, rgba(16, 185, 129, 0) 70%);
-}
-
-.auraError {
-  background: radial-gradient(circle, rgba(239, 68, 68, 0.45) 0%, rgba(239, 68, 68, 0) 70%);
-}
-
-.auraWarning {
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.45) 0%, rgba(245, 158, 11, 0) 70%);
-}
-
-.auraInfo {
-  background: radial-gradient(circle, rgba(217, 130, 54, 0.45) 0%, rgba(217, 130, 54, 0) 70%);
-}
-
-@keyframes auraPulse {
+@keyframes singleRipple {
   0% {
     transform: scale(0.85);
-    opacity: 0.8;
-  }
-  50% {
-    transform: scale(1.35);
-    opacity: 0.12;
+    opacity: 0.7;
   }
   100% {
-    transform: scale(0.85);
-    opacity: 0.8;
+    transform: scale(1.35);
+    opacity: 0;
   }
 }
 
 .animSvg {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   position: relative;
   z-index: 1;
   overflow: visible;
-  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.1));
 }
 
-/* SUCCESS: Draw Circle & Spring Checkmark */
+/* ---------------- SUCCESS ---------------- */
+.badgeSuccess {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+:global(.dark) .badgeSuccess {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+}
+
+.rippleSuccess {
+  border: 1.5px solid rgba(16, 185, 129, 0.45);
+}
+
 .strokeSuccessCircle {
   stroke: #10b981;
-  stroke-width: 2.75;
-  stroke-dasharray: 126;
-  stroke-dashoffset: 126;
-  fill: rgba(16, 185, 129, 0.12);
-  animation: drawStroke 0.45s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+  stroke-width: 2.2;
+  stroke-dasharray: 82;
+  stroke-dashoffset: 82;
+  fill: none;
+  animation: drawStroke 0.38s cubic-bezier(0.65, 0, 0.45, 1) forwards;
 }
 
 .strokeSuccessCheck {
   stroke: #059669;
-  stroke-width: 3.2;
+  stroke-width: 2.6;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-dasharray: 48;
-  stroke-dashoffset: 48;
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
   fill: none;
-  animation: drawStroke 0.38s 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: drawStroke 0.32s 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-/* ERROR: Draw Circle & Vibrating Cross Lines */
+:global(.dark) .strokeSuccessCircle {
+  stroke: #34d399;
+}
+
+:global(.dark) .strokeSuccessCheck {
+  stroke: #6ee7b7;
+}
+
+/* ---------------- ERROR ---------------- */
+.badgeError {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  animation: errorHaptic 0.4s 0.22s ease-in-out;
+}
+
+:global(.dark) .badgeError {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
+
+.rippleError {
+  border: 1.5px solid rgba(239, 68, 68, 0.45);
+}
+
 .strokeErrorCircle {
   stroke: #ef4444;
-  stroke-width: 2.75;
-  stroke-dasharray: 126;
-  stroke-dashoffset: 126;
-  fill: rgba(239, 68, 68, 0.12);
-  animation: drawStroke 0.4s cubic-bezier(0.65, 0, 0.45, 1) forwards,
-             microShake 0.45s 0.35s ease-in-out;
-  transform-origin: center;
+  stroke-width: 2.2;
+  stroke-dasharray: 82;
+  stroke-dashoffset: 82;
+  fill: none;
+  animation: drawStroke 0.36s cubic-bezier(0.65, 0, 0.45, 1) forwards;
 }
 
-.strokeErrorLine1,
+.strokeErrorLine1 {
+  stroke: #dc2626;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-dasharray: 18;
+  stroke-dashoffset: 18;
+  fill: none;
+  animation: drawStroke 0.24s 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
 .strokeErrorLine2 {
   stroke: #dc2626;
-  stroke-width: 3.2;
+  stroke-width: 2.6;
   stroke-linecap: round;
-  stroke-dasharray: 30;
-  stroke-dashoffset: 30;
+  stroke-dasharray: 18;
+  stroke-dashoffset: 18;
   fill: none;
-  animation: drawStroke 0.28s 0.26s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: drawStroke 0.24s 0.26s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-.strokeErrorLine2 {
-  animation-delay: 0.34s;
+:global(.dark) .strokeErrorCircle {
+  stroke: #f87171;
 }
 
-/* WARNING: Triangle Draw & Bouncing Dot */
+:global(.dark) .strokeErrorLine1,
+:global(.dark) .strokeErrorLine2 {
+  stroke: #fca5a5;
+}
+
+@keyframes errorHaptic {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-2.5px);
+  }
+  40% {
+    transform: translateX(2.5px);
+  }
+  60% {
+    transform: translateX(-1.2px);
+  }
+  80% {
+    transform: translateX(1.2px);
+  }
+}
+
+/* ---------------- WARNING ---------------- */
+.badgeWarning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+:global(.dark) .badgeWarning {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
+.rippleWarning {
+  border: 1.5px solid rgba(245, 158, 11, 0.45);
+}
+
 .strokeWarningTriangle {
   stroke: #f59e0b;
-  stroke-width: 2.75;
-  stroke-dasharray: 130;
-  stroke-dashoffset: 130;
+  stroke-width: 2.2;
+  stroke-dasharray: 72;
+  stroke-dashoffset: 72;
   stroke-linejoin: round;
-  fill: rgba(245, 158, 11, 0.12);
-  animation: drawStroke 0.45s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+  stroke-linecap: round;
+  fill: none;
+  animation: drawStroke 0.4s cubic-bezier(0.65, 0, 0.45, 1) forwards;
 }
 
 .strokeWarningStem {
   stroke: #d97706;
-  stroke-width: 3.2;
+  stroke-width: 2.6;
   stroke-linecap: round;
-  stroke-dasharray: 20;
-  stroke-dashoffset: 20;
+  stroke-dasharray: 10;
+  stroke-dashoffset: 10;
   fill: none;
-  animation: drawStroke 0.28s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: drawStroke 0.24s 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .warningDot {
   fill: #d97706;
-  animation: popInDot 0.3s 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  transform-origin: 21px 31px;
+  animation: dropDot 0.28s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transform-origin: center;
 }
 
-/* INFO: Twinkling Rotating Sparkles */
-.animInfoGlowCircle {
-  stroke: #d98236;
-  stroke-width: 2.5;
-  stroke-dasharray: 126;
-  stroke-dashoffset: 126;
-  fill: rgba(217, 130, 54, 0.12);
-  animation: drawStroke 0.45s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+:global(.dark) .strokeWarningTriangle {
+  stroke: #fbbf24;
 }
 
-.infoMainStar {
-  fill: #d98236;
-  transform-origin: 21px 21px;
-  animation: spinSparkle 4.5s linear infinite;
+:global(.dark) .strokeWarningStem {
+  stroke: #fde68a;
 }
 
-.infoLittleStar1 {
-  fill: #8b4513;
-  transform-origin: 30px 12px;
-  animation: twinkleStar 1.8s ease-in-out infinite alternate;
+:global(.dark) .warningDot {
+  fill: #fde68a;
 }
 
-.infoLittleStar2 {
-  fill: #d98236;
-  transform-origin: 12px 30px;
-  animation: twinkleStar 2.2s 0.6s ease-in-out infinite alternate;
+/* ---------------- INFO ---------------- */
+.badgeInfo {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
 }
 
+:global(.dark) .badgeInfo {
+  background: rgba(59, 130, 246, 0.18);
+  color: #60a5fa;
+}
+
+.rippleInfo {
+  border: 1.5px solid rgba(59, 130, 246, 0.45);
+}
+
+.strokeInfoCircle {
+  stroke: #3b82f6;
+  stroke-width: 2.2;
+  stroke-dasharray: 82;
+  stroke-dashoffset: 82;
+  fill: none;
+  animation: drawStroke 0.38s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.strokeInfoStem {
+  stroke: #2563eb;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-dasharray: 10;
+  stroke-dashoffset: 10;
+  fill: none;
+  animation: drawStroke 0.24s 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.infoDot {
+  fill: #2563eb;
+  animation: dropDot 0.28s 0.16s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transform-origin: center;
+}
+
+:global(.dark) .strokeInfoCircle {
+  stroke: #60a5fa;
+}
+
+:global(.dark) .strokeInfoStem {
+  stroke: #93c5fd;
+}
+
+:global(.dark) .infoDot {
+  fill: #93c5fd;
+}
+
+/* Shared Micro-animation Keyframes */
 @keyframes drawStroke {
-  100% {
+  to {
     stroke-dashoffset: 0;
   }
 }
 
-@keyframes microShake {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-9deg); }
-  50% { transform: rotate(9deg); }
-  75% { transform: rotate(-5deg); }
-}
-
-@keyframes popInDot {
+@keyframes dropDot {
   from {
-    transform: scale(0);
+    transform: translateY(-5px) scale(0);
     opacity: 0;
   }
   to {
-    transform: scale(1);
+    transform: translateY(0) scale(1);
     opacity: 1;
   }
 }
 
-@keyframes spinSparkle {
-  0% { transform: rotate(0deg) scale(0.92); }
-  50% { transform: rotate(180deg) scale(1.08); }
-  100% { transform: rotate(360deg) scale(0.92); }
-}
-
-@keyframes twinkleStar {
-  0% { transform: scale(0.5); opacity: 0.3; }
-  100% { transform: scale(1.25); opacity: 1; }
-}
-
 /* =========================================================
-   TOAST BODY & CONTROLS
+   TOAST CONTENT & TYPOGRAPHY
 ========================================================= */
 
 .toastContent {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
-  padding-right: 4px;
+  padding-right: 2px;
 }
 
 .toastTitle {
   margin: 0;
   font-size: 13.5px;
-  font-weight: 800;
-  color: #211914;
+  font-weight: 650;
+  color: #0f172a;
   letter-spacing: -0.015em;
-  line-height: 1.35;
+  line-height: 1.4;
+}
+
+:global(.dark) .toastTitle {
+  color: #f1f5f9;
 }
 
 .toastDescription {
   margin: 0;
-  font-size: 12px;
-  font-weight: 500;
-  color: rgba(45, 31, 23, 0.75);
+  font-size: 12.5px;
+  font-weight: 450;
+  color: #64748b;
   line-height: 1.45;
   word-break: break-word;
+}
+
+:global(.dark) .toastDescription {
+  color: #94a3b8;
 }
 
 .closeBtn {
   border: none;
   background: transparent;
-  color: rgba(33, 25, 20, 0.4);
+  color: #94a3b8;
   cursor: pointer;
-  padding: 4px;
+  padding: 5px;
   border-radius: 8px;
   display: grid;
   place-items: center;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
   flex-shrink: 0;
   margin-top: -2px;
+  margin-right: -4px;
 }
 
 .closeBtn:hover {
-  background: rgba(106, 72, 49, 0.1);
-  color: #211914;
+  background: rgba(15, 23, 42, 0.06);
+  color: #334155;
 }
+
+:global(.dark) .closeBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+}
+
+/* =========================================================
+   PROGRESS BAR
+========================================================= */
 
 .progressBar {
   position: absolute;
   bottom: 0;
   left: 0;
-  height: 3px;
-  border-radius: 999px;
-  background: rgba(217, 130, 54, 0.35);
+  height: 2.5px;
+  background: #3b82f6;
   animation: progressLinear linear forwards;
 }
 
@@ -338,7 +476,7 @@
 }
 
 .progressInfo {
-  background: #d98236;
+  background: #3b82f6;
 }
 
 @keyframes progressLinear {

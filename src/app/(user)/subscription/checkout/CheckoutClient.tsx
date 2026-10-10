@@ -17,7 +17,7 @@ import {
 import styles from "./checkout.module.css";
 import { useAuth } from "@/context/AuthContext";
 import { useCreateCheckoutMutation, useVerifyPaymentMutation } from "@/redux/api/user/billingApi";
-import { toast } from "sonner";
+import { toast } from "@/components/user-component/toast";
 
 // Synthesize a loud, crystal-clear, bright two-tone "Ting... TING!" payment notification chime
 function playSuccessChime() {
