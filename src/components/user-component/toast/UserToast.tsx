@@ -89,16 +89,16 @@ export const setFlashToast = (options: ToastOptions) => {
 };
 
 /* -------------------------------------------------------------------------- */
-/* Dedicated Smooth SVG Animation Components (No Static Icons)                */
+/* Dedicated Smooth SVG Animation Components (No Static Icons, Non-AI)       */
 /* -------------------------------------------------------------------------- */
 
 function AnimatedSuccess() {
   return (
-    <div className={styles.animWrapper}>
-      <span className={`${styles.animPulseAura} ${styles.auraSuccess}`} />
-      <svg className={styles.animSvg} viewBox="0 0 42 42" aria-hidden="true">
-        <circle className={styles.strokeSuccessCircle} cx="21" cy="21" r="18" />
-        <path className={styles.strokeSuccessCheck} d="M12 21l6 6L30 15" />
+    <div className={`${styles.animWrapper} ${styles.badgeSuccess}`}>
+      <span className={`${styles.animRipple} ${styles.rippleSuccess}`} />
+      <svg className={styles.animSvg} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <circle className={styles.strokeSuccessCircle} cx="16" cy="16" r="13" />
+        <path className={styles.strokeSuccessCheck} d="M10 16.5 L14.2 20.7 L22 12" />
       </svg>
     </div>
   );
@@ -106,12 +106,12 @@ function AnimatedSuccess() {
 
 function AnimatedError() {
   return (
-    <div className={styles.animWrapper}>
-      <span className={`${styles.animPulseAura} ${styles.auraError}`} />
-      <svg className={styles.animSvg} viewBox="0 0 42 42" aria-hidden="true">
-        <circle className={styles.strokeErrorCircle} cx="21" cy="21" r="18" />
-        <line className={styles.strokeErrorLine1} x1="14" y1="14" x2="28" y2="28" />
-        <line className={styles.strokeErrorLine2} x1="28" y1="14" x2="14" y2="28" />
+    <div className={`${styles.animWrapper} ${styles.badgeError}`}>
+      <span className={`${styles.animRipple} ${styles.rippleError}`} />
+      <svg className={styles.animSvg} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <circle className={styles.strokeErrorCircle} cx="16" cy="16" r="13" />
+        <line className={styles.strokeErrorLine1} x1="11.5" y1="11.5" x2="20.5" y2="20.5" />
+        <line className={styles.strokeErrorLine2} x1="20.5" y1="11.5" x2="11.5" y2="20.5" />
       </svg>
     </div>
   );
@@ -119,12 +119,15 @@ function AnimatedError() {
 
 function AnimatedWarning() {
   return (
-    <div className={styles.animWrapper}>
-      <span className={`${styles.animPulseAura} ${styles.auraWarning}`} />
-      <svg className={styles.animSvg} viewBox="0 0 42 42" aria-hidden="true">
-        <path className={styles.strokeWarningTriangle} d="M21 6L37 34H5L21 6Z" />
-        <line className={styles.strokeWarningStem} x1="21" y1="16" x2="21" y2="24" />
-        <circle className={styles.warningDot} cx="21" cy="29.5" r="2" />
+    <div className={`${styles.animWrapper} ${styles.badgeWarning}`}>
+      <span className={`${styles.animRipple} ${styles.rippleWarning}`} />
+      <svg className={styles.animSvg} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <path
+          className={styles.strokeWarningTriangle}
+          d="M16 6 L27.5 24.5 C28 25.3 27.4 26 26.5 26 H5.5 C4.6 26 4 25.3 4.5 24.5 L16 6 Z"
+        />
+        <line className={styles.strokeWarningStem} x1="16" y1="13" x2="16" y2="19" />
+        <circle className={styles.warningDot} cx="16" cy="23" r="1.4" />
       </svg>
     </div>
   );
@@ -132,23 +135,19 @@ function AnimatedWarning() {
 
 function AnimatedInfo() {
   return (
-    <div className={styles.animWrapper}>
-      <span className={`${styles.animPulseAura} ${styles.auraInfo}`} />
-      <svg className={styles.animSvg} viewBox="0 0 42 42" aria-hidden="true">
-        <circle className={styles.animInfoGlowCircle} cx="21" cy="21" r="18" />
-        <path
-          className={styles.infoMainStar}
-          d="M21 11 C21 16.5 16.5 21 11 21 C16.5 21 21 25.5 21 31 C21 25.5 25.5 21 31 21 C25.5 21 21 16.5 21 11 Z"
-        />
-        <circle className={styles.infoLittleStar1} cx="31" cy="11" r="2.2" />
-        <circle className={styles.infoLittleStar2} cx="11" cy="31" r="1.6" />
+    <div className={`${styles.animWrapper} ${styles.badgeInfo}`}>
+      <span className={`${styles.animRipple} ${styles.rippleInfo}`} />
+      <svg className={styles.animSvg} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <circle className={styles.strokeInfoCircle} cx="16" cy="16" r="13" />
+        <line className={styles.strokeInfoStem} x1="16" y1="15.5" x2="16" y2="21.5" />
+        <circle className={styles.infoDot} cx="16" cy="11.5" r="1.4" />
       </svg>
     </div>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Individual Toast Card with Liquid Glass Design & Animated Graphic          */
+/* Individual Toast Card with Modern SaaS Design & Animated Graphic           */
 /* -------------------------------------------------------------------------- */
 
 function ToastCard({
@@ -187,6 +186,20 @@ function ToastCard({
     }
   };
 
+  const getVariantClass = () => {
+    switch (item.variant) {
+      case "success":
+        return styles.toastSuccess;
+      case "error":
+        return styles.toastError;
+      case "warning":
+        return styles.toastWarning;
+      case "info":
+      default:
+        return styles.toastInfo;
+    }
+  };
+
   const getProgressClass = () => {
     switch (item.variant) {
       case "success":
@@ -203,7 +216,7 @@ function ToastCard({
 
   return (
     <div
-      className={`${styles.toastItem} ${isClosing ? styles.toastExiting : ""}`}
+      className={`${styles.toastItem} ${getVariantClass()} ${isClosing ? styles.toastExiting : ""}`}
       role="alert"
       aria-live="assertive"
     >
