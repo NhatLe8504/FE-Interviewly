@@ -469,8 +469,19 @@ export default function InterviewRoomPage({
               })}
             </div>
 
-            {/* TOP RIGHT: NÚT CÀI ĐẶT TRÒN GÓC PHẢI (O) THEO PHÁC THẢO */}
+{/* TOP RIGHT: NÚT KẾT THÚC & NÚT CÀI ĐẶT TRÒN GÓC PHẢI */}
             <div className={styles.topRightActions}>
+              {!isCompleted && (
+                <button
+                  type="button"
+                  className={styles.roundEndSessionBtn}
+                  onClick={handleEndInterview}
+                  title="Kết thúc phỏng vấn sớm"
+                >
+                  <Square size={13} fill="currentColor" />
+                  <span>Kết thúc</span>
+                </button>
+              )}
               <button
                 type="button"
                 className={styles.roundSettingBtn}
@@ -562,6 +573,99 @@ export default function InterviewRoomPage({
                 )
               )}
 
+{/* Bong bong xem truoc giong noi truc tiep tren khung chat (Ziczac ben phai) */}
+              {isVoiceMode && (voiceDraft.state === "recording" || voiceDraft.state === "review") && (
+                <div className={styles.turnRowUser}>
+                  <div className={styles.userLivePreviewBubble}>
+                    <div className={styles.userBubbleMeta}>
+                      <span
+                        className={styles.statePulseDot}
+                        style={{
+                          background: voiceDraft.state === "recording" ? "#10b981" : "#059669",
+                        }}
+                      />
+                      <span>
+                        {voiceDraft.state === "recording" ? "Bạn đang nói..." : "Bản thu đã sẵn sàng"}
+                      </span>
+                      <span>•</span>
+                      <span>
+                        {Math.floor(voiceDraft.durationSeconds / 60)}:
+                        {(voiceDraft.durationSeconds % 60).toString().padStart(2, "0")}
+                      </span>
+                    </div>
+
+                    {voiceDraft.state === "recording" ? (
+                      <div className={styles.previewWaveRow}>
+                        <AudioWaveformVisualizer
+                          isRecording
+                          volume={voiceDraft.volume}
+                          barCount={18}
+                          height={22}
+                        />
+                        <span className={styles.previewTranscriptText}>
+                          {[voiceDraft.transcript, voiceDraft.interimTranscript].filter(Boolean).join(" ") ||
+                            "Đang lắng nghe giọng nói..."}
+                        </span>
+                      </div>
+                    ) : (
+                      <div>
+                        <textarea
+                          className={styles.previewEditingInput}
+                          value={voiceDraft.transcript}
+                          onChange={(e) => voiceDraft.editTranscript(e.target.value)}
+                          placeholder="Chỉnh sửa nội dung bản thu trước khi gửi..."
+                          rows={2}
+                        />
+                      </div>
+                    )}
+
+                    <div className={styles.previewActionsRow}>
+                      {voiceDraft.state === "recording" ? (
+                        <button
+                          type="button"
+                          className={styles.btnPreviewConfirm}
+                          onClick={() => void voiceDraft.stopRecording()}
+                        >
+                          <Square size={11} fill="currentColor" />
+                          <span>Dừng nói</span>
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className={`${styles.btnPreviewSecondary} ${styles.btnPreviewDanger}`}
+                            onClick={voiceDraft.discard}
+                            title="Hủy bỏ bản thu"
+                          >
+                            <Trash2 size={12} />
+                            <span>Hủy</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.btnPreviewSecondary}
+                            onClick={() => void voiceDraft.startRecording()}
+                            title="Thu âm lại"
+                          >
+                            <RotateCcw size={12} />
+                            <span>Nói lại</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.btnPreviewConfirm}
+                            onClick={voiceDraft.submit}
+                            disabled={!canAnswer || !voiceDraft.transcript.trim()}
+                            title="Xác nhận gửi câu trả lời cho AI"
+                          >
+                            <Send size={12} />
+                            <span>Xác nhận gửi</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Bong bong dang go chu khi AI noi */}
               {aiState === "speaking" && currentQuestion && (
                 <div className={styles.turnRowAi}>
@@ -605,30 +709,17 @@ export default function InterviewRoomPage({
               BOTTOM ROW: THANH ĐIỀU KHIỂN BO TRÒN THEO PHÁC THẢO [  INPUT  ] [O] [O] [O]
           ========================================================= */}
           <div className={styles.bottomControlCapsule}>
-            {/* Input Zone on Left */}
+{/* Input Zone on Left */}
             <div className={styles.capsuleInputZone}>
               {isVoiceMode ? (
                 voiceDraft.state === "recording" ? (
-                  <div className={styles.capsuleLiveWave}>
-                    <AudioWaveformVisualizer isRecording volume={voiceDraft.volume} barCount={20} height={24} />
-                    <span style={{ fontSize: 12, fontWeight: 800, color: "#059669" }}>
-                      Đang thu âm ({Math.floor(voiceDraft.durationSeconds / 60)}:{(voiceDraft.durationSeconds % 60).toString().padStart(2, "0")})
-                    </span>
-                    <span style={{ fontSize: 12, color: "#6c5b50", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {[voiceDraft.transcript, voiceDraft.interimTranscript].filter(Boolean).join(" ") || "Đang nhận diện giọng nói..."}
-                    </span>
-                  </div>
+                  <p className={styles.capsuleStatusText}>
+                    <span style={{ color: "#059669", fontWeight: 750 }}>● Đang thu âm...</span> Lời nói hiển thị trực tiếp trên khung chat. Nói xong bấm Dừng nói.
+                  </p>
                 ) : voiceDraft.state === "review" ? (
-                  <div className={styles.capsuleLiveWave}>
-                    <span style={{ fontSize: 12, fontWeight: 750, color: "#8b4513" }}>Bản thu:</span>
-                    <input
-                      type="text"
-                      className={styles.capsuleTextInput}
-                      value={voiceDraft.transcript}
-                      onChange={(e) => voiceDraft.editTranscript(e.target.value)}
-                      placeholder="Chỉnh sửa văn bản AI sẽ nhận..."
-                    />
-                  </div>
+                  <p className={styles.capsuleStatusText}>
+                    <span style={{ color: "#d98236", fontWeight: 750 }}>✓ Đã có bản thu:</span> Xem lại trên khung chat và bấm &quot;Xác nhận gửi&quot;.
+                  </p>
                 ) : (
                   <p className={styles.capsuleStatusText}>
                     {isAudioPlaying || aiState === "speaking"
@@ -743,13 +834,13 @@ export default function InterviewRoomPage({
         </div>
       </div>
 
-      {/* =========================================================
-          SETTINGS DRAWER (SLIDE-OVER NHẢY QUA KHI BẤM NÚT CÀI ĐẶT TRÒN)
+{/* =========================================================
+          SETTINGS POPUP / MODAL (POPUP Ở GIỮA MÀN HÌNH THEO YÊU CẦU)
       ========================================================= */}
       {isSettingsOpen && (
-        <div className={styles.settingsDrawerBackdrop} onClick={() => setIsSettingsOpen(false)}>
-          <div className={styles.settingsDrawerSheet} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.settingsDrawerHeader}>
+        <div className={styles.settingsModalBackdrop} onClick={() => setIsSettingsOpen(false)}>
+          <div className={styles.settingsModalCard} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.settingsModalHeader}>
               <div className={styles.settingsDrawerTitleBox}>
                 <div className={styles.settingsDrawerIcon}>
                   <Settings size={18} />
@@ -768,7 +859,7 @@ export default function InterviewRoomPage({
               </button>
             </div>
 
-            <div className={styles.settingsDrawerContent}>
+            <div className={styles.settingsModalContent}>
               {/* Ngôn ngữ phỏng vấn */}
               <div className={styles.settingsSection}>
                 <label className={styles.settingsSectionLabel}>
@@ -811,8 +902,12 @@ export default function InterviewRoomPage({
                   options={(voiceOptions?.voices || [
                     { id: "vi-VN-HoaiMyNeural", name: "Hoài My (Nữ - Edge)", is_locked: false },
                     { id: "vi-VN-NamMinhNeural", name: "Nam Minh (Nam - Edge)", is_locked: false },
-                    { id: "elevenlabs-rachel", name: "Rachel (Nữ - ElevenLabs)", is_locked: true },
-                    { id: "elevenlabs-adam", name: "Adam (Nam - ElevenLabs)", is_locked: true },
+                    { id: "JBFqnCBsd6RMkjVDRZzb", name: "George (Nam - ElevenLabs)", is_locked: true },
+                    { id: "EXAVITQu4vr4xnSDxMaL", name: "Sarah (Nữ - ElevenLabs)", is_locked: true },
+                    { id: "pNInz6obpgDQGcFmaJgB", name: "Adam (Nam - ElevenLabs)", is_locked: true },
+                    { id: "TX3LPaxmHKxFdv7VOQHJ", name: "Liam (Nam - ElevenLabs)", is_locked: true },
+                    { id: "pFZP5JQG7iQjIQuC4Bku", name: "Lily (Nữ - ElevenLabs)", is_locked: true },
+                    { id: "Xb7hH8MSUJpSbSDYk0k2", name: "Alice (Nữ - ElevenLabs)", is_locked: true },
                   ]).map((v) => ({
                     value: v.id,
                     label: `${v.is_locked ? "🔒 [Pro] " : ""}${v.name}`,
