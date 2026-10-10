@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect } from "react";
+import s from "@/app/(user)/cv-builder/cvBuilder.module.css";
 
 interface EditableTextProps {
   value: string;
@@ -68,6 +69,10 @@ export const EditableText: React.FC<EditableTextProps> = ({
     }
   };
 
+  const editableClasses = isEditable
+    ? `${s.editableField} ${className}`
+    : className;
+
   return (
     <Tag
       ref={ref as any}
@@ -77,9 +82,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
       onMouseUp={handleMouseUp}
       onKeyUp={handleKeyUp}
       style={style}
-      className={`outline-none transition-colors duration-150 ${
-        isEditable ? "hover:bg-amber-500/10 focus:bg-amber-500/15 focus:ring-1 focus:ring-amber-400/50 rounded-sm" : ""
-      } ${className}`}
+      className={editableClasses}
       data-placeholder={placeholder}
     >
       {value}
