@@ -521,12 +521,36 @@ function changeInterviewLanguage(code: string) {
   };
 
   // Auto scroll khung chat chung xuong tin nhan moi nhat
+  // Deduplicated list of turns to completely guarantee no double card rendering
+  const displayTurns = useMemo(() => {
+    const seen = new Set<string>();
+    const res: typeof turns = [];
+    for (const t of turns) {
+      const key = `${t.speaker}:${t.turnNumber || ""}:${t.text.trim()}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        res.push(t);
+      }
+    }
+    return res;
+  }, [turns]);
+
+  // Index of target AI turn for pending transition to avoid rendering button on multiple turns
+  const targetAiTurnIdx = useMemo(() => {
+    if (!pendingTransition) return -1;
+    if (pendingTransition.turnId) {
+      const idx = displayTurns.findIndex((t) => t.speaker === "ai" && t.turnNumber === pendingTransition.turnId);
+      if (idx !== -1) return idx;
+    }
+    return displayTurns.map((t) => t.speaker).lastIndexOf("ai");
+  }, [displayTurns, pendingTransition]);
+
   useEffect(() => {
     const el = chatScrollRef.current;
     if (el) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [turns.length, aiState, currentQuestion]);
+  }, [displayTurns.length, aiState, currentQuestion]);
 
   // Determine current stage index (0 = warmup, 1 = technical, 2 = closing)
   const currentStageIdx = useMemo(() => {
@@ -719,11 +743,11 @@ function changeInterviewLanguage(code: string) {
           <div className={styles.middleStageBody}>
             {/* MOT THANH CUON CHUNG CHO TOAN BO HOI THOAI */}
             <div className={styles.chatScrollArea} ref={chatScrollRef}>
-              {turns.length === 0 && aiState !== "speaking" && (
+              {displayTurns.length === 0 && aiState !== "speaking" && (
                 <div className={styles.chatEmptyHint}>AI đang chuẩn bị câu hỏi mở đầu...</div>
               )}
 
-              {turns.map((turn, idx) =>
+              {displayTurns.map((turn, idx) =>
                 turn.speaker === "ai" ? (
                   <div key={turn.id || `ai-${idx}`} className={styles.turnRowAi}>
                     <div className={styles.aiBubble}>
@@ -754,7 +778,7 @@ function changeInterviewLanguage(code: string) {
                       )}
 
                       {/* Nut mau xanh dong y qua chang tiep theo inline ngay tren cau tro chuyen nay cua AI */}
-                      {pendingTransition && (turn.turnNumber === pendingTransition.turnId || idx === turns.length - 1) && (
+                      {pendingTransition && idx === targetAiTurnIdx && (
                         <div className={styles.inlineStageTransitionCard}>
                           <div className={styles.inlineStageHeader}>
                             <Sparkles size={13} />
@@ -940,7 +964,7 @@ function changeInterviewLanguage(code: string) {
               )}
 
               {/* Bong bong dang go chu khi AI noi (chong trung lap voi turn da add vao turns) */}
-              {aiState === "speaking" && currentQuestion && !turns.some((t) => t.speaker === "ai" && (t.text.trim() === currentQuestion.trim() || (turnId && t.turnNumber === turnId))) && (
+              {aiState === "speaking" && currentQuestion && !displayTurns.some((t) => t.speaker === "ai" && (t.text.trim() === currentQuestion.trim() || (turnId && t.turnNumber === turnId))) && (
                 <div className={styles.turnRowAi}>
                   <div className={styles.aiStreamingBubble}>
                     <div className={styles.bubbleMeta}>
