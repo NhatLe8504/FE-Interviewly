@@ -13,6 +13,7 @@ import {
   FileText,
   Briefcase,
 } from "lucide-react";
+import s from "@/app/(user)/cv-builder/cvBuilder.module.css";
 
 interface AiDraftModalProps {
   isOpen: boolean;
@@ -82,56 +83,47 @@ export const AiDraftModal: React.FC<AiDraftModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl relative space-y-5">
+    <div className={s.modalOverlay}>
+      <div className={s.modalCard}>
         {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
-        >
-          <X className="w-4 h-4" />
+        <button onClick={onClose} className={s.modalCloseBtn}>
+          <X size={16} />
         </button>
 
         {/* Modal Header */}
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-gradient-to-tr from-purple-600 to-indigo-600 rounded-xl text-white shadow-md">
-            <Sparkles className="w-5 h-5 animate-pulse" />
+        <div className={s.modalHeader}>
+          <div className={s.modalIconBadge}>
+            <Sparkles size={20} />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              Tạo Bản Thảo CV Bằng AI
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <h2 className={s.modalTitle}>Tạo Bản Thảo CV Bằng AI</h2>
+            <p className={s.modalSubtitle}>
               AI sẽ phân tích kỹ năng và yêu cầu công việc để tạo cấu trúc CV tối ưu ATS
             </p>
           </div>
         </div>
 
         {/* Form Controls */}
-        <div className="space-y-4 text-xs">
+        <div>
           {/* Target Role & Level */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className={s.modalFormGrid}>
             <div>
-              <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                Vị trí mục tiêu:
-              </label>
+              <label className={s.modalLabel}>Vị trí mục tiêu:</label>
               <input
                 type="text"
                 value={roleTitle}
                 onChange={(e) => setRoleTitle(e.target.value)}
                 placeholder="VD: Senior Frontend Engineer"
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                className={s.modalInput}
               />
             </div>
 
             <div>
-              <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                Cấp bậc kinh nghiệm:
-              </label>
+              <label className={s.modalLabel}>Cấp bậc kinh nghiệm:</label>
               <select
                 value={experienceLevel}
                 onChange={(e) => setExperienceLevel(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                className={s.modalSelect}
               >
                 <option value="intern">Intern / Thực tập</option>
                 <option value="fresher">Fresher (Mới tốt nghiệp)</option>
@@ -143,41 +135,37 @@ export const AiDraftModal: React.FC<AiDraftModalProps> = ({
             </div>
           </div>
 
+          <div style={{ height: 16 }} />
+
           {/* Skill Source Option 1: System Verified Skills */}
-          <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl space-y-2">
-            <label className="flex items-center gap-2 cursor-pointer">
+          <div className={s.systemSkillsPanel}>
+            <label className={s.systemSkillsCheckbox}>
               <input
                 type="checkbox"
                 checked={useSystemSkills}
                 onChange={(e) => setUseSystemSkills(e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded"
               />
-              <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <Database className="w-3.5 h-3.5 text-blue-500" />
-                Tải kỹ năng đã chứng thực trên hệ thống
-              </span>
+              <Database size={14} />
+              <span>Tải kỹ năng đã chứng thực trên hệ thống</span>
             </label>
 
             {useSystemSkills && (
-              <div className="pl-6">
+              <div style={{ paddingLeft: 24, marginTop: 8 }}>
                 {fetchingSkills ? (
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <Loader2 className="w-3 h-3 animate-spin" />
+                  <div className={s.syncingText}>
+                    <Loader2 size={12} className="animate-spin" />
                     <span>Đang đồng bộ hồ sơ năng lực...</span>
                   </div>
                 ) : systemSkillsData?.skills && systemSkillsData.skills.length > 0 ? (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {systemSkillsData.skills.map((s, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2 py-0.5 text-[10px] bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded font-medium"
-                      >
-                        {s}
+                  <div className={s.skillPillList}>
+                    {systemSkillsData.skills.map((skill, idx) => (
+                      <span key={idx} className={s.skillPill}>
+                        {skill}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-slate-400 text-[11px]">
+                  <p className={s.noSkillsText}>
                     Chưa có kỹ năng ghi nhận từ các phiên phỏng vấn. Bạn có thể tự nhập thêm bên dưới!
                   </p>
                 )}
@@ -185,9 +173,11 @@ export const AiDraftModal: React.FC<AiDraftModalProps> = ({
             )}
           </div>
 
+          <div style={{ height: 16 }} />
+
           {/* Skill Source Option 2: Custom Skills */}
           <div>
-            <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+            <label className={s.modalLabel}>
               Kỹ năng người dùng tự nhập bổ sung (ngăn cách bằng dấu phẩy):
             </label>
             <input
@@ -195,13 +185,15 @@ export const AiDraftModal: React.FC<AiDraftModalProps> = ({
               value={customSkills}
               onChange={(e) => setCustomSkills(e.target.value)}
               placeholder="VD: Next.js 15, FastAPI, Kubernetes, GraphQL, System Design"
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+              className={s.modalInput}
             />
           </div>
 
+          <div style={{ height: 16 }} />
+
           {/* Target JD Text (Optional) */}
           <div>
-            <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+            <label className={s.modalLabel}>
               Dán mô tả công việc (JD) mục tiêu (Tùy chọn):
             </label>
             <textarea
@@ -209,32 +201,27 @@ export const AiDraftModal: React.FC<AiDraftModalProps> = ({
               value={customJdText}
               onChange={(e) => setCustomJdText(e.target.value)}
               placeholder="Dán nội dung JD để AI tối ưu hóa các thành tích và từ khóa khớp với công việc..."
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 resize-none text-[11px]"
+              className={s.modalTextarea}
             />
           </div>
         </div>
 
+        <div style={{ height: 16 }} />
+
         {/* Footer Actions */}
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg transition"
-          >
+        <div className={s.modalFooter}>
+          <button onClick={onClose} className={s.modalCancelBtn}>
             Hủy
           </button>
-          <button
-            onClick={handleGenerate}
-            disabled={loading}
-            className="flex items-center gap-2 px-5 py-2 text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white rounded-xl shadow-lg transition"
-          >
+          <button onClick={handleGenerate} disabled={loading} className={s.modalGenerateBtn}>
             {loading ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <Loader2 size={14} className="animate-spin" />
                 <span>AI đang tạo bản thảo...</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles size={14} />
                 <span>Tạo Bản Thảo Mới</span>
               </>
             )}
