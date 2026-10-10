@@ -494,6 +494,7 @@ export default function InterviewRoomPage({
           <div className={styles.middleStageBody}>
             {/* VÙNG BONG BÓNG BÊN TRÁI (AI SPEECH BUBBLES) */}
             <div className={styles.leftBubblesArea}>
+              <div className={styles.bubbleScrollInner}>
               {aiTurns.length === 0 ? (
                 <div style={{ textAlign: "left", color: "rgba(45,31,23,0.5)", fontSize: 12, padding: "8px 4px" }}>
                   AI đang chuẩn bị câu hỏi mở đầu...
@@ -545,7 +546,10 @@ export default function InterviewRoomPage({
               )}
 
               <div ref={leftScrollRef} />
-            </div>
+
+              </div>
+
+              </div>
 
             {/* HÌNH / VIDEO AI Ở CHÍNH GIỮA (CENTER AI VIDEO) */}
             <div className={styles.centerAiBox}>
@@ -555,25 +559,14 @@ export default function InterviewRoomPage({
                 )}
                 <div className={styles.mediaBackdropStudio} />
 
-                {isVoiceMode ? (
-                  <ChromaVideoCanvas
-                    videoSrc={persona.videoUrl}
-                    isPlaying={isAudioPlaying || aiState === "speaking"}
-                    fallbackImageUrl={persona.avatarUrl}
-                    characterName={persona.name}
-                    width={220}
-                    height={290}
-                  />
-                ) : (
-                  <div className={styles.textModeAvatarBox}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={persona.avatarUrl}
-                      alt={persona.name}
-                      className={styles.textModeAvatarImg}
-                    />
-                  </div>
-                )}
+                <ChromaVideoCanvas
+                  videoSrc={persona.videoUrl}
+                  isPlaying={isAudioPlaying || aiState === "speaking"}
+                  fallbackImageUrl={persona.avatarUrl}
+                  characterName={persona.name}
+                  width={220}
+                  height={290}
+                />
               </div>
 
               {renderStateBadge()}
@@ -582,6 +575,7 @@ export default function InterviewRoomPage({
 
             {/* VÙNG BONG BÓNG BÊN PHẢI (USER SPEECH BUBBLES) */}
             <div className={styles.rightBubblesArea}>
+              <div className={styles.bubbleScrollInner}>
               {userTurns.length === 0 ? (
                 <div style={{ textAlign: "right", color: "rgba(45,31,23,0.5)", fontSize: 12, padding: "8px 4px" }}>
                   Lắng nghe AI rồi bắt đầu trả lời...
@@ -624,7 +618,11 @@ export default function InterviewRoomPage({
                 ))
               )}
               <div ref={rightScrollRef} />
-            </div>
+
+
+              </div>
+
+              </div>
           </div>
 
           {/* =========================================================
