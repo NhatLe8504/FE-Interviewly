@@ -83,9 +83,8 @@ export default function InterviewRoomPage({
   const [playingAudioKey, setPlayingAudioKey] = useState<string | null>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
-  // Auto-scroll refs
-  const leftScrollRef = useRef<HTMLDivElement | null>(null);
-  const rightScrollRef = useRef<HTMLDivElement | null>(null);
+  // Auto-scroll ref (mot thanh cuon chung cho ca khung chat)
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
 
   const isVoiceMode = currentMode === "voice";
 
@@ -325,18 +324,13 @@ export default function InterviewRoomPage({
     audio.play().catch(() => setPlayingAudioKey(null));
   };
 
-  // Separate AI turns and Candidate turns
-  const aiTurns = useMemo(() => turns.filter((t) => t.speaker === "ai"), [turns]);
-  const userTurns = useMemo(() => turns.filter((t) => t.speaker === "user"), [turns]);
-
-  // Auto scroll to bottom of each side
+  // Auto scroll khung chat chung xuong tin nhan moi nhat
   useEffect(() => {
-    leftScrollRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [aiTurns.length, currentQuestion]);
-
-  useEffect(() => {
-    rightScrollRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [userTurns.length]);
+    const el = chatScrollRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [turns.length, aiState, currentQuestion]);
 
   // Determine current stage index (0 = warmup, 1 = technical, 2 = closing)
   const currentStageIdx = useMemo(() => {
@@ -489,69 +483,103 @@ export default function InterviewRoomPage({
           </div>
 
           {/* =========================================================
-              MIDDLE STAGE: BONG BÓNG TRÁI + VIDEO AI Ở GIỮA + BONG BÓNG PHẢI
+              MIDDLE STAGE: MOT KHUNG CHAT DUY NHAT (ZIGZAG) + VIDEO AI CO DINH O GIUA
           ========================================================= */}
           <div className={styles.middleStageBody}>
-            {/* VÙNG BONG BÓNG BÊN TRÁI (AI SPEECH BUBBLES) */}
-            <div className={styles.leftBubblesArea}>
-              <div className={styles.bubbleScrollInner}>
-              {aiTurns.length === 0 ? (
-                <div style={{ textAlign: "left", color: "rgba(45,31,23,0.5)", fontSize: 12, padding: "8px 4px" }}>
-                  AI đang chuẩn bị câu hỏi mở đầu...
-                </div>
-              ) : (
-                aiTurns.map((turn, idx) => (
-                  <div key={turn.id || idx} className={styles.aiBubble}>
-                    <div className={styles.bubbleMeta}>
-                      <span>AI (Câu #{turn.turnNumber || idx + 1})</span>
-                      <span>•</span>
-                      <span>{turn.timestamp}</span>
+            {/* MOT THANH CUON CHUNG CHO TOAN BO HOI THOAI */}
+            <div className={styles.chatScrollArea} ref={chatScrollRef}>
+              {turns.length === 0 && aiState !== "speaking" && (
+                <div className={styles.chatEmptyHint}>AI đang chuẩn bị câu hỏi mở đầu...</div>
+              )}
+
+              {turns.map((turn, idx) =>
+                turn.speaker === "ai" ? (
+                  <div key={turn.id || `ai-${idx}`} className={styles.turnRowAi}>
+                    <div className={styles.aiBubble}>
+                      <div className={styles.bubbleMeta}>
+                        <span>AI (Câu #{turn.turnNumber || idx + 1})</span>
+                        <span>•</span>
+                        <span>{turn.timestamp}</span>
+                      </div>
+                      <div>{turn.text}</div>
+                      {turn.audioUrl && (
+                        <button
+                          type="button"
+                          className={styles.audioReplayBtn}
+                          onClick={() => togglePlayAudio(turn.id || `ai-${idx}`, turn.audioUrl!)}
+                        >
+                          {playingAudioKey === (turn.id || `ai-${idx}`) ? (
+                            <>
+                              <Square size={9} fill="currentColor" />
+                              <span>Dừng</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play size={9} fill="currentColor" />
+                              <span>Nghe lại</span>
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
-                    <div>{turn.text}</div>
-                    {turn.audioUrl && (
-                      <button
-                        type="button"
-                        className={styles.audioReplayBtn}
-                        onClick={() => togglePlayAudio(turn.id || `ai-${idx}`, turn.audioUrl!)}
-                      >
-                        {playingAudioKey === (turn.id || `ai-${idx}`) ? (
+                  </div>
+                ) : (
+                  <div key={turn.id || `user-${idx}`} className={styles.turnRowUser}>
+                    <div className={styles.userBubble}>
+                      <div className={styles.userBubbleMeta}>
+                        <span>Bạn trả lời</span>
+                        {turn.durationSeconds !== undefined && turn.durationSeconds !== null && (
                           <>
-                            <Square size={9} fill="currentColor" />
-                            <span>Dừng</span>
-                          </>
-                        ) : (
-                          <>
-                            <Play size={9} fill="currentColor" />
-                            <span>Nghe lại</span>
+                            <span>•</span>
+                            <span>{turn.durationSeconds}s</span>
                           </>
                         )}
-                      </button>
-                    )}
+                        <span>•</span>
+                        <span>{turn.timestamp}</span>
+                      </div>
+                      <div>{turn.text}</div>
+                      {turn.audioUrl && (
+                        <button
+                          type="button"
+                          className={styles.userAudioReplayBtn}
+                          onClick={() => togglePlayAudio(turn.id || `user-${idx}`, turn.audioUrl!)}
+                        >
+                          {playingAudioKey === (turn.id || `user-${idx}`) ? (
+                            <>
+                              <Square size={9} fill="currentColor" />
+                              <span>Dừng</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play size={9} fill="currentColor" />
+                              <span>Nghe lại</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                ))
+                )
               )}
 
-              {/* Streaming bubble while AI is speaking */}
+              {/* Bong bong dang go chu khi AI noi */}
               {aiState === "speaking" && currentQuestion && (
-                <div className={styles.aiStreamingBubble}>
-                  <div className={styles.bubbleMeta}>
-                    <span className={styles.statePulseDot} />
-                    <span>AI đang nói...</span>
-                  </div>
-                  <div>
-                    {currentQuestion}
-                    <span className={styles.typewriterCursor} />
+                <div className={styles.turnRowAi}>
+                  <div className={styles.aiStreamingBubble}>
+                    <div className={styles.bubbleMeta}>
+                      <span className={styles.statePulseDot} />
+                      <span>AI đang nói...</span>
+                    </div>
+                    <div>
+                      {currentQuestion}
+                      <span className={styles.typewriterCursor} />
+                    </div>
                   </div>
                 </div>
               )}
+            </div>
 
-              <div ref={leftScrollRef} />
-
-              </div>
-
-              </div>
-
-            {/* HÌNH / VIDEO AI Ở CHÍNH GIỮA (CENTER AI VIDEO) */}
+            {/* VIDEO AI O CHINH GIUA - CO DINH, KHONG CUON THEO KHUNG CHAT */}
             <div className={styles.centerAiBox}>
               <div className={styles.interviewerMediaStage}>
                 {(isAudioPlaying || aiState === "speaking") && (
@@ -572,59 +600,7 @@ export default function InterviewRoomPage({
               {renderStateBadge()}
               <div className={styles.aiNameText}>{persona.name}</div>
             </div>
-
-            {/* VÙNG BONG BÓNG BÊN PHẢI (USER SPEECH BUBBLES) */}
-            <div className={styles.rightBubblesArea}>
-              <div className={styles.bubbleScrollInner}>
-              {userTurns.length === 0 ? (
-                <div style={{ textAlign: "right", color: "rgba(45,31,23,0.5)", fontSize: 12, padding: "8px 4px" }}>
-                  Lắng nghe AI rồi bắt đầu trả lời...
-                </div>
-              ) : (
-                userTurns.map((turn, idx) => (
-                  <div key={turn.id || idx} className={styles.userBubble}>
-                    <div className={styles.userBubbleMeta}>
-                      <span>Bạn trả lời</span>
-                      {turn.durationSeconds !== undefined && turn.durationSeconds !== null && (
-                        <>
-                          <span>•</span>
-                          <span>{turn.durationSeconds}s</span>
-                        </>
-                      )}
-                      <span>•</span>
-                      <span>{turn.timestamp}</span>
-                    </div>
-                    <div>{turn.text}</div>
-                    {turn.audioUrl && (
-                      <button
-                        type="button"
-                        className={styles.userAudioReplayBtn}
-                        onClick={() => togglePlayAudio(turn.id || `user-${idx}`, turn.audioUrl!)}
-                      >
-                        {playingAudioKey === (turn.id || `user-${idx}`) ? (
-                          <>
-                            <Square size={9} fill="currentColor" />
-                            <span>Dừng</span>
-                          </>
-                        ) : (
-                          <>
-                            <Play size={9} fill="currentColor" />
-                            <span>Nghe lại</span>
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </div>
-                ))
-              )}
-              <div ref={rightScrollRef} />
-
-
-              </div>
-
-              </div>
           </div>
-
           {/* =========================================================
               BOTTOM ROW: THANH ĐIỀU KHIỂN BO TRÒN THEO PHÁC THẢO [  INPUT  ] [O] [O] [O]
           ========================================================= */}
