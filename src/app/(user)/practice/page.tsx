@@ -81,16 +81,22 @@ function JobRow({ job, isCommunity = false }: { job: JDJobSummary; isCommunity?:
         <div className={styles.jobThumbnail}>
           {job.company_logo_url ? (
             <div className={styles.companyLogoContainer}>
-              <img
+              <Image
                 src={job.company_logo_url}
                 alt={job.company_name || ""}
+                width={48}
+                height={48}
+                unoptimized
                 className={styles.companyLogoImg}
               />
             </div>
           ) : job.company_banner_url ? (
-            <img
+            <Image
               src={job.company_banner_url}
               alt={job.company_name || ""}
+              width={160}
+              height={90}
+              unoptimized
               className={styles.thumbnailImage}
             />
           ) : (
