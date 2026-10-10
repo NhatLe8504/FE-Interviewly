@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
@@ -29,6 +29,7 @@ import { useUserSubscription } from "@/hooks/useUserSubscription";
 import { profileApi } from "@/services/profileApi";
 import { ApiError } from "@/services/apiClient";
 import { UserTooltip } from "@/components/user-component/common";
+import { PageMascot } from "@/components/user-component/common/PageMascot";
 import type { ChangePasswordIn } from "@/types/profile";
 import styles from "./settings.module.css";
 
@@ -260,6 +261,9 @@ export default function SettingsClient() {
         <div>
           <h1 className={styles.title}>{t.settings.title}</h1>
           <p className={styles.sub}>{t.settings.subtitle}</p>
+        </div>
+        <div className={styles.mascotBadgeWrap}>
+          <PageMascot size={52} />
         </div>
       </div>
 

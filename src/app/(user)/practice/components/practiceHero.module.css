@@ -50,8 +50,18 @@
 }
 
 .guide {
+  position: relative;
   padding-left: 28px;
   border-left: 1px solid var(--practice-line);
+}
+
+.mascotBadgeWrap {
+  position: absolute;
+  top: -46px;
+  right: 12px;
+  pointer-events: none;
+  z-index: 5;
+  user-select: none;
 }
 
 .guideLabel {
