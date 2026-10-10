@@ -1,4 +1,5 @@
 .hero {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
   align-items: center;
@@ -50,16 +51,17 @@
 }
 
 .guide {
-  position: relative;
   padding-left: 28px;
   border-left: 1px solid var(--practice-line);
 }
 
-.mascotBadgeWrap {
+.mascotOnLine {
   position: absolute;
-  top: -46px;
-  right: 12px;
-  pointer-events: none;
+  bottom: -5px;
+  right: 28px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
   z-index: 5;
   user-select: none;
 }
@@ -118,6 +120,7 @@
   .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
   .steps li { display: block; }
   .stepNumber { display: block; margin-bottom: 8px; }
+  .mascotOnLine { right: 16px; bottom: -5px; }
 }
 
 @media (max-width: 480px) {
