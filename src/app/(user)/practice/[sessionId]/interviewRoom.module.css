@@ -1406,3 +1406,25 @@
   color: #111827;
 }
 
+.topJdLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(217, 130, 54, 0.08);
+  border: 1px solid rgba(217, 130, 54, 0.28);
+  color: #d98236;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.topJdLink:hover {
+  background: rgba(217, 130, 54, 0.16);
+  border-color: #d98236;
+  color: #b35e16;
+}
+

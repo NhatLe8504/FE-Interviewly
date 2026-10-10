@@ -24,6 +24,10 @@ export interface PreMadeInterview {
     question_text: string;
     star_hint: string;
   }[];
+  originJobId?: string | null;
+  companyLogoUrl?: string | null;
+  companyBannerUrl?: string | null;
+  isCustomJd?: boolean;
 }
 
 export const PRE_MADE_INTERVIEWS: PreMadeInterview[] = [

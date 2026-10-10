@@ -126,7 +126,7 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
             id: interviewId,
             title: res.role || "Software Engineer",
             company: res.company_name || "Theo Job Description của bạn",
-            companyBadge: "JD Custom",
+            companyBadge: res.origin_job_id ? "Việc làm thực tế" : "JD Custom",
             domain: "Phỏng vấn theo JD ứng tuyển",
             level: seniorityClean,
             levelLabel: res.seniority ? res.seniority.toUpperCase() : "JUNIOR",
@@ -136,7 +136,13 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
             reviewsCount: 1,
             rating: 5.0,
             imageUrl:
+              res.company_banner_url ||
+              res.company_logo_url ||
               "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80",
+            originJobId: res.origin_job_id || null,
+            companyLogoUrl: res.company_logo_url || null,
+            companyBannerUrl: res.company_banner_url || null,
+            isCustomJd: res.is_custom_jd,
             testimonial: {
               quote:
                 "Bộ câu hỏi và thang điểm năng lực được AI bóc tách chính xác từ bản mô tả công việc (JD), kèm khung đánh giá STAR và tiêu chí chấm điểm chuyên sâu.",
@@ -144,7 +150,9 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
               role: "JD Intelligence Engine",
             },
             topics:
-              res.focus_areas && res.focus_areas.length > 0
+              res.skills && res.skills.length > 0
+                ? res.skills
+                : res.focus_areas && res.focus_areas.length > 0
                 ? res.focus_areas
                 : ["Kỹ năng chuyên môn", "Hành vi STAR", "Xử lý tình huống thực tế"],
             category: "software",
@@ -261,6 +269,9 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
       } catch {}
 
       try {
+        if (interview.originJobId) {
+          sessionStorage.setItem("target_origin_job_id", interview.originJobId);
+        }
         sessionStorage.setItem(
           `session_metadata_${sessionId}`,
           JSON.stringify({
@@ -275,6 +286,8 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
             bargeInEnabled,
             totalDurationMinutes,
             mockMode,
+            origin_job_id: interview.originJobId || null,
+            company_logo_url: interview.companyLogoUrl || null,
             selected_stages: selectedStages,
             stage_configs: stageConfigs,
             selected_question_ids: selectedQuestionIds,

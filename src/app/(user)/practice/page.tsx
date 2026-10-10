@@ -10,7 +10,7 @@ import { PracticeHero } from "./components/PracticeHero";
 import { Button } from "@/components/ui/button";
 import { SimpleUserSelect } from "@/components/user-component/common";
 import { UserPagination } from "@/components/user-component/common/Pagination";
-import { Layers, Globe, Lock, User, Users } from "lucide-react";
+import { Layers, Globe, Lock, User, Users, Briefcase } from "lucide-react";
 import styles from "./practice.module.css";
 
 const PAGE_SIZE = 30;
@@ -61,17 +61,6 @@ function normalizeLevel(value: string) {
   return level;
 }
 
-function getJobThumbnail(role: string) {
-  const normalizedRole = normalizeSearch(role);
-  if (/\b(data|ai|ml|machine learning|analytics|cloud|security|du lieu)\b/.test(normalizedRole)) {
-    return "/images/practice/technology.webp";
-  }
-  if (/\b(product|manager|management|business|marketing|san pham|quan ly)\b/.test(normalizedRole)) {
-    return "/images/practice/product.webp";
-  }
-  return "/images/practice/engineering.webp";
-}
-
 function JobRow({ job, isCommunity = false }: { job: JDJobSummary; isCommunity?: boolean }) {
   const isReady = job.status === "COMPLETED";
   const isFailed = job.status === "FAILED";
@@ -84,17 +73,32 @@ function JobRow({ job, isCommunity = false }: { job: JDJobSummary; isCommunity?:
     ? ` · ${Math.round(Math.min(100, Math.max(0, job.progress_pct)))}%`
     : "";
 
+  const skillsList = (job.skills && job.skills.length > 0) ? job.skills : job.focus_areas;
+
   return (
     <li>
       <Link href={href} className={styles.jobRow}>
         <div className={styles.jobThumbnail}>
-          <Image
-            src={getJobThumbnail(job.role)}
-            alt=""
-            fill
-            sizes="(max-width: 480px) 92px, (max-width: 767px) 112px, (max-width: 900px) 128px, 160px"
-            className={styles.thumbnailImage}
-          />
+          {job.company_logo_url ? (
+            <div className={styles.companyLogoContainer}>
+              <img
+                src={job.company_logo_url}
+                alt={job.company_name || ""}
+                className={styles.companyLogoImg}
+              />
+            </div>
+          ) : job.company_banner_url ? (
+            <img
+              src={job.company_banner_url}
+              alt={job.company_name || ""}
+              className={styles.thumbnailImage}
+            />
+          ) : (
+            <div className={styles.defaultThumbnail}>
+              <Briefcase size={26} className={styles.defaultThumbnailIcon} />
+              <span className={styles.defaultThumbnailTag}>JD Tự do</span>
+            </div>
+          )}
         </div>
         <div className={styles.jobContent}>
           <div className={styles.companyRow}>
@@ -112,6 +116,14 @@ function JobRow({ job, isCommunity = false }: { job: JDJobSummary; isCommunity?:
                 <Lock size={11} /> Riêng tư
               </span>
             )}
+            {job.origin_job_id && (
+              <span
+                className={styles.publicBadge}
+                style={{ background: "rgba(217, 130, 54, 0.08)", color: "#d98236", borderColor: "rgba(217, 130, 54, 0.25)" }}
+              >
+                Việc làm hệ thống
+              </span>
+            )}
           </div>
           <h3 className={styles.jobTitle}>{job.role || "Buổi phỏng vấn theo mô tả công việc"}</h3>
           <div className={styles.jobMeta}>
@@ -119,7 +131,21 @@ function JobRow({ job, isCommunity = false }: { job: JDJobSummary; isCommunity?:
             {job.total_questions > 0 && <span>{job.total_questions} câu hỏi</span>}
             {job.estimated_minutes > 0 && <span>Dự kiến {job.estimated_minutes} phút</span>}
           </div>
-          {job.focus_areas?.length > 0 && <p className={styles.jobTopics}>{job.focus_areas.join(" · ")}</p>}
+          {skillsList && skillsList.length > 0 && (
+            <div className={styles.jobSkillsRow}>
+              {skillsList.slice(0, 4).map((skill, sIdx) => {
+                const cleanSkill = skill.length > 28 ? skill.slice(0, 27) + "…" : skill;
+                return (
+                  <span key={sIdx} className={styles.skillPill} title={skill}>
+                    {cleanSkill}
+                  </span>
+                );
+              })}
+              {skillsList.length > 4 && (
+                <span className={styles.skillMorePill}>+{skillsList.length - 4}</span>
+              )}
+            </div>
+          )}
         </div>
         <div className={styles.jobDetails}>
           <p className={`${styles.jobStatus} ${isReady ? styles.statusReady : isFailed ? styles.statusFailed : ""}`}>
@@ -127,6 +153,19 @@ function JobRow({ job, isCommunity = false }: { job: JDJobSummary; isCommunity?:
           </p>
           {dateLabel && <time dateTime={job.created_at ?? undefined} className={styles.jobDate}>{dateLabel}</time>}
           <span className={styles.jobAction}>{isReady ? "Bắt đầu luyện tập →" : "Tiếp tục chuẩn bị →"}</span>
+          {job.origin_job_id && (
+            <span
+              className={styles.jobOriginSubLink}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.open(`/jobs/${job.origin_job_id}`, "_blank", "noopener,noreferrer");
+              }}
+              title="Xem tin tuyển dụng gốc"
+            >
+              Xem tin tuyển dụng ↗
+            </span>
+          )}
         </div>
       </Link>
     </li>

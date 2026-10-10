@@ -1,4 +1,4 @@
-﻿import { request } from "./apiClient";
+import { request } from "./apiClient";
 
 export interface ScriptItem {
   order_index: number;
@@ -19,6 +19,11 @@ export interface InterviewScriptResult {
   role: string;
   seniority: string;
   company_name?: string;
+  company_logo_url?: string | null;
+  company_banner_url?: string | null;
+  origin_job_id?: string | null;
+  skills?: string[];
+  is_custom_jd?: boolean;
   focus_areas?: string[];
   total_questions: number;
   estimated_minutes: number;
@@ -44,6 +49,11 @@ export interface JDJobSummary {
   role: string;
   seniority: string;
   company_name: string;
+  company_logo_url?: string | null;
+  company_banner_url?: string | null;
+  origin_job_id?: string | null;
+  skills?: string[];
+  is_custom_jd?: boolean;
   focus_areas: string[];
   total_questions: number;
   estimated_minutes: number;
@@ -60,6 +70,9 @@ export interface JDStartSessionResponse {
   role: string;
   seniority: string;
   company_name?: string;
+  company_logo_url?: string | null;
+  origin_job_id?: string | null;
+  is_custom_jd?: boolean;
   focus_areas?: string[];
   total_questions: number;
   estimated_minutes: number;
