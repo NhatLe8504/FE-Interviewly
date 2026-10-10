@@ -27,6 +27,8 @@ import {
   Layers,
 } from "lucide-react";
 
+import s from "@/app/(user)/cv-builder/cvBuilder.module.css";
+
 interface CvTopBarProps {
   cv: CvDocument;
   onUpdate: (updated: Partial<CvDocument>) => void;
@@ -55,8 +57,8 @@ export const CvTopBar: React.FC<CvTopBarProps> = ({
   const activeFont = CV_FONT_FAMILIES[cv.font_family] || CV_FONT_FAMILIES.inter;
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 print:hidden">
-      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+    <header className={s.topBar}>
+      <div className={s.topBarInner}>
         {/* LEFT: Title & Job Tag */}
         <div className="flex items-center gap-3">
           <div>
@@ -64,11 +66,11 @@ export const CvTopBar: React.FC<CvTopBarProps> = ({
               type="text"
               value={cv.title}
               onChange={(e) => onUpdate({ title: e.target.value })}
-              className="text-base font-bold text-slate-900 dark:text-white bg-transparent border-b border-transparent hover:border-slate-300 dark:hover:border-slate-700 focus:border-blue-500 focus:outline-none px-1 py-0.5 rounded transition"
+              className={s.titleInput}
               placeholder="Tên bản CV..."
             />
             {cv.target_job_title && (
-              <div className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 font-medium px-1">
+              <div className={s.jobTag}>
                 <Briefcase className="w-3 h-3" />
                 <span>Mục tiêu: {cv.target_job_title}</span>
                 {cv.target_company_name && <span>({cv.target_company_name})</span>}
@@ -83,48 +85,47 @@ export const CvTopBar: React.FC<CvTopBarProps> = ({
           <div className="relative">
             <button
               onClick={() => setOpenTemplateMenu(!openTemplateMenu)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg border border-slate-200 dark:border-slate-700 transition"
+              className={s.controlBtn}
             >
-              <Layout className="w-3.5 h-3.5 text-blue-500" />
+              <Layout className={s.controlBtnIcon} />
               <span>{activeTemplate.name}</span>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
+              <ChevronDown className={s.controlBtnChevron} />
             </button>
 
             {openTemplateMenu && (
-              <div className="absolute left-0 mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95">
-                <div className="text-[11px] font-bold text-slate-400 uppercase px-2 py-1">
+              <div className={`${s.dropdown} ${s.templateDropdown}`}>
+                <div className={s.dropdownLabel}>
                   Chọn mẫu CV (5 Mẫu chuyên nghiệp)
                 </div>
                 <div className="space-y-1">
-                  {CV_TEMPLATES_INFO.map((tpl) => (
-                    <button
-                      key={tpl.id}
-                      onClick={() => {
-                        onUpdate({ template_id: tpl.id });
-                        setOpenTemplateMenu(false);
-                      }}
-                      className={`w-full text-left p-2 rounded-lg text-xs transition flex items-start justify-between gap-2 ${
-                        cv.template_id === tpl.id
-                          ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-semibold"
-                          : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-                      }`}
-                    >
-                      <div>
-                        <div className="font-bold flex items-center gap-1.5">
-                          <span>{tpl.name}</span>
-                          <span className="text-[10px] px-1.5 py-0.2 bg-slate-200 dark:bg-slate-800 rounded text-slate-600 dark:text-slate-400 font-normal">
-                            {tpl.badge}
-                          </span>
+                  {CV_TEMPLATES_INFO.map((tpl) => {
+                    const isActive = cv.template_id === tpl.id;
+                    return (
+                      <button
+                        key={tpl.id}
+                        onClick={() => {
+                          onUpdate({ template_id: tpl.id });
+                          setOpenTemplateMenu(false);
+                        }}
+                        className={`${s.dropdownItem} ${isActive ? s.dropdownItemActive : ''}`}
+                      >
+                        <div>
+                          <div className={s.dropdownItemTitle}>
+                            <span>{tpl.name}</span>
+                            <span className={s.dropdownItemBadge}>
+                              {tpl.badge}
+                            </span>
+                          </div>
+                          <p className={s.dropdownItemDesc}>
+                            {tpl.description}
+                          </p>
                         </div>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
-                          {tpl.description}
-                        </p>
-                      </div>
-                      {cv.template_id === tpl.id && (
-                        <Check className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                      )}
-                    </button>
-                  ))}
+                        {isActive && (
+                          <Check className={s.dropdownItemCheck} />
+                        )}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -134,19 +135,19 @@ export const CvTopBar: React.FC<CvTopBarProps> = ({
           <div className="relative">
             <button
               onClick={() => setOpenColorMenu(!openColorMenu)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg border border-slate-200 dark:border-slate-700 transition"
+              className={s.controlBtn}
               title="Đổi tông màu chủ đạo"
             >
               <span
-                className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0"
+                className={s.colorSwatch}
                 style={{ backgroundColor: activeColor.primary }}
               />
               <span className="capitalize">{cv.color_theme}</span>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
+              <ChevronDown className={s.controlBtnChevron} />
             </button>
 
             {openColorMenu && (
-              <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 grid grid-cols-2 gap-1.5">
+              <div className={`${s.dropdown} ${s.colorDropdown}`}>
                 {(Object.keys(CV_COLOR_THEMES) as CvColorTheme[]).map((themeKey) => {
                   const t = CV_COLOR_THEMES[themeKey];
                   const isSelected = cv.color_theme === themeKey;
@@ -157,14 +158,10 @@ export const CvTopBar: React.FC<CvTopBarProps> = ({
                         onUpdate({ color_theme: themeKey });
                         setOpenColorMenu(false);
                       }}
-                      className={`flex items-center gap-2 p-1.5 rounded-lg text-xs capitalize transition ${
-                        isSelected
-                          ? "bg-slate-100 dark:bg-slate-800 font-bold"
-                          : "hover:bg-slate-50 dark:hover:bg-slate-800/60"
-                      }`}
+                      className={`${s.colorItem} ${isSelected ? s.colorItemActive : ''}`}
                     >
                       <span
-                        className="w-4 h-4 rounded-full border border-black/10"
+                        className={s.colorSwatch}
                         style={{ backgroundColor: t.primary }}
                       />
                       <span>{themeKey}</span>
@@ -179,56 +176,54 @@ export const CvTopBar: React.FC<CvTopBarProps> = ({
           <div className="relative">
             <button
               onClick={() => setOpenFontMenu(!openFontMenu)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg border border-slate-200 dark:border-slate-700 transition"
+              className={s.controlBtn}
               title="Đổi bộ font chữ"
             >
-              <Type className="w-3.5 h-3.5 text-slate-500" />
+              <Type className={s.controlBtnIcon} />
               <span>{activeFont.name.split(" ")[0]}</span>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
+              <ChevronDown className={s.controlBtnChevron} />
             </button>
 
             {openFontMenu && (
-              <div className="absolute right-0 md:left-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 space-y-1">
-                {(Object.keys(CV_FONT_FAMILIES) as CvFontFamily[]).map((fontKey) => {
-                  const f = CV_FONT_FAMILIES[fontKey];
-                  const isSelected = cv.font_family === fontKey;
-                  return (
-                    <button
-                      key={fontKey}
-                      onClick={() => {
-                        onUpdate({ font_family: fontKey });
-                        setOpenFontMenu(false);
-                      }}
-                      className={`w-full text-left p-1.5 rounded-lg text-xs transition flex items-center justify-between ${
-                        isSelected
-                          ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold"
-                          : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-                      }`}
-                    >
-                      <span>{f.name}</span>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-blue-600" />}
-                    </button>
-                  );
-                })}
+              <div className={`${s.dropdown} ${s.fontDropdown}`}>
+                <div className="space-y-1">
+                  {(Object.keys(CV_FONT_FAMILIES) as CvFontFamily[]).map((fontKey) => {
+                    const f = CV_FONT_FAMILIES[fontKey];
+                    const isSelected = cv.font_family === fontKey;
+                    return (
+                      <button
+                        key={fontKey}
+                        onClick={() => {
+                          onUpdate({ font_family: fontKey });
+                          setOpenFontMenu(false);
+                        }}
+                        className={`${s.dropdownItem} ${isSelected ? s.dropdownItemActive : ''}`}
+                      >
+                        <span>{f.name}</span>
+                        {isSelected && <Check className={s.dropdownItemCheck} />}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
 
           {/* Zoom Controls */}
-          <div className="hidden lg:flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-700">
+          <div className={s.zoomControls}>
             <button
               onClick={() => onZoomChange(Math.max(0.7, zoom - 0.1))}
-              className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded"
+              className={s.zoomBtn}
               title="Thu nhỏ"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            <span className="text-[11px] font-mono font-medium px-1 text-slate-600 dark:text-slate-300">
+            <span className={s.zoomLabel}>
               {Math.round(zoom * 100)}%
             </span>
             <button
               onClick={() => onZoomChange(Math.min(1.4, zoom + 0.1))}
-              className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded"
+              className={s.zoomBtn}
               title="Phóng to"
             >
               <ZoomIn className="w-3.5 h-3.5" />
@@ -241,7 +236,7 @@ export const CvTopBar: React.FC<CvTopBarProps> = ({
           {/* AI Generator Draft */}
           <button
             onClick={onGenerateAiDraft}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg shadow-md transition"
+            className={s.aiDraftBtn}
             title="Sinh lại toàn bộ bản thảo CV thông minh bằng AI"
           >
             <Sparkles className="w-3.5 h-3.5 animate-pulse" />
@@ -251,10 +246,10 @@ export const CvTopBar: React.FC<CvTopBarProps> = ({
           {/* Print / Export PDF */}
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg border border-slate-200 dark:border-slate-700 transition"
+            className={s.controlBtn}
             title="Xuất bản in PDF (A4 tiêu chuẩn)"
           >
-            <Printer className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
+            <Printer className={s.controlBtnIcon} />
             <span className="hidden sm:inline">In / Xuất PDF</span>
           </button>
 
@@ -262,7 +257,7 @@ export const CvTopBar: React.FC<CvTopBarProps> = ({
           <button
             onClick={onSave}
             disabled={saving}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg shadow-md transition"
+            className={s.saveBtn}
           >
             <Save className="w-3.5 h-3.5" />
             <span>{saving ? "Đang lưu..." : "Lưu CV"}</span>
