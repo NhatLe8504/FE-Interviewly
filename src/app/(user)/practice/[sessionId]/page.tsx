@@ -52,6 +52,7 @@ interface SessionMetaStored {
 }
 
 const PREFERRED_VOICE_STORAGE_KEY = "interviewly_preferred_voice";
+const PREFERRED_PITCH_STORAGE_KEY = "interviewly_preferred_pitch";
 const getLangPreferredVoiceKey = (lang: string) => `interviewly_preferred_voice_${lang}`;
 
 const LANGUAGE_DEFAULT_VOICES: Record<string, string> = {
@@ -91,6 +92,7 @@ export default function InterviewRoomPage({
   // Voice & STT Tiering states
   const [voiceOptions, setVoiceOptions] = useState<VoiceOptionsResponse | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string>("vi-VN-HoaiMyNeural");
+  const [selectedPitch, setSelectedPitch] = useState<number>(0);
   const [selectedSttEngine, setSelectedSttEngine] = useState<string>("browser-speech-api");
 
   // Audio replay
@@ -179,6 +181,15 @@ export default function InterviewRoomPage({
         } catch {}
       }
       if (targetVoice) setSelectedVoice(targetVoice);
+
+      // Khôi phục độ cao thấp giọng đọc (Pitch) từ localStorage
+      try {
+        const savedPitch = localStorage.getItem(PREFERRED_PITCH_STORAGE_KEY);
+        if (savedPitch !== null) {
+          const p = parseInt(savedPitch, 10);
+          if (!isNaN(p)) setSelectedPitch(Math.max(-10, Math.min(10, p)));
+        }
+      } catch {}
     } catch {
       setLanguage(getInterviewLanguage(initialLanguage).code);
     }
@@ -214,6 +225,7 @@ export default function InterviewRoomPage({
     endSessionEarly,
     rerollQuestion,
     changeVoice,
+    changePitch,
     updateTurnAudioUrl,
   } = useRealtimeVoiceInterview({
     sessionId,
@@ -222,6 +234,7 @@ export default function InterviewRoomPage({
     level,
     language,
     voice: selectedVoice,
+    pitch: selectedPitch >= 0 ? `+${selectedPitch}Hz` : `${selectedPitch}Hz`,
     selectedStages,
     stageConfigs: meta.stage_configs,
     bargeInInitial: meta.bargeInEnabled ?? false,
@@ -289,6 +302,16 @@ export default function InterviewRoomPage({
     setMeta(updated);
     try {
       sessionStorage.setItem(`session_metadata_${sessionId}`, JSON.stringify(updated));
+    } catch {}
+  };
+
+  const handlePitchChange = (pitchVal: number) => {
+    const clamped = Math.max(-10, Math.min(10, pitchVal));
+    setSelectedPitch(clamped);
+    const formatted = clamped >= 0 ? `+${clamped}Hz` : `${clamped}Hz`;
+    changePitch(formatted);
+    try {
+      localStorage.setItem(PREFERRED_PITCH_STORAGE_KEY, String(clamped));
     } catch {}
   };
 
@@ -1040,6 +1063,64 @@ function changeInterviewLanguage(code: string) {
                   {language === "vi"
                     ? "Tự động ưu tiên giọng tiếng Việt và giọng đa ngôn ngữ (xử lý tự nhiên khi câu hỏi chứa thuật ngữ tiếng Anh)."
                     : "Giọng đọc tương thích với ngôn ngữ phỏng vấn đã chọn."}
+                </p>
+              </div>
+
+              {/* Độ cao / thấp giọng đọc (Pitch Control) */}
+              <div className={styles.settingsSection}>
+                <div className={styles.settingsSectionLabel}>
+                  <span>Độ cao / thấp giọng đọc (Pitch)</span>
+                  <span className={styles.pitchValueBadge}>
+                    {selectedPitch === 0
+                      ? "Chuẩn (0Hz)"
+                      : selectedPitch > 0
+                      ? `+${selectedPitch}Hz (Thanh cao)`
+                      : `${selectedPitch}Hz (Trầm ấm)`}
+                  </span>
+                </div>
+                <div className={styles.pitchSliderWrapper}>
+                  <span className={styles.pitchBoundaryLabel}>Trầm (-10Hz)</span>
+                  <input
+                    type="range"
+                    min={-10}
+                    max={10}
+                    step={1}
+                    value={selectedPitch}
+                    disabled={!canSendText}
+                    onChange={(e) => handlePitchChange(Number(e.target.value))}
+                    className={styles.pitchSlider}
+                    aria-label="Độ cao thấp giọng đọc"
+                  />
+                  <span className={styles.pitchBoundaryLabel}>Cao (+10Hz)</span>
+                </div>
+                <div className={styles.pitchQuickRow}>
+                  <button
+                    type="button"
+                    className={`${styles.pitchQuickBtn} ${selectedPitch === -5 ? styles.pitchQuickBtnActive : ""}`}
+                    onClick={() => handlePitchChange(-5)}
+                    disabled={!canSendText}
+                  >
+                    Trầm ấm (-5Hz)
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.pitchQuickBtn} ${selectedPitch === 0 ? styles.pitchQuickBtnActive : ""}`}
+                    onClick={() => handlePitchChange(0)}
+                    disabled={!canSendText}
+                  >
+                    Chuẩn (0Hz)
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.pitchQuickBtn} ${selectedPitch === 5 ? styles.pitchQuickBtnActive : ""}`}
+                    onClick={() => handlePitchChange(5)}
+                    disabled={!canSendText}
+                  >
+                    Thanh cao (+5Hz)
+                  </button>
+                </div>
+                <p className={styles.settingsHelper}>
+                  Điều chỉnh cao độ âm sắc để giọng nói AI trở nên trầm ấm hoặc thanh mảnh theo sở thích của bạn.
                 </p>
               </div>
 
