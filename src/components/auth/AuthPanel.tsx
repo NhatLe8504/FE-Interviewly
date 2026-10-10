@@ -13,7 +13,7 @@ import { SetPasswordModal } from "./SetPasswordModal";
 export type AuthMode = "login" | "register" | "set_password";
 
 const DEFAULT_GOOGLE_CLIENT_ID =
-  "931631230905-0v425ou7p4h26232bl16u4hbq0oufgle.apps.googleusercontent.com";
+  "936102391743-ojbrd52vimgk1srrohmff8qk7qvgvj06.apps.googleusercontent.com";
 
 type AuthPanelProps = {
   initialMode: AuthMode;
