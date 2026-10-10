@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { ExternalLink, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandIcon } from "@/components/user-component/common/BrandIcon";
 import { formatJobTimestamp, getJobTechnologies, SENIORITY_LABELS, WORKPLACE_LABELS } from "@/lib/job-presentation";
@@ -71,6 +71,11 @@ export function JobCard({ job, onStartPractice, isStarting = false }: JobCardPro
           <a href={job.original_apply_url} target="_blank" rel="noopener noreferrer">
             Tin gốc <ExternalLink className="size-3.5" aria-hidden="true" />
           </a>
+        </Button>
+        <Button asChild variant="ghost" size="home-compact" className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-xs px-2 font-semibold" title="Tạo CV với AI cho vị trí này">
+          <Link href={`/cv-builder?jobId=${job.job_id}`}>
+            <Sparkles className="size-3.5 mr-1 text-blue-500" /> Tạo CV
+          </Link>
         </Button>
         <Button type="button" variant="home-primary" size="home-compact" className={styles.practiceAction} disabled={isStarting} onClick={() => onStartPractice(job)}>
           {isStarting ? (
