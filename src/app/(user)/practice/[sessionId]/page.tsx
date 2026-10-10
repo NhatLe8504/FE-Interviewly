@@ -51,6 +51,9 @@ interface SessionMetaStored {
   voice?: string;
 }
 
+const PREFERRED_VOICE_STORAGE_KEY = "interviewly_preferred_voice";
+const getLangPreferredVoiceKey = (lang: string) => `interviewly_preferred_voice_${lang}`;
+
 const LANGUAGE_DEFAULT_VOICES: Record<string, string> = {
   vi: "vi-VN-HoaiMyNeural",
   en: "en-US-JennyNeural",
@@ -106,7 +109,7 @@ export default function InterviewRoomPage({
 
   const isVoiceMode = currentMode === "voice";
 
-// Fetch Voice & STT Options (tự động lọc theo ngôn ngữ & hỗ trợ giọng đa ngôn ngữ)
+// Fetch Voice & STT Options (tự động lọc theo ngôn ngữ & khôi phục giọng ưu tiên đã cache)
   useEffect(() => {
     let isSubscribed = true;
     voiceApi
@@ -114,16 +117,32 @@ export default function InterviewRoomPage({
       .then((res) => {
         if (!isSubscribed) return;
         setVoiceOptions(res);
-        const isCurrentVoiceCompatible = res.voices.some((v) => v.id === selectedVoice);
-        if (!isCurrentVoiceCompatible && res.voices.length > 0) {
-          const def = res.voices.find((v) => v.is_default && !v.is_locked) || res.voices[0];
+
+        // Khôi phục giọng ưu tiên từ localStorage theo ngôn ngữ hoặc toàn cục
+        let preferred: string | null = null;
+        try {
+          preferred =
+            localStorage.getItem(getLangPreferredVoiceKey(language)) ||
+            localStorage.getItem(PREFERRED_VOICE_STORAGE_KEY) ||
+            null;
+        } catch {}
+
+        const candidateId = meta.voice || preferred || selectedVoice;
+        const matchingVoice = res.voices.find((v) => v.id === candidateId && !v.is_locked);
+
+        if (matchingVoice) {
+          setSelectedVoice(matchingVoice.id);
+          changeVoice(matchingVoice.id);
+        } else {
+          // Fallback to default unlocked voice
+          const def =
+            res.voices.find((v) => v.is_default && !v.is_locked) ||
+            res.voices.find((v) => !v.is_locked) ||
+            res.voices[0];
           if (def) {
             setSelectedVoice(def.id);
             changeVoice(def.id);
           }
-        } else if (!meta.voice) {
-          const def = res.voices.find((v) => v.is_default);
-          if (def) setSelectedVoice(def.id);
         }
       })
       .catch((err) => {
@@ -134,20 +153,32 @@ export default function InterviewRoomPage({
     };
   }, [language, meta.voice]);
 
-  // Load session meta from sessionStorage
+  // Load session meta from sessionStorage & restore cached voice preference
   useEffect(() => {
     const initialLanguage = new URL(window.location.href).searchParams.get("language") ?? "vi";
     try {
       const raw = sessionStorage.getItem(`session_metadata_${sessionId}`);
+      let targetLang = getInterviewLanguage(initialLanguage).code;
+      let targetVoice: string | null = null;
       if (raw) {
         const stored: SessionMetaStored = JSON.parse(raw);
         setMeta(stored);
         setCurrentMode(stored.mode === "text" ? "text" : "voice");
-        setLanguage(getInterviewLanguage(stored.language ?? (stored.languageLabel === "English" ? "en" : initialLanguage)).code);
-        if (stored.voice) setSelectedVoice(stored.voice);
-      } else {
-        setLanguage(getInterviewLanguage(initialLanguage).code);
+        targetLang = getInterviewLanguage(stored.language ?? (stored.languageLabel === "English" ? "en" : initialLanguage)).code;
+        if (stored.voice) targetVoice = stored.voice;
       }
+      setLanguage(targetLang);
+
+      // Khôi phục giọng đã cache nếu trong session_metadata chưa có
+      if (!targetVoice) {
+        try {
+          targetVoice =
+            localStorage.getItem(getLangPreferredVoiceKey(targetLang)) ||
+            localStorage.getItem(PREFERRED_VOICE_STORAGE_KEY) ||
+            null;
+        } catch {}
+      }
+      if (targetVoice) setSelectedVoice(targetVoice);
     } catch {
       setLanguage(getInterviewLanguage(initialLanguage).code);
     }
@@ -247,6 +278,13 @@ export default function InterviewRoomPage({
     }
     setSelectedVoice(newVoiceId);
     changeVoice(newVoiceId);
+
+    // Lưu vào cache vĩnh viễn (localStorage) để lần sau tự động sử dụng
+    try {
+      localStorage.setItem(PREFERRED_VOICE_STORAGE_KEY, newVoiceId);
+      localStorage.setItem(getLangPreferredVoiceKey(language), newVoiceId);
+    } catch {}
+
     const updated = { ...meta, voice: newVoiceId };
     setMeta(updated);
     try {
@@ -274,13 +312,21 @@ function changeInterviewLanguage(code: string) {
     setLanguage(selected.code);
     setMeta(updated);
 
-    // Auto switch voice to compatible voice of the new language if current voice cannot speak it
-    const newLangDefaultVoice = LANGUAGE_DEFAULT_VOICES[selected.code] || "vi-VN-HoaiMyNeural";
+    // Khôi phục giọng ưu tiên cho ngôn ngữ mới nếu đã từng chọn
+    let cachedNewVoice = "";
+    try {
+      cachedNewVoice = localStorage.getItem(getLangPreferredVoiceKey(selected.code)) || "";
+    } catch {}
+
     const curVoiceObj = voiceOptions?.voices.find((v) => v.id === selectedVoice);
     const isCurVoiceMultilingual = curVoiceObj?.language === "multi";
     const isCurVoiceSameLang = curVoiceObj?.language === selected.code;
 
-    if (!isCurVoiceMultilingual && !isCurVoiceSameLang) {
+    if (cachedNewVoice) {
+      setSelectedVoice(cachedNewVoice);
+      changeVoice(cachedNewVoice);
+    } else if (!isCurVoiceMultilingual && !isCurVoiceSameLang) {
+      const newLangDefaultVoice = LANGUAGE_DEFAULT_VOICES[selected.code] || "vi-VN-HoaiMyNeural";
       setSelectedVoice(newLangDefaultVoice);
       changeVoice(newLangDefaultVoice);
     }

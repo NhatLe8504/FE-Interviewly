@@ -250,6 +250,14 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
         throw new Error("Backend không trả về mã phiên phỏng vấn hợp lệ.");
       }
 
+      let cachedVoice: string | undefined = undefined;
+      try {
+        cachedVoice =
+          localStorage.getItem(`interviewly_preferred_voice_${language}`) ||
+          localStorage.getItem("interviewly_preferred_voice") ||
+          undefined;
+      } catch {}
+
       try {
         sessionStorage.setItem(
           `session_metadata_${sessionId}`,
@@ -261,6 +269,7 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
             language,
             languageLabel: getInterviewLanguage(language).label,
             mode,
+            voice: cachedVoice,
             bargeInEnabled,
             selected_stages: selectedStages,
             stage_configs: stageConfigs,
