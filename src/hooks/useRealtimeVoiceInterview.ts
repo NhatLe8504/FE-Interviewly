@@ -320,17 +320,17 @@ export function useRealtimeVoiceInterview({
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [audioBlockedByAutoplay, setAudioBlockedByAutoplay] = useState(false);
 
-  // TTS Engine: 'edge' (Cloud AI) or 'browser' (Web Speech API - 0ms latency)
-  const [ttsEngine, setTtsEngineState] = useState<"edge" | "browser">(() => {
+  // TTS Engine: 'edge' (Cloud AI), 'elevenlabs' (Studio Pro AI), or 'browser' (Web Speech API - 0ms latency)
+  const [ttsEngine, setTtsEngineState] = useState<"edge" | "elevenlabs" | "browser">(() => {
     if (typeof window !== "undefined") {
       try {
         const saved = localStorage.getItem("preferred_tts_engine");
-        if (saved === "browser" || saved === "edge") return saved;
+        if (saved === "browser" || saved === "edge" || saved === "elevenlabs") return saved as "edge" | "elevenlabs" | "browser";
       } catch {}
     }
     return "edge";
   });
-  const ttsEngineRef = useRef<"edge" | "browser">(ttsEngine);
+  const ttsEngineRef = useRef<"edge" | "elevenlabs" | "browser">(ttsEngine);
   ttsEngineRef.current = ttsEngine;
 
   const [selectedBrowserVoice, setSelectedBrowserVoiceState] = useState<string | null>(() => {
@@ -344,14 +344,14 @@ export function useRealtimeVoiceInterview({
   const browserVoiceRef = useRef<string | null>(selectedBrowserVoice);
   browserVoiceRef.current = selectedBrowserVoice;
 
-  const setTtsEngine = useCallback((engine: "edge" | "browser") => {
+  const setTtsEngine = useCallback((engine: "edge" | "elevenlabs" | "browser") => {
     setTtsEngineState(engine);
     ttsEngineRef.current = engine;
     if (typeof window !== "undefined") {
       try {
         localStorage.setItem("preferred_tts_engine", engine);
       } catch {}
-      if (engine === "edge" && window.speechSynthesis) {
+      if (engine !== "browser" && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
     }
