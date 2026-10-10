@@ -846,6 +846,8 @@ export function useRealtimeVoiceInterview({
               stageMaxSeconds: data.stage_max_seconds || 600,
               summaryMessage: data.summary_message || "",
             });
+          } else if (type === "stage_transition_deferred") {
+            setPendingTransition(null);
           } else if (type === "hint_response") {
             setCurrentHint(data.hint_text || "");
             setIsRequestingHint(false);
@@ -868,13 +870,13 @@ export function useRealtimeVoiceInterview({
             serverHasFinishedTurnRef.current = false;
             if (!submissionPendingRef.current) setAiState("listening");
             fullAiTextAccumulatorRef.current = "";
+            setCurrentQuestion("");
           } else if (type === "done") {
             submissionPendingRef.current = false;
             serverHasFinishedTurnRef.current = true;
             playerRef.current?.setExpectingMoreAudio(false);
             const aiResponse = (data.full_text || fullAiTextAccumulatorRef.current || "").trim();
             if (aiResponse) {
-              setCurrentQuestion(aiResponse);
               const targetTurnNum = data.turn_id || turnIdRef.current;
               const aiAudioUrl = data.audio_url || `/api/v1/voice/audio/${sessionId}/turn_${targetTurnNum}_ai.mp3`;
               setTurns((prev) => {
@@ -904,6 +906,7 @@ export function useRealtimeVoiceInterview({
               });
             }
             fullAiTextAccumulatorRef.current = "";
+            setCurrentQuestion("");
 
             if (data.is_completed) {
               pendingCompletionRef.current = true;
