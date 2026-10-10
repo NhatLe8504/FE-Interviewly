@@ -934,12 +934,17 @@ export function useRealtimeVoiceInterview({
                 const merged = [...prev];
                 for (const item of data.turns) {
                   const existingIdx = merged.findIndex(
-                    (t) => t.speaker === item.speaker && t.turnNumber === item.turnNumber
+                    (t) => t.speaker === item.speaker && (
+                      (item.turnNumber && t.turnNumber === item.turnNumber) ||
+                      (item.text && t.text && t.text.trim() === item.text.trim())
+                    )
                   );
                   if (existingIdx !== -1) {
                     merged[existingIdx] = {
                       ...merged[existingIdx],
+                      turnNumber: item.turnNumber || merged[existingIdx].turnNumber,
                       text: item.text,
+                      audioUrl: item.audioUrl || item.audio_url || merged[existingIdx].audioUrl,
                     };
                   } else {
                     merged.push({
@@ -1039,14 +1044,18 @@ export function useRealtimeVoiceInterview({
               const aiAudioUrl = data.audio_url || `/api/v1/voice/audio/${sessionId}/turn_${targetTurnNum}_ai.mp3`;
               setTurns((prev) => {
                 const existingIdx = prev.findIndex(
-                  (t) => t.speaker === "ai" && t.turnNumber === targetTurnNum
+                  (t) => t.speaker === "ai" && (
+                    (targetTurnNum && t.turnNumber === targetTurnNum) ||
+                    t.text.trim() === aiResponse.trim()
+                  )
                 );
                 if (existingIdx !== -1) {
                   const updated = [...prev];
                   updated[existingIdx] = {
                     ...updated[existingIdx],
+                    turnNumber: targetTurnNum || updated[existingIdx].turnNumber,
                     text: aiResponse,
-                    audioUrl: aiAudioUrl,
+                    audioUrl: aiAudioUrl || updated[existingIdx].audioUrl,
                   };
                   return updated;
                 }
