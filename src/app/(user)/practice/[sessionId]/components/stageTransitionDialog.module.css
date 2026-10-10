@@ -1,0 +1,249 @@
+/* =========================================================
+   STAGE TRANSITION MODAL - WARM LUXURY EDITORIAL STYLE
+   Used for adaptive 3-stage interview gating
+========================================================= */
+
+.dialogBackdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(33, 25, 20, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 10050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dialogCard {
+  width: 520px;
+  max-width: calc(100vw - 32px);
+  background: #ffffff;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 28px 70px rgba(33, 25, 20, 0.24), 0 2px 6px rgba(84, 50, 27, 0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: cardZoomIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes cardZoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.cardHeader {
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(106, 72, 49, 0.1);
+  background: linear-gradient(135deg, #faf7f2 0%, #ffffff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.headerTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.headerIconBox {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #d98236 0%, #8b4513 100%);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 8px rgba(217, 130, 54, 0.28);
+  flex-shrink: 0;
+}
+
+.dialogTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 750;
+  color: #211914;
+  letter-spacing: -0.01em;
+}
+
+.dialogSubtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: rgba(45, 31, 23, 0.65);
+}
+
+.cardBody {
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stageFlowBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #faf7f2;
+  border: 1px solid rgba(106, 72, 49, 0.12);
+}
+
+.stageChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.stageChipCurrent {
+  background: rgba(45, 90, 67, 0.12);
+  color: #2d5a43;
+  border: 1px solid rgba(45, 90, 67, 0.25);
+}
+
+.stageChipNext {
+  background: rgba(217, 130, 54, 0.14);
+  color: #8b4513;
+  border: 1px solid rgba(217, 130, 54, 0.3);
+}
+
+.flowArrow {
+  color: rgba(45, 31, 23, 0.4);
+  flex-shrink: 0;
+}
+
+.summaryCallout {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid rgba(106, 72, 49, 0.14);
+  box-shadow: 0 2px 8px rgba(84, 50, 27, 0.04);
+}
+
+.summaryCalloutTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8b4513;
+  margin-bottom: 6px;
+}
+
+.summaryCalloutText {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #211914;
+}
+
+.deferInputArea {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.deferInput {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(106, 72, 49, 0.2);
+  background: #faf7f2;
+  color: #211914;
+  font-size: 13px;
+  box-sizing: border-box;
+  font-family: inherit;
+  transition: all 0.18s ease;
+}
+
+.deferInput:focus {
+  outline: none;
+  border-color: #d98236;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(217, 130, 54, 0.15);
+}
+
+.cardFooter {
+  padding: 16px 24px 20px;
+  border-top: 1px solid rgba(106, 72, 49, 0.1);
+  background: #faf7f2;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.primaryConfirmBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #d98236 0%, #b8621b 100%);
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 750;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(217, 130, 54, 0.32);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.primaryConfirmBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(217, 130, 54, 0.4);
+}
+
+.primaryConfirmBtn:active {
+  transform: translateY(0);
+}
+
+.secondaryDeferBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid rgba(106, 72, 49, 0.16);
+  color: #543a2a;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.secondaryDeferBtn:hover {
+  background: #f7efe6;
+  border-color: #d98236;
+  color: #8b4513;
+}

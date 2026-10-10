@@ -26,6 +26,18 @@ export interface ConversationTurn {
   audioUrl?: string | null;
 }
 
+export interface StageTransitionProposal {
+  currentStage: string;
+  nextStage: string;
+  stageIndex: number;
+  totalStages: number;
+  stageName: string;
+  turnId: number;
+  elapsedSeconds: number;
+  stageMaxSeconds: number;
+  summaryMessage: string;
+}
+
 export interface UseRealtimeVoiceInterviewOptions {
   sessionId: string;
   enabled?: boolean;
@@ -36,8 +48,12 @@ export interface UseRealtimeVoiceInterviewOptions {
   pitch?: string;
   selectedStages?: string[];
   stageConfigs?: StageConfigIn[];
-  selectedQuestionIds?: number[];
+  selectedQuestionIds?: (number | string)[];
   bargeInInitial?: boolean;
+  personaName?: string;
+  companyName?: string;
+  mockMode?: "strict" | "guided";
+  totalDurationMinutes?: number;
 }
 
 /**
@@ -251,6 +267,10 @@ export function useRealtimeVoiceInterview({
   selectedStages = ["warmup", "technical", "closing"],
   stageConfigs,
   selectedQuestionIds,
+  personaName,
+  companyName,
+  mockMode: initialMockMode = "guided",
+  totalDurationMinutes = 45,
   bargeInInitial = true,
 }: UseRealtimeVoiceInterviewOptions) {
   // Connection & Lifecycle State
@@ -280,6 +300,14 @@ export function useRealtimeVoiceInterview({
   const [turnInStage, setTurnInStage] = useState(1);
   const [targetTurnsInStage, setTargetTurnsInStage] = useState(2);
   const [currentIntent, setCurrentIntent] = useState<QuestionIntentContext | null>(null);
+
+  // New Adaptive 3-Stage & Mock Mode states
+  const [pendingTransition, setPendingTransition] = useState<StageTransitionProposal | null>(null);
+  const [currentHint, setCurrentHint] = useState<string | null>(null);
+  const [isRequestingHint, setIsRequestingHint] = useState(false);
+  const [mockMode, setMockModeState] = useState<"strict" | "guided">(initialMockMode);
+  const [stageElapsedSeconds, setStageElapsedSeconds] = useState(0);
+  const [stageMaxSeconds, setStageMaxSeconds] = useState(600);
 
   // Realtime Subtitles & Tokens
   const [currentQuestion, setCurrentQuestion] = useState("");
@@ -340,6 +368,10 @@ export function useRealtimeVoiceInterview({
     selectedStages,
     questionsPerStage,
     selectedQuestionIds,
+    personaName,
+    companyName,
+    mockMode,
+    totalDurationMinutes,
   });
 
   useEffect(() => {
@@ -353,6 +385,10 @@ export function useRealtimeVoiceInterview({
       selectedStages,
       questionsPerStage,
       selectedQuestionIds,
+      personaName,
+      companyName,
+      mockMode,
+      totalDurationMinutes,
     };
   }, [
     roleName,
@@ -364,6 +400,10 @@ export function useRealtimeVoiceInterview({
     selectedStages,
     questionsPerStage,
     selectedQuestionIds,
+    personaName,
+    companyName,
+    mockMode,
+    totalDurationMinutes,
   ]);
 
   // Session Duration Counter
@@ -485,6 +525,41 @@ export function useRealtimeVoiceInterview({
     serverHasFinishedTurnRef.current = false;
     submissionPendingRef.current = true;
     setAiState("thinking");
+  }, [sendMessage]);
+
+  // Stage Transition confirmation
+  const confirmStageTransition = useCallback(() => {
+    if (!sendMessage({ type: "stage_transition_confirm" })) return;
+    setPendingTransition(null);
+    if (playerRef.current) playerRef.current.stop();
+    serverHasFinishedTurnRef.current = false;
+    submissionPendingRef.current = true;
+    setAiState("thinking");
+  }, [sendMessage]);
+
+  // Stage Transition deferral (user wants to say more)
+  const deferStageTransition = useCallback((continueMessage?: string) => {
+    sendMessage({ type: "stage_transition_defer", continue_message: continueMessage });
+    setPendingTransition(null);
+    setAiState("listening");
+  }, [sendMessage]);
+
+  // Request Hint in Guided Mode
+  const requestHint = useCallback(() => {
+    setIsRequestingHint(true);
+    sendMessage({ type: "request_hint", question_id: currentIntent?.question_id });
+  }, [sendMessage, currentIntent?.question_id]);
+
+  // Clear Hint
+  const clearHint = useCallback(() => {
+    setCurrentHint(null);
+  }, []);
+
+  // Change Mock Mode
+  const changeMockMode = useCallback((newMode: "strict" | "guided") => {
+    setMockModeState(newMode);
+    optionsRef.current.mockMode = newMode;
+    sendMessage({ type: "config", mock_mode: newMode });
   }, [sendMessage]);
 
   // End Session Early
@@ -657,6 +732,11 @@ export function useRealtimeVoiceInterview({
             barge_in_enabled: currentOpts.bargeInEnabled,
             selected_stages: currentOpts.selectedStages,
             questions_per_stage: currentOpts.questionsPerStage,
+            persona_name: currentOpts.personaName,
+            company_name: currentOpts.companyName,
+            mock_mode: currentOpts.mockMode,
+            total_duration_minutes: currentOpts.totalDurationMinutes,
+            selected_question_ids: currentOpts.selectedQuestionIds,
           })
         );
 
@@ -746,10 +826,29 @@ export function useRealtimeVoiceInterview({
           } else if (type === "pitch_configured") {
             if (data.pitch) setActivePitch(data.pitch);
           } else if (type === "stage_info" || type === "stage_change") {
+            setPendingTransition(null);
             if (data.current_stage) setCurrentStage(data.current_stage);
             if (data.stages) setStagesList(data.stages);
             if (data.turn_in_stage) setTurnInStage(data.turn_in_stage);
             if (data.target_turns_in_stage) setTargetTurnsInStage(data.target_turns_in_stage);
+            if (data.stage_max_seconds) setStageMaxSeconds(data.stage_max_seconds);
+            if (data.stage_elapsed_seconds !== undefined) setStageElapsedSeconds(data.stage_elapsed_seconds);
+            if (data.mock_mode) setMockModeState(data.mock_mode);
+          } else if (type === "stage_transition_proposed") {
+            setPendingTransition({
+              currentStage: data.current_stage || "",
+              nextStage: data.next_stage || "",
+              stageIndex: data.stage_index || 1,
+              totalStages: data.total_stages || 3,
+              stageName: data.stage_name || "",
+              turnId: data.turn_id || 1,
+              elapsedSeconds: data.elapsed_seconds || 0,
+              stageMaxSeconds: data.stage_max_seconds || 600,
+              summaryMessage: data.summary_message || "",
+            });
+          } else if (type === "hint_response") {
+            setCurrentHint(data.hint_text || "");
+            setIsRequestingHint(false);
           } else if (type === "ai_token") {
             fullAiTextAccumulatorRef.current += data.token;
             setCurrentQuestion(fullAiTextAccumulatorRef.current);
@@ -909,5 +1008,17 @@ export function useRealtimeVoiceInterview({
     activePitch,
     changePitch,
     updateTurnAudioUrl,
+    // 3-Stage Transition & Adaptive Controls
+    pendingTransition,
+    confirmStageTransition,
+    deferStageTransition,
+    currentHint,
+    isRequestingHint,
+    requestHint,
+    clearHint,
+    mockMode,
+    changeMockMode,
+    stageElapsedSeconds,
+    stageMaxSeconds,
   };
 }

@@ -1214,3 +1214,105 @@
 .btnEndInterviewFull:hover {
   background: #b91c1c;
 }
+
+/* =========================================================
+   STAR COACHING HINT & MOCK MODE FLOATING STYLES
+========================================================= */
+
+.hintFloatingCard {
+  position: absolute;
+  bottom: 84px;
+  left: 24px;
+  right: 24px;
+  max-width: 600px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(217, 130, 54, 0.35);
+  box-shadow: 0 16px 40px rgba(84, 50, 27, 0.16);
+  z-index: 40;
+  overflow: hidden;
+  animation: modalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hintCardHeader {
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  border-bottom: 1px solid rgba(217, 130, 54, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hintTitleBox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 750;
+  color: #8b4513;
+}
+
+.hintCloseBtn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(106, 72, 49, 0.15);
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: #543a2a;
+  transition: all 0.15s ease;
+}
+
+.hintCloseBtn:hover {
+  background: #fdead7;
+  color: #8b4513;
+}
+
+.hintContent {
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #211914;
+  white-space: pre-line;
+  max-height: 160px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.btnStarHint {
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%) !important;
+  color: #8b4513 !important;
+  border: 1px solid rgba(217, 130, 54, 0.35) !important;
+}
+
+.btnStarHint:hover:not(:disabled) {
+  background: #fdead7 !important;
+  border-color: #d98236 !important;
+}
+
+.modeBadgePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.modeBadgeGuided {
+  background: rgba(45, 90, 67, 0.1);
+  color: #2d5a43;
+  border: 1px solid rgba(45, 90, 67, 0.25);
+}
+
+.modeBadgeStrict {
+  background: rgba(185, 28, 28, 0.1);
+  color: #b91c1c;
+  border: 1px solid rgba(185, 28, 28, 0.25);
+}
