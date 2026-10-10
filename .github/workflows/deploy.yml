@@ -40,16 +40,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
 
-      - name: Build Docker Image
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build Next.js Application
         run: |
-          docker build \
-            --build-arg NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000' }} \
-            --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }} \
-            -t ${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            -t ${{ env.IMAGE_NAME }}:latest \
-            .
+          NODE_OPTIONS="--max-old-space-size=4096" npm run build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL || 'https://be.fuji.io.vn' }}
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
 
   deploy:
     runs-on: ubuntu-24.04
@@ -65,7 +69,7 @@ jobs:
           SERVER_PORT: ${{ secrets.SERVER_PORT || '22' }}
           SERVER_USER: ${{ secrets.SERVER_USER || 'ubuntu' }}
           # Frontend Environment Variables
-          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000' }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL || 'https://be.fuji.io.vn' }}
           NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
           NEXT_PUBLIC_PAYMENT_QR_BANK_CODE: ${{ secrets.NEXT_PUBLIC_PAYMENT_QR_BANK_CODE || 'mb' }}
           NEXT_PUBLIC_PAYMENT_QR_ACCOUNT_NUMBER: ${{ secrets.NEXT_PUBLIC_PAYMENT_QR_ACCOUNT_NUMBER || '9394441571' }}
@@ -90,9 +94,6 @@ jobs:
             set -e
             echo '🚀 Starting deployment for Interviewly Frontend...'
 
-            sudo systemctl enable --now docker 2>/dev/null || sudo service docker start 2>/dev/null || true
-            sudo usermod -aG docker \$USER 2>/dev/null || true
-
             # Clone or update repository
             if [ ! -d '${{ env.DEPLOY_DIR }}' ]; then
               sudo mkdir -p '${{ env.DEPLOY_DIR }}'
@@ -107,36 +108,29 @@ jobs:
 
             # Write .env.local for Next.js build
             {
-              echo "NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL"
-              echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID"
-              echo "NEXT_PUBLIC_PAYMENT_QR_BANK_CODE=$NEXT_PUBLIC_PAYMENT_QR_BANK_CODE"
-              echo "NEXT_PUBLIC_PAYMENT_QR_ACCOUNT_NUMBER=$NEXT_PUBLIC_PAYMENT_QR_ACCOUNT_NUMBER"
-              echo "NEXT_PUBLIC_PAYMENT_QR_ACCOUNT_NAME=$NEXT_PUBLIC_PAYMENT_QR_ACCOUNT_NAME"
-              echo "NEXT_PUBLIC_PAYMENT_QR_TEMPLATE=$NEXT_PUBLIC_PAYMENT_QR_TEMPLATE"
+              echo \"NEXT_PUBLIC_API_BASE_URL=\$NEXT_PUBLIC_API_BASE_URL\"
+              echo \"NEXT_PUBLIC_GOOGLE_CLIENT_ID=\$NEXT_PUBLIC_GOOGLE_CLIENT_ID\"
+              echo \"NEXT_PUBLIC_PAYMENT_QR_BANK_CODE=\$NEXT_PUBLIC_PAYMENT_QR_BANK_CODE\"
+              echo \"NEXT_PUBLIC_PAYMENT_QR_ACCOUNT_NUMBER=\$NEXT_PUBLIC_PAYMENT_QR_ACCOUNT_NUMBER\"
+              echo \"NEXT_PUBLIC_PAYMENT_QR_ACCOUNT_NAME=\$NEXT_PUBLIC_PAYMENT_QR_ACCOUNT_NAME\"
+              echo \"NEXT_PUBLIC_PAYMENT_QR_TEMPLATE=\$NEXT_PUBLIC_PAYMENT_QR_TEMPLATE\"
             } > .env.local
 
-            echo '🐳 Building and restarting Frontend container...'
-            docker stop interviewly-fe 2>/dev/null || true
-            docker rm interviewly-fe 2>/dev/null || true
+            # Install dependencies
+            npm install --legacy-peer-deps
 
-            docker build \
-              --build-arg NEXT_PUBLIC_API_BASE_URL=\"$NEXT_PUBLIC_API_BASE_URL\" \
-              --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID=\"$NEXT_PUBLIC_GOOGLE_CLIENT_ID\" \
-              --build-arg NEXT_PUBLIC_PAYMENT_QR_BANK_CODE=\"$NEXT_PUBLIC_PAYMENT_QR_BANK_CODE\" \
-              --build-arg NEXT_PUBLIC_PAYMENT_QR_ACCOUNT_NUMBER=\"$NEXT_PUBLIC_PAYMENT_QR_ACCOUNT_NUMBER\" \
-              --build-arg NEXT_PUBLIC_PAYMENT_QR_ACCOUNT_NAME=\"$NEXT_PUBLIC_PAYMENT_QR_ACCOUNT_NAME\" \
-              --build-arg NEXT_PUBLIC_PAYMENT_QR_TEMPLATE=\"$NEXT_PUBLIC_PAYMENT_QR_TEMPLATE\" \
-              -t ${{ env.IMAGE_NAME }}:latest .
+            # Build Next.js
+            echo '⚡ Building Next.js application...'
+            NODE_OPTIONS=\"--max-old-space-size=1536\" npm run build
 
-            docker run -d \
-              --name interviewly-fe \
-              --restart always \
-              -p 3000:3000 \
-              ${{ env.IMAGE_NAME }}:latest
+            # Zero-downtime reload via PM2
+            echo '🔄 Reloading PM2 service...'
+            pm2 reload interviewly-fe || pm2 restart interviewly-fe || pm2 start npm --name \"interviewly-fe\" -- start
+            pm2 save
 
-            echo '⏳ Checking container status...'
+            echo '⏳ Checking service status...'
             sleep 3
-            docker ps --filter name=interviewly-fe
+            pm2 status interviewly-fe
 
             echo '✅ Frontend deployment completed successfully!'
           "
