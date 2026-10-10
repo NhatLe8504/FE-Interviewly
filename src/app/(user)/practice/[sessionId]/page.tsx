@@ -69,6 +69,8 @@ interface SessionMetaStored {
 const PREFERRED_VOICE_STORAGE_KEY = "interviewly_preferred_voice";
 const PREFERRED_PITCH_STORAGE_KEY = "interviewly_preferred_pitch";
 const getLangPreferredVoiceKey = (lang: string) => `interviewly_preferred_voice_${lang}`;
+const getLangPreferredTtsEngineKey = (lang: string) => `interviewly_preferred_tts_engine_${lang}`;
+const getLangPreferredBrowserVoiceKey = (lang: string) => `interviewly_preferred_browser_voice_${lang}`;
 
 const LANGUAGE_DEFAULT_VOICES: Record<string, string> = {
   vi: "vi-VN-HoaiMyNeural",
@@ -135,7 +137,25 @@ export default function InterviewRoomPage({
         if (!isSubscribed) return;
         setVoiceOptions(res);
 
-        // Khôi phục giọng ưu tiên từ localStorage theo ngôn ngữ hoặc toàn cục
+        // 1. Khôi phục TTS engine ưu tiên của ngôn ngữ này
+        let preferredEngine: "edge" | "elevenlabs" | "browser" = "edge";
+        try {
+          const savedEngine = localStorage.getItem(getLangPreferredTtsEngineKey(language));
+          if (savedEngine === "browser" || savedEngine === "elevenlabs" || savedEngine === "edge") {
+            preferredEngine = savedEngine as "edge" | "elevenlabs" | "browser";
+          }
+        } catch {}
+        setTtsEngine(preferredEngine);
+
+        // 2. Khôi phục Browser voice ưu tiên nếu có
+        try {
+          const savedBrowserVoice = localStorage.getItem(getLangPreferredBrowserVoiceKey(language));
+          if (savedBrowserVoice) {
+            setSelectedBrowserVoice(savedBrowserVoice);
+          }
+        } catch {}
+
+        // 3. Khôi phục giọng ưu tiên từ localStorage theo ngôn ngữ hoặc toàn cục
         let preferred: string | null = null;
         try {
           preferred =
@@ -151,8 +171,11 @@ export default function InterviewRoomPage({
           setSelectedVoice(matchingVoice.id);
           changeVoice(matchingVoice.id);
         } else {
-          // Fallback to default unlocked voice
+          // Fallback to default unlocked voice matching provider or default
+          const candidateProvider = preferredEngine === "elevenlabs" && res.is_premium_user ? "elevenlabs" : "edge";
           const def =
+            res.voices.find((v) => v.provider === candidateProvider && v.is_default && !v.is_locked) ||
+            res.voices.find((v) => v.provider === candidateProvider && !v.is_locked) ||
             res.voices.find((v) => v.is_default && !v.is_locked) ||
             res.voices.find((v) => !v.is_locked) ||
             res.voices[0];
@@ -367,19 +390,78 @@ export default function InterviewRoomPage({
 
   // Settings Handlers
   const handleVoiceChange = (newVoiceId: string) => {
+    const target = voiceOptions?.voices.find((v) => v.id === newVoiceId);
+    if (target?.is_locked) {
+      toast({
+        title: "Tính năng dành riêng cho gói Pro",
+        description: target.lock_reason || "Giọng đọc ElevenLabs Studio Pro yêu cầu gói Pro.",
+        variant: "warning",
+      });
+      return;
+    }
+
     setSelectedVoice(newVoiceId);
     changeVoice(newVoiceId);
 
-    // Lưu vào cache vĩnh viễn (localStorage) để lần sau tự động sử dụng
+    // Lưu vào cache vĩnh viễn theo ngôn ngữ
     try {
       localStorage.setItem(PREFERRED_VOICE_STORAGE_KEY, newVoiceId);
       localStorage.setItem(getLangPreferredVoiceKey(language), newVoiceId);
+      if (target?.provider === "elevenlabs" || target?.provider === "edge") {
+        localStorage.setItem(getLangPreferredTtsEngineKey(language), target.provider);
+      }
     } catch {}
 
     const updated = { ...meta, voice: newVoiceId };
     setMeta(updated);
     try {
       sessionStorage.setItem(`session_metadata_${sessionId}`, JSON.stringify(updated));
+    } catch {}
+  };
+
+  const handleTtsEngineChange = (engine: "edge" | "elevenlabs" | "browser") => {
+    if (engine === "elevenlabs" && !voiceOptions?.is_premium_user) {
+      toast({
+        title: "Tính năng dành riêng cho gói Pro",
+        description: "Giọng đọc ElevenLabs AI chuẩn studio yêu cầu tài khoản Pro để mở khóa.",
+        variant: "warning",
+      });
+    }
+
+    setTtsEngine(engine);
+    try {
+      localStorage.setItem(getLangPreferredTtsEngineKey(language), engine);
+    } catch {}
+
+    if (engine === "browser") {
+      const cachedBVoice = localStorage.getItem(getLangPreferredBrowserVoiceKey(language));
+      if (cachedBVoice) {
+        setSelectedBrowserVoice(cachedBVoice);
+      } else if (browserVoices.length > 0) {
+        setSelectedBrowserVoice(browserVoices[0].name);
+      }
+    } else if (engine === "elevenlabs") {
+      const elevenVoice = voiceOptions?.voices.find((v) => v.provider === "elevenlabs");
+      if (elevenVoice && (!selectedVoice.startsWith("elevenlabs") || !voiceOptions?.is_premium_user)) {
+        if (!elevenVoice.is_locked) {
+          handleVoiceChange(elevenVoice.id);
+        }
+      }
+    } else if (engine === "edge") {
+      const edgeVoice = voiceOptions?.voices.find(
+        (v) => v.provider === "edge" && (v.language === language || v.language === "multi")
+      );
+      if (edgeVoice && selectedVoice.startsWith("elevenlabs")) {
+        handleVoiceChange(edgeVoice.id);
+      }
+    }
+  };
+
+  const handleBrowserVoiceChange = (voiceName: string) => {
+    setSelectedBrowserVoice(voiceName);
+    try {
+      localStorage.setItem(getLangPreferredBrowserVoiceKey(language), voiceName);
+      localStorage.setItem(getLangPreferredTtsEngineKey(language), "browser");
     } catch {}
   };
 
@@ -1212,23 +1294,30 @@ function changeInterviewLanguage(code: string) {
 
               <div className={styles.settingsDivider} />
 
-              {/* Công nghệ phát giọng nói (TTS Engine) */}
+              {/* Công nghệ phát giọng nói (TTS Engine) - 3 Lựa chọn: Edge, ElevenLabs, Web Speech */}
               <div className={styles.settingsSection}>
                 <div className={styles.settingsSectionLabel}>
                   <span>Công nghệ phát giọng nói (TTS Engine)</span>
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button
                     type="button"
                     className={`${styles.pitchQuickBtn} ${ttsEngine === "edge" ? styles.pitchQuickBtnActive : ""}`}
-                    onClick={() => setTtsEngine("edge")}
+                    onClick={() => handleTtsEngineChange("edge")}
                   >
-                    Edge TTS (Cloud AI)
+                    Edge TTS (Cloud Miễn phí)
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.pitchQuickBtn} ${ttsEngine === "elevenlabs" ? styles.pitchQuickBtnActive : ""}`}
+                    onClick={() => handleTtsEngineChange("elevenlabs")}
+                  >
+                    ElevenLabs AI (Studio Pro ⭐)
                   </button>
                   <button
                     type="button"
                     className={`${styles.pitchQuickBtn} ${ttsEngine === "browser" ? styles.pitchQuickBtnActive : ""}`}
-                    onClick={() => setTtsEngine("browser")}
+                    onClick={() => handleTtsEngineChange("browser")}
                   >
                     Web Speech (Trình duyệt - 0ms)
                   </button>
@@ -1236,11 +1325,13 @@ function changeInterviewLanguage(code: string) {
                 <p className={styles.settingsHelper}>
                   {ttsEngine === "browser"
                     ? "Web Speech API: Phát âm trực tiếp trên trình duyệt máy bạn, độ trễ thấp nhất (0ms network delay)."
-                    : "Edge TTS: Giọng đọc Microsoft Cloud AI tự nhiên và truyền cảm."}
+                    : ttsEngine === "elevenlabs"
+                    ? "ElevenLabs AI: Giọng đọc phòng thu đỉnh cao thế giới với biểu cảm tự nhiên vượt trội (Dành cho gói Pro)."
+                    : "Edge TTS: Giọng đọc Microsoft Cloud AI tự nhiên và truyền cảm (Miễn phí cho mọi tài khoản)."}
                 </p>
               </div>
 
-              {/* Giọng đọc AI */}
+              {/* Giọng đọc tương ứng theo TTS Engine */}
               {ttsEngine === "edge" ? (
                 <div className={styles.settingsSection}>
                   <div className={styles.settingsSectionLabel}>
@@ -1250,20 +1341,61 @@ function changeInterviewLanguage(code: string) {
                     </span>
                   </div>
                   <SimpleUserSelect
-                    id="settings-voice-select"
+                    id="settings-voice-select-edge"
                     value={selectedVoice}
                     disabled={!canSendText}
                     onChange={handleVoiceChange}
-                    options={filteredVoices.map((v) => ({
-                      value: v.id,
-                      label: v.name,
-                    }))}
-                    aria-label="AI Voice"
+                    options={filteredVoices
+                      .filter((v) => v.provider === "edge")
+                      .map((v) => ({
+                        value: v.id,
+                        label: `${v.name} (${v.gender === "female" ? "Nữ" : "Nam"})`,
+                      }))}
+                    aria-label="Edge AI Voice"
                   />
                   <p className={styles.settingsHelper}>
                     {language === "vi"
                       ? "Tự động ưu tiên giọng tiếng Việt và giọng đa ngôn ngữ (xử lý tự nhiên khi câu hỏi chứa thuật ngữ tiếng Anh)."
                       : "Giọng đọc tương thích với ngôn ngữ phỏng vấn đã chọn."}
+                  </p>
+                </div>
+              ) : ttsEngine === "elevenlabs" ? (
+                <div className={styles.settingsSection}>
+                  <div className={styles.settingsSectionLabel}>
+                    <span>Giọng đọc ElevenLabs Studio</span>
+                    {voiceOptions?.is_premium_user ? (
+                      <span className={styles.voiceTierBadge} style={{ background: "#fef3c7", color: "#b45309", border: "1px solid #fde68a" }}>
+                        ⭐ Đã kích hoạt Pro
+                      </span>
+                    ) : (
+                      <span className={styles.voiceTierBadge} style={{ background: "#fee2e2", color: "#b91c1c", border: "1px solid #fca5a5" }}>
+                        🔒 Yêu cầu gói Pro
+                      </span>
+                    )}
+                  </div>
+                  <SimpleUserSelect
+                    id="settings-voice-select-eleven"
+                    value={selectedVoice}
+                    disabled={!canSendText}
+                    onChange={handleVoiceChange}
+                    options={filteredVoices
+                      .filter((v) => v.provider === "elevenlabs")
+                      .map((v) => ({
+                        value: v.id,
+                        label: `${v.name} ${v.is_locked ? "🔒 (Khóa Pro)" : "⭐"}`,
+                      }))}
+                    aria-label="ElevenLabs AI Voice"
+                  />
+                  {!voiceOptions?.is_premium_user && (
+                    <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.2)", fontSize: 12, color: "#b91c1c" }}>
+                      Tài khoản của bạn hiện là Free. Nâng cấp tài khoản Pro để mở khóa toàn bộ giọng ElevenLabs Studio chuẩn phòng thu.{" "}
+                      <a href="/pricing" target="_blank" rel="noopener noreferrer" style={{ fontWeight: 750, color: "#b91c1c", textDecoration: "underline" }}>
+                        Xem bảng giá ↗
+                      </a>
+                    </div>
+                  )}
+                  <p className={styles.settingsHelper}>
+                    Mô hình ElevenLabs Multilingual v2 với ngữ điệu và cảm xúc chân thực nhất thế giới.
                   </p>
                 </div>
               ) : (
@@ -1278,7 +1410,7 @@ function changeInterviewLanguage(code: string) {
                     id="settings-browser-voice-select"
                     value={selectedBrowserVoice || (browserVoices[0]?.name || "")}
                     disabled={!canSendText}
-                    onChange={(name) => setSelectedBrowserVoice(name)}
+                    onChange={handleBrowserVoiceChange}
                     options={browserVoices.map((v) => ({
                       value: v.name,
                       label: `${v.name} (${v.lang})`,
