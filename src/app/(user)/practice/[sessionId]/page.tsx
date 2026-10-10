@@ -51,6 +51,17 @@ interface SessionMetaStored {
   voice?: string;
 }
 
+const LANGUAGE_DEFAULT_VOICES: Record<string, string> = {
+  vi: "vi-VN-HoaiMyNeural",
+  en: "en-US-JennyNeural",
+  zh: "zh-CN-XiaoxiaoNeural",
+  ja: "ja-JP-NanamiNeural",
+  ko: "ko-KR-SunHiNeural",
+  fr: "fr-FR-DeniseNeural",
+  de: "de-DE-KatjaNeural",
+  es: "es-ES-ElviraNeural",
+};
+
 const THREE_STAGES = [
   { id: "warmup", label: "Khởi động", icon: Coffee },
   { id: "technical", label: "Chuyên môn", icon: Briefcase },
@@ -85,6 +96,13 @@ export default function InterviewRoomPage({
 
   // Auto-scroll ref (mot thanh cuon chung cho ca khung chat)
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
+
+// Voice list filtered STRICTLY by active interview language:
+  // ONLY displays voices for that language (v.language === language) OR multilingual (v.language === "multi")
+  const filteredVoices = useMemo(() => {
+    const list = voiceOptions?.voices || [];
+    return list.filter((v) => !v.language || v.language === language || v.language === "multi");
+  }, [voiceOptions?.voices, language]);
 
   const isVoiceMode = currentMode === "voice";
 
@@ -249,12 +267,24 @@ export default function InterviewRoomPage({
     setSelectedSttEngine(newEngineId);
   };
 
-  function changeInterviewLanguage(code: string) {
+function changeInterviewLanguage(code: string) {
     if (!canSendText) return;
     const selected = getInterviewLanguage(code);
     const updated = { ...meta, language: selected.code, languageLabel: selected.label };
     setLanguage(selected.code);
     setMeta(updated);
+
+    // Auto switch voice to compatible voice of the new language if current voice cannot speak it
+    const newLangDefaultVoice = LANGUAGE_DEFAULT_VOICES[selected.code] || "vi-VN-HoaiMyNeural";
+    const curVoiceObj = voiceOptions?.voices.find((v) => v.id === selectedVoice);
+    const isCurVoiceMultilingual = curVoiceObj?.language === "multi";
+    const isCurVoiceSameLang = curVoiceObj?.language === selected.code;
+
+    if (!isCurVoiceMultilingual && !isCurVoiceSameLang) {
+      setSelectedVoice(newLangDefaultVoice);
+      changeVoice(newLangDefaultVoice);
+    }
+
     try {
       sessionStorage.setItem(`session_metadata_${sessionId}`, JSON.stringify(updated));
     } catch {}
@@ -949,21 +979,12 @@ export default function InterviewRoomPage({
                     </span>
                   )}
                 </div>
-<SimpleUserSelect
+                <SimpleUserSelect
                   id="settings-voice-select"
                   value={selectedVoice}
                   disabled={!canSendText}
                   onChange={handleVoiceChange}
-                  options={(voiceOptions?.voices || [
-                    { id: "vi-VN-HoaiMyNeural", name: "Hoài My (Nữ - Tiếng Việt)", is_locked: false },
-                    { id: "vi-VN-NamMinhNeural", name: "Nam Minh (Nam - Tiếng Việt)", is_locked: false },
-                    { id: "JBFqnCBsd6RMkjVDRZzb", name: "George (Tech Leader • Song ngữ Anh - Việt)", is_locked: true },
-                    { id: "EXAVITQu4vr4xnSDxMaL", name: "Sarah (Chuyên gia • Song ngữ Anh - Việt)", is_locked: true },
-                    { id: "pNInz6obpgDQGcFmaJgB", name: "Adam (Executive • Đa ngôn ngữ)", is_locked: true },
-                    { id: "TX3LPaxmHKxFdv7VOQHJ", name: "Liam (Startup • Đa ngôn ngữ)", is_locked: true },
-                    { id: "pFZP5JQG7iQjIQuC4Bku", name: "Lily (Warm • Đa ngôn ngữ)", is_locked: true },
-                    { id: "Xb7hH8MSUJpSbSDYk0k2", name: "Alice (Professional • Đa ngôn ngữ)", is_locked: true },
-                  ]).map((v) => ({
+                  options={filteredVoices.map((v) => ({
                     value: v.id,
                     label: `${v.is_locked ? "🔒 [Pro] " : ""}${v.name}`,
                   }))}
