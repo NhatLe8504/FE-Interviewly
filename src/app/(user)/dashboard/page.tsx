@@ -111,8 +111,8 @@ export default function DashboardPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header Welcome Bar */}
       <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 rounded-3xl bg-gradient-to-r from-sky-950/40 via-slate-900 to-indigo-950/30 border border-sky-500/20 backdrop-blur-md">
-        <div className="absolute -top-[48px] right-6 sm:right-10 pointer-events-none select-none">
-          <PageMascot size={52} />
+        <div className="absolute -top-[62px] right-6 sm:right-10 pointer-events-none select-none">
+          <PageMascot size={68} />
         </div>
         <div>
           <div className="flex items-center gap-2 mb-1">

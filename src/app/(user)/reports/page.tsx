@@ -56,8 +56,8 @@ export default function ReportsPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
       <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 rounded-3xl bg-slate-900/80 border border-slate-800 backdrop-blur-md">
-        <div className="absolute -top-[48px] right-6 sm:right-10 pointer-events-none select-none">
-          <PageMascot size={52} />
+        <div className="absolute -top-[62px] right-6 sm:right-10 pointer-events-none select-none">
+          <PageMascot size={68} />
         </div>
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 flex items-center gap-2">

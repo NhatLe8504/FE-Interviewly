@@ -263,7 +263,7 @@ export default function SettingsClient() {
           <p className={styles.sub}>{t.settings.subtitle}</p>
         </div>
         <div className={styles.mascotBadgeWrap}>
-          <PageMascot size={52} />
+          <PageMascot size={68} />
         </div>
       </div>
 
