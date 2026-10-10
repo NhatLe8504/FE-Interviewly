@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { CvDocument, CvAtsScoreResponse } from "@/types/cv";
 import { cvApi } from "@/services/cvApi";
@@ -9,15 +9,11 @@ import { TemplateRenderer } from "@/components/cv/templates/TemplateRenderer";
 import { FloatingAiToolbar } from "@/components/cv/FloatingAiToolbar";
 import { AtsScoreWidget } from "@/components/cv/AtsScoreWidget";
 import { AiDraftModal } from "@/components/cv/AiDraftModal";
-import {
-  Sparkles,
-  Loader2,
-  ChevronRight,
-  ChevronLeft,
-  Plus,
-} from "lucide-react";
+import { PageMascot } from "@/components/user-component/common/PageMascot";
+import { Loader2 } from "lucide-react";
 import s from "./cvBuilder.module.css";
 
+const DRAFT_STORAGE_KEY = "interviewly_cv_active_draft";
 const AVATAR_STORAGE_KEY = "interviewly_cv_avatar";
 
 const BLANK_CV: CvDocument = {
@@ -61,7 +57,6 @@ export default function CvBuilderClient() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [zoom, setZoom] = useState(1.0);
-  const [showAtsSidebar, setShowAtsSidebar] = useState(true);
   const [showAiDraftModal, setShowAiDraftModal] = useState(false);
 
   const [selection, setSelection] = useState<{
@@ -73,67 +68,122 @@ export default function CvBuilderClient() {
   const [atsScoreData, setAtsScoreData] = useState<CvAtsScoreResponse | null>(null);
   const [atsLoading, setAtsLoading] = useState(false);
 
-  const avatarInputRef = useRef<HTMLInputElement>(null);
-
-  // Load saved avatar from localStorage on mount
-  useEffect(() => {
-    const savedAvatar = localStorage.getItem(AVATAR_STORAGE_KEY);
-    if (savedAvatar) {
-      setCv((prev) => ({
-        ...prev,
-        personal_info: { ...prev.personal_info, avatar_url: savedAvatar },
-      }));
-    }
-  }, []);
-
-  // Load or initialize CV
+  // Load or initialize CV with LocalStorage Cache Persistence
   useEffect(() => {
     async function initCv() {
       setLoading(true);
+
+      // Đọc cached draft và saved avatar từ localStorage để đề phòng F5
+      let cachedDraft: CvDocument | null = null;
+      try {
+        const rawDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+        if (rawDraft) {
+          cachedDraft = JSON.parse(rawDraft);
+        }
+      } catch (err) {
+        console.warn("Could not parse cached draft:", err);
+      }
+
+      const savedAvatar = typeof window !== "undefined" ? localStorage.getItem(AVATAR_STORAGE_KEY) : null;
+
       try {
         if (cvIdParam) {
-          const fetched = await cvApi.getCv(Number(cvIdParam));
-          setCv(fetched);
-          if (fetched.ats_feedback) setAtsScoreData(fetched.ats_feedback);
+          try {
+            const fetched = await cvApi.getCv(Number(cvIdParam));
+            if (!fetched.personal_info.avatar_url && savedAvatar) {
+              fetched.personal_info.avatar_url = savedAvatar;
+            }
+            setCv(fetched);
+            if (fetched.ats_feedback) setAtsScoreData(fetched.ats_feedback);
+          } catch (err) {
+            console.warn("Failed to fetch cv from server:", err);
+            if (cachedDraft && String(cachedDraft.id) === cvIdParam) {
+              setCv(cachedDraft);
+            }
+          }
         } else if (jobIdParam) {
-          const created = await cvApi.createCv({
-            title: `CV Ứng Tuyển - ${new Date().toLocaleDateString("vi-VN")}`,
-            target_job_id: jobIdParam,
-            load_from_user_skills: true,
-          });
-          setCv(created);
-          router.replace(`/cv-builder?id=${created.id}`);
-        } else {
-          const list = await cvApi.listCvs();
-          if (list.length > 0) {
-            const latest = await cvApi.getCv(list[0].id);
-            setCv(latest);
-            router.replace(`/cv-builder?id=${latest.id}`);
-          } else {
+          try {
             const created = await cvApi.createCv({
-              title: "",
+              title: `CV Ứng Tuyển - ${new Date().toLocaleDateString("vi-VN")}`,
+              target_job_id: jobIdParam,
               load_from_user_skills: true,
             });
+            if (!created.personal_info.avatar_url && savedAvatar) {
+              created.personal_info.avatar_url = savedAvatar;
+            }
             setCv(created);
             router.replace(`/cv-builder?id=${created.id}`);
+          } catch {
+            // Offline / fallback: dùng cached draft nếu có hoặc BLANK_CV
+            if (cachedDraft) {
+              setCv(cachedDraft);
+            } else {
+              setCv({
+                ...BLANK_CV,
+                target_job_id: jobIdParam,
+                personal_info: { ...BLANK_CV.personal_info, avatar_url: savedAvatar || "" },
+              });
+            }
+          }
+        } else {
+          // Trường hợp không có query param:
+          // Nếu có bản nháp trong localStorage, khôi phục ngay để F5 không bị mất
+          if (cachedDraft && (cachedDraft.personal_info.full_name || cachedDraft.summary || cachedDraft.work_experiences.length > 0 || cachedDraft.skills.length > 0)) {
+            if (!cachedDraft.personal_info.avatar_url && savedAvatar) {
+              cachedDraft.personal_info.avatar_url = savedAvatar;
+            }
+            setCv(cachedDraft);
+            if (cachedDraft.ats_feedback) setAtsScoreData(cachedDraft.ats_feedback);
+          } else {
+            // Thử lấy danh sách CV từ backend
+            try {
+              const list = await cvApi.listCvs();
+              if (list.length > 0) {
+                const latest = await cvApi.getCv(list[0].id);
+                if (!latest.personal_info.avatar_url && savedAvatar) {
+                  latest.personal_info.avatar_url = savedAvatar;
+                }
+                setCv(latest);
+                router.replace(`/cv-builder?id=${latest.id}`);
+              } else {
+                const created = await cvApi.createCv({
+                  title: "",
+                  load_from_user_skills: true,
+                });
+                if (!created.personal_info.avatar_url && savedAvatar) {
+                  created.personal_info.avatar_url = savedAvatar;
+                }
+                setCv(created);
+                router.replace(`/cv-builder?id=${created.id}`);
+              }
+            } catch {
+              setCv({
+                ...BLANK_CV,
+                personal_info: { ...BLANK_CV.personal_info, avatar_url: savedAvatar || "" },
+              });
+            }
           }
         }
       } catch (err) {
-        console.warn("Failed to load CV from server, using blank template:", err);
-        // Restore avatar from localStorage even for fallback
-        const savedAvatar = localStorage.getItem(AVATAR_STORAGE_KEY);
-        if (savedAvatar) {
-          setCv((prev) => ({
-            ...prev,
-            personal_info: { ...prev.personal_info, avatar_url: savedAvatar },
-          }));
-        }
+        console.warn("Init CV error:", err);
       } finally {
         setLoading(false);
       }
     }
+
     initCv();
   }, [cvIdParam, jobIdParam, router]);
+
+  // Tự động cache CV vào localStorage khi có thay đổi (F5 không mất dữ liệu)
+  useEffect(() => {
+    if (!loading && cv) {
+      try {
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(cv));
+      } catch (err) {
+        console.warn("Could not save active draft to localStorage:", err);
+      }
+    }
+  }, [cv, loading]);
 
   const handleUpdate = useCallback((updated: Partial<CvDocument>) => {
     setCv((prev) => ({
@@ -144,7 +194,43 @@ export default function CvBuilderClient() {
   }, []);
 
   const handleSave = async () => {
-    if (!cv.id) return;
+    if (!cv.id) {
+      // Nếu chưa có id backend (đang offline hoặc chưa tạo trên BE), thử tạo mới
+      try {
+        setSaving(true);
+        const created = await cvApi.createCv({
+          title: cv.title || "CV Của Tôi",
+          template_id: cv.template_id,
+          color_theme: cv.color_theme,
+          font_family: cv.font_family,
+          target_job_id: cv.target_job_id,
+        });
+        const fullSaved = await cvApi.updateCv(created.id, {
+          title: cv.title || created.title,
+          template_id: cv.template_id,
+          color_theme: cv.color_theme,
+          font_family: cv.font_family,
+          personal_info: cv.personal_info,
+          summary: cv.summary,
+          work_experiences: cv.work_experiences,
+          projects: cv.projects,
+          skills: cv.skills,
+          educations: cv.educations,
+          certifications: cv.certifications,
+          section_order: cv.section_order,
+          target_job_id: cv.target_job_id,
+        });
+        setCv(fullSaved);
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(fullSaved));
+        router.replace(`/cv-builder?id=${fullSaved.id}`);
+      } catch (err) {
+        console.error("Create & save error:", err);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     setSaving(true);
     try {
       const saved = await cvApi.updateCv(cv.id, {
@@ -163,6 +249,7 @@ export default function CvBuilderClient() {
         target_job_id: cv.target_job_id,
       });
       setCv(saved);
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(saved));
     } catch (err) {
       console.error("Save error:", err);
     } finally {
@@ -238,24 +325,6 @@ export default function CvBuilderClient() {
     });
   };
 
-  // Avatar upload handler — save to localStorage for next CV session
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) return;
-
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      // Save to localStorage for persistence across CV sessions
-      localStorage.setItem(AVATAR_STORAGE_KEY, dataUrl);
-      handleUpdate({
-        personal_info: { ...cv.personal_info, avatar_url: dataUrl },
-      });
-    };
-    reader.readAsDataURL(file);
-  };
-
   if (loading) {
     return (
       <div className={s.loadingContainer}>
@@ -267,7 +336,7 @@ export default function CvBuilderClient() {
 
   return (
     <div className={s.pageContainer}>
-      {/* LEFT VERTICAL SIDEBAR TOOLBAR */}
+      {/* LEFT VERTICAL LIQUID GLASS TOOLBAR */}
       <CvTopBar
         cv={cv}
         onUpdate={handleUpdate}
@@ -285,35 +354,6 @@ export default function CvBuilderClient() {
             style={{ transform: `scale(${zoom})`, transformOrigin: "top center" }}
             className={s.canvasZoomWrapper}
           >
-            {/* Avatar Upload Circle — positioned above the CV template */}
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-              <div
-                className={s.avatarUpload}
-                onClick={() => avatarInputRef.current?.click()}
-                title="Tải lên ảnh đại diện"
-              >
-                {cv.personal_info.avatar_url ? (
-                  <img
-                    src={cv.personal_info.avatar_url}
-                    alt="Avatar"
-                    className={s.avatarUploadImage}
-                  />
-                ) : (
-                  <div className={s.avatarUploadPlaceholder}>
-                    <Plus className={s.avatarUploadIcon} />
-                    <span className={s.avatarUploadLabel}>Ảnh</span>
-                  </div>
-                )}
-                <input
-                  ref={avatarInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarUpload}
-                  className={s.avatarHiddenInput}
-                />
-              </div>
-            </div>
-
             <TemplateRenderer
               cv={cv}
               onUpdate={handleUpdate}
@@ -335,21 +375,15 @@ export default function CvBuilderClient() {
           />
         )}
 
-        {/* RIGHT DRAWER: ATS Analysis */}
-        <aside
-          className={`${s.atsSidebar} ${showAtsSidebar ? s.atsSidebarOpen : s.atsSidebarClosed}`}
-          style={{ display: "none" }}
-          ref={(el) => { if (el) el.style.display = "flex"; }}
-        >
-          <button
-            onClick={() => setShowAtsSidebar(!showAtsSidebar)}
-            className={s.atsSidebarToggle}
-            title={showAtsSidebar ? "Thu gọn phân tích ATS" : "Mở phân tích ATS"}
-          >
-            {showAtsSidebar ? <ChevronRight style={{ width: 16, height: 16 }} /> : <ChevronLeft style={{ width: 16, height: 16 }} />}
-          </button>
+        {/* FIXED VIEWPORT ATS CARD WITH MASCOT */}
+        <div className={s.atsFloatingContainer}>
+          {/* MASCOT STANDING PROUDLY ON TOP */}
+          <div className={s.atsMascotWrapper}>
+            <PageMascot size={78} />
+          </div>
 
-          <div className={s.atsSidebarBody}>
+          {/* ATS SCORE CARD */}
+          <div className={s.atsCardWrapper}>
             <AtsScoreWidget
               scoreData={atsScoreData}
               score={cv.ats_score}
@@ -357,22 +391,11 @@ export default function CvBuilderClient() {
               onRefresh={handleRefreshAts}
               onAddSkill={handleAddSkill}
             />
-
-            <div className={s.tipsCard}>
-              <h4 className={s.tipsTitle}>
-                <Sparkles className={s.tipsTitleIcon} style={{ width: 14, height: 14 }} />
-                <span>Mẹo tối ưu hóa với AI</span>
-              </h4>
-              <ul className={s.tipsList}>
-                <li className={s.tipsItem}>Bôi đen bất kỳ đoạn văn nào để AI viết lại chuẩn STAR có số liệu %.</li>
-                <li className={s.tipsItem}>Nhấp trực tiếp vào tên, chức danh, kỹ năng để sửa trực tiếp.</li>
-                <li className={s.tipsItem}>Thêm từ khóa còn thiếu từ bảng ATS để tăng tỷ lệ được mời phỏng vấn.</li>
-              </ul>
-            </div>
           </div>
-        </aside>
+        </div>
       </div>
 
+      {/* AI DRAFT MODAL */}
       <AiDraftModal
         isOpen={showAiDraftModal}
         onClose={() => setShowAiDraftModal(false)}

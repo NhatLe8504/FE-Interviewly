@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   CvColorTheme,
   CvDocument,
@@ -20,8 +20,6 @@ import {
   ZoomIn,
   ZoomOut,
   Check,
-  Briefcase,
-  Palette,
 } from "lucide-react";
 
 import s from "@/app/(user)/cv-builder/cvBuilder.module.css";
@@ -49,10 +47,25 @@ export const CvTopBar: React.FC<CvTopBarProps> = ({
   const [openColorMenu, setOpenColorMenu] = useState(false);
   const [openFontMenu, setOpenFontMenu] = useState(false);
 
+  const barRef = useRef<HTMLElement>(null);
+
+  // Close menus on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (barRef.current && !barRef.current.contains(e.target as Node)) {
+        setOpenTemplateMenu(false);
+        setOpenColorMenu(false);
+        setOpenFontMenu(false);
+      }
+    };
+    window.addEventListener("mousedown", handleClickOutside);
+    return () => window.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const activeColor = CV_COLOR_THEMES[cv.color_theme] || CV_COLOR_THEMES.navy;
 
   return (
-    <aside className={s.topBar}>
+    <aside ref={barRef} className={s.topBar}>
       <div className={s.topBarInner}>
         {/* AI Draft */}
         <button
@@ -65,24 +78,31 @@ export const CvTopBar: React.FC<CvTopBarProps> = ({
 
         <div className={s.topBarDivider} />
 
-        {/* Template */}
+        {/* Template Selector */}
         <div style={{ position: "relative" }}>
           <button
-            onClick={() => { setOpenTemplateMenu(!openTemplateMenu); setOpenColorMenu(false); setOpenFontMenu(false); }}
+            onClick={() => {
+              setOpenTemplateMenu(!openTemplateMenu);
+              setOpenColorMenu(false);
+              setOpenFontMenu(false);
+            }}
             className={s.controlBtn}
-            title={`Mẫu: ${CV_TEMPLATES_INFO.find(t => t.id === cv.template_id)?.name || "Modern Tech"}`}
+            title={`Mẫu: ${CV_TEMPLATES_INFO.find((t) => t.id === cv.template_id)?.name || "Modern Tech"}`}
           >
             <Layout className={s.controlBtnIcon} />
           </button>
           {openTemplateMenu && (
-            <div className={`${s.dropdown} ${s.templateDropdown}`} style={{ left: "calc(100% + 8px)", top: 0 }}>
-              <div className={s.dropdownLabel}>Chọn mẫu CV</div>
+            <div className={`${s.dropdown} ${s.templateDropdown}`}>
+              <div className={s.dropdownLabel}>Chọn mẫu CV (5 Mẫu)</div>
               {CV_TEMPLATES_INFO.map((tpl) => {
                 const isActive = cv.template_id === tpl.id;
                 return (
                   <button
                     key={tpl.id}
-                    onClick={() => { onUpdate({ template_id: tpl.id }); setOpenTemplateMenu(false); }}
+                    onClick={() => {
+                      onUpdate({ template_id: tpl.id });
+                      setOpenTemplateMenu(false);
+                    }}
                     className={`${s.dropdownItem} ${isActive ? s.dropdownItemActive : ""}`}
                   >
                     <div>
@@ -100,27 +120,40 @@ export const CvTopBar: React.FC<CvTopBarProps> = ({
           )}
         </div>
 
-        {/* Color */}
+        {/* Color Palette */}
         <div style={{ position: "relative" }}>
           <button
-            onClick={() => { setOpenColorMenu(!openColorMenu); setOpenTemplateMenu(false); setOpenFontMenu(false); }}
+            onClick={() => {
+              setOpenColorMenu(!openColorMenu);
+              setOpenTemplateMenu(false);
+              setOpenFontMenu(false);
+            }}
             className={s.controlBtn}
             title={`Màu: ${cv.color_theme}`}
           >
-            <span className={s.colorSwatch} style={{ backgroundColor: activeColor.primary, width: 16, height: 16 }} />
+            <span
+              className={s.colorSwatch}
+              style={{ backgroundColor: activeColor.primary, width: 16, height: 16 }}
+            />
           </button>
           {openColorMenu && (
-            <div className={`${s.dropdown} ${s.colorDropdown}`} style={{ left: "calc(100% + 8px)", top: 0 }}>
+            <div className={`${s.dropdown} ${s.colorDropdown}`}>
               {(Object.keys(CV_COLOR_THEMES) as CvColorTheme[]).map((themeKey) => {
                 const t = CV_COLOR_THEMES[themeKey];
                 const isSelected = cv.color_theme === themeKey;
                 return (
                   <button
                     key={themeKey}
-                    onClick={() => { onUpdate({ color_theme: themeKey }); setOpenColorMenu(false); }}
+                    onClick={() => {
+                      onUpdate({ color_theme: themeKey });
+                      setOpenColorMenu(false);
+                    }}
                     className={`${s.colorItem} ${isSelected ? s.colorItemActive : ""}`}
                   >
-                    <span className={s.colorSwatch} style={{ backgroundColor: t.primary }} />
+                    <span
+                      className={s.colorSwatch}
+                      style={{ backgroundColor: t.primary }}
+                    />
                     <span>{themeKey}</span>
                   </button>
                 );
@@ -129,24 +162,31 @@ export const CvTopBar: React.FC<CvTopBarProps> = ({
           )}
         </div>
 
-        {/* Font */}
+        {/* Typography */}
         <div style={{ position: "relative" }}>
           <button
-            onClick={() => { setOpenFontMenu(!openFontMenu); setOpenTemplateMenu(false); setOpenColorMenu(false); }}
+            onClick={() => {
+              setOpenFontMenu(!openFontMenu);
+              setOpenTemplateMenu(false);
+              setOpenColorMenu(false);
+            }}
             className={s.controlBtn}
             title={`Font: ${(CV_FONT_FAMILIES[cv.font_family] || CV_FONT_FAMILIES.inter).name}`}
           >
             <Type className={s.controlBtnIcon} />
           </button>
           {openFontMenu && (
-            <div className={`${s.dropdown} ${s.fontDropdown}`} style={{ left: "calc(100% + 8px)", top: 0 }}>
+            <div className={`${s.dropdown} ${s.fontDropdown}`}>
               {(Object.keys(CV_FONT_FAMILIES) as CvFontFamily[]).map((fontKey) => {
                 const f = CV_FONT_FAMILIES[fontKey];
                 const isSelected = cv.font_family === fontKey;
                 return (
                   <button
                     key={fontKey}
-                    onClick={() => { onUpdate({ font_family: fontKey }); setOpenFontMenu(false); }}
+                    onClick={() => {
+                      onUpdate({ font_family: fontKey });
+                      setOpenFontMenu(false);
+                    }}
                     className={`${s.dropdownItem} ${isSelected ? s.dropdownItemActive : ""}`}
                   >
                     <span>{f.name}</span>
