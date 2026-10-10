@@ -67,7 +67,7 @@ function AdminQuestionsContent() {
     if (tabParam !== activeTab) {
       setActiveTab(tabParam);
     }
-  }, [tabParam]);
+  }, [tabParam, activeTab]);
 
   const loadData = useCallback(async () => {
     setLoading(true);

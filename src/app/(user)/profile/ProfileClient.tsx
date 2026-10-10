@@ -549,7 +549,7 @@ export default function ProfileClient() {
       default:
         return { score: 0, text: "", color: "" };
     }
-  }, [newPassword]);
+  }, [newPassword, t]);
 
   const stopMicTest = useCallback(() => {
     if (animFrameRef.current) {
@@ -684,7 +684,7 @@ export default function ProfileClient() {
     } catch {
       return "Thành viên Interviewly";
     }
-  }, [profile]);
+  }, [profile, locale, t]);
 
   const initials = useMemo(() => {
     const name = fullName || user?.full_name || "U";

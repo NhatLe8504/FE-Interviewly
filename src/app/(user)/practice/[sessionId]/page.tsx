@@ -128,70 +128,7 @@ export default function InterviewRoomPage({
 
   const isVoiceMode = currentMode === "voice";
 
-// Fetch Voice & STT Options (tự động lọc theo ngôn ngữ & khôi phục giọng ưu tiên đã cache)
-  useEffect(() => {
-    let isSubscribed = true;
-    voiceApi
-      .getVoiceOptions(language)
-      .then((res) => {
-        if (!isSubscribed) return;
-        setVoiceOptions(res);
 
-        // 1. Khôi phục TTS engine ưu tiên của ngôn ngữ này
-        let preferredEngine: "edge" | "elevenlabs" | "browser" = "edge";
-        try {
-          const savedEngine = localStorage.getItem(getLangPreferredTtsEngineKey(language));
-          if (savedEngine === "browser" || savedEngine === "elevenlabs" || savedEngine === "edge") {
-            preferredEngine = savedEngine as "edge" | "elevenlabs" | "browser";
-          }
-        } catch {}
-        setTtsEngine(preferredEngine);
-
-        // 2. Khôi phục Browser voice ưu tiên nếu có
-        try {
-          const savedBrowserVoice = localStorage.getItem(getLangPreferredBrowserVoiceKey(language));
-          if (savedBrowserVoice) {
-            setSelectedBrowserVoice(savedBrowserVoice);
-          }
-        } catch {}
-
-        // 3. Khôi phục giọng ưu tiên từ localStorage theo ngôn ngữ hoặc toàn cục
-        let preferred: string | null = null;
-        try {
-          preferred =
-            localStorage.getItem(getLangPreferredVoiceKey(language)) ||
-            localStorage.getItem(PREFERRED_VOICE_STORAGE_KEY) ||
-            null;
-        } catch {}
-
-        const candidateId = meta.voice || preferred || selectedVoice;
-        const matchingVoice = res.voices.find((v) => v.id === candidateId && !v.is_locked);
-
-        if (matchingVoice) {
-          setSelectedVoice(matchingVoice.id);
-          changeVoice(matchingVoice.id);
-        } else {
-          // Fallback to default unlocked voice matching provider or default
-          const candidateProvider = preferredEngine === "elevenlabs" && res.is_premium_user ? "elevenlabs" : "edge";
-          const def =
-            res.voices.find((v) => v.provider === candidateProvider && v.is_default && !v.is_locked) ||
-            res.voices.find((v) => v.provider === candidateProvider && !v.is_locked) ||
-            res.voices.find((v) => v.is_default && !v.is_locked) ||
-            res.voices.find((v) => !v.is_locked) ||
-            res.voices[0];
-          if (def) {
-            setSelectedVoice(def.id);
-            changeVoice(def.id);
-          }
-        }
-      })
-      .catch((err) => {
-        console.warn("Failed to load voice options:", err);
-      });
-    return () => {
-      isSubscribed = false;
-    };
-  }, [language, meta.voice]);
 
   // Load session meta from sessionStorage & restore cached voice preference
   useEffect(() => {
@@ -349,6 +286,71 @@ export default function InterviewRoomPage({
     totalDurationMinutes: meta.totalDurationMinutes || 45,
     bargeInInitial: meta.bargeInEnabled ?? false,
   });
+
+  // Fetch Voice & STT Options (tự động lọc theo ngôn ngữ & khôi phục giọng ưu tiên đã cache)
+  useEffect(() => {
+    let isSubscribed = true;
+    voiceApi
+      .getVoiceOptions(language)
+      .then((res) => {
+        if (!isSubscribed) return;
+        setVoiceOptions(res);
+
+        // 1. Khôi phục TTS engine ưu tiên của ngôn ngữ này
+        let preferredEngine: "edge" | "elevenlabs" | "browser" = "edge";
+        try {
+          const savedEngine = localStorage.getItem(getLangPreferredTtsEngineKey(language));
+          if (savedEngine === "browser" || savedEngine === "elevenlabs" || savedEngine === "edge") {
+            preferredEngine = savedEngine as "edge" | "elevenlabs" | "browser";
+          }
+        } catch {}
+        setTtsEngine(preferredEngine);
+
+        // 2. Khôi phục Browser voice ưu tiên nếu có
+        try {
+          const savedBrowserVoice = localStorage.getItem(getLangPreferredBrowserVoiceKey(language));
+          if (savedBrowserVoice) {
+            setSelectedBrowserVoice(savedBrowserVoice);
+          }
+        } catch {}
+
+        // 3. Khôi phục giọng ưu tiên từ localStorage theo ngôn ngữ hoặc toàn cục
+        let preferred: string | null = null;
+        try {
+          preferred =
+            localStorage.getItem(getLangPreferredVoiceKey(language)) ||
+            localStorage.getItem(PREFERRED_VOICE_STORAGE_KEY) ||
+            null;
+        } catch {}
+
+        const candidateId = meta.voice || preferred;
+        const matchingVoice = res.voices.find((v) => v.id === candidateId && !v.is_locked);
+
+        if (matchingVoice) {
+          setSelectedVoice(matchingVoice.id);
+          changeVoice(matchingVoice.id);
+        } else {
+          // Fallback to default unlocked voice matching provider or default
+          const candidateProvider = preferredEngine === "elevenlabs" && res.is_premium_user ? "elevenlabs" : "edge";
+          const def =
+            res.voices.find((v) => v.provider === candidateProvider && v.is_default && !v.is_locked) ||
+            res.voices.find((v) => v.provider === candidateProvider && !v.is_locked) ||
+            res.voices.find((v) => v.is_default && !v.is_locked) ||
+            res.voices.find((v) => !v.is_locked) ||
+            res.voices[0];
+          if (def) {
+            setSelectedVoice(def.id);
+            changeVoice(def.id);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn("Failed to load voice options:", err);
+      });
+    return () => {
+      isSubscribed = false;
+    };
+  }, [language, meta.voice, changeVoice, setTtsEngine, setSelectedBrowserVoice]);
 
   const canAnswer = isConnected && aiState === "listening" && !isAudioPlaying && !isCompleted;
 

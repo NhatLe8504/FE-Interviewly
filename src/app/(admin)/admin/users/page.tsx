@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
@@ -118,7 +118,7 @@ export default function AdminUsersPage() {
     setPage(1);
   }, [searchTerm, selectedRole, selectedStatus]);
 
-  const usersList: UserAdminOut[] = usersData?.items || [];
+  const usersList: UserAdminOut[] = useMemo(() => usersData?.items || [], [usersData?.items]);
   const totalUsersCount = usersData?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalUsersCount / limit));
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   History,
@@ -25,7 +25,7 @@ export default function InterviewHistoryPage() {
   const [modeFilter, setModeFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     setLoading(true);
     try {
       const res = await historyApi.getInterviewHistory({
@@ -80,11 +80,11 @@ export default function InterviewHistoryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, pageSize, modeFilter, statusFilter]);
 
   useEffect(() => {
     fetchHistory();
-  }, [page, modeFilter, statusFilter]);
+  }, [fetchHistory]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
