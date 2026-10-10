@@ -19,9 +19,6 @@ export function PracticeHero() {
         </div>
       </div>
       <aside className={styles.guide} aria-label="Cách bắt đầu luyện tập">
-        <div className={styles.mascotBadgeWrap}>
-          <PageMascot size={52} />
-        </div>
         <p className={styles.guideLabel}>BẮT ĐẦU RẤT ĐƠN GIẢN</p>
         <ol className={styles.steps}>
           <li><span className={styles.stepNumber}>01</span><div><h2>Thêm mô tả công việc</h2><p>Nội dung luyện tập bắt đầu từ JD của vị trí bạn muốn ứng tuyển.</p></div></li>
@@ -29,6 +26,9 @@ export function PracticeHero() {
           <li><span className={styles.stepNumber}>03</span><div><h2>Luyện, rồi nhìn lại</h2><p>Đọc phản hồi sau buổi phỏng vấn để biết mình cần cải thiện điều gì.</p></div></li>
         </ol>
       </aside>
+      <div className={styles.mascotOnLine}>
+        <PageMascot size={52} />
+      </div>
     </section>
   );
 }
