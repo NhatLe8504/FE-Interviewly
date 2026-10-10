@@ -173,8 +173,9 @@ export default function PricingPage() {
   };
 
   return (
-    <main className={styles.container}>
-      {/* Hero Section */}
+    <main className={styles.pageWrapper}>
+      <div className={styles.container}>
+        {/* Hero Section */}
       <section className={styles.hero}>
         <div className={styles.badge}>
           <Sparkles size={14} /> Gói cước linh hoạt & minh bạch
@@ -528,6 +529,7 @@ export default function PricingPage() {
           </div>
         </div>
       </section>
+      </div>
     </main>
   );
 }

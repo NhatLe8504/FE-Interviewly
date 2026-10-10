@@ -376,7 +376,8 @@ export default function QuestionExplorerClient() {
   };
 
   return (
-    <div className={styles.shell}>
+    <main className={styles.pageWrapper}>
+      <div className={styles.shell}>
       {/* Floating Tilted Question Basket ("Nút hình cái giỏ nằm ngổn ngang") */}
       {/* Giỏ đề chỉ hiển thị khi ở tab câu hỏi lẻ */}
       {activeTab === "individual" && (
@@ -738,6 +739,7 @@ export default function QuestionExplorerClient() {
       )}
 
           </div>
+    </main>
   );
 }
 
