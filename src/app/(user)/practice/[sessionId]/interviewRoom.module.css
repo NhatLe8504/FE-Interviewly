@@ -1,4 +1,4 @@
-/* =========================================================
+﻿/* =========================================================
    IMMERSIVE FIXED SINGLE-SCREEN AI INTERVIEW ROOM (SKETCH-EXACT LAYOUT)
 ========================================================= */
 
@@ -947,4 +947,90 @@
   font-weight: 750;
   cursor: pointer;
   margin-top: 10px;
+}
+
+
+.pitchValueBadge {
+  font-size: 11px;
+  font-weight: 750;
+  color: #b45309;
+  background: rgba(217, 130, 54, 0.12);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(217, 130, 54, 0.25);
+}
+
+.pitchSliderWrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.pitchBoundaryLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(45, 31, 23, 0.55);
+  white-space: nowrap;
+}
+
+.pitchSlider {
+  flex: 1;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(106, 72, 49, 0.15);
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.pitchSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #d98236;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.pitchSlider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.pitchQuickRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.pitchQuickBtn {
+  flex: 1;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 650;
+  color: rgba(45, 31, 23, 0.75);
+  background: #faf7f2;
+  border: 1px solid rgba(106, 72, 49, 0.15);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.pitchQuickBtn:hover:not(:disabled) {
+  border-color: #d98236;
+  color: #b45309;
+}
+
+.pitchQuickBtnActive {
+  background: rgba(217, 130, 54, 0.15);
+  border-color: #d98236;
+  color: #b45309;
+  font-weight: 800;
 }

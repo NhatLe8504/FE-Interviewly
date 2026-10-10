@@ -33,6 +33,7 @@ export interface UseRealtimeVoiceInterviewOptions {
   level?: string;
   language?: string;
   voice?: string;
+  pitch?: string;
   selectedStages?: string[];
   stageConfigs?: StageConfigIn[];
   selectedQuestionIds?: number[];
@@ -246,6 +247,7 @@ export function useRealtimeVoiceInterview({
   level = "Senior",
   language = "vi",
   voice,
+  pitch = "+0Hz",
   selectedStages = ["warmup", "technical", "closing"],
   stageConfigs,
   selectedQuestionIds,
@@ -257,6 +259,7 @@ export function useRealtimeVoiceInterview({
   const [reconnectCount, setReconnectCount] = useState(0);
   const [aiState, setAiState] = useState<AiVoiceState>("idle");
   const [activeVoice, setActiveVoice] = useState<string>(voice || "vi-VN-HoaiMyNeural");
+  const [activePitch, setActivePitch] = useState<string>(pitch || "+0Hz");
   const [isCompleted, setIsCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sessionDurationSeconds, setSessionDurationSeconds] = useState(0);
@@ -332,6 +335,7 @@ export function useRealtimeVoiceInterview({
     level,
     language,
     voice,
+    pitch,
     bargeInEnabled,
     selectedStages,
     questionsPerStage,
@@ -344,6 +348,7 @@ export function useRealtimeVoiceInterview({
       level,
       language,
       voice,
+      pitch,
       bargeInEnabled,
       selectedStages,
       questionsPerStage,
@@ -354,6 +359,7 @@ export function useRealtimeVoiceInterview({
     level,
     language,
     voice,
+    pitch,
     bargeInEnabled,
     selectedStages,
     questionsPerStage,
@@ -542,6 +548,29 @@ export function useRealtimeVoiceInterview({
     [sendMessage]
   );
 
+  // Change voice pitch dynamically (+/-Hz)
+  const changePitch = useCallback(
+    (newPitch: string | number) => {
+      let formatted = "+0Hz";
+      if (typeof newPitch === "number") {
+        formatted = newPitch >= 0 ? `+${newPitch}Hz` : `${newPitch}Hz`;
+      } else if (typeof newPitch === "string") {
+        const clean = newPitch.trim();
+        const num = parseInt(clean, 10);
+        if (!isNaN(num)) {
+          formatted = num >= 0 ? `+${num}Hz` : `${num}Hz`;
+        }
+      }
+      setActivePitch(formatted);
+      if (optionsRef.current) {
+        optionsRef.current.pitch = formatted;
+      }
+      sendMessage({ type: "config", pitch: formatted });
+    },
+    [sendMessage]
+  );
+
+
   // Update audio URL for turns (e.g. after candidate audio upload)
   const updateTurnAudioUrl = useCallback(
     (speaker: "ai" | "user", targetTurnNumber: number, url: string) => {
@@ -624,6 +653,7 @@ export function useRealtimeVoiceInterview({
             level: currentOpts.level,
             language: currentOpts.language,
             voice: currentOpts.voice,
+            pitch: currentOpts.pitch || activePitch,
             barge_in_enabled: currentOpts.bargeInEnabled,
             selected_stages: currentOpts.selectedStages,
             questions_per_stage: currentOpts.questionsPerStage,
@@ -713,6 +743,8 @@ export function useRealtimeVoiceInterview({
             });
           } else if (type === "voice_configured") {
             if (data.voice) setActiveVoice(data.voice);
+          } else if (type === "pitch_configured") {
+            if (data.pitch) setActivePitch(data.pitch);
           } else if (type === "stage_info" || type === "stage_change") {
             if (data.current_stage) setCurrentStage(data.current_stage);
             if (data.stages) setStagesList(data.stages);
@@ -874,6 +906,8 @@ export function useRealtimeVoiceInterview({
     endSessionEarly,
     activeVoice,
     changeVoice,
+    activePitch,
+    changePitch,
     updateTurnAudioUrl,
   };
 }
