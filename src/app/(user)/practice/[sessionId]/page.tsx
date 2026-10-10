@@ -280,15 +280,6 @@ export default function InterviewRoomPage({
 
   // Settings Handlers
   const handleVoiceChange = (newVoiceId: string) => {
-    const item = voiceOptions?.voices.find((v) => v.id === newVoiceId);
-    if (item?.is_locked) {
-      toast({
-        title: "Tính năng dành riêng cho gói Pro",
-        description: item.lock_reason || "Giọng đọc biểu cảm cao cấp ElevenLabs dành riêng cho tài khoản Pro / Sprint.",
-        variant: "warning",
-      });
-      return;
-    }
     setSelectedVoice(newVoiceId);
     changeVoice(newVoiceId);
 
@@ -313,6 +304,12 @@ export default function InterviewRoomPage({
     try {
       localStorage.setItem(PREFERRED_PITCH_STORAGE_KEY, String(clamped));
     } catch {}
+  };
+
+  const handlePreviewVoice = () => {
+    const formattedPitch = selectedPitch >= 0 ? `+${selectedPitch}Hz` : `${selectedPitch}Hz`;
+    const previewUrl = voiceApi.getVoicePreviewUrl(selectedVoice, formattedPitch);
+    togglePlayAudio("voice-pitch-preview", previewUrl);
   };
 
   const handleSttEngineChange = (newEngineId: string) => {
@@ -1038,15 +1035,9 @@ function changeInterviewLanguage(code: string) {
               <div className={styles.settingsSection}>
                 <div className={styles.settingsSectionLabel}>
                   <span>Giọng đọc AI (TTS)</span>
-                  {voiceOptions?.is_premium_user ? (
-                    <span className={`${styles.voiceTierBadge} ${styles.tierBadgePro}`}>
-                      <Sparkles size={10} /> Pro
-                    </span>
-                  ) : (
-                    <span className={`${styles.voiceTierBadge} ${styles.tierBadgeFree}`}>
-                      Free
-                    </span>
-                  )}
+                  <span className={`${styles.voiceTierBadge} ${styles.tierBadgeFree}`}>
+                    Miễn phí
+                  </span>
                 </div>
                 <SimpleUserSelect
                   id="settings-voice-select"
@@ -1055,7 +1046,7 @@ function changeInterviewLanguage(code: string) {
                   onChange={handleVoiceChange}
                   options={filteredVoices.map((v) => ({
                     value: v.id,
-                    label: `${v.is_locked ? "🔒 [Pro] " : ""}${v.name}`,
+                    label: v.name,
                   }))}
                   aria-label="AI Voice"
                 />
@@ -1119,6 +1110,21 @@ function changeInterviewLanguage(code: string) {
                     Thanh cao (+5Hz)
                   </button>
                 </div>
+                <button
+                  type="button"
+                  className={styles.pitchPreviewBtn}
+                  onClick={handlePreviewVoice}
+                >
+                  {playingAudioKey === "voice-pitch-preview" ? (
+                    <>
+                      <Square size={13} fill="currentColor" /> Dừng nghe thử
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 size={13} /> Nghe thử giọng đọc ({selectedPitch >= 0 ? `+${selectedPitch}Hz` : `${selectedPitch}Hz`})
+                    </>
+                  )}
+                </button>
                 <p className={styles.settingsHelper}>
                   Điều chỉnh cao độ âm sắc để giọng nói AI trở nên trầm ấm hoặc thanh mảnh theo sở thích của bạn.
                 </p>
@@ -1139,7 +1145,7 @@ function changeInterviewLanguage(code: string) {
                     { id: "whisper-pro", name: "Whisper Pro (AI Cloud)", is_locked: true },
                   ]).map((eng) => ({
                     value: eng.id,
-                    label: `${eng.is_locked ? "🔒 [Pro] " : ""}${eng.name}`,
+                    label: eng.name,
                   }))}
                   aria-label="STT Engine"
                 />
