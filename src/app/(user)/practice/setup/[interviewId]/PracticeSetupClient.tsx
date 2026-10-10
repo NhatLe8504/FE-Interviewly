@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Briefcase, Coffee, Handshake } from "lucide-react";
 import { PRE_MADE_INTERVIEWS, type PreMadeInterview } from "@/data/mockInterviews";
 import { ApiError } from "@/services/apiClient";
@@ -91,6 +92,7 @@ function getStartErrorMessage(cause: unknown): string {
 }
 
 export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
+  const router = useRouter();
   const { locale } = useI18n();
   const preMadeInterview = useMemo(
     () => PRE_MADE_INTERVIEWS.find((item) => item.id === interviewId) ?? null,
@@ -298,7 +300,7 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
         // Backend owns session persistence. This isolated cache only provides room labels.
       }
 
-      window.location.assign(`/practice/${sessionId}?language=${language}`);
+      router.push(`/practice/${sessionId}?language=${language}`);
     } catch (cause) {
       setSetupError(getStartErrorMessage(cause));
       setIsLaunching(false);
