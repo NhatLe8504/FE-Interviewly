@@ -4,6 +4,7 @@ import React from "react";
 import { CvDocument } from "@/types/cv";
 import { CV_COLOR_THEMES, CV_FONT_FAMILIES } from "../cvThemes";
 import { EditableText } from "../EditableText";
+import { CvAvatar } from "../CvAvatar";
 import { TemplateProps } from "./ModernTechTemplate";
 import { Mail, Phone, MapPin, Linkedin, Github, Globe } from "lucide-react";
 
@@ -41,27 +42,25 @@ export const CreativeProductTemplate: React.FC<TemplateProps> = ({
 
   return (
     <div
-      className={`w-full max-w-[850px] min-h-[1100px] bg-white text-slate-800 shadow-2xl rounded-lg mx-auto overflow-hidden print:shadow-none print:m-0 print:w-full ${font.fontClass}`}
+      className={`w-[794px] min-w-[794px] max-w-[794px] min-h-[1123px] box-border shrink-0 bg-white text-slate-800 shadow-2xl rounded-lg mx-auto overflow-hidden print:shadow-none print:m-0 print:w-full ${font.fontClass}`}
       style={{ fontFamily: font.cssFamily }}
     >
-      <div className="grid grid-cols-12 min-h-[1100px]">
+      <div className="grid grid-cols-12 min-h-[1123px]">
         {/* LEFT SIDEBAR (4 cols) */}
         <div
           className="col-span-12 md:col-span-4 p-8 text-white flex flex-col justify-between"
           style={{ backgroundColor: theme.primary }}
         >
           <div>
-            {/* AVATAR OR INITIALS */}
-            <div className="w-24 h-24 rounded-full bg-white/10 border-2 border-white/30 flex items-center justify-center text-3xl font-extrabold mb-6 mx-auto shadow-inner">
-              {cv.personal_info.avatar_url ? (
-                <img
-                  src={cv.personal_info.avatar_url}
-                  alt={cv.personal_info.full_name}
-                  className="w-full h-full rounded-full object-cover"
-                />
-              ) : (
-                cv.personal_info.full_name.slice(0, 2).toUpperCase() || "CV"
-              )}
+            {/* AVATAR UPLOAD */}
+            <div className="flex justify-center mb-6">
+              <CvAvatar
+                avatarUrl={cv.personal_info.avatar_url}
+                onChange={(url) => updatePersonalInfo("avatar_url", url)}
+                isEditable={isEditable}
+                size={96}
+                className="shadow-md"
+              />
             </div>
 
             {/* CONTACT DETAILS */}
