@@ -4,7 +4,10 @@
 
 .roomShell {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100vw;
   height: 100vh;
   max-height: 100vh;
@@ -13,19 +16,20 @@
   flex-direction: column;
   background: radial-gradient(circle at 50% 12%, #fffdfa 0%, #f6f1ea 100%);
   color: #211914;
-  z-index: 10;
+  z-index: 10; /* Thap hon Header (1000) de Header luon noi len tren */
   box-sizing: border-box;
   font-family: inherit;
+  padding-top: 96px; /* Chua khoang trong cho website Header co dinh o tren */
 }
 
 /* Container cách ra 2 bên, không đụng website Header ở trên */
 .stageContainer {
   width: min(1320px, calc(100vw - 48px));
   margin-inline: auto;
-  padding-top: 86px; /* Cách xa website Header để không bao giờ đụng */
+  padding-top: 0;
   padding-bottom: 16px;
-  height: 100vh;
-  max-height: 100vh;
+  height: 100%;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
