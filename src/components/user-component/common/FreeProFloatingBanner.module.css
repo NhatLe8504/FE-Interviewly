@@ -1,0 +1,125 @@
+/* =========================================================
+   FREE ACCOUNT PRO UPGRADE FLOATING BANNER
+   Fixed on the right side of the viewport, outside the container
+   Smooth floating / bobbing animation ("nhún nhún bồng bềnh nhẹ")
+========================================================= */
+
+.bannerContainer {
+  position: fixed;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 999;
+  pointer-events: auto;
+  user-select: none;
+  transition: opacity 0.3s ease;
+}
+
+.bannerLink {
+  display: block;
+  text-decoration: none;
+  cursor: pointer;
+  outline: none;
+  border-radius: 20px;
+  animation: floatBob 3.8s ease-in-out infinite;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.22));
+}
+
+.bannerLink:hover {
+  animation-play-state: paused;
+  transform: scale(1.045) translateY(-4px);
+  filter: drop-shadow(0 16px 36px rgba(245, 158, 11, 0.42));
+}
+
+.bannerLink:active {
+  transform: scale(0.98) translateY(0);
+}
+
+.imageWrapper {
+  position: relative;
+  width: 270px;
+  max-width: 22vw;
+  height: auto;
+}
+
+.bannerImg {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* Gentle smooth sine bobbing animation ("nhún nhún bồng bềnh nhẹ") */
+@keyframes floatBob {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-5px) rotate(0.4deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(-0.3deg);
+  }
+  75% {
+    transform: translateY(-4px) rotate(0.2deg);
+  }
+}
+
+/* =========================================================
+   RESPONSIVE LAYOUT FOR MEDIUM AND SMALL SCREENS
+========================================================= */
+
+@media (max-width: 1440px) {
+  .bannerContainer {
+    right: 16px;
+  }
+  .imageWrapper {
+    width: 230px;
+    max-width: 24vw;
+  }
+}
+
+@media (max-width: 1200px) {
+  .bannerContainer {
+    right: 12px;
+    top: auto;
+    bottom: 24px;
+    transform: none;
+  }
+
+  .imageWrapper {
+    width: 200px;
+    max-width: 28vw;
+  }
+
+  .bannerLink {
+    animation-name: floatBobBottom;
+  }
+
+  .bannerLink:hover {
+    transform: scale(1.04) translateY(-3px);
+  }
+}
+
+@keyframes floatBobBottom {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@media (max-width: 768px) {
+  .bannerContainer {
+    right: 12px;
+    bottom: 72px;
+  }
+
+  .imageWrapper {
+    width: 160px;
+    max-width: 45vw;
+  }
+}
