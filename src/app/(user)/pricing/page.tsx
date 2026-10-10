@@ -17,6 +17,7 @@ import {
 import styles from "./pricing.module.css";
 import { billingApi, DEFAULT_PLANS } from "@/services/billingApi";
 import { useI18n } from "@/context/I18nContext";
+import { PageMascot } from "@/components/user-component/common/PageMascot";
 import type { SubscriptionPlan } from "@/types/billing";
 
 interface FaqItem {
@@ -186,22 +187,27 @@ export default function PricingPage() {
         </p>
 
         {/* Billing cycle toggle */}
-        <div className={styles.toggleWrapper} role="tablist" aria-label="Chu kỳ thanh toán">
-          <button
-            type="button"
-            className={`${styles.toggleBtn} ${!isYearly ? styles.toggleBtnActive : ""}`}
-            onClick={() => setBillingCycle("monthly")}
-          >
-            Theo tháng
-          </button>
-          <button
-            type="button"
-            className={`${styles.toggleBtn} ${isYearly ? styles.toggleBtnActive : ""}`}
-            onClick={() => setBillingCycle("yearly")}
-          >
-            Theo năm
-            <span className={styles.discountBadge}>Tiết kiệm 20%</span>
-          </button>
+        <div className={styles.toggleContainer}>
+          <div className={styles.mascotBadgeWrap}>
+            <PageMascot size={52} />
+          </div>
+          <div className={styles.toggleWrapper} role="tablist" aria-label="Chu kỳ thanh toán">
+            <button
+              type="button"
+              className={`${styles.toggleBtn} ${!isYearly ? styles.toggleBtnActive : ""}`}
+              onClick={() => setBillingCycle("monthly")}
+            >
+              Theo tháng
+            </button>
+            <button
+              type="button"
+              className={`${styles.toggleBtn} ${isYearly ? styles.toggleBtnActive : ""}`}
+              onClick={() => setBillingCycle("yearly")}
+            >
+              Theo năm
+              <span className={styles.discountBadge}>Tiết kiệm 20%</span>
+            </button>
+          </div>
         </div>
       </section>
 

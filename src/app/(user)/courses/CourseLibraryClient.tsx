@@ -22,6 +22,7 @@ import { COURSES_DATA, COURSE_CATEGORIES } from "@/data/coursesData";
 import type { CourseItem } from "@/types/course";
 import { useI18n } from "@/context/I18nContext";
 import { SimpleUserSelect } from "@/components/user-component/common";
+import { PageMascot } from "@/components/user-component/common/PageMascot";
 import styles from "./courses.module.css";
 
 export default function CourseLibraryClient() {
@@ -146,6 +147,11 @@ export default function CourseLibraryClient() {
 
         {/* Filter & Search Bar */}
         <div className={styles.filterBar}>
+          {/* Mascot con mèo/con bot đứng phía trên bên phải của thanh tìm kiếm */}
+          <div className={styles.mascotBadgeWrap}>
+            <PageMascot size={52} />
+          </div>
+
           <div className={styles.searchRow}>
             <div className={styles.searchInputWrap}>
               <Search size={16} className={styles.searchIcon} />

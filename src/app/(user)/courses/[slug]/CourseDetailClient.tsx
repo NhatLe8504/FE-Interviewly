@@ -35,6 +35,7 @@ import {
 import { COURSES_DATA } from "@/data/coursesData";
 import { getCourseCurriculum, type CourseCurriculumSection, type ResolvedLesson } from "@/data/lessonResolver";
 import type { CourseItem } from "@/types/course";
+import { PageMascot } from "@/components/user-component/common/PageMascot";
 import styles from "./courseDetail.module.css";
 
 interface CourseDetailClientProps {
@@ -316,7 +317,11 @@ export default function CourseDetailClient({ slug }: CourseDetailClientProps) {
           {/* =========================================================
               RIGHT COLUMN: STICKY PURCHASE BADGE (col-3 in chitiet.html)
              ========================================================= */}
-          <aside className={styles.stickySidebar}>
+          <div style={{ position: "relative" }}>
+            <div style={{ position: "absolute", top: -46, right: 24, pointerEvents: "none", zIndex: 5 }}>
+              <PageMascot size={52} />
+            </div>
+            <aside className={styles.stickySidebar}>
             {/* Preview Media Thumbnail */}
             <div
               className={styles.previewMedia}
@@ -380,6 +385,7 @@ export default function CourseDetailClient({ slug }: CourseDetailClientProps) {
               </ul>
             </div>
           </aside>
+          </div>
         </div>
       </div>
 

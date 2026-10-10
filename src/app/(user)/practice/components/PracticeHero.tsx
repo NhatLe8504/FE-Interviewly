@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { PageMascot } from "@/components/user-component/common/PageMascot";
 import styles from "./practiceHero.module.css";
 
 export function PracticeHero() {
@@ -18,6 +19,9 @@ export function PracticeHero() {
         </div>
       </div>
       <aside className={styles.guide} aria-label="Cách bắt đầu luyện tập">
+        <div className={styles.mascotBadgeWrap}>
+          <PageMascot size={52} />
+        </div>
         <p className={styles.guideLabel}>BẮT ĐẦU RẤT ĐƠN GIẢN</p>
         <ol className={styles.steps}>
           <li><span className={styles.stepNumber}>01</span><div><h2>Thêm mô tả công việc</h2><p>Nội dung luyện tập bắt đầu từ JD của vị trí bạn muốn ứng tuyển.</p></div></li>

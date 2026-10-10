@@ -56,6 +56,21 @@
 }
 
 /* Billing cycle toggle */
+.toggleContainer {
+  position: relative;
+  display: inline-flex;
+  margin: 0 auto;
+}
+
+.mascotBadgeWrap {
+  position: absolute;
+  top: -46px;
+  right: 14px;
+  pointer-events: none;
+  z-index: 5;
+  user-select: none;
+}
+
 .toggleWrapper {
   display: inline-flex;
   align-items: center;
