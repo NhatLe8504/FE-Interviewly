@@ -165,4 +165,43 @@ export const questionAdminApi = {
       body: JSON.stringify({ question_text: questionText }),
     });
   },
+
+  // AI Generation
+  async generateAiQuestions(params: {
+    domain_id?: number | null;
+    role_id?: number | null;
+    domain_name?: string;
+    role_name?: string;
+    experience_level?: string;
+    tech_stack?: string;
+    question_count?: number;
+    question_distribution?: string;
+    custom_prompt?: string;
+    source_type?: "prompt" | "document" | "url";
+    source_value?: string;
+  }): Promise<{
+    questions: Array<{
+      id: string;
+      question_text: string;
+      question_type: "technical" | "situational" | "behavioral";
+      difficulty: number;
+      intent: string;
+      situation_guide: string;
+      task_guide: string;
+      action_guide: string;
+      result_guide: string;
+      sample_answer: string;
+      follow_up_questions: string[];
+      tips: string[];
+      tags: string[];
+      is_active: boolean;
+      status: "approved" | "pending" | "needs_edit";
+    }>;
+  }> {
+    return request("/api/v1/admin/questions/ai-generate", {
+      method: "POST",
+      body: JSON.stringify(params),
+    });
+  },
 };
+

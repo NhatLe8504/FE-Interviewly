@@ -71,7 +71,7 @@ import {
 } from "@/components/admin/ui/tabs";
 import { Separator } from "@/components/admin/ui/separator";
 import { toast } from "sonner";
-import { MOCK_DOMAINS_LIST, MOCK_ROLES_LIST } from "@/mock/adminQuestionsMock";
+import type { DomainOut, RoleOut } from "@/types/catalog";
 import { DEFAULT_RUBRIC_CRITERIA } from "@/services/catalogApi";
 export interface GeneratedQuestionItem {
   id: string;
@@ -265,6 +265,7 @@ function generateQuestionsByAgent({
   sourceType: "prompt" | "document" | "url";
   sourceValue?: string;
 }): GeneratedQuestionItem[] {
+  return [];
   const isJava = techStack.toLowerCase().includes("java") || roleName.toLowerCase().includes("backend");
   const isFrontend = techStack.toLowerCase().includes("react") || roleName.toLowerCase().includes("frontend");
   const isFresher = level === "fresher" || level === "intern";
@@ -417,21 +418,41 @@ export function QuestionCreateForm() {
   const [bankDomainFilter, setBankDomainFilter] = useState<string>("all");
   const [bankLevelFilter, setBankLevelFilter] = useState<string>("all");
   const [bankTypeFilter, setBankTypeFilter] = useState<string>("all");
+
+  // Dynamic Domains & Roles from Database
+  const [domains, setDomains] = useState<DomainOut[]>([]);
+  const [roles, setRoles] = useState<RoleOut[]>([]);
+  const [domainId, setDomainId] = useState<number>(1);
+  const [roleId, setRoleId] = useState<number>(1);
+
   React.useEffect(() => {
-    async function loadBank() {
+    async function loadData() {
       setIsLoadingBankQuestions(true);
       try {
-        const res = await questionAdminApi.getQuestions({ limit: 100 });
-        if (res && Array.isArray(res.items)) {
-          setBankQuestions(res.items);
+        const [qRes, dList, rList] = await Promise.all([
+          questionAdminApi.getQuestions({ limit: 100 }),
+          questionAdminApi.getDomains().catch(() => []),
+          questionAdminApi.getRoles().catch(() => []),
+        ]);
+        if (qRes && Array.isArray(qRes.items)) {
+          setBankQuestions(qRes.items);
+        }
+        if (dList && dList.length > 0) {
+          setDomains(dList);
+          setDomainId(dList[0].domain_id);
+        }
+        if (rList && rList.length > 0) {
+          setRoles(rList);
+          const firstR = rList.find((r) => r.domain_id === (dList?.[0]?.domain_id || 1));
+          if (firstR) setRoleId(firstR.role_id);
         }
       } catch (err) {
-        console.warn("Failed to load bank questions:", err);
+        console.warn("Failed to load catalog data:", err);
       } finally {
         setIsLoadingBankQuestions(false);
       }
     }
-    loadBank();
+    loadData();
   }, []);
 
   const toggleBankQuestionSelection = (q: any) => {
@@ -457,9 +478,7 @@ export function QuestionCreateForm() {
     setSelectedBankQuestions((prev) => [...prev, ...newItems]);
   };
 
-  const [domainId, setDomainId] = useState<number>(1);
   const currentDomainConfig = DOMAIN_SUGGESTIONS[domainId] || DOMAIN_SUGGESTIONS[1];
-  const [roleId, setRoleId] = useState<number>(1);
   const [level, setLevel] = useState<string>("fresher");
   const [language, setLanguage] = useState<string>("vi");
   const [techStack, setTechStack] = useState<string>("Java, Spring Boot, PostgreSQL, React");
@@ -476,18 +495,8 @@ export function QuestionCreateForm() {
   const [isAgentGenerating, setIsAgentGenerating] = useState<boolean>(false);
   const [agentStep, setAgentStep] = useState<string>("");
   // AI Agent Review Board State
-  const [aiQuestions, setAiQuestions] = useState<GeneratedQuestionItem[]>(() =>
-    generateQuestionsByAgent({
-      domainName: "Công nghệ thông tin (IT)",
-      roleName: "Backend Engineer",
-      level: "fresher",
-      techStack: "Java, Spring Boot, PostgreSQL, React",
-      questionDistribution: "mixed",
-      questionCount: 5,
-      customPrompt: "",
-      sourceType: "prompt",
-    })
-  );
+  const [aiQuestions, setAiQuestions] = useState<GeneratedQuestionItem[]>([]);
+
   const [expandedId, setExpandedId] = useState<string>("gen-1");
   const [editingId, setEditingId] = useState<string | null>(null);
   // Tab 1: Manual Creator State
@@ -538,12 +547,17 @@ export function QuestionCreateForm() {
   }, [bankQuestions, bankSearch, bankDomainFilter, bankLevelFilter, bankTypeFilter]);
 
   const availableRoles = useMemo(() => {
-    return MOCK_ROLES_LIST.filter((r) => r.domain_id === domainId);
-  }, [domainId]);
-  const currentDomainName =
-    MOCK_DOMAINS_LIST.find((d) => d.domain_id === domainId)?.domain_name || "Công nghệ thông tin (IT)";
-  const currentRoleName =
-    MOCK_ROLES_LIST.find((r) => r.role_id === roleId)?.role_name || "Backend Engineer";
+    return roles.filter((r) => r.domain_id === domainId);
+  }, [roles, domainId]);
+
+  const currentDomainName = useMemo(() => {
+    return domains.find((d) => d.domain_id === domainId)?.domain_name || "Công nghệ thông tin (IT)";
+  }, [domains, domainId]);
+
+  const currentRoleName = useMemo(() => {
+    return roles.find((r) => r.role_id === roleId)?.role_name || "Software Engineer";
+  }, [roles, roleId]);
+
   // Simulate Document Upload
   const handleSimulateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -569,7 +583,7 @@ export function QuestionCreateForm() {
     }, 800);
   };
 
-  const handleRunAgent = () => {
+  const handleRunAgent = async () => {
     setIsAgentGenerating(true);
     setAgentStep(
       sourceType === "document"
@@ -579,39 +593,42 @@ export function QuestionCreateForm() {
         : `Phân tích yêu cầu chân dung ${currentRoleName} - ${level.toUpperCase()}...`
     );
 
-    setTimeout(() => {
-      setAgentStep("Soạn thảo bộ câu hỏi theo chuẩn STAR & phân bổ tỷ lệ...");
-    }, 700);
-
-    setTimeout(() => {
-      setAgentStep("Thiết lập tiêu chí Rubric AI & Đáp án mẫu Benchmark...");
-    }, 1400);
-
-    setTimeout(() => {
-      const generated = generateQuestionsByAgent({
-        domainName: currentDomainName,
-        roleName: currentRoleName,
-        level,
-        techStack,
-        questionDistribution,
-        questionCount,
-        customPrompt:
+    try {
+      const res = await questionAdminApi.generateAiQuestions({
+        domain_id: domainId,
+        role_id: roleId,
+        domain_name: currentDomainName,
+        role_name: currentRoleName,
+        experience_level: level,
+        tech_stack: techStack,
+        question_count: questionCount,
+        question_distribution: questionDistribution,
+        custom_prompt:
           sourceType === "document"
             ? extractedDocText
             : sourceType === "url"
             ? `Nguồn URL: ${inputUrl}. ${customPrompt}`
             : customPrompt,
-        sourceType,
+        source_type: sourceType,
+        source_value: sourceType === "document" ? extractedDocText : inputUrl,
       });
 
-      setAiQuestions(generated);
-      setExpandedId(generated[0]?.id || "");
+      if (res && res.questions && res.questions.length > 0) {
+        setAiQuestions(res.questions);
+        setExpandedId(res.questions[0]?.id || "");
+        toast.success(
+          `AI Agent đã tạo xong ${res.questions.length} câu hỏi phỏng vấn chuẩn hóa!`
+        );
+      } else {
+        toast.error("Không nhận được câu hỏi từ AI. Vui lòng thử lại.");
+      }
+    } catch (err: any) {
+      console.error("AI generation failed:", err);
+      toast.error("Lỗi khi kết nối với AI Generator: " + (err.message || "Kiểm tra lại server"));
+    } finally {
       setIsAgentGenerating(false);
       setAgentStep("");
-      toast.success(
-        `AI Agent đã tạo xong ${generated.length} câu hỏi phỏng vấn! Vui lòng kiểm duyệt.`
-      );
-    }, 2100);
+    }
   };
 
   // Approve single question
@@ -623,26 +640,32 @@ export function QuestionCreateForm() {
   };
 
   // Regenerate single question with AI
-  const handleRegenerateOne = (qId: string) => {
+  const handleRegenerateOne = async (qId: string) => {
     toast.info("AI Agent đang tạo lại câu hỏi...");
-    setTimeout(() => {
-      setAiQuestions((prev) =>
-        prev.map((q) => {
-          if (q.id === qId) {
-            return {
-              ...q,
-              question_text: `[Tạo mới bởi AI] Làm thế nào để áp dụng nguyên lý Clean Architecture và Unit Testing hiệu quả trong dự án ${techStack}?`,
-              intent: `Đánh giá tư duy viết mã sạch, phân tách tầng trách nhiệm và tính mở rộng của hệ thống.`,
-              sample_answer: `Tôi tổ chức mã nguồn theo 4 tầng: Domain (Entities, Value Objects), Application (Use Cases), Infrastructure (Adapters, DB, Mail) và Presentation (API, Controllers). Tầng Domain hoàn toàn độc lập với framework bên ngoài.`,
-              status: "approved",
-            };
-          }
-          return q;
-        })
-      );
-      toast.success("Đã tạo mới câu hỏi thành công!");
-    }, 800);
+    try {
+      const target = aiQuestions.find((q) => q.id === qId);
+      const res = await questionAdminApi.generateAiQuestions({
+        domain_id: domainId,
+        role_id: roleId,
+        domain_name: currentDomainName,
+        role_name: currentRoleName,
+        experience_level: level,
+        tech_stack: techStack,
+        question_count: 1,
+        custom_prompt: `Tạo lại 1 câu hỏi độc lập thay thế cho: "${target?.question_text || ''}". ${customPrompt}`,
+      });
+      if (res && res.questions && res.questions.length > 0) {
+        const newQ = res.questions[0];
+        setAiQuestions((prev) =>
+          prev.map((q) => (q.id === qId ? { ...newQ, id: qId } : q))
+        );
+        toast.success("Đã tạo mới câu hỏi thành công bằng AI!");
+      }
+    } catch (err: any) {
+      toast.error("Lỗi làm mới câu hỏi: " + (err.message || "Không thể tạo lại"));
+    }
   };
+
 
   // Delete question from set
   const handleDeleteQuestion = (qId: string, isManual = false) => {
@@ -735,8 +758,9 @@ export function QuestionCreateForm() {
         ? techStack.split(",").map((s) => s.trim()).filter(Boolean)
         : ["Chuyên môn"];
 
-      const domainName = MOCK_DOMAINS_LIST.find((d) => d.domain_id === domainId)?.domain_name || "Chuyên ngành";
-      const roleName = MOCK_ROLES_LIST.find((r) => r.role_id === roleId)?.role_name || "Vị trí";
+      const domainName = currentDomainName;
+      const roleName = currentRoleName;
+
 
       const title =
         activeMainTab === "manual" && manualSetName.trim()
@@ -864,33 +888,19 @@ export function QuestionCreateForm() {
                 onValueChange={(v) => {
                   const dId = Number(v);
                   setDomainId(dId);
-                  const firstRole = MOCK_ROLES_LIST.find((r) => r.domain_id === dId);
+                  const firstRole = roles.find((r) => r.domain_id === dId);
                   const newRoleName = firstRole?.role_name || "Chuyên ngành";
                   if (firstRole) setRoleId(firstRole.role_id);
                   const newCfg = DOMAIN_SUGGESTIONS[dId] || DOMAIN_SUGGESTIONS[1];
                   setTechStack(newCfg.defaultSkills);
                   setManualSetName(`Bộ đề phỏng vấn ${newRoleName} - ${level.toUpperCase()} (Tự soạn)`);
-                  const domainObj = MOCK_DOMAINS_LIST.find((d) => d.domain_id === dId);
-                  setAiQuestions(
-                    generateQuestionsByAgent({
-                      domainId: dId,
-                      domainName: domainObj?.domain_name || "Chuyên ngành",
-                      roleName: newRoleName,
-                      level,
-                      techStack: newCfg.defaultSkills,
-                      questionDistribution,
-                      questionCount,
-                      customPrompt,
-                      sourceType,
-                    })
-                  );
                 }}
               >
                 <SelectTrigger className="h-9 text-xs bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {MOCK_DOMAINS_LIST.map((d) => (
+                  {domains.map((d) => (
                     <SelectItem key={d.domain_id} value={String(d.domain_id)}>
                       {d.domain_name}
                     </SelectItem>
@@ -910,23 +920,9 @@ export function QuestionCreateForm() {
                 onValueChange={(v) => {
                   const rId = Number(v);
                   setRoleId(rId);
-                  const foundRole = MOCK_ROLES_LIST.find((r) => r.role_id === rId);
+                  const foundRole = roles.find((r) => r.role_id === rId);
                   const newRoleName = foundRole?.role_name || "Chuyên ngành";
                   setManualSetName(`Bộ đề phỏng vấn ${newRoleName} - ${level.toUpperCase()} (Tự soạn)`);
-                  const domainObj = MOCK_DOMAINS_LIST.find((d) => d.domain_id === domainId);
-                  setAiQuestions(
-                    generateQuestionsByAgent({
-                      domainId,
-                      domainName: domainObj?.domain_name || "Chuyên ngành",
-                      roleName: newRoleName,
-                      level,
-                      techStack,
-                      questionDistribution,
-                      questionCount,
-                      customPrompt,
-                      sourceType,
-                    })
-                  );
                 }}
               >
                 <SelectTrigger className="h-9 text-xs bg-background">
@@ -1324,9 +1320,35 @@ export function QuestionCreateForm() {
 
             {/* Questions List */}
             <div className="space-y-3">
-              {aiQuestions.map((q, index) => {
-                const isExpanded = expandedId === q.id;
-                const isEditing = editingId === q.id;
+              {aiQuestions.length === 0 ? (
+                <Card className="border-dashed border-2 p-8 text-center bg-muted/20">
+                  <div className="flex flex-col items-center justify-center gap-3 max-w-md mx-auto">
+                    <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      <Sparkles className="size-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground text-sm">Chưa có câu hỏi nào trong danh sách</h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Hãy thiết lập tiêu chuẩn chuyên môn và bấm <strong>&ldquo;Khởi Chạy AI Agent&rdquo;</strong> ở bảng cấu hình bên trên để sinh câu hỏi tự động.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleRunAgent}
+                      disabled={isAgentGenerating}
+                      className="gap-1.5 mt-2 shadow-xs"
+                    >
+                      <Sparkles className="size-3.5" />
+                      <span>{isAgentGenerating ? "Đang sinh câu hỏi..." : "Khởi Chạy AI Agent Ngay"}</span>
+                    </Button>
+                  </div>
+                </Card>
+              ) : (
+                aiQuestions.map((q, index) => {
+                  const isExpanded = expandedId === q.id;
+                  const isEditing = editingId === q.id;
+
 
                 const publishCount =
     activeMainTab === "ai_agent"
@@ -1515,8 +1537,9 @@ export function QuestionCreateForm() {
                     )}
                   </Card>
                 );
-              })}
+              }))}
             </div>
+
           </div>
         </TabsContent>
 
@@ -1580,11 +1603,12 @@ export function QuestionCreateForm() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Tất cả ngành nghề</SelectItem>
-                      {MOCK_DOMAINS_LIST.map((d) => (
+                      {domains.map((d) => (
                         <SelectItem key={d.domain_id} value={String(d.domain_id)}>
                           {d.domain_name}
                         </SelectItem>
                       ))}
+
                     </SelectContent>
                   </Select>
                 </div>
