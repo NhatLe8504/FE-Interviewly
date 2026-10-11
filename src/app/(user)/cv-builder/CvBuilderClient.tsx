@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { CvDocument, CvAtsScoreResponse } from "@/types/cv";
+import { CvDocument, CvAtsScoreResponse, CvListItem } from "@/types/cv";
 import { cvApi } from "@/services/cvApi";
 import { CvTopBar } from "@/components/cv/CvTopBar";
 import { TemplateRenderer } from "@/components/cv/templates/TemplateRenderer";
@@ -10,6 +10,9 @@ import { FloatingAiToolbar } from "@/components/cv/FloatingAiToolbar";
 import { AtsScoreWidget } from "@/components/cv/AtsScoreWidget";
 import { AiDraftModal } from "@/components/cv/AiDraftModal";
 import { PageMascot } from "@/components/user-component/common/PageMascot";
+import { CvCardDeck } from "@/components/cv/CvCardDeck";
+import { useUserSubscription } from "@/hooks/useUserSubscription";
+import { toast } from "@/components/user-component/toast";
 import { Loader2 } from "lucide-react";
 import s from "./cvBuilder.module.css";
 
@@ -54,10 +57,13 @@ export default function CvBuilderClient() {
   const jobIdParam = searchParams.get("jobId");
 
   const [cv, setCv] = useState<CvDocument>(BLANK_CV);
+  const [cvList, setCvList] = useState<CvListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [zoom, setZoom] = useState(1.0);
   const [showAiDraftModal, setShowAiDraftModal] = useState(false);
+
+  const { isSubscribed } = useUserSubscription();
 
   const [selection, setSelection] = useState<{
     text: string;
@@ -67,6 +73,18 @@ export default function CvBuilderClient() {
 
   const [atsScoreData, setAtsScoreData] = useState<CvAtsScoreResponse | null>(null);
   const [atsLoading, setAtsLoading] = useState(false);
+
+  // Fetch list of user's CVs (Max 5 slots)
+  const fetchCvList = useCallback(async () => {
+    try {
+      const list = await cvApi.listCvs();
+      setCvList(list);
+      return list;
+    } catch (err) {
+      console.warn("Could not fetch cv list:", err);
+      return [];
+    }
+  }, []);
 
   // Load or initialize CV with LocalStorage Cache Persistence
   useEffect(() => {
@@ -87,6 +105,8 @@ export default function CvBuilderClient() {
       const savedAvatar = typeof window !== "undefined" ? localStorage.getItem(AVATAR_STORAGE_KEY) : null;
 
       try {
+        const currentList = await fetchCvList();
+
         if (cvIdParam) {
           try {
             const fetched = await cvApi.getCv(Number(cvIdParam));
@@ -112,9 +132,10 @@ export default function CvBuilderClient() {
               created.personal_info.avatar_url = savedAvatar;
             }
             setCv(created);
+            await fetchCvList();
             router.replace(`/cv-builder?id=${created.id}`);
           } catch {
-            // Offline / fallback: dùng cached draft nếu có hoặc BLANK_CV
+            // Fallback khi offline hoặc không có token
             if (cachedDraft) {
               setCv(cachedDraft);
             } else {
@@ -126,7 +147,7 @@ export default function CvBuilderClient() {
             }
           }
         } else {
-          // Trường hợp không có query param:
+          // Trường hợp không có param:
           // Nếu có bản nháp trong localStorage, khôi phục ngay để F5 không bị mất
           if (cachedDraft && (cachedDraft.personal_info.full_name || cachedDraft.summary || cachedDraft.work_experiences.length > 0 || cachedDraft.skills.length > 0)) {
             if (!cachedDraft.personal_info.avatar_url && savedAvatar) {
@@ -134,34 +155,26 @@ export default function CvBuilderClient() {
             }
             setCv(cachedDraft);
             if (cachedDraft.ats_feedback) setAtsScoreData(cachedDraft.ats_feedback);
-          } else {
-            // Thử lấy danh sách CV từ backend
+          } else if (currentList.length > 0) {
+            // Lấy bản CV đầu tiên trong danh sách đã lưu
             try {
-              const list = await cvApi.listCvs();
-              if (list.length > 0) {
-                const latest = await cvApi.getCv(list[0].id);
-                if (!latest.personal_info.avatar_url && savedAvatar) {
-                  latest.personal_info.avatar_url = savedAvatar;
-                }
-                setCv(latest);
-                router.replace(`/cv-builder?id=${latest.id}`);
-              } else {
-                const created = await cvApi.createCv({
-                  title: "",
-                  load_from_user_skills: true,
-                });
-                if (!created.personal_info.avatar_url && savedAvatar) {
-                  created.personal_info.avatar_url = savedAvatar;
-                }
-                setCv(created);
-                router.replace(`/cv-builder?id=${created.id}`);
+              const latest = await cvApi.getCv(currentList[0].id);
+              if (!latest.personal_info.avatar_url && savedAvatar) {
+                latest.personal_info.avatar_url = savedAvatar;
               }
+              setCv(latest);
+              router.replace(`/cv-builder?id=${latest.id}`);
             } catch {
               setCv({
                 ...BLANK_CV,
                 personal_info: { ...BLANK_CV.personal_info, avatar_url: savedAvatar || "" },
               });
             }
+          } else {
+            setCv({
+              ...BLANK_CV,
+              personal_info: { ...BLANK_CV.personal_info, avatar_url: savedAvatar || "" },
+            });
           }
         }
       } catch (err) {
@@ -172,7 +185,7 @@ export default function CvBuilderClient() {
     }
 
     initCv();
-  }, [cvIdParam, jobIdParam, router]);
+  }, [cvIdParam, jobIdParam, router, fetchCvList]);
 
   // Tự động cache CV vào localStorage khi có thay đổi (F5 không mất dữ liệu)
   useEffect(() => {
@@ -193,18 +206,36 @@ export default function CvBuilderClient() {
     }));
   }, []);
 
+  // Save CV: Pro plan only, max 5 CVs, free users blocked
   const handleSave = async () => {
-    if (!cv.id) {
-      // Nếu chưa có id backend (đang offline hoặc chưa tạo trên BE), thử tạo mới
-      try {
-        setSaving(true);
+    // 1. Kiểm tra tài khoản Pro
+    if (!isSubscribed) {
+      toast.error(
+        "Tài khoản Free không hỗ trợ lưu CV trên hệ thống. Vui lòng nâng cấp gói Pro để lưu trữ tối đa 5 bản CV!"
+      );
+      return;
+    }
+
+    // 2. Kiểm tra giới hạn 5 CV nếu đang tạo CV mới
+    if (cv.id === 0 && cvList.length >= 5) {
+      toast.error(
+        "Bạn đã lưu tối đa 5 bản CV. Vui lòng chọn một bản hiện có để cập nhật hoặc xóa bớt để tạo bản mới!"
+      );
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (cv.id === 0) {
+        // Tạo mới CV trên hệ thống
         const created = await cvApi.createCv({
-          title: cv.title || "CV Của Tôi",
+          title: cv.title || "CV Mới Của Tôi",
           template_id: cv.template_id,
           color_theme: cv.color_theme,
           font_family: cv.font_family,
           target_job_id: cv.target_job_id,
         });
+
         const fullSaved = await cvApi.updateCv(created.id, {
           title: cv.title || created.title,
           template_id: cv.template_id,
@@ -220,41 +251,116 @@ export default function CvBuilderClient() {
           section_order: cv.section_order,
           target_job_id: cv.target_job_id,
         });
+
         setCv(fullSaved);
         localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(fullSaved));
+        await fetchCvList();
+        toast.success("Đã lưu bản CV mới thành công!");
         router.replace(`/cv-builder?id=${fullSaved.id}`);
-      } catch (err) {
-        console.error("Create & save error:", err);
-      } finally {
-        setSaving(false);
-      }
-      return;
-    }
+      } else {
+        // Cập nhật CV đã tồn tại
+        const saved = await cvApi.updateCv(cv.id, {
+          title: cv.title,
+          template_id: cv.template_id,
+          color_theme: cv.color_theme,
+          font_family: cv.font_family,
+          personal_info: cv.personal_info,
+          summary: cv.summary,
+          work_experiences: cv.work_experiences,
+          projects: cv.projects,
+          skills: cv.skills,
+          educations: cv.educations,
+          certifications: cv.certifications,
+          section_order: cv.section_order,
+          target_job_id: cv.target_job_id,
+        });
 
-    setSaving(true);
-    try {
-      const saved = await cvApi.updateCv(cv.id, {
-        title: cv.title,
-        template_id: cv.template_id,
-        color_theme: cv.color_theme,
-        font_family: cv.font_family,
-        personal_info: cv.personal_info,
-        summary: cv.summary,
-        work_experiences: cv.work_experiences,
-        projects: cv.projects,
-        skills: cv.skills,
-        educations: cv.educations,
-        certifications: cv.certifications,
-        section_order: cv.section_order,
-        target_job_id: cv.target_job_id,
-      });
-      setCv(saved);
-      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(saved));
-    } catch (err) {
+        setCv(saved);
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(saved));
+        await fetchCvList();
+        toast.success("Đã cập nhật bản CV thành công!");
+      }
+    } catch (err: any) {
       console.error("Save error:", err);
+      toast.error(err?.message || "Không thể lưu CV. Vui lòng kiểm tra lại kết nối!");
     } finally {
       setSaving(false);
     }
+  };
+
+  // Switch to another CV from deck
+  const handleSelectCv = async (id: number) => {
+    if (cv.id === id) return;
+    try {
+      setLoading(true);
+      const fetched = await cvApi.getCv(id);
+      setCv(fetched);
+      if (fetched.ats_feedback) setAtsScoreData(fetched.ats_feedback);
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(fetched));
+      router.replace(`/cv-builder?id=${id}`);
+      toast.info(`Đã mở bản: ${fetched.title || "CV"}`);
+    } catch (err) {
+      toast.error("Không thể tải bản CV này");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Create a new blank CV slot (Pro only)
+  const handleCreateNew = () => {
+    if (!isSubscribed) {
+      toast.error("Tài khoản Free không hỗ trợ lưu nhiều bản CV. Vui lòng nâng cấp gói Pro!");
+      return;
+    }
+    if (cvList.length >= 5) {
+      toast.error("Bạn đã sử dụng hết 5/5 slot CV. Hãy xóa bớt một bản để tạo mới!");
+      return;
+    }
+
+    const savedAvatar = typeof window !== "undefined" ? localStorage.getItem(AVATAR_STORAGE_KEY) : null;
+    const newDraft: CvDocument = {
+      ...BLANK_CV,
+      id: 0,
+      title: `Bản CV #${cvList.length + 1}`,
+      personal_info: { ...BLANK_CV.personal_info, avatar_url: savedAvatar || "" },
+    };
+    setCv(newDraft);
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(newDraft));
+    router.replace("/cv-builder");
+    toast.success("Đã khởi tạo bản CV mới. Nhập thông tin và bấm Lưu CV!");
+  };
+
+  // Delete a CV from deck
+  const handleDeleteCv = async (id: number) => {
+    const target = cvList.find((c) => c.id === id);
+    const title = target?.title || "Bản CV này";
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa "${title}" không? Hành động này sẽ giải phóng 1 slot CV.`)) {
+      return;
+    }
+
+    try {
+      await cvApi.deleteCv(id);
+      toast.success("Đã xóa bản CV thành công!");
+      const updatedList = await fetchCvList();
+
+      // Nếu xóa đúng bản đang mở, chuyển sang bản khác còn lại hoặc bản mới
+      if (cv.id === id) {
+        if (updatedList.length > 0) {
+          const nextCv = await cvApi.getCv(updatedList[0].id);
+          setCv(nextCv);
+          router.replace(`/cv-builder?id=${nextCv.id}`);
+        } else {
+          handleCreateNew();
+        }
+      }
+    } catch (err) {
+      toast.error("Không thể xóa bản CV. Vui lòng thử lại!");
+    }
+  };
+
+  const handleUpgradeRequired = () => {
+    toast.error("Vui lòng nâng cấp gói Pro để sử dụng tính năng lưu và quản lý 5 bản CV!");
+    router.push("/#pricing");
   };
 
   const handleTextSelect = (sel: { text: string; rect: DOMRect; sectionContext: string }) => {
@@ -375,7 +481,7 @@ export default function CvBuilderClient() {
           />
         )}
 
-        {/* FIXED VIEWPORT ATS CARD WITH MASCOT */}
+        {/* FIXED VIEWPORT ATS CARD WITH MASCOT & FANNED CARD DECK */}
         <div className={s.atsFloatingContainer}>
           {/* MASCOT STANDING PROUDLY ON TOP */}
           <div className={s.atsMascotWrapper}>
@@ -392,6 +498,17 @@ export default function CvBuilderClient() {
               onAddSkill={handleAddSkill}
             />
           </div>
+
+          {/* 5 FANNED CARDS DECK LOCATED RIGHT BELOW ATS WIDGET */}
+          <CvCardDeck
+            cvList={cvList}
+            currentCvId={cv.id}
+            isSubscribed={isSubscribed}
+            onSelectCv={handleSelectCv}
+            onCreateNew={handleCreateNew}
+            onDeleteCv={handleDeleteCv}
+            onUpgradeRequired={handleUpgradeRequired}
+          />
         </div>
       </div>
 
