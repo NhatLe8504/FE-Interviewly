@@ -15,6 +15,8 @@ import {
   UserX,
   FileQuestion,
   MessageSquare,
+  Eye,
+  Mic,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -39,6 +41,14 @@ import { Label } from "@/components/admin/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/admin/ui/select";
 import { Skeleton } from "@/components/admin/ui/skeleton";
 
+const TARGET_TYPE_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
+  question: { label: "Câu hỏi", color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30", icon: FileQuestion },
+  answer: { label: "Câu trả lời", color: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30", icon: MessageSquare },
+  user: { label: "Tài khoản", color: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30", icon: UserX },
+  session: { label: "Phiên phỏng vấn", color: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30", icon: Mic },
+  comment: { label: "Bình luận", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30", icon: MessageSquare },
+};
+
 const TARGET_TYPE_LABELS: Record<string, string> = {
   question: "Câu hỏi",
   answer: "Câu trả lời",
@@ -61,6 +71,9 @@ export function AdminModerationClient() {
   const [loading, setLoading] = useState(true);
   const [targetTypeFilter, setTargetTypeFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Detail Modal State
+  const [selectedLogForDetail, setSelectedLogForDetail] = useState<ModerationItem | null>(null);
 
   // Dialog State
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -273,9 +286,20 @@ export function AdminModerationClient() {
                           #{log.log_id}
                         </td>
                         <td className="py-3 px-3 font-medium text-foreground">
-                          <Badge variant="outline" className="text-xs">
-                            {TARGET_TYPE_LABELS[log.target_type] || log.target_type}
-                          </Badge>
+                          {(() => {
+                            const cfg = TARGET_TYPE_CONFIG[log.target_type] || {
+                              label: log.target_type,
+                              color: "bg-muted text-muted-foreground",
+                              icon: FileQuestion,
+                            };
+                            const IconComp = cfg.icon;
+                            return (
+                              <Badge variant="outline" className={`text-xs gap-1 py-0.5 font-medium ${cfg.color}`}>
+                                <IconComp className="size-3 shrink-0" />
+                                <span>{cfg.label}</span>
+                              </Badge>
+                            );
+                          })()}
                         </td>
                         <td className="py-3 px-3 font-mono text-xs text-foreground">
                           {log.target_id ? `ID #${log.target_id}` : "Toàn bộ"}
@@ -286,46 +310,58 @@ export function AdminModerationClient() {
                         <td className="py-3 px-3 text-xs text-muted-foreground max-w-sm truncate">
                           {log.reason || "— Không có lý do cụ thể —"}
                         </td>
-                        <td className="py-3 px-3 text-xs text-muted-foreground">
+                        <td className="py-3 px-3 text-xs text-muted-foreground whitespace-nowrap">
                           {log.created_at
                             ? new Date(log.created_at).toLocaleString("vi-VN")
                             : "—"}
                         </td>
-                        <td className="py-3 px-3 text-right space-x-1">
-                          {log.action !== "approve" && (
+                        <td className="py-3 px-3 text-right">
+                          <div className="inline-flex items-center gap-1 justify-end">
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-7 px-2 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                              onClick={() =>
-                                handleQuickAction(
-                                  log.target_type,
-                                  log.target_id,
-                                  "approve",
-                                  "Xác nhận duyệt hợp lệ bởi quản trị viên",
-                                )
-                              }
+                              className="h-7 px-2 text-xs"
+                              onClick={() => setSelectedLogForDetail(log)}
+                              title="Xem toàn văn lý do và chi tiết kiểm duyệt"
                             >
-                              Duyệt
+                              <Eye className="size-3 mr-1" />
+                              Chi tiết
                             </Button>
-                          )}
-                          {log.action !== "remove" && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 px-2 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50"
-                              onClick={() =>
-                                handleQuickAction(
-                                  log.target_type,
-                                  log.target_id,
-                                  "remove",
-                                  "Gỡ bỏ do không đạt tiêu chuẩn",
-                                )
-                              }
-                            >
-                              Gỡ
-                            </Button>
-                          )}
+                            {log.action !== "approve" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                onClick={() =>
+                                  handleQuickAction(
+                                    log.target_type,
+                                    log.target_id,
+                                    "approve",
+                                    "Xác nhận duyệt hợp lệ bởi quản trị viên",
+                                  )
+                                }
+                              >
+                                Duyệt
+                              </Button>
+                            )}
+                            {log.action !== "remove" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                                onClick={() =>
+                                  handleQuickAction(
+                                    log.target_type,
+                                    log.target_id,
+                                    "remove",
+                                    "Gỡ bỏ do không đạt tiêu chuẩn",
+                                  )
+                                }
+                              >
+                                Gỡ
+                              </Button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -425,6 +461,158 @@ export function AdminModerationClient() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Moderation Detail Dialog */}
+      <Dialog
+        open={selectedLogForDetail !== null}
+        onOpenChange={(open) => !open && setSelectedLogForDetail(null)}
+      >
+        <DialogContent className="sm:max-w-lg">
+          {selectedLogForDetail && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <DialogTitle className="text-base font-bold flex items-center gap-2">
+                      <span>Bản Ghi Kiểm Duyệt #{selectedLogForDetail.log_id}</span>
+                      {(() => {
+                        const b = ACTION_BADGES[selectedLogForDetail.action] || {
+                          label: selectedLogForDetail.action,
+                          className: "",
+                        };
+                        return <Badge className={b.className}>{b.label}</Badge>;
+                      })()}
+                    </DialogTitle>
+                    <DialogDescription>
+                      Thời gian ghi nhận: {selectedLogForDetail.created_at ? new Date(selectedLogForDetail.created_at).toLocaleString("vi-VN") : "N/A"}
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-4 py-2 text-xs">
+                {/* Target info card */}
+                <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground font-semibold">Đối tượng kiểm duyệt:</span>
+                    {(() => {
+                      const cfg = TARGET_TYPE_CONFIG[selectedLogForDetail.target_type] || {
+                        label: selectedLogForDetail.target_type,
+                        color: "bg-muted text-muted-foreground",
+                        icon: FileQuestion,
+                      };
+                      const IconComp = cfg.icon;
+                      return (
+                        <Badge variant="outline" className={`gap-1 font-semibold ${cfg.color}`}>
+                          <IconComp className="size-3 shrink-0" />
+                          <span>{cfg.label}</span>
+                        </Badge>
+                      );
+                    })()}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground font-semibold">Mã định danh (ID):</span>
+                    <strong className="text-foreground font-mono">
+                      {selectedLogForDetail.target_id ? `ID #${selectedLogForDetail.target_id}` : "Toàn bộ hệ thống"}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* Reason content */}
+                <div className="space-y-1.5">
+                  <span className="font-semibold text-foreground text-xs">Lý do xử lý & Căn cứ vi phạm:</span>
+                  <div className="p-3 rounded-lg border bg-card text-foreground/90 leading-relaxed min-h-[70px]">
+                    {selectedLogForDetail.reason || "— Không có ghi chú lý do chi tiết từ quản trị viên —"}
+                  </div>
+                </div>
+
+                {/* Action shortcut instructions */}
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-950 dark:text-amber-200 text-[11px] space-y-1">
+                  <div className="font-semibold flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
+                    <AlertTriangle className="size-3.5" />
+                    Chính Sách Kiểm Duyệt Nội Dung
+                  </div>
+                  <p className="leading-relaxed">
+                    Hành động phê duyệt hoặc gỡ bỏ sẽ tác động trực tiếp tới khả năng hiển thị của nội dung đối với toàn bộ ứng viên trên hệ thống.
+                  </p>
+                </div>
+              </div>
+
+              <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 border-t">
+                <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                  {selectedLogForDetail.action !== "approve" && (
+                    <Button
+                      size="sm"
+                      className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => {
+                        const log = selectedLogForDetail;
+                        setSelectedLogForDetail(null);
+                        handleQuickAction(
+                          log.target_type,
+                          log.target_id,
+                          "approve",
+                          "Phê duyệt hợp lệ bởi quản trị viên",
+                        );
+                      }}
+                    >
+                      <CheckCircle2 className="size-3.5 mr-1" />
+                      Duyệt
+                    </Button>
+                  )}
+                  {selectedLogForDetail.action !== "remove" && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="text-xs"
+                      onClick={() => {
+                        const log = selectedLogForDetail;
+                        setSelectedLogForDetail(null);
+                        handleQuickAction(
+                          log.target_type,
+                          log.target_id,
+                          "remove",
+                          "Gỡ bỏ do vi phạm tiêu chuẩn",
+                        );
+                      }}
+                    >
+                      <XCircle className="size-3.5 mr-1" />
+                      Gỡ bỏ
+                    </Button>
+                  )}
+                  {selectedLogForDetail.action !== "warn" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs text-amber-600 border-amber-300"
+                      onClick={() => {
+                        const log = selectedLogForDetail;
+                        setSelectedLogForDetail(null);
+                        handleQuickAction(
+                          log.target_type,
+                          log.target_id,
+                          "warn",
+                          "Cảnh báo vi phạm nội dung",
+                        );
+                      }}
+                    >
+                      <AlertTriangle className="size-3.5 mr-1" />
+                      Cảnh báo
+                    </Button>
+                  )}
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setSelectedLogForDetail(null)}
+                  className="text-xs w-full sm:w-auto"
+                >
+                  Đóng
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
