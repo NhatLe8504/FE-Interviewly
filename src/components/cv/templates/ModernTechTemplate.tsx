@@ -121,6 +121,69 @@ export const ModernTechTemplate: React.FC<TemplateProps> = ({
     onUpdate({ projects: list });
   };
 
+  const addProjectHighlight = (projIdx: number) => {
+    const list = [...cv.projects];
+    const hls = [...(list[projIdx].highlights || []), "Tính năng hoặc thành tựu quan trọng của dự án."];
+    list[projIdx] = { ...list[projIdx], highlights: hls };
+    onUpdate({ projects: list });
+  };
+
+  const removeProjectHighlight = (projIdx: number, hlIdx: number) => {
+    const list = [...cv.projects];
+    const hls = list[projIdx].highlights.filter((_, i) => i !== hlIdx);
+    list[projIdx] = { ...list[projIdx], highlights: hls };
+    onUpdate({ projects: list });
+  };
+
+  const addEducation = () => {
+    const newEdu = {
+      id: String(Date.now()),
+      institution: "Đại học Bách Khoa Hà Nội",
+      degree: "Cử nhân",
+      field_of_study: "Công nghệ Thông tin",
+      start_date: "2020",
+      end_date: "2024",
+      gpa: "3.6/4.0",
+      honors: "",
+    };
+    onUpdate({ educations: [...cv.educations, newEdu] });
+  };
+
+  const removeEducation = (index: number) => {
+    const list = cv.educations.filter((_, i) => i !== index);
+    onUpdate({ educations: list });
+  };
+
+  const updateEducation = (index: number, field: string, val: any) => {
+    const list = [...cv.educations];
+    list[index] = { ...list[index], [field]: val };
+    onUpdate({ educations: list });
+  };
+
+  const addCertification = () => {
+    const newCert = {
+      id: String(Date.now()),
+      name: "Chứng chỉ Chuyên môn mới",
+      issuer: "Tổ chức cấp chứng chỉ",
+      issue_date: "2024",
+      expiration_date: "",
+      credential_id: "",
+      url: "",
+    };
+    onUpdate({ certifications: [...cv.certifications, newCert] });
+  };
+
+  const removeCertification = (index: number) => {
+    const list = cv.certifications.filter((_, i) => i !== index);
+    onUpdate({ certifications: list });
+  };
+
+  const updateCertification = (index: number, field: string, val: any) => {
+    const list = [...cv.certifications];
+    list[index] = { ...list[index], [field]: val };
+    onUpdate({ certifications: list });
+  };
+
   const updateSkills = (val: string) => {
     const arr = val
       .split(",")
@@ -318,20 +381,29 @@ export const ModernTechTemplate: React.FC<TemplateProps> = ({
           {isEditable && (
             <button
               onClick={addExperience}
-              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition print:hidden"
             >
               <Plus className="w-3 h-3" /> Thêm công ty
             </button>
           )}
         </div>
 
+        {cv.work_experiences.length === 0 && isEditable && (
+          <div
+            onClick={addExperience}
+            className="p-4 border-2 border-dashed border-slate-200 rounded-lg text-center text-xs text-slate-400 hover:text-slate-600 hover:border-slate-300 transition cursor-pointer print:hidden"
+          >
+            + Nhấn để thêm kinh nghiệm làm việc
+          </div>
+        )}
+
         <div className="space-y-5">
           {cv.work_experiences.map((exp, expIdx) => (
             <div key={exp.id || expIdx} className="relative group">
-              {isEditable && cv.work_experiences.length > 1 && (
+              {isEditable && (
                 <button
                   onClick={() => removeExperience(expIdx)}
-                  className="absolute -right-2 top-0 opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-50 rounded transition"
+                  className="absolute -right-2 top-0 opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-50 rounded transition print:hidden"
                   title="Xóa kinh nghiệm này"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -420,10 +492,10 @@ export const ModernTechTemplate: React.FC<TemplateProps> = ({
                       onTextSelect={onTextSelect}
                       className="inline"
                     />
-                    {isEditable && exp.highlights.length > 1 && (
+                    {isEditable && (
                       <button
                         onClick={() => removeHighlight(expIdx, hlIdx)}
-                        className="opacity-0 group-hover/hl:opacity-100 ml-2 text-slate-400 hover:text-red-500 inline-block align-middle transition"
+                        className="opacity-0 group-hover/hl:opacity-100 ml-2 text-slate-400 hover:text-red-500 inline-block align-middle transition print:hidden"
                         title="Xóa ý này"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -436,7 +508,7 @@ export const ModernTechTemplate: React.FC<TemplateProps> = ({
               {isEditable && (
                 <button
                   onClick={() => addHighlight(expIdx)}
-                  className="mt-1 text-[11px] text-blue-600 hover:underline inline-flex items-center gap-0.5"
+                  className="mt-1 text-[11px] text-blue-600 hover:underline inline-flex items-center gap-0.5 print:hidden"
                 >
                   <Plus className="w-2.5 h-2.5" /> Thêm thành tích STAR
                 </button>
@@ -458,20 +530,29 @@ export const ModernTechTemplate: React.FC<TemplateProps> = ({
           {isEditable && (
             <button
               onClick={addProject}
-              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition print:hidden"
             >
               <Plus className="w-3 h-3" /> Thêm dự án
             </button>
           )}
         </div>
 
+        {cv.projects.length === 0 && isEditable && (
+          <div
+            onClick={addProject}
+            className="p-4 border-2 border-dashed border-slate-200 rounded-lg text-center text-xs text-slate-400 hover:text-slate-600 hover:border-slate-300 transition cursor-pointer print:hidden"
+          >
+            + Nhấn để thêm dự án tiêu biểu
+          </div>
+        )}
+
         <div className="space-y-4">
           {cv.projects.map((proj, projIdx) => (
             <div key={proj.id || projIdx} className="relative group">
-              {isEditable && cv.projects.length > 1 && (
+              {isEditable && (
                 <button
                   onClick={() => removeProject(projIdx)}
-                  className="absolute -right-2 top-0 opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-50 rounded transition"
+                  className="absolute -right-2 top-0 opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-50 rounded transition print:hidden"
                   title="Xóa dự án này"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -531,7 +612,7 @@ export const ModernTechTemplate: React.FC<TemplateProps> = ({
               {/* Highlights */}
               <ul className="mt-1.5 space-y-1 list-disc list-outside pl-4 text-xs text-slate-700">
                 {proj.highlights?.map((hl, hlIdx) => (
-                  <li key={hlIdx} className="pl-1 leading-relaxed">
+                  <li key={hlIdx} className="relative group/phl pl-1 leading-relaxed">
                     <EditableText
                       value={hl}
                       onChange={(v) => {
@@ -544,10 +625,29 @@ export const ModernTechTemplate: React.FC<TemplateProps> = ({
                       isEditable={isEditable}
                       sectionContext="project_highlight"
                       onTextSelect={onTextSelect}
+                      className="inline"
                     />
+                    {isEditable && (
+                      <button
+                        onClick={() => removeProjectHighlight(projIdx, hlIdx)}
+                        className="opacity-0 group-hover/phl:opacity-100 ml-2 text-slate-400 hover:text-red-500 inline-block align-middle transition print:hidden"
+                        title="Xóa ý này"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>
+
+              {isEditable && (
+                <button
+                  onClick={() => addProjectHighlight(projIdx)}
+                  className="mt-1 text-[11px] text-blue-600 hover:underline inline-flex items-center gap-0.5 print:hidden"
+                >
+                  <Plus className="w-2.5 h-2.5" /> Thêm mô tả / thành tựu
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -557,22 +657,47 @@ export const ModernTechTemplate: React.FC<TemplateProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* EDUCATION */}
         <div>
-          <div className="flex items-center gap-2 mb-2 border-b pb-1" style={{ borderColor: theme.border }}>
-            <GraduationCap className="w-4 h-4" style={{ color: theme.primary }} />
-            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">
-              Học vấn
-            </h3>
+          <div className="flex items-center justify-between mb-2 border-b pb-1" style={{ borderColor: theme.border }}>
+            <div className="flex items-center gap-2">
+              <GraduationCap className="w-4 h-4" style={{ color: theme.primary }} />
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+                Học vấn
+              </h3>
+            </div>
+            {isEditable && (
+              <button
+                onClick={addEducation}
+                className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition print:hidden"
+              >
+                <Plus className="w-2.5 h-2.5" /> Thêm học vấn
+              </button>
+            )}
           </div>
+
+          {cv.educations.length === 0 && isEditable && (
+            <div
+              onClick={addEducation}
+              className="p-3 border-2 border-dashed border-slate-200 rounded-lg text-center text-xs text-slate-400 hover:text-slate-600 hover:border-slate-300 transition cursor-pointer print:hidden"
+            >
+              + Nhấn để thêm học vấn
+            </div>
+          )}
+
           {cv.educations.map((edu, eduIdx) => (
-            <div key={edu.id || eduIdx} className="mb-2 text-xs">
-              <div className="font-bold text-slate-900">
+            <div key={edu.id || eduIdx} className="mb-2 text-xs relative group">
+              {isEditable && (
+                <button
+                  onClick={() => removeEducation(eduIdx)}
+                  className="absolute -right-1 top-0 opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-50 rounded transition print:hidden"
+                  title="Xóa học vấn này"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              )}
+              <div className="font-bold text-slate-900 pr-4">
                 <EditableText
                   value={edu.institution}
-                  onChange={(v) => {
-                    const list = [...cv.educations];
-                    list[eduIdx] = { ...list[eduIdx], institution: v };
-                    onUpdate({ educations: list });
-                  }}
+                  onChange={(v) => updateEducation(eduIdx, "institution", v)}
                   isEditable={isEditable}
                   sectionContext="education"
                   placeholder="Tên trường học"
@@ -581,11 +706,7 @@ export const ModernTechTemplate: React.FC<TemplateProps> = ({
               <div className="text-slate-600">
                 <EditableText
                   value={`${edu.degree} - ${edu.field_of_study}`}
-                  onChange={(v) => {
-                    const list = [...cv.educations];
-                    list[eduIdx] = { ...list[eduIdx], degree: v };
-                    onUpdate({ educations: list });
-                  }}
+                  onChange={(v) => updateEducation(eduIdx, "degree", v)}
                   isEditable={isEditable}
                   sectionContext="education"
                 />
@@ -593,11 +714,7 @@ export const ModernTechTemplate: React.FC<TemplateProps> = ({
               <div className="text-slate-400 text-[11px] mt-0.5">
                 <EditableText
                   value={`${edu.start_date} - ${edu.end_date} | GPA: ${edu.gpa}`}
-                  onChange={(v) => {
-                    const list = [...cv.educations];
-                    list[eduIdx] = { ...list[eduIdx], honors: v };
-                    onUpdate({ educations: list });
-                  }}
+                  onChange={(v) => updateEducation(eduIdx, "honors", v)}
                   isEditable={isEditable}
                 />
               </div>
@@ -607,22 +724,47 @@ export const ModernTechTemplate: React.FC<TemplateProps> = ({
 
         {/* CERTIFICATIONS */}
         <div>
-          <div className="flex items-center gap-2 mb-2 border-b pb-1" style={{ borderColor: theme.border }}>
-            <Award className="w-4 h-4" style={{ color: theme.primary }} />
-            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">
-              Chứng chỉ
-            </h3>
+          <div className="flex items-center justify-between mb-2 border-b pb-1" style={{ borderColor: theme.border }}>
+            <div className="flex items-center gap-2">
+              <Award className="w-4 h-4" style={{ color: theme.primary }} />
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+                Chứng chỉ
+              </h3>
+            </div>
+            {isEditable && (
+              <button
+                onClick={addCertification}
+                className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition print:hidden"
+              >
+                <Plus className="w-2.5 h-2.5" /> Thêm chứng chỉ
+              </button>
+            )}
           </div>
+
+          {cv.certifications.length === 0 && isEditable && (
+            <div
+              onClick={addCertification}
+              className="p-3 border-2 border-dashed border-slate-200 rounded-lg text-center text-xs text-slate-400 hover:text-slate-600 hover:border-slate-300 transition cursor-pointer print:hidden"
+            >
+              + Nhấn để thêm chứng chỉ
+            </div>
+          )}
+
           {cv.certifications.map((cert, certIdx) => (
-            <div key={cert.id || certIdx} className="mb-2 text-xs">
-              <div className="font-bold text-slate-900">
+            <div key={cert.id || certIdx} className="mb-2 text-xs relative group">
+              {isEditable && (
+                <button
+                  onClick={() => removeCertification(certIdx)}
+                  className="absolute -right-1 top-0 opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-50 rounded transition print:hidden"
+                  title="Xóa chứng chỉ này"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              )}
+              <div className="font-bold text-slate-900 pr-4">
                 <EditableText
                   value={cert.name}
-                  onChange={(v) => {
-                    const list = [...cv.certifications];
-                    list[certIdx] = { ...list[certIdx], name: v };
-                    onUpdate({ certifications: list });
-                  }}
+                  onChange={(v) => updateCertification(certIdx, "name", v)}
                   isEditable={isEditable}
                   sectionContext="certification"
                   placeholder="Tên chứng chỉ"
@@ -631,11 +773,7 @@ export const ModernTechTemplate: React.FC<TemplateProps> = ({
               <div className="text-slate-600 text-[11px]">
                 <EditableText
                   value={`${cert.issuer} • ${cert.issue_date}`}
-                  onChange={(v) => {
-                    const list = [...cv.certifications];
-                    list[certIdx] = { ...list[certIdx], issuer: v };
-                    onUpdate({ certifications: list });
-                  }}
+                  onChange={(v) => updateCertification(certIdx, "issuer", v)}
                   isEditable={isEditable}
                 />
               </div>
