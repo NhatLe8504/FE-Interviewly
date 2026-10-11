@@ -14,12 +14,14 @@ import {
   GraduationCap,
   FolderKanban,
   CheckCircle2,
+  SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   cvAdminApi,
   type CvDocumentAdmin,
   type CvDocumentDetailAdmin,
+  type AtsRulesConfig,
 } from "@/services/admin/cvAdminApi";
 import { AdminEmptyState, AdminPageHeader, AdminStatCard } from "@/components/admin";
 import { Badge } from "@/components/admin/ui/badge";
@@ -54,6 +56,40 @@ export function AdminCvManagerClient() {
   // Detail Modal State
   const [selectedCv, setSelectedCv] = useState<CvDocumentDetailAdmin | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // ATS Rules Modal State
+  const [showAtsModal, setShowAtsModal] = useState(false);
+  const [atsRules, setAtsRules] = useState<AtsRulesConfig | null>(null);
+  const [loadingAts, setLoadingAts] = useState(false);
+  const [savingAts, setSavingAts] = useState(false);
+
+  const handleOpenAtsModal = async () => {
+    setShowAtsModal(true);
+    setLoadingAts(true);
+    try {
+      const data = await cvAdminApi.getAtsRules();
+      setAtsRules(data);
+    } catch {
+      toast.error("Không thể tải quy chuẩn ATS");
+    } finally {
+      setLoadingAts(false);
+    }
+  };
+
+  const handleSaveAtsRules = async () => {
+    if (!atsRules) return;
+    setSavingAts(true);
+    try {
+      const updated = await cvAdminApi.updateAtsRules(atsRules);
+      setAtsRules(updated);
+      toast.success("Đã lưu quy chuẩn tính điểm ATS và hạn mức CV");
+      setShowAtsModal(false);
+    } catch (err: any) {
+      toast.error(err?.message || "Lỗi lưu quy chuẩn ATS");
+    } finally {
+      setSavingAts(false);
+    }
+  };
 
   const fetchCvs = useCallback(async () => {
     setLoading(true);
@@ -103,6 +139,10 @@ export function AdminCvManagerClient() {
         description="Giám sát toàn bộ hồ sơ CV do ứng viên khởi tạo, theo dõi điểm số tương thích hệ thống lọc tự động ATS."
       >
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleOpenAtsModal}>
+            <SlidersHorizontal className="size-4 mr-2 text-primary" />
+            Tiêu Chuẩn ATS
+          </Button>
           <Button variant="outline" size="sm" onClick={fetchCvs} disabled={loading}>
             <RefreshCw className={`size-4 mr-2 ${loading ? "animate-spin" : ""}`} />
             Làm mới
@@ -383,6 +423,179 @@ export function AdminCvManagerClient() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ATS Rules & Limits Dialog */}
+      <Dialog open={showAtsModal} onOpenChange={setShowAtsModal}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <SlidersHorizontal className="size-4 text-primary" />
+              Cấu Hình Quy Chuẩn Tính Điểm ATS & Hạn Mức CV
+            </DialogTitle>
+            <DialogDescription>
+              Tùy biến trọng số công thức chấm điểm tương thích JD và hạn mức lưu trữ hồ sơ cho từng hạng tài khoản.
+            </DialogDescription>
+          </DialogHeader>
+
+          {loadingAts ? (
+            <div className="space-y-4 py-6">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          ) : atsRules ? (
+            <div className="space-y-4 text-xs py-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground">
+                    Trọng số Từ khóa chuyên môn (Keywords Weight %)
+                  </label>
+                  <Input
+                    type="number"
+                    value={atsRules.keyword_weight}
+                    onChange={(e) =>
+                      setAtsRules({ ...atsRules, keyword_weight: Number(e.target.value) })
+                    }
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Tỷ lệ % khớp kỹ năng yêu cầu trong JD (mặc định: 65%)
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground">
+                    Trọng số Định lượng số liệu (Metrics Weight %)
+                  </label>
+                  <Input
+                    type="number"
+                    value={atsRules.metrics_weight}
+                    onChange={(e) =>
+                      setAtsRules({ ...atsRules, metrics_weight: Number(e.target.value) })
+                    }
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Tỷ lệ % điểm cộng cho thành tích STAR có số liệu %, $, ms (mặc định: 30%)
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground">
+                    Điểm nền tảng bố cục (Base Score)
+                  </label>
+                  <Input
+                    type="number"
+                    value={atsRules.base_score}
+                    onChange={(e) =>
+                      setAtsRules({ ...atsRules, base_score: Number(e.target.value) })
+                    }
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Điểm cơ bản cho cấu trúc hợp lệ (mặc định: 5)
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground">
+                    Điểm tối thiểu đạt chuẩn (Min Passing Score)
+                  </label>
+                  <Input
+                    type="number"
+                    value={atsRules.min_passing_score}
+                    onChange={(e) =>
+                      setAtsRules({ ...atsRules, min_passing_score: Number(e.target.value) })
+                    }
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Ngưỡng điểm hiển thị huy hiệu xanh Vượt chuẩn ATS (mặc định: 70)
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground">
+                    Hạn mức lưu CV gói Pro
+                  </label>
+                  <Input
+                    type="number"
+                    value={atsRules.pro_cv_limit}
+                    onChange={(e) =>
+                      setAtsRules({ ...atsRules, pro_cv_limit: Number(e.target.value) })
+                    }
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Số lượng thẻ bài CV tối đa tài khoản Pro được lưu (mặc định: 5)
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground">
+                    Hạn mức lưu CV gói Miễn phí (Free)
+                  </label>
+                  <Input
+                    type="number"
+                    value={atsRules.free_cv_limit}
+                    onChange={(e) =>
+                      setAtsRules({ ...atsRules, free_cv_limit: Number(e.target.value) })
+                    }
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Số slot CV lưu trữ cho tài khoản Free (mặc định: 0)
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-semibold text-foreground">
+                  Động từ hành động chuẩn ATS (cách nhau bởi dấu phẩy)
+                </label>
+                <Input
+                  value={atsRules.standard_action_verbs?.join(", ") || ""}
+                  onChange={(e) =>
+                    setAtsRules({
+                      ...atsRules,
+                      standard_action_verbs: e.target.value
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean),
+                    })
+                  }
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-semibold text-foreground">
+                  Các mục thông tin bắt buộc (cách nhau bởi dấu phẩy)
+                </label>
+                <Input
+                  value={atsRules.required_sections?.join(", ") || ""}
+                  onChange={(e) =>
+                    setAtsRules({
+                      ...atsRules,
+                      required_sections: e.target.value
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean),
+                    })
+                  }
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAtsModal(false)}
+                  disabled={savingAts}
+                >
+                  Hủy
+                </Button>
+                <Button size="sm" onClick={handleSaveAtsRules} disabled={savingAts}>
+                  {savingAts ? "Đang lưu..." : "Lưu Thay Đổi"}
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </div>

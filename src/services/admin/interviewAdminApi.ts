@@ -64,4 +64,12 @@ export const interviewAdminApi = {
 
   getInterviewDetail: (sessionId: number) =>
     request<InterviewSessionDetailPage>(`/api/v1/admin/interviews/${sessionId}`),
+
+  reEvaluateInterview: (sessionId: number | string) =>
+    request<{ status: string; message: string; overall_score: number; evaluated_turns: number }>(
+      `/api/v1/admin/interviews/${sessionId}/re-evaluate`,
+      {
+        method: "POST",
+      },
+    ),
 };

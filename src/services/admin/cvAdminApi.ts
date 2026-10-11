@@ -33,6 +33,17 @@ export interface CvDocumentPage {
   offset: number;
 }
 
+export interface AtsRulesConfig {
+  keyword_weight: number;
+  metrics_weight: number;
+  base_score: number;
+  min_passing_score: number;
+  required_sections: string[];
+  standard_action_verbs: string[];
+  pro_cv_limit: number;
+  free_cv_limit: number;
+}
+
 export const cvAdminApi = {
   getCvs: (params?: {
     search?: string;
@@ -51,4 +62,14 @@ export const cvAdminApi = {
 
   getCvDetail: (cvId: number) =>
     request<CvDocumentDetailAdmin>(`/api/v1/admin/cvs/${cvId}`),
+
+  getAtsRules: () =>
+    request<AtsRulesConfig>("/api/v1/admin/ats-rules"),
+
+  updateAtsRules: (data: AtsRulesConfig) =>
+    request<AtsRulesConfig>("/api/v1/admin/ats-rules", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
 };
+

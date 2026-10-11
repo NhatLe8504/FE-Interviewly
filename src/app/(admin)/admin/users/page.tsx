@@ -22,7 +22,10 @@ import {
   ArrowUpDown,
   X,
   UserPlus,
+  Download,
+  Key,
 } from "lucide-react";
+import { adminUserService } from "@/services/admin/userApi";
 import {
   Table,
   TableHeader,
@@ -82,6 +85,67 @@ export default function AdminUsersPage() {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedUserForDetail, setSelectedUserForDetail] = useState<UserAdminOut | null>(null);
+
+  // Reset Password State
+  const [resetUser, setResetUser] = useState<UserAdminOut | null>(null);
+  const [customPassword, setCustomPassword] = useState("");
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleExportCsv = () => {
+    if (usersList.length === 0) {
+      toast.info("Không có dữ liệu người dùng để xuất.");
+      return;
+    }
+    const headers = "ID,Họ và tên,Email,Vai trò,Trạng thái,Ngày tạo\n";
+    const rows = usersList
+      .map(
+        (u) =>
+          `"${u.user_id}","${u.full_name || ""}","${u.email}","${u.role}","${u.status}","${u.created_at || ""}"`
+      )
+      .join("\n");
+    const blob = new Blob(["\uFEFF" + headers + rows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `interviewly_users_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Đã xuất danh sách người dùng thành công");
+  };
+
+  const handleOpenResetPassword = (user: UserAdminOut) => {
+    setResetUser(user);
+    setCustomPassword("");
+    setTempPassword(null);
+  };
+
+  const handleConfirmResetPassword = async () => {
+    if (!resetUser) return;
+    setIsResetting(true);
+    try {
+      const res = await adminUserService.resetPassword(
+        resetUser.user_id,
+        customPassword.trim() || undefined
+      );
+      setTempPassword(res.temporary_password || "Thành công");
+      toast.success("Đã đặt lại mật khẩu cho " + resetUser.email);
+    } catch (err: any) {
+      toast.error(err?.message || "Lỗi đặt lại mật khẩu");
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  const handleVerifyEmail = async (user: UserAdminOut) => {
+    try {
+      await adminUserService.verifyEmail(user.user_id);
+      toast.success("Đã xác minh email cho " + user.email);
+      refetch();
+    } catch (err: any) {
+      toast.error(err?.message || "Lỗi xác minh email");
+    }
+  };
 
   const [createForm, setCreateForm] = useState({
     full_name: "",
@@ -225,6 +289,16 @@ export default function AdminUsersPage() {
         >
           <RefreshCw className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} />
           <span>Làm mới</span>
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportCsv}
+          className="gap-1.5 text-xs"
+        >
+          <Download className="size-3.5" />
+          <span>Xuất CSV</span>
         </Button>
 
         <Button
@@ -601,11 +675,20 @@ export default function AdminUsersPage() {
                                   Khóa tài khoản
                                 </>
                               ) : (
-                                <>
+                                 <>
                                   <Unlock className="size-3.5 mr-2 text-emerald-500" />
                                   Mở khóa tài khoản
                                 </>
                               )}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleOpenResetPassword(user)}>
+                              <Key className="size-3.5 mr-2 text-primary" />
+                              Đặt lại mật khẩu
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleVerifyEmail(user)}>
+                              <CheckCircle2 className="size-3.5 mr-2 text-emerald-500" />
+                              Xác minh Email
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -896,6 +979,75 @@ export default function AdminUsersPage() {
             </DialogFooter>
           </DialogContent>
         )}
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={!!resetUser} onOpenChange={(open) => !open && setResetUser(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <Key className="size-4 text-primary" />
+              Đặt Lại Mật Khẩu
+            </DialogTitle>
+            <DialogDescription>
+              Cấp mật khẩu mới hoặc sinh mật khẩu tạm thời cho tài khoản {resetUser?.email}.
+            </DialogDescription>
+          </DialogHeader>
+
+          {tempPassword ? (
+            <div className="space-y-4 py-2">
+              <div className="p-3.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 space-y-1.5">
+                <div className="text-xs font-semibold flex items-center gap-1.5">
+                  <CheckCircle2 className="size-4 text-emerald-500" />
+                  Mật khẩu tạm thời đã được tạo:
+                </div>
+                <div className="p-2 bg-background rounded border font-mono font-bold text-sm text-foreground select-all text-center">
+                  {tempPassword}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Vui lòng sao chép và gửi mật khẩu này cho người dùng để họ có thể đăng nhập.
+                </p>
+              </div>
+
+              <DialogFooter>
+                <Button size="sm" onClick={() => setResetUser(null)}>
+                  Hoàn tất
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Mật khẩu mới tùy chọn (để trống để hệ thống tự sinh ngẫu nhiên):</Label>
+                <Input
+                  type="text"
+                  placeholder="Ví dụ: Abc@123456 hoặc để trống..."
+                  value={customPassword}
+                  onChange={(e) => setCustomPassword(e.target.value)}
+                  className="text-sm font-mono"
+                />
+              </div>
+
+              <DialogFooter className="gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setResetUser(null)}
+                  disabled={isResetting}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleConfirmResetPassword}
+                  disabled={isResetting}
+                >
+                  {isResetting ? "Đang xử lý..." : "Xác nhận đặt lại"}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
       </Dialog>
     </div>
   );
