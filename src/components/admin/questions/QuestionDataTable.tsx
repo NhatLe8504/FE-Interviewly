@@ -77,8 +77,7 @@ import {
   TabsTrigger,
 } from "@/components/admin/ui/tabs";
 import { toast } from "sonner";
-import type { AdminQuestionItem } from "@/mock/adminQuestionsMock";
-import { MOCK_DOMAINS_LIST, MOCK_ROLES_LIST } from "@/mock/adminQuestionsMock";
+import type { AdminQuestionItem } from "@/types/catalog";
 import { DEFAULT_RUBRIC_CRITERIA } from "@/services/catalogApi";
 
 export function QuestionDataTable({
@@ -115,11 +114,11 @@ export function QuestionDataTable({
   }, [initialDomainId]);
 
   const effectiveDomains = useMemo(() => {
-    return domainsList && domainsList.length > 0 ? domainsList : MOCK_DOMAINS_LIST;
+    return domainsList || [];
   }, [domainsList]);
 
   const effectiveRoles = useMemo(() => {
-    return rolesList && rolesList.length > 0 ? rolesList : MOCK_ROLES_LIST;
+    return rolesList || [];
   }, [rolesList]);
   const [selectedRole, setSelectedRole] = useState<string>("all");
   const [selectedLevel, setSelectedLevel] = useState<string>("all");

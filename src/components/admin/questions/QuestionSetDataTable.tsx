@@ -72,7 +72,6 @@ import {
 } from "@/components/admin/ui/sheet";
 import { toast } from "sonner";
 import type { QuestionSetItem } from "@/types/catalog";
-import { MOCK_DOMAINS_LIST } from "@/mock/adminQuestionsMock";
 
 export function QuestionSetDataTable({
   initialSets = [],
@@ -102,7 +101,7 @@ export function QuestionSetDataTable({
   }, [initialDomainId]);
 
   const effectiveDomains = React.useMemo(() => {
-    return domainsList && domainsList.length > 0 ? domainsList : MOCK_DOMAINS_LIST;
+    return domainsList || [];
   }, [domainsList]);
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [page, setPage] = useState(1);

@@ -357,3 +357,17 @@ export interface QuestionSetReviewsPage {
   total_reviews: number;
   reviews: QuestionSetReviewItem[];
 }
+
+export interface AdminQuestionItem extends QuestionDetailOut {
+  practice_count?: number;
+  avg_score?: number;
+  category?: string;
+  tags?: string[];
+}
+
+export interface QuestionDailyPoint {
+  date: string;
+  practiceSessions: number;
+  newQuestions: number;
+}
+
