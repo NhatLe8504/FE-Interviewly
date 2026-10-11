@@ -16,6 +16,7 @@ import {
   TrendingUp,
   MapPin,
   DollarSign,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -27,10 +28,74 @@ import { AdminEmptyState, AdminPageHeader, AdminStatCard } from "@/components/ad
 import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/admin/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/admin/ui/dialog";
 import { Input } from "@/components/admin/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/admin/ui/select";
 import { Skeleton } from "@/components/admin/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const getCompanyInitials = (name?: string | null) => {
+  if (!name) return "CT";
+  const words = name.trim().split(/\s+/);
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+};
+
+const getCompanyColor = (name?: string | null) => {
+  const colors = [
+    "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30",
+    "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
+    "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30",
+    "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+    "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
+    "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30",
+    "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/30",
+  ];
+  if (!name) return colors[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+};
+
+const renderSourceBadge = (sourceId?: string, sourceName?: string | null) => {
+  const s = (sourceId || "").toLowerCase();
+  if (s.includes("itviec")) {
+    return (
+      <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30 text-[11px] font-semibold gap-1">
+        <span className="size-1.5 rounded-full bg-red-500" />
+        ITViec
+      </Badge>
+    );
+  }
+  if (s.includes("topcv")) {
+    return (
+      <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-semibold gap-1">
+        <span className="size-1.5 rounded-full bg-emerald-500" />
+        TopCV
+      </Badge>
+    );
+  }
+  if (s.includes("vietnamworks")) {
+    return (
+      <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-[11px] font-semibold gap-1">
+        <span className="size-1.5 rounded-full bg-blue-500" />
+        VietnamWorks
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className="text-xs font-semibold capitalize">
+      {sourceName || sourceId || "Crawler"}
+    </Badge>
+  );
+};
 
 export function AdminJobsClient() {
   const [jobs, setJobs] = useState<JobPostingAdmin[]>([]);
@@ -44,6 +109,9 @@ export function AdminJobsClient() {
   // Filters
   const [sourceFilter, setSourceFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Detail Modal State
+  const [selectedJobForDetail, setSelectedJobForDetail] = useState<JobPostingAdmin | null>(null);
 
   const fetchJobs = useCallback(async () => {
     setLoadingJobs(true);
@@ -268,7 +336,7 @@ export function AdminJobsClient() {
                         <th className="py-3 px-3">Địa điểm</th>
                         <th className="py-3 px-3">Ngày cào</th>
                         <th className="py-3 px-3 text-center">Trạng thái</th>
-                        <th className="py-3 px-3 text-right">Xem gốc</th>
+                        <th className="py-3 px-3 text-right">Thao tác</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/50">
@@ -283,23 +351,40 @@ export function AdminJobsClient() {
                             </div>
                           </td>
                           <td className="py-3 px-3">
-                            <div className="flex items-center gap-2">
-                              <Building2 className="size-3.5 text-muted-foreground shrink-0" />
-                              <span className="font-medium text-xs">{job.company_name}</span>
+                            <div className="flex items-center gap-2.5">
+                              {job.company_logo ? (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img
+                                  src={job.company_logo}
+                                  alt={job.company_name || ""}
+                                  className="size-8 rounded-lg object-contain border bg-white p-0.5 shrink-0"
+                                />
+                              ) : (
+                                <div className={`size-8 rounded-lg border flex items-center justify-center font-bold text-xs shrink-0 ${getCompanyColor(job.company_name)}`}>
+                                  {getCompanyInitials(job.company_name)}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <div className="font-semibold text-xs text-foreground truncate max-w-[150px]">
+                                  {job.company_name || "Doanh nghiệp ẩn danh"}
+                                </div>
+                                <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                  <MapPin className="size-2.5" />
+                                  <span className="truncate max-w-[140px]">{job.location || "Toàn quốc"}</span>
+                                </div>
+                              </div>
                             </div>
                           </td>
                           <td className="py-3 px-3">
-                            <Badge variant="outline" className="text-xs font-semibold capitalize">
-                              {job.source_name || job.source_id}
-                            </Badge>
+                            {renderSourceBadge(job.source_id, job.source_name)}
                           </td>
                           <td className="py-3 px-3 text-xs text-foreground font-medium">
-                            {job.salary_text}
+                            {job.salary_text || "Thỏa thuận"}
                           </td>
                           <td className="py-3 px-3 text-xs text-muted-foreground">
-                            {job.location}
+                            {job.location || "Toàn quốc"}
                           </td>
-                          <td className="py-3 px-3 text-xs text-muted-foreground">
+                          <td className="py-3 px-3 text-xs text-muted-foreground whitespace-nowrap">
                             {new Date(job.created_at).toLocaleDateString("vi-VN")}
                           </td>
                           <td className="py-3 px-3 text-center">
@@ -322,16 +407,25 @@ export function AdminJobsClient() {
                             </button>
                           </td>
                           <td className="py-3 px-3 text-right">
-                            {job.url ? (
-                              <Button variant="ghost" size="sm" asChild className="h-8 px-2 text-xs">
-                                <a href={job.url} target="_blank" rel="noopener noreferrer">
-                                  <ExternalLink className="size-3.5 mr-1" />
-                                  Link JD
-                                </a>
+                            <div className="inline-flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-xs"
+                                onClick={() => setSelectedJobForDetail(job)}
+                                title="Xem chi tiết JD công việc"
+                              >
+                                <Eye className="size-3.5 mr-1" />
+                                Chi tiết
                               </Button>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
+                              {job.url && (
+                                <Button variant="outline" size="sm" asChild className="h-8 px-2 text-xs">
+                                  <a href={job.url} target="_blank" rel="noopener noreferrer" title="Mở trang gốc">
+                                    <ExternalLink className="size-3.5" />
+                                  </a>
+                                </Button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -419,6 +513,158 @@ export function AdminJobsClient() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Job Detail Dialog */}
+      <Dialog
+        open={selectedJobForDetail !== null}
+        onOpenChange={(open) => !open && setSelectedJobForDetail(null)}
+      >
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          {selectedJobForDetail && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <DialogTitle className="text-lg font-bold">
+                      {selectedJobForDetail.title}
+                    </DialogTitle>
+                    <DialogDescription className="flex items-center gap-2 pt-0.5">
+                      <span>ID: #{selectedJobForDetail.job_id}</span>
+                      <span>•</span>
+                      {renderSourceBadge(
+                        selectedJobForDetail.source_id,
+                        selectedJobForDetail.source_name,
+                      )}
+                    </DialogDescription>
+                  </div>
+                  <div>
+                    {selectedJobForDetail.is_active ? (
+                      <Badge className="bg-emerald-500/15 text-emerald-600 border-none text-xs">
+                        <CheckCircle2 className="size-3 mr-1" />
+                        Đang hiển thị
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs text-muted-foreground">
+                        <XCircle className="size-3 mr-1" />
+                        Đang ẩn
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-4 pt-2">
+                {/* Company card banner */}
+                <div className="p-3.5 rounded-xl border bg-muted/30 flex items-center gap-3">
+                  {selectedJobForDetail.company_logo ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={selectedJobForDetail.company_logo}
+                      alt={selectedJobForDetail.company_name || ""}
+                      className="size-12 rounded-lg object-contain border bg-white p-1 shrink-0"
+                    />
+                  ) : (
+                    <div
+                      className={`size-12 rounded-lg border flex items-center justify-center font-bold text-base shrink-0 ${getCompanyColor(
+                        selectedJobForDetail.company_name,
+                      )}`}
+                    >
+                      {getCompanyInitials(selectedJobForDetail.company_name)}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-bold text-sm text-foreground">
+                      {selectedJobForDetail.company_name || "Doanh nghiệp ẩn danh"}
+                    </h4>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1">
+                      <span className="flex items-center gap-1">
+                        <MapPin className="size-3 text-primary" />
+                        {selectedJobForDetail.location || "Toàn quốc"}
+                      </span>
+                      <span className="flex items-center gap-1 font-semibold text-foreground">
+                        <DollarSign className="size-3 text-emerald-500" />
+                        {selectedJobForDetail.salary_text || "Thỏa thuận"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Key metadata grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 rounded-lg border bg-card text-xs">
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Nguồn thu thập</span>
+                    <strong className="text-foreground capitalize">
+                      {selectedJobForDetail.source_name || selectedJobForDetail.source_id}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Ngày cào dữ liệu</span>
+                    <strong className="text-foreground">
+                      {new Date(selectedJobForDetail.created_at).toLocaleString("vi-VN")}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Trạng thái kho tin</span>
+                    <strong className="text-foreground">
+                      {selectedJobForDetail.is_active ? "Sẵn sàng phỏng vấn" : "Tạm ngưng"}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* Usage notice in system */}
+                <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-900 dark:text-blue-200 space-y-1">
+                  <div className="font-semibold flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
+                    <Briefcase className="size-3.5" />
+                    Ứng dụng trong Hệ Thống Phỏng Vấn AI
+                  </div>
+                  <p className="leading-relaxed text-[11px]">
+                    Tin tuyển dụng này được AI sử dụng để tự động phân tích Job Description (JD), trích xuất bộ từ khóa kỹ năng, và mô phỏng buổi phỏng vấn sát với yêu cầu thực tế của doanh nghiệp.
+                  </p>
+                </div>
+              </div>
+
+              <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    handleToggleJobStatus(selectedJobForDetail);
+                    setSelectedJobForDetail((prev) =>
+                      prev ? { ...prev, is_active: !prev.is_active } : null,
+                    );
+                  }}
+                  className="w-full sm:w-auto text-xs"
+                >
+                  {selectedJobForDetail.is_active ? (
+                    <>
+                      <XCircle className="size-3.5 mr-1.5 text-rose-500" />
+                      Ẩn khỏi hệ thống
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="size-3.5 mr-1.5 text-emerald-500" />
+                      Kích hoạt hiển thị
+                    </>
+                  )}
+                </Button>
+
+                {selectedJobForDetail.url && (
+                  <Button asChild size="sm" className="w-full sm:w-auto text-xs">
+                    <a
+                      href={selectedJobForDetail.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="size-3.5 mr-1.5" />
+                      Mở liên kết JD gốc
+                    </a>
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
