@@ -2,20 +2,22 @@
   position: relative;
   width: 100%;
   margin-top: 14px;
-  padding: 12px 14px 16px;
+  padding: 12px 12px 16px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(28px) saturate(200%);
   -webkit-backdrop-filter: blur(28px) saturate(200%);
   border: 1px solid rgba(255, 255, 255, 0.95);
   box-shadow: 0 16px 36px -10px rgba(84, 50, 27, 0.12), 0 2px 6px rgba(84, 50, 27, 0.04);
+  overflow: visible;
 }
 
 .deckHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  padding: 0 2px;
 }
 
 .deckTitle {
@@ -69,58 +71,69 @@
   background: rgba(217, 130, 54, 0.08);
 }
 
-/* FANNED CARDS VIEWPORT */
+/* FANNED VIEWPORT — ĐỦ RỘNG ĐỂ CHỨA CẢ 5 LÁ BÀI DÀN ĐỀU */
 .fanViewport {
   position: relative;
-  height: 145px;
+  height: 160px;
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  perspective: 900px;
-  margin-top: 4px;
+  display: block;
+  overflow: visible;
+  padding-top: 10px;
 }
 
-/* INDIVIDUAL FAN CARD */
+/* INDIVIDUAL FAN CARD — HOÀN TOÀN ĐẶC (OPAQUE 100%) KHÔNG XUYÊN THẤU */
 .fanCard {
   position: absolute;
-  bottom: 8px;
-  width: 145px;
-  height: 120px;
-  padding: 10px 12px;
+  bottom: 6px;
+  width: 124px;
+  height: 136px;
+  padding: 10px 10px 8px;
   border-radius: 14px;
-  background: #ffffff;
-  border: 1.5px solid var(--border-subtle);
-  box-shadow: 0 10px 24px -6px rgba(84, 50, 27, 0.18), 0 2px 6px rgba(84, 50, 27, 0.04);
+  background: #ffffff !important;
+  opacity: 1 !important;
+  border: 1.5px solid rgba(106, 72, 49, 0.18);
+  box-shadow: 0 10px 22px -6px rgba(45, 31, 23, 0.2), 0 2px 5px rgba(45, 31, 23, 0.06);
   cursor: pointer;
   transform-origin: bottom center;
   transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
     box-shadow 0.28s ease,
     border-color 0.28s ease,
-    z-index 0.1s;
+    z-index 0.05s;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   user-select: none;
+  box-sizing: border-box;
 }
 
 .fanCard:hover {
-  transform: translateY(-24px) scale(1.14) rotate(0deg) !important;
-  z-index: 60 !important;
+  transform: translateY(-28px) scale(1.12) rotate(0deg) !important;
+  z-index: 100 !important;
   border-color: var(--accent-warm);
-  box-shadow: 0 22px 40px -8px rgba(84, 50, 27, 0.32), 0 4px 10px rgba(84, 50, 27, 0.08);
+  box-shadow: 0 24px 44px -8px rgba(45, 31, 23, 0.35), 0 4px 10px rgba(45, 31, 23, 0.1);
 }
 
+/* THẺ ĐANG ĐƯỢC CHỌN (ACTIVE) */
 .cardActive {
-  border-color: var(--accent-deep);
-  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 248, 238, 0.9) 100%);
-  box-shadow: 0 12px 28px -4px rgba(217, 130, 54, 0.28), 0 0 0 2px rgba(217, 130, 54, 0.4);
+  border-color: var(--accent-deep) !important;
+  box-shadow: 0 12px 28px -4px rgba(217, 130, 54, 0.35), 0 0 0 2px rgba(217, 130, 54, 0.6) !important;
 }
 
+.cardActiveIndicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-warm);
+  box-shadow: 0 0 0 2px rgba(217, 130, 54, 0.25);
+  display: inline-block;
+  margin-right: 3px;
+}
+
+/* THẺ TRỐNG */
 .cardEmpty {
-  background: rgba(250, 249, 245, 0.8);
-  border: 1.5px dashed rgba(106, 72, 49, 0.25);
-  box-shadow: 0 4px 14px -4px rgba(84, 50, 27, 0.08);
+  background: #faf8f5 !important;
+  border: 1.5px dashed rgba(106, 72, 49, 0.28) !important;
+  box-shadow: 0 4px 12px -4px rgba(45, 31, 23, 0.08) !important;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -130,31 +143,33 @@
 }
 
 .cardEmpty:hover {
-  border-color: var(--accent-deep);
-  color: var(--accent-deep);
-  background: rgba(255, 248, 238, 0.95);
+  border-color: var(--accent-deep) !important;
+  color: var(--accent-deep) !important;
+  background: #fffdfa !important;
 }
 
 .cardHeader {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 4px;
+  gap: 2px;
 }
 
 .cardSlotNum {
   font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--accent-deep);
   text-transform: uppercase;
+  display: flex;
+  align-items: center;
 }
 
 .cardDeleteBtn {
   opacity: 0;
   transition: opacity 0.2s ease, transform 0.2s ease;
   padding: 3px;
-  border-radius: 6px;
+  border-radius: 5px;
   border: none;
   background: rgba(239, 68, 68, 0.12);
   color: #b91c1c;
@@ -180,7 +195,7 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin-top: 2px;
+  margin: 4px 0 auto;
 }
 
 .cardFooter {
@@ -189,8 +204,9 @@
   justify-content: space-between;
   font-size: 9px;
   color: var(--text-secondary);
-  border-top: 1px solid rgba(106, 72, 49, 0.08);
+  border-top: 1px solid rgba(106, 72, 49, 0.1);
   padding-top: 4px;
+  margin-top: 4px;
 }
 
 .cardAtsBadge {
@@ -199,13 +215,14 @@
   display: flex;
   align-items: center;
   gap: 2px;
+  font-size: 9px;
 }
 
 .cardTemplateTag {
   text-transform: capitalize;
   color: var(--text-secondary);
-  font-size: 9px;
-  max-width: 60px;
+  font-size: 8.5px;
+  max-width: 62px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -216,7 +233,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-top: 6px;
+  margin-top: 4px;
   max-height: 200px;
   overflow-y: auto;
   padding-right: 2px;
@@ -294,7 +311,7 @@
   position: absolute;
   inset: 0;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   display: flex;

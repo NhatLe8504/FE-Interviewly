@@ -26,13 +26,13 @@ interface CvCardDeckProps {
 
 const MAX_SLOTS = 5;
 
-// Rotation and offset calculation for 5 fanned cards
-const FAN_TRANSFORMS = [
-  { rotate: -15, x: -44, y: 8, z: 1 },
-  { rotate: -7.5, x: -22, y: 2, z: 2 },
-  { rotate: 0, x: 0, y: 0, z: 3 },
-  { rotate: 7.5, x: 22, y: 2, z: 4 },
-  { rotate: 15, x: 44, y: 8, z: 5 },
+// Tọa độ & góc xoay quạt tinh tế cho 5 lá bài (xòe đều, không nghiêng ngả lộn xộn)
+const FAN_CARDS_LAYOUT = [
+  { left: 10, rotate: -7, y: 5, z: 1 },
+  { left: 50, rotate: -3.5, y: 2, z: 2 },
+  { left: 90, rotate: 0, y: 0, z: 3 },
+  { left: 130, rotate: 3.5, y: 2, z: 4 },
+  { left: 170, rotate: 7, y: 5, z: 5 },
 ];
 
 export const CvCardDeck: React.FC<CvCardDeckProps> = ({
@@ -47,7 +47,7 @@ export const CvCardDeck: React.FC<CvCardDeckProps> = ({
   const [viewMode, setViewMode] = useState<"fan" | "list">("fan");
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
-  // Tạo mảng đúng 5 slot
+  // Tạo mảng đúng 5 slot cố định
   const slots: (CvListItem | null)[] = Array.from({ length: MAX_SLOTS }, (_, i) => {
     return cvList[i] || null;
   });
@@ -86,20 +86,23 @@ export const CvCardDeck: React.FC<CvCardDeckProps> = ({
         </button>
       </div>
 
-      {/* VIEW: FANNED CARDS */}
+      {/* VIEW: FANNED CARDS (BỘ BÀI XÒE ĐỀU HÌNH CÁNH QUẠT) */}
       {viewMode === "fan" ? (
         <div className={s.fanViewport}>
           {slots.map((item, idx) => {
-            const transform = FAN_TRANSFORMS[idx] || { rotate: 0, x: 0, y: 0, z: idx + 1 };
+            const layout = FAN_CARDS_LAYOUT[idx] || { left: idx * 40, rotate: 0, y: 0, z: idx + 1 };
             const isActive = item ? item.id === currentCvId : false;
             const isHovered = hoveredIdx === idx;
 
-            // Tính toán inline transform cho lá bài xòe ra
+            // Tính inline style cho lá bài:
+            // - Khi hover: bay thẳng lên trên, không nghiêng, phóng to nhẹ, z-index cao nhất
+            // - Khi bình thường: dàn đều sang phải, góc xoay nhẹ thanh lịch
             const cardStyle: React.CSSProperties = {
+              left: `${layout.left}px`,
               transform: isHovered
-                ? `translateY(-24px) scale(1.14) rotate(0deg)`
-                : `translateX(${transform.x}px) translateY(${transform.y}px) rotate(${transform.rotate}deg)`,
-              zIndex: isHovered ? 60 : isActive ? 20 : transform.z,
+                ? `translateY(-28px) scale(1.12) rotate(0deg)`
+                : `translateY(${layout.y}px) rotate(${layout.rotate}deg)`,
+              zIndex: isHovered ? 100 : isActive ? 20 : layout.z,
             };
 
             if (item) {
@@ -111,10 +114,13 @@ export const CvCardDeck: React.FC<CvCardDeckProps> = ({
                   onMouseEnter={() => setHoveredIdx(idx)}
                   onMouseLeave={() => setHoveredIdx(null)}
                   onClick={() => onSelectCv(item.id)}
-                  title={`Nhấp để mở: ${item.title || "CV"}`}
+                  title={`Bấm để mở: ${item.title || "CV"}`}
                 >
                   <div className={s.cardHeader}>
-                    <span className={s.cardSlotNum}>Slot #{idx + 1}</span>
+                    <span className={s.cardSlotNum}>
+                      {isActive && <span className={s.cardActiveIndicator} />}
+                      #{idx + 1}
+                    </span>
                     <button
                       type="button"
                       onClick={(e) => {
@@ -142,17 +148,17 @@ export const CvCardDeck: React.FC<CvCardDeckProps> = ({
                         {Math.round(item.ats_score)}%
                       </span>
                     ) : (
-                      <span style={{ color: "var(--ink-muted)" }}>Draft</span>
+                      <span style={{ color: "var(--ink-muted)", fontSize: 8.5 }}>Draft</span>
                     )}
                   </div>
                 </div>
               );
             }
 
-            // SLOT TRỐNG
+            // LÁ BÀI SLOT TRỐNG
             return (
               <div
-                key={`empty-${idx}`}
+                key={`empty-slot-${idx}`}
                 style={cardStyle}
                 className={`${s.fanCard} ${s.cardEmpty}`}
                 onMouseEnter={() => setHoveredIdx(idx)}
@@ -166,9 +172,18 @@ export const CvCardDeck: React.FC<CvCardDeckProps> = ({
                 }}
                 title="Tạo bản CV mới vào slot này"
               >
-                <Plus style={{ width: 18, height: 18, strokeWidth: 2.2 }} />
-                <span style={{ fontSize: 10, fontWeight: 700 }}>Slot #{idx + 1}</span>
-                <span style={{ fontSize: 9, opacity: 0.7 }}>+ Tạo mới</span>
+                <div className={s.cardHeader} style={{ width: "100%", justifyContent: "flex-start" }}>
+                  <span className={s.cardSlotNum} style={{ color: "var(--ink-muted)" }}>
+                    #{idx + 1}
+                  </span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, margin: "auto 0" }}>
+                  <Plus style={{ width: 18, height: 18, strokeWidth: 2.2, color: "var(--accent-warm)" }} />
+                  <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--ink-muted)" }}>Slot trống</span>
+                </div>
+                <div className={s.cardFooter} style={{ width: "100%", justifyContent: "center" }}>
+                  <span style={{ fontSize: 8.5, color: "var(--accent-deep)", fontWeight: 600 }}>+ Tạo mới</span>
+                </div>
               </div>
             );
           })}
@@ -186,7 +201,7 @@ export const CvCardDeck: React.FC<CvCardDeckProps> = ({
                   className={`${s.listItem} ${isActive ? s.listItemActive : ""}`}
                 >
                   <div className={s.listItemLeft}>
-                    <FileText style={{ width: 14, height: 14, color: "var(--accent-deep)", shrink: 0 }} />
+                    <FileText style={{ width: 14, height: 14, color: "var(--accent-deep)", flexShrink: 0 }} />
                     <div style={{ minWidth: 0 }}>
                       <div className={s.listItemTitle}>
                         #{idx + 1}. {item.title || "CV Không tên"}
@@ -233,7 +248,7 @@ export const CvCardDeck: React.FC<CvCardDeckProps> = ({
         </div>
       )}
 
-      {/* OVERLAY KHÓA DÀNH CHO TÀI KHOẢN FREE */}
+      {/* OVERLAY KHÓA CHO TÀI KHOẢN FREE */}
       {!isSubscribed && (
         <div className={s.lockOverlay}>
           <div className={s.lockIconWrap}>
