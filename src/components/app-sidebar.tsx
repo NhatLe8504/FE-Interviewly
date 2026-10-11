@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import * as React from "react"
 import Link from "next/link"
@@ -31,6 +31,8 @@ import {
   GlobeIcon,
   CompassIcon,
   GraduationCapIcon,
+  BriefcaseIcon,
+  TargetIcon,
 } from "lucide-react"
 
 const data = {
@@ -76,9 +78,19 @@ const data = {
       icon: <CompassIcon />,
     },
     {
-      title: "Ngành nghề & Vai trò",
+      title: "Ngành nghề & Lĩnh vực",
       url: "/admin/domains",
       icon: <FolderTreeIcon />,
+    },
+    {
+      title: "Vị trí tuyển dụng",
+      url: "/admin/roles",
+      icon: <BriefcaseIcon />,
+    },
+    {
+      title: "Khung mẫu STAR",
+      url: "/admin/star-templates",
+      icon: <TargetIcon />,
     },
     {
       title: "Kiểm duyệt nội dung",

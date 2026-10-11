@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
+import { AdminStarTemplatesClient } from "./AdminStarTemplatesClient";
 
 export const metadata: Metadata = {
-  title: "STAR Templates | Interviewly",
-  description: "Manage Situation, Task, Action, Result guidance templates.",
+  title: "Khung Hướng Dẫn STAR | Interviewly Admin",
+  description: "Quản trị các khung mẫu trả lời STAR (Situation, Task, Action, Result).",
 };
 
 export default function AdminStarTemplatesPage() {
-  return (
-    <main>
-      <h1>STAR Templates</h1>
-      <p>Manage Situation, Task, Action, Result guidance templates.</p>
-    </main>
-  );
+  return <AdminStarTemplatesClient />;
 }
