@@ -183,6 +183,32 @@ export function AdminStarTemplatesClient() {
         </div>
       </AdminPageHeader>
 
+      {/* Architecture & Scope Banner */}
+      <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-900/40 dark:bg-blue-950/20">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="flex size-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold">
+                ℹ
+              </span>
+              <h3 className="text-sm font-semibold text-blue-950 dark:text-blue-100">
+                Phạm Vi Áp Dụng & Bản Chất Khung STAR trong Hệ Thống
+              </h3>
+            </div>
+            <p className="text-xs text-blue-900/80 dark:text-blue-200/80 leading-relaxed max-w-4xl">
+              • <strong>Chỉ dành cho Câu hỏi Hành vi (Behavioral Questions):</strong> Khung STAR (Tình huống - Nhiệm vụ - Hành động - Kết quả) là tiêu chuẩn phỏng vấn quốc tế nhằm hướng dẫn ứng viên chia sẻ kinh nghiệm xử lý xung đột, áp lực và lãnh đạo.
+              <br />
+              • <strong>Không ép buộc với Câu hỏi Kỹ thuật (Technical / System Design):</strong> Các câu hỏi chuyên môn lập trình, kiến trúc hệ thống và trắc nghiệm được AI đánh giá trực tiếp theo độ chính xác kỹ thuật mà không gán khung STAR (trường <code>star_template_id</code> được thiết kế <code>NULL</code>).
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge variant="outline" className="border-blue-300 text-blue-800 dark:border-blue-800 dark:text-blue-300 bg-white/60 dark:bg-blue-950/40 text-xs">
+              Mô hình Tùy chọn (Optional)
+            </Badge>
+          </div>
+        </div>
+      </div>
+
       {/* Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <AdminStatCard
