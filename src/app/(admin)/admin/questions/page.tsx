@@ -10,13 +10,8 @@ import {
   QuestionSetDataTable,
 } from "@/components/admin/questions";
 import {
-  MOCK_ADMIN_QUESTIONS,
-  MOCK_QUESTION_STATS,
   generateQuestionsChartData,
-  MOCK_DOMAINS_LIST,
-  MOCK_ROLES_LIST,
 } from "@/mock/adminQuestionsMock";
-import { MOCK_QUESTION_SETS } from "@/mock/questionSetsMock";
 import { questionAdminApi } from "@/services/admin/questionAdminApi";
 import {
   Layers,
@@ -54,10 +49,10 @@ function AdminQuestionsContent() {
   const [chartData, setChartData] = useState(() => generateQuestionsChartData());
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const [questions, setQuestions] = useState<any[]>(MOCK_ADMIN_QUESTIONS);
-  const [questionSets, setQuestionSets] = useState<any[]>(MOCK_QUESTION_SETS);
-  const [domains, setDomains] = useState<DomainOut[]>(MOCK_DOMAINS_LIST as any[]);
-  const [roles, setRoles] = useState<RoleOut[]>(MOCK_ROLES_LIST as any[]);
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [questionSets, setQuestionSets] = useState<any[]>([]);
+  const [domains, setDomains] = useState<DomainOut[]>([]);
+  const [roles, setRoles] = useState<RoleOut[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Sync active tab with URL query parameter
@@ -75,22 +70,14 @@ function AdminQuestionsContent() {
       const [qRes, setsRes, domainsRes, rolesRes] = await Promise.all([
         questionAdminApi.getQuestions({ limit: 100 }),
         questionAdminApi.getQuestionSets({ limit: 100 }),
-        questionAdminApi.getDomains().catch(() => MOCK_DOMAINS_LIST as any[]),
-        questionAdminApi.getRoles().catch(() => MOCK_ROLES_LIST as any[]),
+        questionAdminApi.getDomains().catch(() => []),
+        questionAdminApi.getRoles().catch(() => []),
       ]);
 
-      if (qRes && Array.isArray(qRes.items) && qRes.items.length > 0) {
-        setQuestions(qRes.items);
-      }
-      if (setsRes && Array.isArray(setsRes.items) && setsRes.items.length > 0) {
-        setQuestionSets(setsRes.items);
-      }
-      if (domainsRes && Array.isArray(domainsRes) && domainsRes.length > 0) {
-        setDomains(domainsRes);
-      }
-      if (rolesRes && Array.isArray(rolesRes) && rolesRes.length > 0) {
-        setRoles(rolesRes);
-      }
+      setQuestions(qRes?.items || []);
+      setQuestionSets(setsRes?.items || []);
+      setDomains(domainsRes || []);
+      setRoles(rolesRes || []);
     } catch (err) {
       console.warn("Failed to load questions catalog from DB:", err);
     } finally {
@@ -173,7 +160,7 @@ function AdminQuestionsContent() {
       totalQuestions: totalQ,
       approvedCount: approvedQ,
       pendingCount: pendingQ,
-      totalPracticeSessions: totalPractice || 5420,
+      totalPracticeSessions: totalPractice,
       starCoverageRate: starRate,
     };
   }, [scopedQuestions, scopedQuestionSets]);
