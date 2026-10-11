@@ -1,5 +1,4 @@
-﻿export * from "./types";
-export * from "./mockData";
+export * from "./types";
 export * from "./BrandLogos";
 export * from "./OnboardingSectionCards";
 export * from "./OnboardingStatsSection";

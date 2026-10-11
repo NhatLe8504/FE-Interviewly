@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useMemo } from "react";
 import {
@@ -6,12 +6,6 @@ import {
   OnboardingStatsSection,
   AcquisitionChannelsSection,
   OnboardedUsersTable,
-  MOCK_ONBOARDING_SUMMARY,
-  MOCK_DOMAIN_STATS,
-  MOCK_ROLE_STATS,
-  MOCK_LEVEL_STATS,
-  MOCK_ACQUISITION_CHANNELS,
-  MOCK_ONBOARDED_USERS,
 } from "@/components/admin/onboarding";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,45 +24,38 @@ export function OnboardingAdminClient() {
   });
 
   const summary = useMemo(() => {
-    if (apiData?.summary && apiData.summary.total_users_completed > 0) {
-      return apiData.summary;
-    }
-    return MOCK_ONBOARDING_SUMMARY;
+    return (
+      apiData?.summary || {
+        total_users_started: 0,
+        total_users_completed: 0,
+        overall_completion_rate: 0,
+        avg_time_seconds: 0,
+        top_domain_name: "Chưa có",
+        top_domain_percentage: 0,
+        top_acquisition_channel: "Chưa có",
+        top_channel_percentage: 0,
+      }
+    );
   }, [apiData]);
 
   const channels = useMemo(() => {
-    if (apiData?.channels && apiData.channels.length > 0) {
-      return apiData.channels;
-    }
-    return MOCK_ACQUISITION_CHANNELS;
+    return apiData?.channels || [];
   }, [apiData]);
 
   const domains = useMemo(() => {
-    if (apiData?.domains && apiData.domains.length > 0) {
-      return apiData.domains;
-    }
-    return MOCK_DOMAIN_STATS;
+    return apiData?.domains || [];
   }, [apiData]);
 
   const roles = useMemo(() => {
-    if (apiData?.roles && apiData.roles.length > 0) {
-      return apiData.roles;
-    }
-    return MOCK_ROLE_STATS;
+    return apiData?.roles || [];
   }, [apiData]);
 
   const levels = useMemo(() => {
-    if (apiData?.levels && apiData.levels.length > 0) {
-      return apiData.levels;
-    }
-    return MOCK_LEVEL_STATS;
+    return apiData?.levels || [];
   }, [apiData]);
 
   const candidates = useMemo(() => {
-    if (apiData?.candidates && apiData.candidates.length > 0) {
-      return apiData.candidates;
-    }
-    return MOCK_ONBOARDED_USERS;
+    return apiData?.candidates || [];
   }, [apiData]);
 
   const handleRefresh = () => {
