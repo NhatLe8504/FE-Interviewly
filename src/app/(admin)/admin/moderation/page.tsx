@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
+import { AdminModerationClient } from "./AdminModerationClient";
 
 export const metadata: Metadata = {
-  title: "Moderation | Interviewly",
-  description: "Review queue: approve, remove, or suspend flagged content.",
+  title: "Kiểm Duyệt Nội Dung | Interviewly Admin",
+  description: "Hàng đợi kiểm duyệt và xử lý vi phạm nội dung người dùng.",
 };
 
 export default function AdminModerationPage() {
-  return (
-    <main>
-      <h1>Moderation</h1>
-      <p>Review queue: approve, remove, or suspend flagged content.</p>
-    </main>
-  );
+  return <AdminModerationClient />;
 }

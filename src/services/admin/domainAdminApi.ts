@@ -172,4 +172,19 @@ export const domainAdminApi = {
       body: JSON.stringify({ is_active: isActive }),
     });
   },
+
+  async deleteRole(roleId: number) {
+    return request<void>(`/api/v1/admin/roles/${roleId}`, {
+      method: "DELETE",
+    });
+  },
+
+  async getRoles(domainId?: number, status: CatalogStatusFilter = "all") {
+    const sp = new URLSearchParams();
+    if (domainId) sp.set("domain_id", String(domainId));
+    if (status) sp.set("status", status);
+    const qs = sp.toString() ? `?${sp.toString()}` : "";
+    return request<RoleAdminSummary[]>(`/api/v1/admin/roles${qs}`);
+  },
 };
+

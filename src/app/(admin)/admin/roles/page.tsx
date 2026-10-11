@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
+import { AdminRolesClient } from "./AdminRolesClient";
 
 export const metadata: Metadata = {
-  title: "Job Roles | Interviewly",
-  description: "Manage job roles by domain.",
+  title: "Quản lý Vị Trí Tuyển Dụng | Interviewly Admin",
+  description: "Quản trị danh mục vị trí việc làm theo từng ngành nghề.",
 };
 
 export default function AdminRolesPage() {
-  return (
-    <main>
-      <h1>Job Roles</h1>
-      <p>Manage job roles by domain.</p>
-    </main>
-  );
+  return <AdminRolesClient />;
 }
