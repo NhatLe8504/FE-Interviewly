@@ -15,6 +15,8 @@ import {
   FolderKanban,
   CheckCircle2,
   SlidersHorizontal,
+  Printer,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -24,6 +26,7 @@ import {
   type AtsRulesConfig,
 } from "@/services/admin/cvAdminApi";
 import { AdminEmptyState, AdminPageHeader, AdminStatCard } from "@/components/admin";
+import { Avatar, AvatarFallback } from "@/components/admin/ui/avatar";
 import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/admin/ui/card";
@@ -31,6 +34,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/admin/ui/dialog";
@@ -38,12 +42,42 @@ import { Input } from "@/components/admin/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/admin/ui/select";
 import { Skeleton } from "@/components/admin/ui/skeleton";
 
+const TEMPLATE_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
+  modern_tech: { label: "Modern Tech", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30", icon: Sparkles },
+  executive: { label: "Executive Leader", color: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/30", icon: Award },
+  creative: { label: "Creative Designer", color: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30", icon: Layers },
+  minimalist: { label: "Minimal Clean", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30", icon: FileText },
+  academic: { label: "Academic Scholar", color: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30", icon: GraduationCap },
+};
+
 const TEMPLATE_NAMES: Record<string, string> = {
   modern_tech: "Modern Tech",
   executive: "Executive Leader",
   creative: "Creative Designer",
   minimalist: "Minimal Clean",
   academic: "Academic Scholar",
+};
+
+const getInitials = (name?: string | null) => {
+  if (!name) return "UV";
+  const words = name.trim().split(/\s+/);
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+};
+
+const getAvatarColor = (name?: string | null) => {
+  const colors = [
+    "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
+    "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
+    "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30",
+    "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+    "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
+    "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30",
+  ];
+  if (!name) return colors[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
 };
 
 export function AdminCvManagerClient() {
@@ -252,16 +286,40 @@ export function AdminCvManagerClient() {
                         #{cv.id}
                       </td>
                       <td className="py-3 px-3">
-                        <div className="font-medium text-foreground">{cv.user_name || "Ứng viên"}</div>
-                        <div className="text-xs text-muted-foreground">{cv.user_email || `ID: ${cv.user_id}`}</div>
+                        <div className="flex items-center gap-2.5">
+                          <Avatar className={`size-8 border shrink-0 ${getAvatarColor(cv.user_name)}`}>
+                            <AvatarFallback className="font-bold text-xs bg-transparent">
+                              {getInitials(cv.user_name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-foreground truncate max-w-[160px]">
+                              {cv.user_name || "Ứng viên"}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate max-w-[160px]">
+                              {cv.user_email || `ID: ${cv.user_id}`}
+                            </div>
+                          </div>
+                        </div>
                       </td>
                       <td className="py-3 px-3 font-medium text-foreground max-w-xs truncate">
                         {cv.title}
                       </td>
                       <td className="py-3 px-3">
-                        <Badge variant="outline" className="text-xs font-normal">
-                          {TEMPLATE_NAMES[cv.template_id] || cv.template_id}
-                        </Badge>
+                        {(() => {
+                          const tmpl = TEMPLATE_CONFIG[cv.template_id] || {
+                            label: cv.template_id,
+                            color: "bg-muted text-muted-foreground",
+                            icon: FileText,
+                          };
+                          const IconComp = tmpl.icon;
+                          return (
+                            <Badge variant="outline" className={`text-xs gap-1 py-0.5 font-medium ${tmpl.color}`}>
+                              <IconComp className="size-3 shrink-0" />
+                              <span>{tmpl.label}</span>
+                            </Badge>
+                          );
+                        })()}
                       </td>
                       <td className="py-3 px-3 text-center">
                         {cv.ats_score !== null && cv.ats_score !== undefined ? (
@@ -423,6 +481,29 @@ export function AdminCvManagerClient() {
               )}
             </div>
           )}
+
+          <DialogFooter className="flex items-center justify-between gap-2 pt-2 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.print();
+                }
+              }}
+              className="text-xs"
+            >
+              <Printer className="size-3.5 mr-1.5" />
+              In / Xuất PDF Hồ Sơ
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setSelectedCv(null)}
+              className="text-xs"
+            >
+              Đóng
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
