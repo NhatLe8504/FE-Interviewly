@@ -14,6 +14,7 @@ import {
   ArchiveRestore,
   Layers3,
   ExternalLink,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -39,6 +40,26 @@ import { Label } from "@/components/admin/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/admin/ui/select";
 import { Skeleton } from "@/components/admin/ui/skeleton";
 
+const getRoleInitials = (name: string) => {
+  const words = name.trim().split(/\s+/);
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+};
+
+const getRoleColor = (name: string) => {
+  const colors = [
+    "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
+    "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/30",
+    "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+    "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
+    "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30",
+    "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+};
+
 export function AdminRolesClient() {
   const [roles, setRoles] = useState<RoleAdminSummary[]>([]);
   const [domains, setDomains] = useState<DomainAdminSummary[]>([]);
@@ -48,6 +69,9 @@ export function AdminRolesClient() {
   const [selectedDomainId, setSelectedDomainId] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<CatalogStatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Role Detail State
+  const [selectedRoleForDetail, setSelectedRoleForDetail] = useState<RoleAdminSummary | null>(null);
 
   // Role Dialog State
   const [dialogMode, setDialogMode] = useState<"create" | "edit" | null>(null);
@@ -297,8 +321,24 @@ export function AdminRolesClient() {
                 <tbody className="divide-y divide-border/50">
                   {filteredRoles.map((role) => (
                     <tr key={role.role_id} className="hover:bg-muted/40 transition-colors">
-                      <td className="py-3 px-3 font-medium text-foreground">
-                        {role.role_name}
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={`size-8 rounded-lg border flex items-center justify-center font-bold text-xs shrink-0 ${getRoleColor(
+                              role.role_name,
+                            )}`}
+                          >
+                            {getRoleInitials(role.role_name)}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-xs text-foreground truncate max-w-[180px]">
+                              {role.role_name}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground font-mono">
+                              ID #{role.role_id}
+                            </div>
+                          </div>
+                        </div>
                       </td>
                       <td className="py-3 px-3">
                         <Badge variant="outline" className="font-normal text-xs">
@@ -328,42 +368,54 @@ export function AdminRolesClient() {
                           </Badge>
                         )}
                       </td>
-                      <td className="py-3 px-3 text-right space-x-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 px-2 text-xs"
-                          onClick={() => handleOpenEdit(role)}
-                        >
-                          <Pencil className="size-3.5 mr-1" />
-                          Sửa
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 px-2 text-xs"
-                          onClick={() => handleToggleStatus(role)}
-                        >
-                          {role.is_active ? (
-                            <>
-                              <Archive className="size-3.5 mr-1" />
-                              Lưu trữ
-                            </>
-                          ) : (
-                            <>
-                              <ArchiveRestore className="size-3.5 mr-1" />
-                              Khôi phục
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 px-2 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50"
-                          onClick={() => handleDelete(role)}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
+                      <td className="py-3 px-3 text-right">
+                        <div className="inline-flex items-center gap-1 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 text-xs"
+                            onClick={() => setSelectedRoleForDetail(role)}
+                            title="Xem chi tiết vị trí công việc"
+                          >
+                            <Eye className="size-3.5 mr-1" />
+                            Chi tiết
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 text-xs"
+                            onClick={() => handleOpenEdit(role)}
+                          >
+                            <Pencil className="size-3.5 mr-1" />
+                            Sửa
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 text-xs"
+                            onClick={() => handleToggleStatus(role)}
+                          >
+                            {role.is_active ? (
+                              <>
+                                <Archive className="size-3.5 mr-1" />
+                                Lưu trữ
+                              </>
+                            ) : (
+                              <>
+                                <ArchiveRestore className="size-3.5 mr-1" />
+                                Khôi phục
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                            onClick={() => handleDelete(role)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -438,6 +490,118 @@ export function AdminRolesClient() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Role Detail Dialog */}
+      <Dialog
+        open={selectedRoleForDetail !== null}
+        onOpenChange={(open) => !open && setSelectedRoleForDetail(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          {selectedRoleForDetail && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <DialogTitle className="text-base font-bold flex items-center gap-2">
+                      <span>Vị Trí #{selectedRoleForDetail.role_id}</span>
+                      {selectedRoleForDetail.is_active ? (
+                        <Badge className="bg-emerald-500/15 text-emerald-600 border-none text-xs">
+                          Hoạt động
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs text-muted-foreground">
+                          Đã lưu trữ
+                        </Badge>
+                      )}
+                    </DialogTitle>
+                    <DialogDescription>
+                      Ngành nghề: <strong>{domainMap.get(selectedRoleForDetail.domain_id) || `Domain #${selectedRoleForDetail.domain_id}`}</strong>
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-4 py-2 text-xs">
+                {/* Role card banner */}
+                <div className="p-3 rounded-lg border bg-muted/30 flex items-center gap-3">
+                  <div
+                    className={`size-12 rounded-xl border flex items-center justify-center font-bold text-base shrink-0 ${getRoleColor(
+                      selectedRoleForDetail.role_name,
+                    )}`}
+                  >
+                    {getRoleInitials(selectedRoleForDetail.role_name)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-sm text-foreground">
+                      {selectedRoleForDetail.role_name}
+                    </div>
+                    <div className="text-muted-foreground text-[11px] mt-0.5">
+                      Đang liên kết <strong>{selectedRoleForDetail.question_count} câu hỏi</strong> phỏng vấn
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-1.5">
+                  <span className="font-semibold text-foreground">Mô tả phạm vi công việc:</span>
+                  <div className="p-3 rounded-lg border bg-card text-foreground/90 leading-relaxed min-h-[60px]">
+                    {selectedRoleForDetail.description || "— Chưa có mô tả chi tiết cho vị trí này —"}
+                  </div>
+                </div>
+
+                {/* Quick actions box */}
+                <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-950 dark:text-indigo-200 text-[11px] space-y-1">
+                  <div className="font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+                    <Layers3 className="size-3.5" />
+                    Ngân Hàng Câu Hỏi & Đề Phỏng Vấn
+                  </div>
+                  <p className="leading-relaxed">
+                    Bạn có thể truy cập trực tiếp danh sách câu hỏi của vị trí này để quản lý hoặc tạo bộ đề phỏng vấn mới.
+                  </p>
+                </div>
+              </div>
+
+              <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 border-t">
+                <Button
+                  asChild
+                  size="sm"
+                  className="w-full sm:w-auto text-xs"
+                >
+                  <Link
+                    href={`/admin/questions?domain_id=${selectedRoleForDetail.domain_id}&role_id=${selectedRoleForDetail.role_id}`}
+                  >
+                    <ExternalLink className="size-3.5 mr-1.5" />
+                    Xem {selectedRoleForDetail.question_count} câu hỏi liên kết
+                  </Link>
+                </Button>
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => {
+                      const r = selectedRoleForDetail;
+                      setSelectedRoleForDetail(null);
+                      handleOpenEdit(r);
+                    }}
+                  >
+                    <Pencil className="size-3 mr-1" />
+                    Chỉnh sửa
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setSelectedRoleForDetail(null)}
+                    className="text-xs"
+                  >
+                    Đóng
+                  </Button>
+                </div>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
