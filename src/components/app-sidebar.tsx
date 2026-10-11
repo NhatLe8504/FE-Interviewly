@@ -33,6 +33,9 @@ import {
   GraduationCapIcon,
   BriefcaseIcon,
   TargetIcon,
+  MicIcon,
+  FileTextIcon,
+  BotIcon,
 } from "lucide-react"
 
 const data = {
@@ -91,6 +94,21 @@ const data = {
       title: "Khung mẫu STAR",
       url: "/admin/star-templates",
       icon: <TargetIcon />,
+    },
+    {
+      title: "Giám sát phỏng vấn",
+      url: "/admin/interviews",
+      icon: <MicIcon />,
+    },
+    {
+      title: "Quản lý CV & ATS",
+      url: "/admin/cv-manager",
+      icon: <FileTextIcon />,
+    },
+    {
+      title: "Việc làm & Bot cào",
+      url: "/admin/jobs",
+      icon: <BotIcon />,
     },
     {
       title: "Kiểm duyệt nội dung",
