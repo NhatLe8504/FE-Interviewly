@@ -28,6 +28,7 @@ import {
   Code2,
   FolderKanban,
   Play,
+  Copy,
 } from "lucide-react";
 import {
   Table,
@@ -240,6 +241,26 @@ export function QuestionSetDataTable({
       toast.error(`Xóa bộ đề thất bại: ${err.message || "Lỗi server"}`);
     } finally {
       setDeleteConfirmId(null);
+    }
+  };
+
+  const handleDuplicateSet = async (sourceSet: QuestionSetItem) => {
+    try {
+      await questionAdminApi.createQuestionSet({
+        domain_id: sourceSet.domain_id,
+        role_id: sourceSet.role_id,
+        title: `${sourceSet.title} (Bản sao)`,
+        description: sourceSet.description || "",
+        experience_level: sourceSet.experience_level,
+        target_difficulty: sourceSet.target_difficulty,
+        estimated_duration_minutes: sourceSet.estimated_duration_minutes,
+        question_ids: (sourceSet.questions || []).map((q) => q.question_id),
+        tech_stack: sourceSet.tech_stack || [],
+      });
+      toast.success(`Đã nhân bản bộ đề: "${sourceSet.title}"`);
+      onRefresh?.();
+    } catch (err: any) {
+      toast.error(`Nhân bản bộ đề thất bại: ${err?.message || "Lỗi server"}`);
     }
   };
 
@@ -521,6 +542,10 @@ export function QuestionSetDataTable({
                             <DropdownMenuItem onClick={() => handleOpenEdit(s)}>
                               <Edit2 className="size-3.5 mr-2" />
                               <span>Chỉnh sửa bộ đề</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDuplicateSet(s)}>
+                              <Copy className="size-3.5 mr-2 text-indigo-500" />
+                              <span>Nhân bản bộ đề</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
