@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useMemo } from "react";
 import {
@@ -9,6 +9,7 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -505,12 +506,21 @@ export function AuditLogDataTable({
                     {/* User ID */}
                     <TableCell className="text-xs">
                       {log.user_id ? (
-                        <Badge variant="outline" className="font-mono text-[11px] gap-1 px-1.5 py-0">
-                          <User className="size-2.5 text-primary" />
-                          #{log.user_id}
-                        </Badge>
+                        <div className="flex items-center gap-1.5">
+                          <Avatar className="size-5 border">
+                            <AvatarFallback className="text-[9px] font-bold bg-primary/10 text-primary">
+                              U{log.user_id}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-mono text-[11px] font-medium text-foreground">
+                            #{log.user_id}
+                          </span>
+                        </div>
                       ) : (
-                        <span className="text-muted-foreground italic text-[11px]">Guest</span>
+                        <div className="flex items-center gap-1 text-muted-foreground italic text-[11px]">
+                          <Globe className="size-3 text-muted-foreground/60 shrink-0" />
+                          <span>Guest</span>
+                        </div>
                       )}
                     </TableCell>
 
