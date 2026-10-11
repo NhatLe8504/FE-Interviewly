@@ -38,7 +38,6 @@ import {
 } from "@/components/admin/ui/select";
 import { toast } from "sonner";
 import { questionAdminApi } from "@/services/admin/questionAdminApi";
-import { MOCK_DOMAINS_LIST, MOCK_ROLES_LIST } from "@/mock/adminQuestionsMock";
 import type { QuestionDetailOut, DomainOut, RoleOut, SkillOptionOut } from "@/types/catalog";
 
 interface SingleQuestionFormProps {
@@ -60,8 +59,8 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Domains & Roles from API
-  const [domains, setDomains] = useState<DomainOut[]>(MOCK_DOMAINS_LIST as any);
-  const [roles, setRoles] = useState<RoleOut[]>(MOCK_ROLES_LIST as any);
+  const [domains, setDomains] = useState<DomainOut[]>([]);
+  const [roles, setRoles] = useState<RoleOut[]>([]);
 
   // Form State
   const [domainId, setDomainId] = useState<number>(initialQuestion?.domain_id || 1);
@@ -123,8 +122,8 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
           questionAdminApi.getDomains(),
           questionAdminApi.getRoles(null),
         ]);
-        const validDomains = Array.isArray(domList) && domList.length > 0 ? domList : MOCK_DOMAINS_LIST;
-        const validRoles = Array.isArray(roleList) && roleList.length > 0 ? roleList : MOCK_ROLES_LIST;
+        const validDomains = Array.isArray(domList) ? domList : [];
+        const validRoles = Array.isArray(roleList) ? roleList : [];
 
         setDomains(validDomains as any);
         setRoles(validRoles as any);

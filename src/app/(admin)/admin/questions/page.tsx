@@ -9,9 +9,6 @@ import {
   QuestionDataTable,
   QuestionSetDataTable,
 } from "@/components/admin/questions";
-import {
-  generateQuestionsChartData,
-} from "@/mock/adminQuestionsMock";
 import { questionAdminApi } from "@/services/admin/questionAdminApi";
 import {
   Layers,
@@ -37,7 +34,7 @@ import {
 } from "@/components/admin/ui/select";
 import { Skeleton } from "@/components/admin/ui/skeleton";
 import { toast } from "sonner";
-import type { DomainOut, RoleOut } from "@/types/catalog";
+import type { DomainOut, RoleOut, QuestionDailyPoint } from "@/types/catalog";
 
 function AdminQuestionsContent() {
   const router = useRouter();
@@ -46,7 +43,6 @@ function AdminQuestionsContent() {
   const domainIdParam = searchParams.get("domain_id") || "all";
   const tabParam = searchParams.get("tab") === "bank" ? "bank" : "sets";
 
-  const [chartData, setChartData] = useState(() => generateQuestionsChartData());
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [questions, setQuestions] = useState<any[]>([]);
@@ -112,8 +108,30 @@ function AdminQuestionsContent() {
     return questionSets.filter((s) => String(s.domain_id) === domainIdParam);
   }, [questionSets, domainIdParam]);
 
+  const chartData = useMemo<QuestionDailyPoint[]>(() => {
+    const points: QuestionDailyPoint[] = [];
+    const now = new Date();
+    const dateCountMap = new Map<string, number>();
+    for (const q of scopedQuestions) {
+      if (q.created_at) {
+        const d = String(q.created_at).split("T")[0];
+        dateCountMap.set(d, (dateCountMap.get(d) || 0) + 1);
+      }
+    }
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split("T")[0];
+      points.push({
+        date: dateStr,
+        practiceSessions: 0,
+        newQuestions: dateCountMap.get(dateStr) || 0,
+      });
+    }
+    return points;
+  }, [scopedQuestions]);
+
   const handleRefresh = () => {
-    setChartData(generateQuestionsChartData());
     setRefreshKey((k) => k + 1);
     toast.success("Đã làm mới dữ liệu ngân hàng câu hỏi & bộ đề");
   };

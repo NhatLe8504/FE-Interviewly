@@ -28,7 +28,7 @@ import {
   ToggleGroupItem,
 } from "@/components/admin/ui/toggle-group";
 import { useIsMobile } from "@/hooks/use-mobile";
-import type { QuestionDailyPoint } from "@/mock/adminQuestionsMock";
+import type { QuestionDailyPoint } from "@/types/catalog";
 
 const chartConfig = {
   practiceSessions: {
