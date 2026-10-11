@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { CvDocument, CvAtsScoreResponse, CvListItem } from "@/types/cv";
 import { cvApi } from "@/services/cvApi";
 import { CvTopBar } from "@/components/cv/CvTopBar";
@@ -51,7 +51,6 @@ const BLANK_CV: CvDocument = {
 
 export default function CvBuilderClient() {
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   const cvIdParam = searchParams.get("id");
   const jobIdParam = searchParams.get("jobId");
@@ -64,6 +63,7 @@ export default function CvBuilderClient() {
   const [showAiDraftModal, setShowAiDraftModal] = useState(false);
 
   const { isSubscribed } = useUserSubscription();
+  const isFirstLoadDone = useRef(false);
 
   const [selection, setSelection] = useState<{
     text: string;
@@ -86,8 +86,18 @@ export default function CvBuilderClient() {
     }
   }, []);
 
+  // Sync browser URL without causing page reload/flickering
+  const syncUrl = useCallback((path: string) => {
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", path);
+    }
+  }, []);
+
   // Load or initialize CV with LocalStorage Cache Persistence
+  // CHỈ chạy loading spinner ở lần tải trang ĐẦU TIÊN
   useEffect(() => {
+    if (isFirstLoadDone.current) return;
+
     async function initCv() {
       setLoading(true);
 
@@ -133,7 +143,7 @@ export default function CvBuilderClient() {
             }
             setCv(created);
             await fetchCvList();
-            router.replace(`/cv-builder?id=${created.id}`);
+            syncUrl(`/cv-builder?id=${created.id}`);
           } catch {
             // Fallback khi offline hoặc không có token
             if (cachedDraft) {
@@ -148,7 +158,6 @@ export default function CvBuilderClient() {
           }
         } else {
           // Trường hợp không có param:
-          // Nếu có bản nháp trong localStorage, khôi phục ngay để F5 không bị mất
           if (cachedDraft && (cachedDraft.personal_info.full_name || cachedDraft.summary || cachedDraft.work_experiences.length > 0 || cachedDraft.skills.length > 0)) {
             if (!cachedDraft.personal_info.avatar_url && savedAvatar) {
               cachedDraft.personal_info.avatar_url = savedAvatar;
@@ -156,14 +165,13 @@ export default function CvBuilderClient() {
             setCv(cachedDraft);
             if (cachedDraft.ats_feedback) setAtsScoreData(cachedDraft.ats_feedback);
           } else if (currentList.length > 0) {
-            // Lấy bản CV đầu tiên trong danh sách đã lưu
             try {
               const latest = await cvApi.getCv(currentList[0].id);
               if (!latest.personal_info.avatar_url && savedAvatar) {
                 latest.personal_info.avatar_url = savedAvatar;
               }
               setCv(latest);
-              router.replace(`/cv-builder?id=${latest.id}`);
+              syncUrl(`/cv-builder?id=${latest.id}`);
             } catch {
               setCv({
                 ...BLANK_CV,
@@ -180,12 +188,13 @@ export default function CvBuilderClient() {
       } catch (err) {
         console.warn("Init CV error:", err);
       } finally {
+        isFirstLoadDone.current = true;
         setLoading(false);
       }
     }
 
     initCv();
-  }, [cvIdParam, jobIdParam, router, fetchCvList]);
+  }, [cvIdParam, jobIdParam, fetchCvList, syncUrl]);
 
   // Tự động cache CV vào localStorage khi có thay đổi (F5 không mất dữ liệu)
   useEffect(() => {
@@ -206,7 +215,7 @@ export default function CvBuilderClient() {
     }));
   }, []);
 
-  // Save CV: Pro plan only, max 5 CVs, free users blocked
+  // Save CV: Pro plan only, max 5 CVs, no full-page re-mount
   const handleSave = async () => {
     // 1. Kiểm tra tài khoản Pro
     if (!isSubscribed) {
@@ -255,8 +264,8 @@ export default function CvBuilderClient() {
         setCv(fullSaved);
         localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(fullSaved));
         await fetchCvList();
+        syncUrl(`/cv-builder?id=${fullSaved.id}`);
         toast.success("Đã lưu bản CV mới thành công!");
-        router.replace(`/cv-builder?id=${fullSaved.id}`);
       } else {
         // Cập nhật CV đã tồn tại
         const saved = await cvApi.updateCv(cv.id, {
@@ -284,7 +293,6 @@ export default function CvBuilderClient() {
       console.error("Save error:", err);
       if (err?.message?.includes("missing bearer token") || err?.status === 401) {
         toast.error("Vui lòng đăng nhập để lưu CV lên hệ thống!");
-        router.push("/login");
       } else {
         toast.error(err?.message || "Không thể lưu CV. Vui lòng kiểm tra lại kết nối!");
       }
@@ -293,25 +301,22 @@ export default function CvBuilderClient() {
     }
   };
 
-  // Switch to another CV from deck
+  // Switch to another CV from deck (Không kích hoạt loading spinner toàn trang)
   const handleSelectCv = async (id: number) => {
     if (cv.id === id) return;
     try {
-      setLoading(true);
       const fetched = await cvApi.getCv(id);
       setCv(fetched);
       if (fetched.ats_feedback) setAtsScoreData(fetched.ats_feedback);
       localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(fetched));
-      router.replace(`/cv-builder?id=${id}`);
+      syncUrl(`/cv-builder?id=${id}`);
       toast.info(`Đã mở bản: ${fetched.title || "CV"}`);
     } catch (err) {
       toast.error("Không thể tải bản CV này");
-    } finally {
-      setLoading(false);
     }
   };
 
-  // Create a new blank CV slot (Pro only)
+  // Create a new blank CV slot (Không reload, không nháy giao diện)
   const handleCreateNew = () => {
     if (!isSubscribed) {
       toast.error("Tài khoản Free không hỗ trợ lưu nhiều bản CV. Vui lòng nâng cấp gói Pro!");
@@ -331,7 +336,7 @@ export default function CvBuilderClient() {
     };
     setCv(newDraft);
     localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(newDraft));
-    router.replace("/cv-builder");
+    syncUrl("/cv-builder");
     toast.success("Đã khởi tạo bản CV mới. Nhập thông tin và bấm Lưu CV!");
   };
 
@@ -348,12 +353,11 @@ export default function CvBuilderClient() {
       toast.success("Đã xóa bản CV thành công!");
       const updatedList = await fetchCvList();
 
-      // Nếu xóa đúng bản đang mở, chuyển sang bản khác còn lại hoặc bản mới
       if (cv.id === id) {
         if (updatedList.length > 0) {
           const nextCv = await cvApi.getCv(updatedList[0].id);
           setCv(nextCv);
-          router.replace(`/cv-builder?id=${nextCv.id}`);
+          syncUrl(`/cv-builder?id=${nextCv.id}`);
         } else {
           handleCreateNew();
         }
@@ -364,8 +368,7 @@ export default function CvBuilderClient() {
   };
 
   const handleUpgradeRequired = () => {
-    toast.error("Vui lòng nâng cấp gói Pro để sử dụng tính năng lưu và quản lý 5 bản CV!");
-    router.push("/#pricing");
+    toast.info("Tính năng lưu và quản lý 5 bản CV dành cho tài khoản Pro!");
   };
 
   const handleTextSelect = (sel: { text: string; rect: DOMRect; sectionContext: string }) => {

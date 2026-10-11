@@ -11,6 +11,7 @@ import {
   LayoutGrid,
   CreditCard,
   FileText,
+  Check,
 } from "lucide-react";
 import s from "./cvCardDeck.module.css";
 
@@ -26,13 +27,13 @@ interface CvCardDeckProps {
 
 const MAX_SLOTS = 5;
 
-// Tọa độ & góc xoay quạt tinh tế cho 5 lá bài (xòe đều, không nghiêng ngả lộn xộn)
+// Tọa độ dãn đều & góc xoay quạt mềm mại cho 5 lá bài
 const FAN_CARDS_LAYOUT = [
-  { left: 10, rotate: -7, y: 5, z: 1 },
-  { left: 50, rotate: -3.5, y: 2, z: 2 },
-  { left: 90, rotate: 0, y: 0, z: 3 },
-  { left: 130, rotate: 3.5, y: 2, z: 4 },
-  { left: 170, rotate: 7, y: 5, z: 5 },
+  { left: 8, rotate: -6, y: 4, z: 1 },
+  { left: 54, rotate: -3, y: 2, z: 2 },
+  { left: 100, rotate: 0, y: 0, z: 3 },
+  { left: 146, rotate: 3, y: 2, z: 4 },
+  { left: 192, rotate: 6, y: 4, z: 5 },
 ];
 
 export const CvCardDeck: React.FC<CvCardDeckProps> = ({
@@ -53,6 +54,18 @@ export const CvCardDeck: React.FC<CvCardDeckProps> = ({
   });
 
   const savedCount = cvList.length;
+
+  const handleSlotClick = (item: CvListItem | null, idx: number) => {
+    if (item) {
+      onSelectCv(item.id);
+    } else {
+      if (!isSubscribed) {
+        onUpgradeRequired?.();
+      } else {
+        onCreateNew();
+      }
+    }
+  };
 
   return (
     <div className={s.deckContainer}>
@@ -86,23 +99,51 @@ export const CvCardDeck: React.FC<CvCardDeckProps> = ({
         </button>
       </div>
 
+      {/* QUICK SLOT TABS (5 NÚT CHỌN NHANH TRỰC TIẾP TRÊN ĐỈNH — BẤM LÀ CHUYỂN NGAY) */}
+      <div className={s.quickSlotTabs}>
+        {slots.map((item, idx) => {
+          const isActive = item ? item.id === currentCvId : false;
+          return (
+            <button
+              key={`tab-${idx}`}
+              type="button"
+              onClick={() => handleSlotClick(item, idx)}
+              className={`${s.slotTabBtn} ${isActive ? s.slotTabActive : !item ? s.slotTabEmpty : ""}`}
+              title={item ? `Slot #${idx + 1}: ${item.title || "CV"}` : `Slot #${idx + 1}: Trống (+ Tạo mới)`}
+            >
+              {item ? (
+                <>
+                  <span>#{idx + 1}</span>
+                  {isActive && <Check style={{ width: 10, height: 10, strokeWidth: 3 }} />}
+                </>
+              ) : (
+                <>
+                  <Plus style={{ width: 10, height: 10 }} />
+                  <span>#{idx + 1}</span>
+                </>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       {/* VIEW: FANNED CARDS (BỘ BÀI XÒE ĐỀU HÌNH CÁNH QUẠT) */}
       {viewMode === "fan" ? (
         <div className={s.fanViewport}>
           {slots.map((item, idx) => {
-            const layout = FAN_CARDS_LAYOUT[idx] || { left: idx * 40, rotate: 0, y: 0, z: idx + 1 };
+            const layout = FAN_CARDS_LAYOUT[idx] || { left: idx * 45, rotate: 0, y: 0, z: idx + 1 };
             const isActive = item ? item.id === currentCvId : false;
             const isHovered = hoveredIdx === idx;
 
-            // Tính inline style cho lá bài:
-            // - Khi hover: bay thẳng lên trên, không nghiêng, phóng to nhẹ, z-index cao nhất
-            // - Khi bình thường: dàn đều sang phải, góc xoay nhẹ thanh lịch
+            // Thứ tự z-index tự nhiên (KHÔNG ÉP z-index: 20 KHI ACTIVE ĐỂ KHÔNG ĐÈ CÁC THẺ PHÍA SAU)
             const cardStyle: React.CSSProperties = {
               left: `${layout.left}px`,
               transform: isHovered
                 ? `translateY(-28px) scale(1.12) rotate(0deg)`
+                : isActive
+                ? `translateY(${layout.y - 4}px) rotate(${layout.rotate}deg)`
                 : `translateY(${layout.y}px) rotate(${layout.rotate}deg)`,
-              zIndex: isHovered ? 100 : isActive ? 20 : layout.z,
+              zIndex: isHovered ? 99 : layout.z,
             };
 
             if (item) {
@@ -148,7 +189,7 @@ export const CvCardDeck: React.FC<CvCardDeckProps> = ({
                         {Math.round(item.ats_score)}%
                       </span>
                     ) : (
-                      <span style={{ color: "var(--ink-muted)", fontSize: 8.5 }}>Draft</span>
+                      <span style={{ color: "var(--ink-muted)", fontSize: 8 }}>Draft</span>
                     )}
                   </div>
                 </div>
