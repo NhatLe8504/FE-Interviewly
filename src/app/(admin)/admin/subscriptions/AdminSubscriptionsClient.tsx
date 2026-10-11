@@ -17,6 +17,10 @@ import {
   Calendar,
   FileCheck2,
   Mic,
+  Eye,
+  Crown,
+  Zap,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -27,6 +31,7 @@ import {
   type UserSubscriptionAdmin,
 } from "@/services/admin/subscriptionAdminApi";
 import { AdminEmptyState, AdminPageHeader, AdminStatCard } from "@/components/admin";
+import { Avatar, AvatarFallback } from "@/components/admin/ui/avatar";
 import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/admin/ui/card";
@@ -43,6 +48,54 @@ import { Label } from "@/components/admin/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/admin/ui/select";
 import { Skeleton } from "@/components/admin/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const getInitials = (name?: string | null) => {
+  if (!name) return "KH";
+  const words = name.trim().split(/\s+/);
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+};
+
+const getAvatarColor = (name?: string | null) => {
+  const colors = [
+    "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
+    "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
+    "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30",
+    "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+    "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
+    "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30",
+  ];
+  if (!name) return colors[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+};
+
+const renderPlanBadge = (planName?: string | null) => {
+  const name = (planName || "").toLowerCase();
+  if (name.includes("free") || name.includes("miễn phí")) {
+    return (
+      <Badge variant="outline" className="text-xs font-semibold gap-1">
+        <Sparkles className="size-3 text-muted-foreground" />
+        {planName || "Gói Free"}
+      </Badge>
+    );
+  }
+  if (name.includes("vip") || name.includes("enterprise") || name.includes("doanh nghiệp")) {
+    return (
+      <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-semibold gap-1">
+        <Crown className="size-3 text-amber-500" />
+        {planName || "Gói VIP"}
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="bg-primary/10 text-primary border border-primary/20 text-xs font-semibold gap-1">
+      <Zap className="size-3 text-primary" />
+      {planName || "Gói Pro"}
+    </Badge>
+  );
+};
 
 const CYCLE_LABELS: Record<string, string> = {
   free: "Miễn phí",
@@ -92,6 +145,9 @@ export function AdminSubscriptionsClient() {
   const [selectedSub, setSelectedSub] = useState<UserSubscriptionAdmin | null>(null);
   const [newEndDate, setNewEndDate] = useState("");
   const [savingSub, setSavingSub] = useState(false);
+
+  // Detail Subscriber Dialog state
+  const [selectedSubDetail, setSelectedSubDetail] = useState<UserSubscriptionAdmin | null>(null);
 
   // Fetch Plans
   const fetchPlans = useCallback(async () => {
@@ -509,18 +565,29 @@ export function AdminSubscriptionsClient() {
                       {subscriptions.map((sub) => (
                         <tr key={sub.user_subscription_id} className="hover:bg-muted/40 transition-colors">
                           <td className="py-3 px-3">
-                            <div className="font-medium text-foreground">{sub.user_name || "Chưa cập nhật"}</div>
-                            <div className="text-xs text-muted-foreground">{sub.user_email || `ID: ${sub.user_id}`}</div>
+                            <div className="flex items-center gap-2.5">
+                              <Avatar className={`size-8 border shrink-0 ${getAvatarColor(sub.user_name)}`}>
+                                <AvatarFallback className="font-bold text-xs bg-transparent">
+                                  {getInitials(sub.user_name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0">
+                                <div className="font-semibold text-foreground truncate max-w-[160px]">
+                                  {sub.user_name || "Chưa cập nhật"}
+                                </div>
+                                <div className="text-xs text-muted-foreground truncate max-w-[160px]">
+                                  {sub.user_email || `ID: ${sub.user_id}`}
+                                </div>
+                              </div>
+                            </div>
                           </td>
                           <td className="py-3 px-3">
-                            <Badge variant="outline" className="font-semibold">
-                              {sub.plan_name || "Gói Pro"}
-                            </Badge>
+                            {renderPlanBadge(sub.plan_name)}
                           </td>
-                          <td className="py-3 px-3 text-xs text-muted-foreground">
+                          <td className="py-3 px-3 text-xs text-muted-foreground whitespace-nowrap">
                             {new Date(sub.start_date).toLocaleDateString("vi-VN")}
                           </td>
-                          <td className="py-3 px-3 text-xs">
+                          <td className="py-3 px-3 text-xs whitespace-nowrap">
                             {sub.end_date ? (
                               <span
                                 className={
@@ -557,26 +624,38 @@ export function AdminSubscriptionsClient() {
                               </Badge>
                             )}
                           </td>
-                          <td className="py-3 px-3 text-right space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 text-xs"
-                              onClick={() => handleOpenExtendSub(sub)}
-                            >
-                              <Calendar className="size-3 mr-1" />
-                              Gia hạn
-                            </Button>
-                            {sub.status === "active" && (
+                          <td className="py-3 px-3 text-right">
+                            <div className="inline-flex items-center gap-1 justify-end">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50"
-                                onClick={() => handleCancelSub(sub)}
+                                className="h-8 px-2 text-xs"
+                                onClick={() => setSelectedSubDetail(sub)}
+                                title="Xem chi tiết quyền lợi & hạn mức"
                               >
-                                Hủy
+                                <Eye className="size-3.5 mr-1" />
+                                Chi tiết
                               </Button>
-                            )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 px-2 text-xs"
+                                onClick={() => handleOpenExtendSub(sub)}
+                              >
+                                <Calendar className="size-3 mr-1" />
+                                Gia hạn
+                              </Button>
+                              {sub.status === "active" && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 px-2 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                                  onClick={() => handleCancelSub(sub)}
+                                >
+                                  Hủy
+                                </Button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -751,6 +830,149 @@ export function AdminSubscriptionsClient() {
               {savingSub ? "Đang lưu..." : "Xác nhận gia hạn"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Subscriber Detail Dialog */}
+      <Dialog
+        open={selectedSubDetail !== null}
+        onOpenChange={(open) => !open && setSelectedSubDetail(null)}
+      >
+        <DialogContent className="sm:max-w-lg">
+          {selectedSubDetail && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <DialogTitle className="text-base font-bold flex items-center gap-2">
+                      <span>Chi Tiết Thuê Bao #{selectedSubDetail.user_subscription_id}</span>
+                      {renderPlanBadge(selectedSubDetail.plan_name)}
+                    </DialogTitle>
+                    <DialogDescription>
+                      Người dùng: <strong>{selectedSubDetail.user_name || "Chưa cập nhật"}</strong> ({selectedSubDetail.user_email || `ID #${selectedSubDetail.user_id}`})
+                    </DialogDescription>
+                  </div>
+                  <div>
+                    {selectedSubDetail.status === "active" ? (
+                      <Badge className="bg-emerald-500/15 text-emerald-600 border-none text-xs">
+                        Đang hoạt động
+                      </Badge>
+                    ) : selectedSubDetail.status === "expired" ? (
+                      <Badge variant="secondary" className="text-xs text-muted-foreground">
+                        Hết hạn
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive" className="bg-rose-500/15 text-rose-600 border-none text-xs">
+                        Đã hủy
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-4 py-2 text-xs">
+                {/* User card info */}
+                <div className="p-3 rounded-lg border bg-muted/30 flex items-center gap-3">
+                  <Avatar className={`size-10 border shrink-0 ${getAvatarColor(selectedSubDetail.user_name)}`}>
+                    <AvatarFallback className="font-bold text-sm bg-transparent">
+                      {getInitials(selectedSubDetail.user_name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-sm text-foreground truncate">
+                      {selectedSubDetail.user_name || "Khách hàng"}
+                    </div>
+                    <div className="text-muted-foreground truncate">
+                      {selectedSubDetail.user_email} • User ID: #{selectedSubDetail.user_id}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Timeline Grid */}
+                <div className="grid grid-cols-2 gap-3 p-3 rounded-lg border bg-card">
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Ngày kích hoạt</span>
+                    <strong className="text-foreground">
+                      {new Date(selectedSubDetail.start_date).toLocaleDateString("vi-VN")}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Ngày hết hạn</span>
+                    <strong className="text-foreground">
+                      {selectedSubDetail.end_date
+                        ? new Date(selectedSubDetail.end_date).toLocaleDateString("vi-VN")
+                        : "Vô thời hạn (Trọn đời)"}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Tự động gia hạn</span>
+                    <strong className="text-foreground">
+                      {selectedSubDetail.auto_renew ? "Bật (Auto-Renew)" : "Tắt"}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Mã gói cước</span>
+                    <strong className="text-foreground font-mono">
+                      PLAN-ID #{selectedSubDetail.plan_id}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* Benefits notice */}
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200 space-y-1.5">
+                  <div className="font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                    <CheckCircle2 className="size-3.5" />
+                    Quyền Lợi & Hạn Mức Kích Hoạt
+                  </div>
+                  <ul className="space-y-1 text-[11px] list-disc list-inside text-emerald-900/80 dark:text-emerald-200/80">
+                    <li>Hỏi đáp luyện tập phỏng vấn AI không giới hạn theo cấu hình gói.</li>
+                    <li>Lưu trữ hồ sơ CV, phân tích từ khóa ATS theo thời gian thực.</li>
+                    <li>Xuất báo cáo phân tích chi tiết định dạng PDF và chấm điểm WPM.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 border-t">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const sub = selectedSubDetail;
+                      setSelectedSubDetail(null);
+                      handleOpenExtendSub(sub);
+                    }}
+                    className="text-xs flex-1 sm:flex-initial"
+                  >
+                    <Calendar className="size-3.5 mr-1" />
+                    Gia hạn ngày
+                  </Button>
+                  {selectedSubDetail.status === "active" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const sub = selectedSubDetail;
+                        setSelectedSubDetail(null);
+                        handleCancelSub(sub);
+                      }}
+                      className="text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                    >
+                      Hủy gói
+                    </Button>
+                  )}
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setSelectedSubDetail(null)}
+                  className="text-xs w-full sm:w-auto"
+                >
+                  Đóng
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
