@@ -1,5 +1,6 @@
 import { store } from "@/redux/store";
 import { adminUserApiSlice } from "@/redux/api/admin/userApi";
+import { request } from "@/services/apiClient";
 import type {
   UserAdminOut,
   UserListPageOut,
@@ -33,4 +34,23 @@ export const adminUserService = {
       .dispatch(adminUserApiSlice.endpoints.updateUserRole.initiate({ userId, role }))
       .unwrap();
   },
+
+  async resetPassword(
+    userId: number,
+    newPassword?: string
+  ): Promise<{ status: string; message: string; user_id: number; temporary_password?: string }> {
+    return request(`/api/v1/admin/users/${userId}/reset-password`, {
+      method: "POST",
+      body: newPassword ? JSON.stringify({ new_password: newPassword }) : undefined,
+    });
+  },
+
+  async verifyEmail(
+    userId: number
+  ): Promise<{ status: string; message: string; user_id: number }> {
+    return request(`/api/v1/admin/users/${userId}/verify-email`, {
+      method: "POST",
+    });
+  },
 };
+

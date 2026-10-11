@@ -36,6 +36,7 @@ export function AdminInterviewDetailClient() {
 
   const [detail, setDetail] = useState<InterviewSessionDetailPage | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reEvaluating, setReEvaluating] = useState(false);
 
   const fetchDetail = useCallback(async () => {
     if (!sessionId || isNaN(sessionId)) return;
@@ -49,6 +50,20 @@ export function AdminInterviewDetailClient() {
       setLoading(false);
     }
   }, [sessionId]);
+
+  const handleReEvaluate = async () => {
+    if (!sessionId) return;
+    setReEvaluating(true);
+    try {
+      const res = await interviewAdminApi.reEvaluateInterview(sessionId);
+      toast.success(res.message || "Đã chấm lại phiên phỏng vấn thành công");
+      await fetchDetail();
+    } catch (err: any) {
+      toast.error(err?.message || "Lỗi chấm lại phiên phỏng vấn");
+    } finally {
+      setReEvaluating(false);
+    }
+  };
 
   useEffect(() => {
     fetchDetail();
@@ -93,6 +108,16 @@ export function AdminInterviewDetailClient() {
         backLabel="Danh sách phỏng vấn"
       >
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleReEvaluate}
+            disabled={reEvaluating}
+            className="text-xs"
+          >
+            <Sparkles className={`size-3.5 mr-1.5 text-primary ${reEvaluating ? "animate-spin" : ""}`} />
+            {reEvaluating ? "Đang chấm lại..." : "Chấm lại bằng AI"}
+          </Button>
           <Badge
             className={
               detail.status === "completed"

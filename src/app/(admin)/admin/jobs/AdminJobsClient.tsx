@@ -104,6 +104,22 @@ export function AdminJobsClient() {
     }
   };
 
+  const handleToggleJobStatus = async (job: JobPostingAdmin) => {
+    const nextStatus = !job.is_active;
+    setJobs((prev) =>
+      prev.map((j) => (j.job_id === job.job_id ? { ...j, is_active: nextStatus } : j))
+    );
+    try {
+      await jobAdminApi.updateJobStatus(job.job_id, nextStatus);
+      toast.success(`Đã ${nextStatus ? "kích hoạt" : "ẩn"} tin tuyển dụng "${job.title}"`);
+    } catch (err: any) {
+      setJobs((prev) =>
+        prev.map((j) => (j.job_id === job.job_id ? { ...j, is_active: !nextStatus } : j))
+      );
+      toast.error(err?.message || "Lỗi cập nhật trạng thái tin");
+    }
+  };
+
   const activeSourcesCount = sources.filter((s) => s.is_active).length;
 
   return (
@@ -251,6 +267,7 @@ export function AdminJobsClient() {
                         <th className="py-3 px-3">Mức lương</th>
                         <th className="py-3 px-3">Địa điểm</th>
                         <th className="py-3 px-3">Ngày cào</th>
+                        <th className="py-3 px-3 text-center">Trạng thái</th>
                         <th className="py-3 px-3 text-right">Xem gốc</th>
                       </tr>
                     </thead>
@@ -284,6 +301,25 @@ export function AdminJobsClient() {
                           </td>
                           <td className="py-3 px-3 text-xs text-muted-foreground">
                             {new Date(job.created_at).toLocaleDateString("vi-VN")}
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <button
+                              onClick={() => handleToggleJobStatus(job)}
+                              className="inline-flex items-center gap-1.5 focus:outline-none"
+                              title="Bấm để bật hoặc tắt hiển thị tin việc làm này"
+                            >
+                              {job.is_active ? (
+                                <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 border-none text-[11px] font-semibold cursor-pointer">
+                                  <CheckCircle2 className="size-3 mr-1" />
+                                  Hiển thị
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="hover:bg-muted text-[11px] font-semibold cursor-pointer text-muted-foreground">
+                                  <XCircle className="size-3 mr-1" />
+                                  Đã ẩn
+                                </Badge>
+                              )}
+                            </button>
                           </td>
                           <td className="py-3 px-3 text-right">
                             {job.url ? (

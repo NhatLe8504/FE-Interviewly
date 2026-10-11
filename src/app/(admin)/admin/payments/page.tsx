@@ -9,7 +9,7 @@ import {
 } from "@/components/admin/payments";
 import { Button } from "@/components/admin/ui/button";
 import { toast } from "sonner";
-import { RefreshCw, RotateCcw, ShieldCheck } from "lucide-react";
+import { RefreshCw, RotateCcw, ShieldCheck, Download } from "lucide-react";
 import {
   useGetPaymentsQuery,
   useSyncXGateMutation,
@@ -30,6 +30,28 @@ export default function AdminPaymentsPage() {
   const transactions = useMemo(() => {
     return paymentsData?.items || [];
   }, [paymentsData]);
+
+  const handleExportCsv = () => {
+    if (transactions.length === 0) {
+      toast.info("Không có dữ liệu giao dịch để xuất.");
+      return;
+    }
+    const headers = "Mã đơn hàng,Email người dùng,Gói cước,Số tiền (VNĐ),Cổng TT,Trạng thái,Thời gian\n";
+    const rows = transactions
+      .map(
+        (t: any) =>
+          `"${t.order_code || t.payment_id || ""}","${t.user_email || t.user_id || ""}","${t.plan_code || "Pro"}","${t.amount || 0}","${t.provider || "xGate"}","${t.status || ""}","${t.created_at || ""}"`
+      )
+      .join("\n");
+    const blob = new Blob(["\uFEFF" + headers + rows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `interviewly_payments_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Đã xuất báo cáo doanh thu thành công");
+  };
 
   // Handle manual xGate sync
   const handleSyncXGate = async () => {
@@ -128,6 +150,17 @@ export default function AdminPaymentsPage() {
           >
             <RotateCcw className={`size-3.5 ${isSyncing ? "animate-spin" : ""}`} />
             <span>{isSyncing ? "Đang đối soát..." : "Đồng bộ xGate"}</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCsv}
+            className="gap-1.5 text-xs h-8"
+            title="Xuất file báo cáo doanh thu ra định dạng CSV"
+          >
+            <Download className="size-3.5" />
+            <span>Xuất CSV</span>
           </Button>
 
           <Button

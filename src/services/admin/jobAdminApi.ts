@@ -65,4 +65,12 @@ export const jobAdminApi = {
       },
     );
   },
+
+  updateJobStatus: (jobId: string, isActive: boolean) =>
+    request<{ status: string; message: string; job_id: string; is_active: boolean }>(
+      `/api/v1/admin/jobs/${jobId}/status?is_active=${isActive}`,
+      {
+        method: "PATCH",
+      },
+    ),
 };
