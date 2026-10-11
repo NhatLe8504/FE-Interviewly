@@ -282,7 +282,12 @@ export default function CvBuilderClient() {
       }
     } catch (err: any) {
       console.error("Save error:", err);
-      toast.error(err?.message || "Không thể lưu CV. Vui lòng kiểm tra lại kết nối!");
+      if (err?.message?.includes("missing bearer token") || err?.status === 401) {
+        toast.error("Vui lòng đăng nhập để lưu CV lên hệ thống!");
+        router.push("/login");
+      } else {
+        toast.error(err?.message || "Không thể lưu CV. Vui lòng kiểm tra lại kết nối!");
+      }
     } finally {
       setSaving(false);
     }
