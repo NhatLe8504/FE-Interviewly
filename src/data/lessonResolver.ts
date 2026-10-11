@@ -13,7 +13,10 @@ export interface ResolvedLesson {
   chapterId: string;
   chapterTitle: string;
   videoUrl?: string;
+  videoFileName?: string;
+  videoSize?: string;
   contentHtml?: string;
+
   transcript?: { time: string; textVi: string; textEn: string }[];
   quiz?: {
     question: string;

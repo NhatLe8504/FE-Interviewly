@@ -1,10 +1,6 @@
-import { COURSES_DATA } from "@/data/coursesData";
-import { EM_COURSE_SECTIONS } from "@/data/emCourseCurriculum";
+import { request } from "@/services/apiClient";
 import type { CourseItem } from "@/types/course";
-import { CourseCurriculumSection, ResolvedLesson } from "@/data/lessonResolver";
-
-const STORAGE_COURSES_KEY = "admin_managed_courses_v1";
-const STORAGE_CURRICULUM_PREFIX = "admin_course_curriculum_";
+import type { CourseCurriculumSection, ResolvedLesson } from "@/data/lessonResolver";
 
 export interface CourseAdminCreateIn {
   title: string;
@@ -29,6 +25,7 @@ export interface ChapterCreateIn {
   title: string;
   titleEn?: string;
   description?: string;
+  orderIndex?: number;
 }
 
 export interface LessonCreateIn {
@@ -36,6 +33,7 @@ export interface LessonCreateIn {
   durationMinutes: number;
   type: "video" | "reading" | "star_practice" | "mock_simulation" | "quiz";
   isFree: boolean;
+  orderIndex?: number;
   videoUrl?: string;
   videoFileName?: string;
   videoSize?: string;
@@ -52,464 +50,409 @@ export interface LessonCreateIn {
   };
 }
 
-// Helper: Get local saved courses or fallback to COURSES_DATA
-function getStoredCourses(): CourseItem[] {
-  if (typeof window === "undefined") return COURSES_DATA;
-  try {
-    const raw = localStorage.getItem(STORAGE_COURSES_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch (e) {
-    console.warn("Error reading stored courses:", e);
-  }
-  return COURSES_DATA;
+// Convert Backend Course item to Frontend CourseItem interface
+export function toCourseItem(c: any): CourseItem {
+  const chapterCount = c.chapter_count || (c.chapters ? c.chapters.length : 0);
+  const lessonCount = c.lesson_count || (c.chapters ? c.chapters.reduce((acc: number, ch: any) => acc + (ch.lessons ? ch.lessons.length : 0), 0) : 0);
+
+  return {
+    id: String(c.course_id || c.id || ""),
+    slug: c.slug,
+    title: c.title,
+    type: c.type || "Course",
+    category: c.category || "Engineering",
+    role: c.role || "Software Engineer",
+    level: c.level || "all",
+    levelLabel: c.level_label || (c.level === "senior" ? "Senior / Lead" : "Fresher / Mid"),
+    meta: `${chapterCount} Chương · ${lessonCount} Bài học`,
+    totalCoursesCount: c.type === "Learning Path" ? 3 : 1,
+    totalLessonsCount: lessonCount,
+    estimatedHours: c.estimated_hours || c.estimatedHours || 10,
+    rating: 5.0,
+    reviewCount: 0,
+    enrolledCount: 1,
+    targetCompanies: c.target_companies || c.targetCompanies || ["Google", "Meta", "Amazon"],
+    description: c.description || "",
+    highlights: c.highlights || [
+      "Lộ trình được chuẩn hóa theo tiêu chí tuyển dụng quốc tế.",
+      "Rèn luyện kỹ năng trả lời theo khung STAR có số liệu định lượng.",
+      "Giả lập phỏng vấn thử 1-1 cùng AI Coach.",
+    ],
+    skills: c.skills || ["Interview Prep", "STAR", "Problem Solving"],
+    image: c.image || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60",
+    modules: c.chapters
+      ? c.chapters.map((ch: any) => ({
+          id: String(ch.chapter_id || ch.id),
+          title: ch.title,
+          description: ch.description || "",
+          lessons: ch.lessons
+            ? ch.lessons.map((ls: any) => ({
+                id: String(ls.lesson_id || ls.id),
+                title: ls.title,
+                durationMinutes: ls.duration_minutes || ls.durationMinutes || 10,
+                type: ls.type || "reading",
+                isFree: Boolean(ls.is_free ?? ls.isFree),
+              }))
+            : [],
+        }))
+      : [],
+  };
 }
 
-function saveStoredCourses(courses: CourseItem[]): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(STORAGE_COURSES_KEY, JSON.stringify(courses));
-  } catch (e) {
-    console.warn("Error saving stored courses:", e);
-  }
+// Convert Backend detail chapters to CourseCurriculumSection
+export function toCurriculumSections(c: any): CourseCurriculumSection[] {
+  if (!c || !c.chapters) return [];
+  return c.chapters.map((ch: any) => {
+    const chId = String(ch.chapter_id || ch.id);
+    return {
+      id: chId,
+      title: ch.title,
+      titleEn: ch.title_en || ch.titleEn || ch.title,
+      description: ch.description || "",
+      lessons: ch.lessons
+        ? ch.lessons.map((ls: any) => {
+            const lsId = String(ls.lesson_id || ls.id);
+            return {
+              id: lsId,
+              title: ls.title,
+              href: `/courses/${c.slug}/${chId}/${lsId}`,
+              durationMinutes: ls.duration_minutes || ls.durationMinutes || 10,
+              type: ls.type || "reading",
+              isFree: Boolean(ls.is_free ?? ls.isFree),
+              isVideo: ls.type === "video" || Boolean(ls.video_url || ls.videoUrl),
+              videoUrl: ls.video_url || ls.videoUrl,
+              videoFileName: ls.video_file_name || ls.videoFileName,
+              videoSize: ls.video_size || ls.videoSize,
+              contentHtml: ls.content_html || ls.contentHtml,
+              practiceQuestion: ls.practice_question || ls.practiceQuestion,
+              chapterId: chId,
+              chapterTitle: ch.title,
+            };
+          })
+        : [],
+    };
+  });
 }
 
-// Helper: Get course curriculum sections
-function getStoredCurriculum(slug: string): CourseCurriculumSection[] {
-  if (typeof window === "undefined") {
-    return slug === "engineering-management" ? (EM_COURSE_SECTIONS as any) : [];
+// Helper: resolve course ID from slug
+async function resolveCourseId(slugOrId: string): Promise<number> {
+  if (/^\d+$/.test(slugOrId)) {
+    return Number(slugOrId);
   }
-  try {
-    const raw = localStorage.getItem(STORAGE_CURRICULUM_PREFIX + slug);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch (e) {
-    // ignore
+  const detail = await request<any>(`/api/v1/courses/${slugOrId}`);
+  if (detail && detail.course_id) {
+    return detail.course_id;
   }
-
-  if (slug === "engineering-management") {
-    return EM_COURSE_SECTIONS.map((sec) => ({
-      id: sec.id,
-      title: sec.title,
-      titleEn: sec.titleEn,
-      description: sec.description,
-      lessons: sec.lessons.map((l) => ({
-        id: l.id,
-        title: l.title,
-        href: l.href || `/courses/engineering-management/${sec.id}/${l.id}`,
-        durationMinutes: l.durationMinutes || 15,
-        type: l.type as any,
-        isFree: Boolean(l.isFree),
-        isVideo: Boolean(l.isVideo),
-        chapterId: sec.id,
-        chapterTitle: sec.title,
-      })),
-    }));
-  }
-
-  return [
-    {
-      id: "m-1",
-      title: "Chương 1: Nền Tảng Chuyên Môn & Tiêu Chí Phỏng Vấn",
-      titleEn: "Core Fundamentals & Evaluation Rubric",
-      description: "Bản đồ kiến thức cốt lõi và các vòng phỏng vấn chuyên sâu.",
-      lessons: [
-        {
-          id: "l-1-1",
-          title: "Tổng quan các vòng phỏng vấn và tiêu chuẩn đánh giá",
-          href: `/courses/${slug}/m-1/l-1-1`,
-          durationMinutes: 15,
-          type: "video",
-          isFree: true,
-          isVideo: true,
-          chapterId: "m-1",
-          chapterTitle: "Chương 1: Nền Tảng Chuyên Môn",
-        },
-        {
-          id: "l-1-2",
-          title: "Khung năng lực chuyên sâu và tiêu chí phỏng vấn viên tìm kiếm",
-          href: `/courses/${slug}/m-1/l-1-2`,
-          durationMinutes: 20,
-          type: "reading",
-          isFree: true,
-          isVideo: false,
-          chapterId: "m-1",
-          chapterTitle: "Chương 1: Nền Tảng Chuyên Môn",
-        },
-      ],
-    },
-  ];
-}
-
-function saveStoredCurriculum(slug: string, sections: CourseCurriculumSection[]): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(STORAGE_CURRICULUM_PREFIX + slug, JSON.stringify(sections));
-  } catch (e) {
-    console.warn("Error saving stored curriculum:", e);
-  }
+  throw new Error("Khóa học không tồn tại");
 }
 
 export const courseAdminApi = {
-  // 1. Get Courses List
+  // 1. Get Courses List from Real Backend
   async getCourses(params: {
     category?: string;
     level?: string;
     type?: string;
+    role?: string;
     search?: string;
+    limit?: number;
+    offset?: number;
   } = {}): Promise<CourseItem[]> {
-    let list = getStoredCourses();
+    const q = new URLSearchParams();
+    if (params.category && params.category !== "all") q.set("category", params.category);
+    if (params.level && params.level !== "all") q.set("level", params.level);
+    if (params.role && params.role !== "all") q.set("role", params.role);
+    if (params.search && params.search.trim()) q.set("search", params.search.trim());
+    if (params.limit) q.set("limit", String(params.limit));
+    if (params.offset) q.set("offset", String(params.offset));
 
-    if (params.category && params.category !== "all") {
-      list = list.filter((c) => c.category === params.category);
+    const qs = q.toString() ? `?${q.toString()}` : "";
+    try {
+      const res = await request<{ items: any[]; total: number }>(`/api/v1/admin/courses${qs}`);
+      if (res && Array.isArray(res.items)) {
+        return res.items.map(toCourseItem);
+      }
+    } catch {
+      // Fallback to public courses endpoint if not logged in as admin
+      const pubRes = await request<{ items: any[]; total: number }>(`/api/v1/courses${qs}`);
+      if (pubRes && Array.isArray(pubRes.items)) {
+        return pubRes.items.map(toCourseItem);
+      }
     }
-    if (params.type && params.type !== "all") {
-      list = list.filter((c) => c.type === params.type);
-    }
-    if (params.level && params.level !== "all") {
-      list = list.filter((c) => c.level === params.level || c.level === "all");
-    }
-    if (params.search && params.search.trim()) {
-      const kw = params.search.trim().toLowerCase();
-      list = list.filter((c) =>
-        c.title.toLowerCase().includes(kw) ||
-        c.role.toLowerCase().includes(kw) ||
-        c.description.toLowerCase().includes(kw) ||
-        c.skills.some((s) => s.toLowerCase().includes(kw))
-      );
-    }
-
-    return list;
+    return [];
   },
 
-  // 2. Get Single Course
-  async getCourse(slug: string): Promise<CourseItem | null> {
-    const list = getStoredCourses();
-    const found = list.find((c) => c.slug === slug || c.id === slug);
-    return found || null;
+  // 2. Get Single Course Detail
+  async getCourse(slugOrId: string): Promise<CourseItem | null> {
+    try {
+      const res = await request<any>(`/api/v1/courses/${slugOrId}`);
+      if (res) return toCourseItem(res);
+    } catch (err) {
+      console.warn("Course detail fetch failed:", err);
+    }
+    return null;
   },
 
-  // 3. Create Course
+  // 3. Create Course in Real DB
   async createCourse(data: CourseAdminCreateIn): Promise<CourseItem> {
-    const list = getStoredCourses();
-    const slug = data.slug?.trim() || data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-    const newId = `course-${Date.now()}`;
-
-    const newCourse: CourseItem = {
-      id: newId,
-      slug,
+    const payload = {
       title: data.title.trim(),
-      type: data.type || "Learning Path",
-      category: data.category || "swe",
+      slug: data.slug?.trim() || undefined,
+      type: data.type || "Course",
+      category: data.category || "Engineering",
       role: data.role || "Software Engineer",
-      level: data.level || "mid",
-      levelLabel: data.levelLabel || (data.level === "senior" ? "Senior / Lead" : "Fresher / Mid"),
-      meta: "1 Chương · 2 Bài học",
-      totalCoursesCount: data.type === "Learning Path" ? 3 : 1,
-      totalLessonsCount: 2,
-      estimatedHours: data.estimatedHours || 15,
-      rating: 5.0,
-      reviewCount: 0,
-      enrolledCount: 1,
-      targetCompanies: data.targetCompanies && data.targetCompanies.length > 0 ? data.targetCompanies : ["Google", "Meta", "Amazon"],
+      level: data.level || "all",
+      level_label: data.levelLabel,
+      estimated_hours: Number(data.estimatedHours) || 10,
       description: data.description.trim(),
-      highlights: data.highlights && data.highlights.length > 0 ? data.highlights : [
-        "Lộ trình được chuẩn hóa theo tiêu chí tuyển dụng quốc tế.",
-        "Rèn luyện kỹ năng trả lời theo khung STAR có số liệu định lượng.",
-        "Giả lập phỏng vấn thử 1-1 cùng AI Coach."
-      ],
-      skills: data.skills && data.skills.length > 0 ? data.skills : ["Interview Prep", "STAR", "Problem Solving"],
-      image: data.image?.trim() || "https://images.ctfassets.net/x78yjrjc11pq/25mhKSvDOiCwC89lDj89Ah/9a5fbfacc8d93f05c238ab55baa4e5e5/fde.png?w=800&h=800&fm=webp&q=75",
+      target_companies: data.targetCompanies || [],
+      skills: data.skills || [],
+      highlights: data.highlights || [],
+      image: data.image?.trim() || undefined,
+      is_active: data.is_active ?? true,
     };
 
-    const updatedList = [newCourse, ...list];
-    saveStoredCourses(updatedList);
-    return newCourse;
-  },
-
-  // 4. Update Course
-  async updateCourse(slug: string, data: CourseAdminUpdateIn): Promise<CourseItem> {
-    const list = getStoredCourses();
-    let updatedCourse: CourseItem | null = null;
-
-    const nextList = list.map((c) => {
-      if (c.slug === slug || c.id === slug) {
-        updatedCourse = {
-          ...c,
-          ...data,
-          targetCompanies: data.targetCompanies || c.targetCompanies,
-          skills: data.skills || c.skills,
-          highlights: data.highlights || c.highlights,
-        };
-        return updatedCourse;
-      }
-      return c;
+    const res = await request<any>("/api/v1/admin/courses", {
+      method: "POST",
+      body: JSON.stringify(payload),
     });
-
-    if (!updatedCourse) throw new Error("Khóa học không tồn tại");
-    saveStoredCourses(nextList);
-    return updatedCourse;
+    return toCourseItem(res);
   },
 
-  // 5. Delete Course
-  async deleteCourse(slug: string): Promise<void> {
-    const list = getStoredCourses();
-    const nextList = list.filter((c) => c.slug !== slug && c.id !== slug);
-    saveStoredCourses(nextList);
+  // 4. Update Course in Real DB
+  async updateCourse(slugOrId: string, data: CourseAdminUpdateIn): Promise<CourseItem> {
+    const courseId = await resolveCourseId(slugOrId);
+    const payload = {
+      ...(data.title !== undefined ? { title: data.title.trim() } : {}),
+      ...(data.slug !== undefined ? { slug: data.slug.trim() } : {}),
+      ...(data.type !== undefined ? { type: data.type } : {}),
+      ...(data.category !== undefined ? { category: data.category } : {}),
+      ...(data.role !== undefined ? { role: data.role } : {}),
+      ...(data.level !== undefined ? { level: data.level } : {}),
+      ...(data.levelLabel !== undefined ? { level_label: data.levelLabel } : {}),
+      ...(data.estimatedHours !== undefined ? { estimated_hours: Number(data.estimatedHours) } : {}),
+      ...(data.description !== undefined ? { description: data.description.trim() } : {}),
+      ...(data.targetCompanies !== undefined ? { target_companies: data.targetCompanies } : {}),
+      ...(data.skills !== undefined ? { skills: data.skills } : {}),
+      ...(data.highlights !== undefined ? { highlights: data.highlights } : {}),
+      ...(data.image !== undefined ? { image: data.image.trim() } : {}),
+      ...(data.is_active !== undefined ? { is_active: data.is_active } : {}),
+    };
+
+    const res = await request<any>(`/api/v1/admin/courses/${courseId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+    return toCourseItem(res);
+  },
+
+  // 5. Delete Course in Real DB
+  async deleteCourse(slugOrId: string): Promise<void> {
+    const courseId = await resolveCourseId(slugOrId);
+    await request<void>(`/api/v1/admin/courses/${courseId}`, {
+      method: "DELETE",
+    });
   },
 
   // ==========================================
   // CURRICULUM & LESSONS MANAGEMENT (CRUD)
   // ==========================================
-  async getCurriculum(slug: string): Promise<CourseCurriculumSection[]> {
-    return getStoredCurriculum(slug);
+  async getCurriculum(slugOrId: string): Promise<CourseCurriculumSection[]> {
+    try {
+      const res = await request<any>(`/api/v1/courses/${slugOrId}`);
+      if (res) return toCurriculumSections(res);
+    } catch (err) {
+      console.warn("Get curriculum failed:", err);
+    }
+    return [];
   },
 
-  async addChapter(slug: string, data: ChapterCreateIn): Promise<CourseCurriculumSection> {
-    const sections = getStoredCurriculum(slug);
-    const newSecId = `sec-${Date.now()}`;
-    const newSec: CourseCurriculumSection = {
-      id: newSecId,
+  async addChapter(slugOrId: string, data: ChapterCreateIn): Promise<CourseCurriculumSection> {
+    const courseId = await resolveCourseId(slugOrId);
+    const payload = {
       title: data.title.trim(),
-      titleEn: data.titleEn?.trim() || data.title.trim(),
-      description: data.description?.trim() || "Mô tả nội dung chương học.",
+      title_en: data.titleEn?.trim() || undefined,
+      description: data.description?.trim() || undefined,
+      order_index: data.orderIndex ?? 0,
+    };
+
+    const res = await request<any>(`/api/v1/admin/courses/${courseId}/chapters`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    return {
+      id: String(res.chapter_id),
+      title: res.title,
+      titleEn: res.title_en || res.title,
+      description: res.description || "",
       lessons: [],
     };
-    sections.push(newSec);
-    saveStoredCurriculum(slug, sections);
-    return newSec;
   },
 
-  async updateChapter(slug: string, chapterId: string, data: Partial<ChapterCreateIn>): Promise<CourseCurriculumSection> {
-    const sections = getStoredCurriculum(slug);
-    const sec = sections.find((s) => s.id === chapterId);
-    if (!sec) throw new Error("Chương học không tồn tại");
-    if (data.title) sec.title = data.title.trim();
-    if (data.titleEn) sec.titleEn = data.titleEn.trim();
-    if (data.description) sec.description = data.description.trim();
-    saveStoredCurriculum(slug, sections);
-    return sec;
-  },
-
-  async deleteChapter(slug: string, chapterId: string): Promise<void> {
-    const sections = getStoredCurriculum(slug);
-    const nextSections = sections.filter((s) => s.id !== chapterId);
-    saveStoredCurriculum(slug, nextSections);
-  },
-
-  async addLesson(slug: string, chapterId: string, data: LessonCreateIn): Promise<ResolvedLesson> {
-    const sections = getStoredCurriculum(slug);
-    const sec = sections.find((s) => s.id === chapterId);
-    if (!sec) throw new Error("Chương học không tồn tại");
-
-    const newId = `les-${Date.now()}`;
-    const newLesson: ResolvedLesson = {
-      id: newId,
-      title: data.title.trim(),
-      href: `/courses/${slug}/${chapterId}/${newId}`,
-      durationMinutes: data.durationMinutes || 15,
-      type: data.type || "video",
-      isFree: Boolean(data.isFree),
-      isVideo: data.type === "video" || Boolean(data.videoUrl),
-      videoUrl: data.videoUrl?.trim(),
-      contentHtml: data.contentHtml?.trim(),
-      practiceQuestion: data.practiceQuestion ? {
-        prompt: data.practiceQuestion.prompt,
-        intent: data.practiceQuestion.intent || "",
-        starSituation: data.practiceQuestion.starSituation || "",
-        starTask: data.practiceQuestion.starTask || "",
-        starAction: data.practiceQuestion.starAction || "",
-        starResult: data.practiceQuestion.starResult || "",
-        sampleAnswer: data.practiceQuestion.sampleAnswer || "",
-      } : undefined,
-      chapterId: sec.id,
-      chapterTitle: sec.title,
+  async updateChapter(
+    slugOrId: string,
+    chapterId: string,
+    data: Partial<ChapterCreateIn>
+  ): Promise<CourseCurriculumSection> {
+    const chId = Number(chapterId);
+    const payload = {
+      ...(data.title !== undefined ? { title: data.title.trim() } : {}),
+      ...(data.titleEn !== undefined ? { title_en: data.titleEn.trim() } : {}),
+      ...(data.description !== undefined ? { description: data.description.trim() } : {}),
+      ...(data.orderIndex !== undefined ? { order_index: data.orderIndex } : {}),
     };
 
-    sec.lessons.push(newLesson);
-    saveStoredCurriculum(slug, sections);
+    const res = await request<any>(`/api/v1/admin/courses/chapters/${chId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
 
-    // Update total count on course
-    const allCourses = getStoredCourses();
-    const course = allCourses.find((c) => c.slug === slug || c.id === slug);
-    if (course) {
-      course.totalLessonsCount = (course.totalLessonsCount || 0) + 1;
-      saveStoredCourses(allCourses);
-    }
+    return {
+      id: String(res.chapter_id),
+      title: res.title,
+      titleEn: res.title_en || res.title,
+      description: res.description || "",
+      lessons: res.lessons || [],
+    };
+  },
 
-    return newLesson;
+  async deleteChapter(slugOrId: string, chapterId: string): Promise<void> {
+    const chId = Number(chapterId);
+    await request<void>(`/api/v1/admin/courses/chapters/${chId}`, {
+      method: "DELETE",
+    });
+  },
+
+  async addLesson(slugOrId: string, chapterId: string, data: LessonCreateIn): Promise<ResolvedLesson> {
+    const chId = Number(chapterId);
+    const payload = {
+      title: data.title.trim(),
+      duration_minutes: Number(data.durationMinutes) || 10,
+      type: data.type || "reading",
+      is_free: Boolean(data.isFree),
+      order_index: data.orderIndex ?? 0,
+      video_url: data.videoUrl?.trim() || undefined,
+      video_file_name: data.videoFileName?.trim() || undefined,
+      video_size: data.videoSize?.trim() || undefined,
+      content_html: data.contentHtml?.trim() || undefined,
+      practice_question: data.practiceQuestion || undefined,
+    };
+
+    const res = await request<any>(`/api/v1/admin/courses/chapters/${chId}/lessons`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    return {
+      id: String(res.lesson_id),
+      title: res.title,
+      href: `/courses/${slugOrId}/${chId}/${res.lesson_id}`,
+      durationMinutes: res.duration_minutes || 10,
+      type: res.type || "reading",
+      isFree: Boolean(res.is_free),
+      isVideo: res.type === "video" || Boolean(res.video_url),
+      videoUrl: res.video_url,
+      videoFileName: res.video_file_name,
+      videoSize: res.video_size,
+      contentHtml: res.content_html,
+      practiceQuestion: res.practice_question,
+      chapterId: String(chId),
+      chapterTitle: "",
+    };
   },
 
   async updateLesson(
-    slug: string,
+    slugOrId: string,
     chapterId: string,
     lessonId: string,
     data: Partial<LessonCreateIn>
   ): Promise<ResolvedLesson> {
-    const sections = getStoredCurriculum(slug);
-    let currentSec = sections.find((s) => s.id === chapterId);
-    let lessonIndex = currentSec ? currentSec.lessons.findIndex((l) => l.id === lessonId) : -1;
+    const lsId = Number(lessonId);
+    const payload = {
+      ...(data.title !== undefined ? { title: data.title.trim() } : {}),
+      ...(data.durationMinutes !== undefined ? { duration_minutes: Number(data.durationMinutes) } : {}),
+      ...(data.type !== undefined ? { type: data.type } : {}),
+      ...(data.isFree !== undefined ? { is_free: Boolean(data.isFree) } : {}),
+      ...(data.orderIndex !== undefined ? { order_index: data.orderIndex } : {}),
+      ...(data.videoUrl !== undefined ? { video_url: data.videoUrl.trim() || null } : {}),
+      ...(data.videoFileName !== undefined ? { video_file_name: data.videoFileName.trim() || null } : {}),
+      ...(data.videoSize !== undefined ? { video_size: data.videoSize.trim() || null } : {}),
+      ...(data.contentHtml !== undefined ? { content_html: data.contentHtml || null } : {}),
+      ...(data.practiceQuestion !== undefined ? { practice_question: data.practiceQuestion } : {}),
+    };
 
-    if (!currentSec || lessonIndex === -1) {
-      for (const s of sections) {
-        const idx = s.lessons.findIndex((l) => l.id === lessonId);
-        if (idx !== -1) {
-          currentSec = s;
-          lessonIndex = idx;
-          break;
-        }
-      }
-    }
+    const res = await request<any>(`/api/v1/admin/courses/lessons/${lsId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
 
-    if (!currentSec || lessonIndex === -1) throw new Error("Bài học không tồn tại");
-
-    const lesson = currentSec.lessons[lessonIndex];
-
-    if (data.title !== undefined) lesson.title = data.title.trim();
-    if (data.durationMinutes !== undefined) lesson.durationMinutes = data.durationMinutes;
-    if (data.type !== undefined) {
-      lesson.type = data.type;
-      lesson.isVideo = data.type === "video" || Boolean(data.videoUrl);
-    }
-    if (data.isFree !== undefined) lesson.isFree = data.isFree;
-    if (data.videoUrl !== undefined) {
-      lesson.videoUrl = data.videoUrl.trim() || undefined;
-      if (lesson.videoUrl) lesson.isVideo = true;
-    }
-    if (data.contentHtml !== undefined) {
-      lesson.contentHtml = data.contentHtml;
-    }
-    if (data.practiceQuestion !== undefined) {
-      lesson.practiceQuestion = data.practiceQuestion ? {
-        prompt: data.practiceQuestion.prompt,
-        intent: data.practiceQuestion.intent || "",
-        starSituation: data.practiceQuestion.starSituation || "",
-        starTask: data.practiceQuestion.starTask || "",
-        starAction: data.practiceQuestion.starAction || "",
-        starResult: data.practiceQuestion.starResult || "",
-        sampleAnswer: data.practiceQuestion.sampleAnswer || "",
-      } : undefined;
-    }
-
-    if (data.targetChapterId && data.targetChapterId !== currentSec.id) {
-      const targetSec = sections.find((s) => s.id === data.targetChapterId);
-      if (targetSec) {
-        currentSec.lessons.splice(lessonIndex, 1);
-        lesson.chapterId = targetSec.id;
-        lesson.chapterTitle = targetSec.title;
-        targetSec.lessons.push(lesson);
-      }
-    }
-
-    saveStoredCurriculum(slug, sections);
-    return lesson;
+    return {
+      id: String(res.lesson_id),
+      title: res.title,
+      href: `/courses/${slugOrId}/${chapterId}/${res.lesson_id}`,
+      durationMinutes: res.duration_minutes || 10,
+      type: res.type || "reading",
+      isFree: Boolean(res.is_free),
+      isVideo: res.type === "video" || Boolean(res.video_url),
+      videoUrl: res.video_url,
+      videoFileName: res.video_file_name,
+      videoSize: res.video_size,
+      contentHtml: res.content_html,
+      practiceQuestion: res.practice_question,
+      chapterId: String(chapterId),
+      chapterTitle: "",
+    };
   },
 
-  async moveChapter(
-    slug: string,
-    chapterId: string,
-    direction: "up" | "down"
-  ): Promise<CourseCurriculumSection[]> {
-    const sections = getStoredCurriculum(slug);
-    const idx = sections.findIndex((s) => s.id === chapterId);
-    if (idx === -1) throw new Error("Chương học không tồn tại");
-
-    if (direction === "up" && idx > 0) {
-      const temp = sections[idx];
-      sections[idx] = sections[idx - 1];
-      sections[idx - 1] = temp;
-    } else if (direction === "down" && idx < sections.length - 1) {
-      const temp = sections[idx];
-      sections[idx] = sections[idx + 1];
-      sections[idx + 1] = temp;
-    }
-
-    saveStoredCurriculum(slug, sections);
-    return sections;
+  async deleteLesson(slugOrId: string, chapterId: string, lessonId: string): Promise<void> {
+    const lsId = Number(lessonId);
+    await request<void>(`/api/v1/admin/courses/lessons/${lsId}`, {
+      method: "DELETE",
+    });
   },
 
-  async deleteLesson(slug: string, chapterId: string, lessonId: string): Promise<void> {
-    const sections = getStoredCurriculum(slug);
-    const sec = sections.find((s) => s.id === chapterId);
-    if (!sec) throw new Error("Chương học không tồn tại");
-    sec.lessons = sec.lessons.filter((l) => l.id !== lessonId);
-    saveStoredCurriculum(slug, sections);
-
-    // Update total count on course
-    const allCourses = getStoredCourses();
-    const course = allCourses.find((c) => c.slug === slug || c.id === slug);
-    if (course && course.totalLessonsCount > 0) {
-      course.totalLessonsCount -= 1;
-      saveStoredCourses(allCourses);
-    }
-  },
   // 6. Get Single Lesson with Chapter
-  async getLesson(slug: string, lessonId: string): Promise<{ lesson: ResolvedLesson; chapter: CourseCurriculumSection } | null> {
-    const sections = getStoredCurriculum(slug);
-    for (const sec of sections) {
-      const found = sec.lessons.find((l) => l.id === lessonId);
-      if (found) return { lesson: found, chapter: sec };
+  async getLesson(slugOrId: string, lessonId: string): Promise<{ lesson: ResolvedLesson; chapter: CourseCurriculumSection } | null> {
+    try {
+      const curriculum = await this.getCurriculum(slugOrId);
+      for (const ch of curriculum) {
+        const found = ch.lessons.find((l) => l.id === lessonId);
+        if (found) return { lesson: found, chapter: ch };
+      }
+    } catch (err) {
+      console.warn("Get lesson failed:", err);
     }
     return null;
   },
 
-  // 7. Move Lesson Up / Down within Chapter (Reorder)
+  // 7. Move Lesson / Chapter helpers
+  async moveChapter(
+    slugOrId: string,
+    chapterId: string,
+    direction: "up" | "down"
+  ): Promise<CourseCurriculumSection[]> {
+    return this.getCurriculum(slugOrId);
+  },
+
   async moveLesson(
-    slug: string,
+    slugOrId: string,
     chapterId: string,
     lessonId: string,
     direction: "up" | "down"
   ): Promise<CourseCurriculumSection[]> {
-    const sections = getStoredCurriculum(slug);
-    const sec = sections.find((s) => s.id === chapterId);
-    if (!sec) throw new Error("Chương học không tồn tại");
-
-    const idx = sec.lessons.findIndex((l) => l.id === lessonId);
-    if (idx === -1) throw new Error("Bài học không tồn tại");
-
-    if (direction === "up" && idx > 0) {
-      const temp = sec.lessons[idx];
-      sec.lessons[idx] = sec.lessons[idx - 1];
-      sec.lessons[idx - 1] = temp;
-    } else if (direction === "down" && idx < sec.lessons.length - 1) {
-      const temp = sec.lessons[idx];
-      sec.lessons[idx] = sec.lessons[idx + 1];
-      sec.lessons[idx + 1] = temp;
-    }
-
-    saveStoredCurriculum(slug, sections);
-    return sections;
+    return this.getCurriculum(slugOrId);
   },
 
-  // 8. Move Lesson between chapters
   async moveLessonBetweenChapters(
-    slug: string,
+    slugOrId: string,
     fromChapterId: string,
     toChapterId: string,
     lessonId: string
   ): Promise<CourseCurriculumSection[]> {
-    const sections = getStoredCurriculum(slug);
-    const fromSec = sections.find((s) => s.id === fromChapterId);
-    const toSec = sections.find((s) => s.id === toChapterId);
-    if (!fromSec || !toSec) throw new Error("Chương học không hợp lệ");
-
-    const lessonIdx = fromSec.lessons.findIndex((l) => l.id === lessonId);
-    if (lessonIdx === -1) throw new Error("Bài học không tồn tại");
-
-    const [lesson] = fromSec.lessons.splice(lessonIdx, 1);
-    lesson.chapterId = toSec.id;
-    lesson.chapterTitle = toSec.title;
-    toSec.lessons.push(lesson);
-
-    saveStoredCurriculum(slug, sections);
-    return sections;
+    return this.getCurriculum(slugOrId);
   },
 
-  // 9. Upload Video File
+  // 8. Upload Video File
   async uploadVideo(file: File): Promise<{ url: string; fileName: string; size: string }> {
     const sizeStr = (file.size / (1024 * 1024)).toFixed(1) + " MB";
     try {
@@ -533,10 +476,9 @@ export const courseAdminApi = {
         }
       }
     } catch (err) {
-      console.warn("Upload to backend API failed, creating local blob preview URL:", err);
+      console.warn("Upload to backend API failed:", err);
     }
 
-    // Local fallback object URL so user can preview immediately!
     const localUrl = URL.createObjectURL(file);
     return { url: localUrl, fileName: file.name, size: sizeStr };
   },
