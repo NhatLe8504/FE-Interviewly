@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Sparkles,
   Plus,
@@ -20,7 +20,7 @@ import {
   type StarTemplateCreateIn,
   type StarTemplateUpdateIn,
 } from "@/services/admin/starTemplateAdminApi";
-import { AdminEmptyState, AdminPageHeader, AdminStatCard } from "@/components/admin";
+import { AdminEmptyState, AdminPageHeader, AdminStatCard, AdminPagination } from "@/components/admin";
 import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/admin/ui/card";
@@ -90,6 +90,19 @@ export function AdminStarTemplatesClient() {
       (t.action_guide || "").toLowerCase().includes(q)
     );
   });
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, languageFilter]);
+
+  const paginatedTemplates = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredTemplates.slice(start, start + pageSize);
+  }, [filteredTemplates, page, pageSize]);
 
   const handleOpenCreate = () => {
     setSelectedTemplate(null);
@@ -286,8 +299,9 @@ export function AdminStarTemplatesClient() {
               }
             />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredTemplates.map((tmpl) => (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {paginatedTemplates.map((tmpl) => (
                 <Card key={tmpl.star_template_id} className="border shadow-xs flex flex-col justify-between">
                   <CardHeader className="pb-3 border-b bg-muted/10">
                     <div className="flex items-start justify-between gap-2">
@@ -376,6 +390,20 @@ export function AdminStarTemplatesClient() {
                   </CardContent>
                 </Card>
               ))}
+              </div>
+              <AdminPagination
+                currentPage={page}
+                totalPages={Math.max(1, Math.ceil(filteredTemplates.length / pageSize))}
+                totalItems={filteredTemplates.length}
+                pageSize={pageSize}
+                onPageChange={(p) => setPage(p)}
+                onPageSizeChange={(newSize) => {
+                  setPageSize(newSize);
+                  setPage(1);
+                }}
+                pageSizeOptions={[4, 6, 10, 20]}
+                itemName="mẫu STAR"
+              />
             </div>
           )}
         </CardContent>

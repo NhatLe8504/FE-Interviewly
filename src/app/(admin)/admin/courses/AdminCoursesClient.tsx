@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
@@ -38,6 +38,7 @@ import {
   TableCell,
 } from "@/components/admin/ui/table";
 import { Badge } from "@/components/admin/ui/badge";
+import { AdminPagination } from "@/components/admin";
 import { Button } from "@/components/admin/ui/button";
 import { Input } from "@/components/admin/ui/input";
 import { Label } from "@/components/admin/ui/label";
@@ -182,6 +183,20 @@ export default function AdminCoursesClient() {
       return true;
     });
   }, [courses, search, selectedCategory, selectedType, selectedLevel]);
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [search, selectedCategory, selectedType, selectedLevel]);
+
+  const paginatedCourses = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredCourses.slice(start, start + pageSize);
+  }, [filteredCourses, page, pageSize]);
 
   // Open Create Course
   const handleOpenCreateCourse = () => {
@@ -579,7 +594,7 @@ export default function AdminCoursesClient() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCourses.map((c, idx) => (
+                  paginatedCourses.map((c, idx) => (
                     <TableRow key={c.id || idx} className="hover:bg-muted/30 transition-colors">
                       <TableCell className="font-mono text-muted-foreground font-semibold">
                         #{c.id.replace("c-", "")}
@@ -707,6 +722,19 @@ export default function AdminCoursesClient() {
               </TableBody>
             </Table>
           </div>
+          <AdminPagination
+            currentPage={page}
+            totalPages={Math.max(1, Math.ceil(filteredCourses.length / pageSize))}
+            totalItems={filteredCourses.length}
+            pageSize={pageSize}
+            onPageChange={(p) => setPage(p)}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setPage(1);
+            }}
+            pageSizeOptions={[5, 10, 20, 50]}
+            itemName="khóa học"
+          />
         </div>
       </div>
 

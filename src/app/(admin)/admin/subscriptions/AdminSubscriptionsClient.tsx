@@ -30,7 +30,7 @@ import {
   type SubscriptionPlanUpdateIn,
   type UserSubscriptionAdmin,
 } from "@/services/admin/subscriptionAdminApi";
-import { AdminEmptyState, AdminPageHeader, AdminStatCard } from "@/components/admin";
+import { AdminEmptyState, AdminPageHeader, AdminStatCard, AdminPagination } from "@/components/admin";
 import { Avatar, AvatarFallback } from "@/components/admin/ui/avatar";
 import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
@@ -116,6 +116,8 @@ export function AdminSubscriptionsClient() {
   // Filters for User Subscriptions
   const [subStatusFilter, setSubStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [subPage, setSubPage] = useState(1);
+  const [subPageSize, setSubPageSize] = useState(15);
 
   // Plan Dialog state
   const [planDialogMode, setPlanDialogMode] = useState<"create" | "edit" | null>(null);
@@ -169,8 +171,8 @@ export function AdminSubscriptionsClient() {
       const data = await subscriptionAdminApi.getUserSubscriptions({
         status: subStatusFilter,
         search: searchQuery.trim() || undefined,
-        limit: 50,
-        offset: 0,
+        limit: subPageSize,
+        offset: (subPage - 1) * subPageSize,
       });
       setSubscriptions(data.items);
       setSubTotal(data.total);
@@ -179,7 +181,7 @@ export function AdminSubscriptionsClient() {
     } finally {
       setLoadingSubs(false);
     }
-  }, [subStatusFilter, searchQuery]);
+  }, [subStatusFilter, searchQuery, subPage, subPageSize]);
 
   useEffect(() => {
     fetchPlans();
@@ -513,7 +515,7 @@ export function AdminSubscriptionsClient() {
                       placeholder="Tìm email, họ tên..."
                       className="pl-8 text-sm"
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => { setSearchQuery(e.target.value); setSubPage(1); }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") fetchSubscriptions();
                       }}
@@ -662,6 +664,22 @@ export function AdminSubscriptionsClient() {
                     </tbody>
                   </table>
                 </div>
+              )}
+
+              {!loadingSubs && subscriptions.length > 0 && (
+                <AdminPagination
+                  currentPage={subPage}
+                  totalPages={Math.max(1, Math.ceil(subTotal / subPageSize))}
+                  totalItems={subTotal}
+                  pageSize={subPageSize}
+                  onPageChange={(p) => setSubPage(p)}
+                  onPageSizeChange={(s) => {
+                    setSubPageSize(s);
+                    setSubPage(1);
+                  }}
+                  pageSizeOptions={[10, 15, 25, 50]}
+                  itemName="thuê bao"
+                />
               )}
             </CardContent>
           </Card>

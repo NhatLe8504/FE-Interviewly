@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   BriefcaseBusiness,
@@ -23,7 +23,7 @@ import {
   type RoleAdminUpdateIn,
 } from "@/services/admin/domainAdminApi";
 import type { CatalogStatusFilter, DomainAdminSummary, RoleAdminSummary } from "@/types/catalog";
-import { AdminEmptyState, AdminPageHeader, AdminStatCard } from "@/components/admin";
+import { AdminEmptyState, AdminPageHeader, AdminStatCard, AdminPagination } from "@/components/admin";
 import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/admin/ui/card";
@@ -120,6 +120,19 @@ export function AdminRolesClient() {
     const dName = (domainMap.get(r.domain_id) || "").toLowerCase();
     return r.role_name.toLowerCase().includes(q) || dName.includes(q);
   });
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedDomainId, statusFilter]);
+
+  const paginatedRoles = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredRoles.slice(start, start + pageSize);
+  }, [filteredRoles, page, pageSize]);
 
   const handleOpenCreate = () => {
     setSelectedRole(null);
@@ -319,7 +332,7 @@ export function AdminRolesClient() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
-                  {filteredRoles.map((role) => (
+                  {paginatedRoles.map((role) => (
                     <tr key={role.role_id} className="hover:bg-muted/40 transition-colors">
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-2.5">
@@ -422,6 +435,19 @@ export function AdminRolesClient() {
                 </tbody>
               </table>
             </div>
+            <AdminPagination
+              currentPage={page}
+              totalPages={Math.max(1, Math.ceil(filteredRoles.length / pageSize))}
+              totalItems={filteredRoles.length}
+              pageSize={pageSize}
+              onPageChange={(p) => setPage(p)}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
+              pageSizeOptions={[5, 10, 20, 50]}
+              itemName="vị trí"
+            />
           )}
         </CardContent>
       </Card>
