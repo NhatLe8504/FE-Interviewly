@@ -26,7 +26,6 @@ import { catalogApi } from "@/services/catalogApi";
 import { Button } from "@/components/ui/button";
 import { PageMascot } from "@/components/user-component/common/PageMascot";
 import { useI18n } from "@/context/I18nContext";
-import { interviewApi } from "@/services/interviewApi";
 import type {
   DomainOut,
   RoleOut,

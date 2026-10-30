@@ -57,30 +57,20 @@ export const interviewApiSlice = baseApi.injectEndpoints({
       TurnOut | any,
       {
         sessionId: string | number;
+        turnNumber?: number;
         data: TurnSubmitIn | SubmitTurnPayload;
       }
     >({
-      query: ({ sessionId, data }) => {
-        if (data.audio_blob) {
-          const formData = new FormData();
-          formData.append("answer_text", data.answer_text);
-          formData.append("duration_seconds", String(data.duration_seconds));
-          formData.append("audio_file", data.audio_blob, "answer.webm");
-          return {
-            url: `/api/v1/interviews/sessions/${sessionId}/turns`,
-            method: "POST",
-            body: formData,
-          };
-        }
-        return {
-          url: `/api/v1/interviews/sessions/${sessionId}/turns`,
-          method: "POST",
-          body: {
-            answer_text: data.answer_text,
-            duration_seconds: data.duration_seconds,
-          },
-        };
-      },
+      query: ({ sessionId, turnNumber = 1, data }) => ({
+        url: `/api/v1/interviews/sessions/${sessionId}/turns?turn_number=${turnNumber}`,
+        method: "POST",
+        body: {
+          answer_text: data.answer_text,
+          duration_seconds: data.duration_seconds || 0,
+          pause_duration_seconds: data.pause_duration_seconds || 0,
+          audio_url: data.audio_url || null,
+        },
+      }),
       invalidatesTags: (_result, _err, { sessionId }) => [
         { type: "Session", id: sessionId },
       ],

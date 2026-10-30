@@ -9,7 +9,6 @@ import type {
   RubricEvaluationOut,
   SessionResultOut,
 } from "@/types/interview";
-import { MOCK_DOMAINS, MOCK_ROLES } from "@/mock/practice";
 
 export interface CatalogDomain {
   id: number;
@@ -99,70 +98,27 @@ export const interviewApi = {
    * Fetch active domains from catalog via RTK Query
    */
   async getDomains(): Promise<CatalogDomain[]> {
-    try {
-      const domains = await store
-        .dispatch(interviewApiSlice.endpoints.getDomains.initiate())
-        .unwrap();
-      if (Array.isArray(domains) && domains.length > 0) {
-        return domains;
-      }
-    } catch {
-      // Fallback to mock data
-    }
-
-    return MOCK_DOMAINS.map((d, idx) => ({
-      id: idx + 1,
-      name: d.label,
-      code: d.id,
-      description: d.label,
-    }));
+    return store
+      .dispatch(interviewApiSlice.endpoints.getDomains.initiate())
+      .unwrap();
   },
 
   /**
    * Fetch roles for a specific domain via RTK Query
    */
   async getRoles(domainId?: number | string): Promise<CatalogRole[]> {
-    try {
-      const roles = await store
-        .dispatch(interviewApiSlice.endpoints.getRoles.initiate(domainId))
-        .unwrap();
-      if (Array.isArray(roles) && roles.length > 0) {
-        return roles;
-      }
-    } catch {
-      // Fallback
-    }
-
-    const domainObj =
-      MOCK_DOMAINS[typeof domainId === "number" ? domainId - 1 : 0] || MOCK_DOMAINS[0];
-    const filtered = MOCK_ROLES.filter((r) => r.domainId === domainObj.id);
-    return (filtered.length > 0 ? filtered : MOCK_ROLES).map((r, idx) => ({
-      id: idx + 1,
-      domain_id: typeof domainId === "number" ? domainId : 1,
-      name: r.label,
-      code: r.id,
-      description: r.label,
-    }));
+    return store
+      .dispatch(interviewApiSlice.endpoints.getRoles.initiate(domainId))
+      .unwrap();
   },
 
   /**
    * Check current user quota via RTK Query
    */
   async checkSubscriptionQuota(): Promise<SubscriptionQuota> {
-    try {
-      return await store
-        .dispatch(interviewApiSlice.endpoints.checkSubscriptionQuota.initiate())
-        .unwrap();
-    } catch {
-      return {
-        plan: "free",
-        used_interviews: 1,
-        limit_interviews: 3,
-        is_active: true,
-        remaining: 2,
-        can_start: true,
-      };
-    }
+    return store
+      .dispatch(interviewApiSlice.endpoints.checkSubscriptionQuota.initiate())
+      .unwrap();
   },
 
   /**
@@ -170,7 +126,7 @@ export const interviewApi = {
    */
   async startSession(
     payload: StartSessionIn | StartSessionPayload
-  ): Promise<SessionOut | SessionResponse | any> {
+  ): Promise<SessionOut | SessionResponse> {
     return store
       .dispatch(interviewApiSlice.endpoints.startSession.initiate(payload))
       .unwrap();
@@ -179,21 +135,10 @@ export const interviewApi = {
   /**
    * Lấy thông tin trạng thái phiên hiện tại via RTK Query
    */
-  async getSession(sessionId: string | number): Promise<SessionResponse & SessionOut & any> {
-    try {
-      return await store
-        .dispatch(interviewApiSlice.endpoints.getSession.initiate(sessionId))
-        .unwrap();
-    } catch {
-      return {
-        session_id: sessionId,
-        level: "junior",
-        language: "vi",
-        mode: "text",
-        status: "in_progress",
-        current_turn: null,
-      };
-    }
+  async getSession(sessionId: string | number): Promise<SessionResponse & SessionOut> {
+    return store
+      .dispatch(interviewApiSlice.endpoints.getSession.initiate(sessionId))
+      .unwrap();
   },
 
   /**
@@ -203,42 +148,22 @@ export const interviewApi = {
     sessionId: string | number,
     param2: number | TurnSubmitIn | SubmitTurnPayload,
     param3?: TurnSubmitIn | SubmitTurnPayload
-  ): Promise<any> {
+  ): Promise<TurnOut> {
     const turnNumber = typeof param2 === "number" ? param2 : 1;
     const data = ((typeof param2 === "object" ? param2 : param3) || {
       answer_text: "",
       duration_seconds: 0,
     }) as (TurnSubmitIn & SubmitTurnPayload);
 
-    try {
-      return await store
-        .dispatch(
-          interviewApiSlice.endpoints.submitTurn.initiate({
-            sessionId,
-            data,
-          })
-        )
-        .unwrap();
-    } catch {
-      const isLast = turnNumber >= 4;
-      return {
-        turn_id: `t-${turnNumber + 1}-${Date.now()}`,
-        session_id: sessionId,
-        turn_number: turnNumber,
-        answer_text: data.answer_text,
-        is_completed: isLast,
-        next_turn: isLast
-          ? null
-          : {
-              turn_id: `t-${turnNumber + 1}-${Date.now()}`,
-              session_id: sessionId,
-              turn_number: turnNumber + 1,
-              question_text: "Bạn có thể chia sẻ cụ thể hơn về bài học rút ra từ dự án này?",
-              speaker: "ai",
-              star_tip: "Tập trung vào Action và Result.",
-            },
-      };
-    }
+    return store
+      .dispatch(
+        interviewApiSlice.endpoints.submitTurn.initiate({
+          sessionId,
+          turnNumber,
+          data,
+        })
+      )
+      .unwrap();
   },
 
   /**
