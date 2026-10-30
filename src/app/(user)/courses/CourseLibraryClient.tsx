@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -23,6 +23,7 @@ import type { CourseItem } from "@/types/course";
 import { useI18n } from "@/context/I18nContext";
 import { SimpleUserSelect } from "@/components/user-component/common";
 import { PageMascot } from "@/components/user-component/common/PageMascot";
+import { UserPagination } from "@/components/user-component/common/Pagination";
 import styles from "./courses.module.css";
 
 export default function CourseLibraryClient() {
@@ -67,6 +68,20 @@ export default function CourseLibraryClient() {
       return true;
     });
   }, [search, selectedCategory, selectedType, selectedLevel]);
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const pageSize = 6;
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, selectedCategory, selectedType, selectedLevel]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredCourses.length / pageSize));
+  const paginatedCourses = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredCourses.slice(start, start + pageSize);
+  }, [filteredCourses, page, pageSize]);
 
   const handleResetFilters = () => {
     setSearch("");
@@ -245,7 +260,7 @@ export default function CourseLibraryClient() {
           </div>
         ) : (
           <div className={styles.courseGrid}>
-            {filteredCourses.map((c) => (
+            {paginatedCourses.map((c) => (
               <Link key={c.id} href={`/courses/${c.slug}`} className={styles.courseCard}>
                 <div className={styles.cardMedia}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -303,6 +318,19 @@ export default function CourseLibraryClient() {
               </Link>
             ))}
           </div>
+
+          {totalPages > 1 && (
+            <div style={{ marginTop: "2rem", display: "flex", justifyContent: "center" }}>
+              <UserPagination
+                currentPage={page}
+                totalPages={totalPages}
+                totalItems={filteredCourses.length}
+                pageSize={pageSize}
+                onPageChange={setPage}
+                itemLabel="khóa học"
+              />
+            </div>
+          )}
         )}
       </div>
     </div>

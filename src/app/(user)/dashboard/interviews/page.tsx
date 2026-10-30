@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { historyApi } from "@/services/historyApi";
 import { HistoryPageData, HistorySessionItem } from "@/types/analytics";
+import { UserPagination } from "@/components/user-component/common/Pagination";
 
 export default function InterviewHistoryPage() {
   const [data, setData] = useState<HistoryPageData | null>(null);
@@ -214,30 +215,15 @@ export default function InterviewHistoryPage() {
 
         {/* Pagination Bar */}
         {data && data.total_pages > 1 && (
-          <div className="p-4 bg-slate-950/60 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-            <div>
-              Trang <span className="font-semibold text-slate-200">{data.page}</span> /{" "}
-              {data.total_pages}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={data.page <= 1}
-                onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                disabled={data.page >= data.total_pages}
-                onClick={() => setPage((p) => Math.min(p + 1, data.total_pages))}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+          <div className="p-4 bg-slate-950/60 border-t border-slate-800 flex justify-center">
+            <UserPagination
+              currentPage={page}
+              totalPages={data.total_pages}
+              totalItems={data.total}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              itemLabel="phiên phỏng vấn"
+            />
           </div>
         )}
       </div>

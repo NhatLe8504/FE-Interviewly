@@ -14,26 +14,35 @@ import {
 import { historyApi } from "@/services/historyApi";
 import { HistorySessionItem } from "@/types/analytics";
 import { PageMascot } from "@/components/user-component/common/PageMascot";
+import { UserPagination } from "@/components/user-component/common/Pagination";
 
 export default function ReportsPage() {
   const [sessions, setSessions] = useState<HistorySessionItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadReports() {
       setLoading(true);
       try {
-        const res = await historyApi.getInterviewHistory({ pageSize: 20 });
+        const res = await historyApi.getInterviewHistory({ page, pageSize });
         setSessions(res.items);
+        setTotal(res.total);
+        setTotalPages(res.total_pages || Math.max(1, Math.ceil(res.total / pageSize)));
       } catch (err: any) {
-      setSessions([]);
-    } finally {
+        setSessions([]);
+        setTotal(0);
+        setTotalPages(1);
+      } finally {
         setLoading(false);
       }
     }
 
     loadReports();
-  }, []);
+  }, [page, pageSize]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -68,7 +77,8 @@ export default function ReportsPage() {
           <span>Đang tải danh sách báo cáo PDF...</span>
         </div>
       ) : sessions.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {sessions.map((s) => {
             const pdfUrl = historyApi.getPdfDownloadUrl(s.session_id);
 
@@ -141,6 +151,20 @@ export default function ReportsPage() {
               </div>
             );
           })}
+        </div>
+
+        {totalPages > 1 && (
+          <div className="pt-6 flex justify-center">
+            <UserPagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={total}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              itemLabel="báo cáo PDF"
+            />
+          </div>
+        )}
         </div>
       ) : (
         <div className="p-16 text-center text-slate-500 text-sm">
