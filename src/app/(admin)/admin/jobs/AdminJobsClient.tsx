@@ -24,7 +24,7 @@ import {
   type JobPostingAdmin,
   type JobSourceAdmin,
 } from "@/services/admin/jobAdminApi";
-import { AdminEmptyState, AdminPageHeader, AdminStatCard } from "@/components/admin";
+import { AdminEmptyState, AdminPageHeader, AdminStatCard, AdminPagination } from "@/components/admin";
 import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/admin/ui/card";
@@ -101,6 +101,8 @@ export function AdminJobsClient() {
   const [jobs, setJobs] = useState<JobPostingAdmin[]>([]);
   const [sources, setSources] = useState<JobSourceAdmin[]>([]);
   const [totalJobs, setTotalJobs] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [loadingSources, setLoadingSources] = useState(true);
   const [triggering, setTriggering] = useState(false);
@@ -119,8 +121,8 @@ export function AdminJobsClient() {
       const data = await jobAdminApi.getJobs({
         search: searchQuery.trim() || undefined,
         source_id: sourceFilter,
-        limit: 50,
-        offset: 0,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
       });
       setJobs(data.items);
       setTotalJobs(data.total);
@@ -129,7 +131,7 @@ export function AdminJobsClient() {
     } finally {
       setLoadingJobs(false);
     }
-  }, [searchQuery, sourceFilter]);
+  }, [searchQuery, sourceFilter, page, pageSize]);
 
   const fetchSources = useCallback(async () => {
     setLoadingSources(true);
@@ -274,14 +276,14 @@ export function AdminJobsClient() {
                       placeholder="Tìm vị trí, doanh nghiệp..."
                       className="pl-8 text-sm"
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") fetchJobs();
                       }}
                     />
                   </div>
 
-                  <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                  <Select value={sourceFilter} onValueChange={(val) => { setSourceFilter(val); setPage(1); }}>
                     <SelectTrigger className="w-44 text-sm">
                       <SelectValue placeholder="Nguồn cào" />
                     </SelectTrigger>
@@ -432,6 +434,22 @@ export function AdminJobsClient() {
                     </tbody>
                   </table>
                 </div>
+              )}
+
+              {!loadingJobs && jobs.length > 0 && (
+                <AdminPagination
+                  currentPage={page}
+                  totalPages={Math.max(1, Math.ceil(totalJobs / pageSize))}
+                  totalItems={totalJobs}
+                  pageSize={pageSize}
+                  onPageChange={(p) => setPage(p)}
+                  onPageSizeChange={(s) => {
+                    setPageSize(s);
+                    setPage(1);
+                  }}
+                  pageSizeOptions={[10, 15, 25, 50]}
+                  itemName="tin việc làm"
+                />
               )}
             </CardContent>
           </Card>
