@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { Play, Pause, RotateCcw, Volume2 } from "lucide-react";
+import { Play, Pause, RotateCcw, Volume2, Clock } from "lucide-react";
 import { UserTooltip } from "@/components/user-component/common";
+import { getStoredToken } from "@/services/apiClient";
 
 interface AudioPlayerTurnProps {
   audioUrl?: string | null;
@@ -16,6 +17,71 @@ export function AudioPlayerTurn({ audioUrl, turnNumber, className }: AudioPlayer
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(null);
+  const [isExpiredOrUnavailable, setIsExpiredOrUnavailable] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!audioUrl) {
+      setResolvedSrc(null);
+      setIsExpiredOrUnavailable(false);
+      setIsLoading(false);
+      return;
+    }
+
+    let objectUrl: string | null = null;
+    let isCancelled = false;
+
+    const loadAuthorizedAudio = async () => {
+      setIsLoading(true);
+      setIsExpiredOrUnavailable(false);
+      try {
+        const token = getStoredToken();
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        let targetUrl = audioUrl;
+        if (audioUrl.startsWith("/")) {
+          const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+          targetUrl = `${apiBase.replace(/\/$/, "")}${audioUrl}`;
+        }
+
+        const res = await fetch(targetUrl, { headers });
+        if (isCancelled) return;
+
+        if (!res.ok) {
+          // 404: Audio was cleaned up by retention sweep or not found
+          // 401/403: Unauthorized session audio access
+          setIsExpiredOrUnavailable(true);
+          setIsLoading(false);
+          return;
+        }
+
+        const blob = await res.blob();
+        if (isCancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setResolvedSrc(objectUrl);
+        setIsLoading(false);
+      } catch {
+        if (!isCancelled) {
+          // If fetch fails (CORS or network issue), fall back to raw URL if not already errored
+          setResolvedSrc(audioUrl);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadAuthorizedAudio();
+
+    return () => {
+      isCancelled = true;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [audioUrl]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -37,7 +103,7 @@ export function AudioPlayerTurn({ audioUrl, turnNumber, className }: AudioPlayer
       audio.removeEventListener("loadedmetadata", onLoadedMetadata);
       audio.removeEventListener("ended", onEnded);
     };
-  }, []);
+  }, [resolvedSrc]);
 
   const togglePlay = () => {
     if (!audioRef.current) return;
@@ -46,7 +112,7 @@ export function AudioPlayerTurn({ audioUrl, turnNumber, className }: AudioPlayer
       setIsPlaying(false);
     } else {
       audioRef.current.play().catch(() => {
-        // Autoplay policy or invalid audio file
+        // Autoplay policy or playback failure
       });
       setIsPlaying(true);
     }
@@ -83,13 +149,46 @@ export function AudioPlayerTurn({ audioUrl, turnNumber, className }: AudioPlayer
     );
   }
 
+  if (isExpiredOrUnavailable) {
+    return (
+      <div
+        className={`p-3 rounded-xl bg-[#faf8f5] border border-[rgba(106,72,49,0.12)] text-xs text-[#543a2a]/80 flex items-center gap-2 ${
+          className || ""
+        }`}
+      >
+        <Clock className="w-4 h-4 text-[#8b4513]/70 shrink-0" />
+        <span>
+          Bản ghi âm lượt #{turnNumber} đã hết hạn lưu trữ (chỉ lưu tạm thời theo chính sách bảo mật). Nội dung câu trả lời văn bản vẫn được lưu đầy đủ bên dưới.
+        </span>
+      </div>
+    );
+  }
+
+  if (isLoading || !resolvedSrc) {
+    return (
+      <div
+        className={`p-3 rounded-xl bg-white/70 border border-[rgba(106,72,49,0.12)] text-xs text-[#543a2a]/70 flex items-center gap-2 ${
+          className || ""
+        }`}
+      >
+        <div className="w-4 h-4 rounded-full border-2 border-[#d98236] border-t-transparent animate-spin shrink-0" />
+        <span>Đang chuẩn bị bản ghi âm lượt #{turnNumber}...</span>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`p-3 rounded-xl bg-white/85 border border-[rgba(106,72,49,0.14)] flex items-center gap-3 shadow-xs ${
         className || ""
       }`}
     >
-      <audio ref={audioRef} src={audioUrl} preload="metadata" />
+      <audio
+        ref={audioRef}
+        src={resolvedSrc}
+        preload="metadata"
+        onError={() => setIsExpiredOrUnavailable(true)}
+      />
 
       <UserTooltip content={isPlaying ? "Tạm dừng" : "Phát ghi âm"}>
         <button
