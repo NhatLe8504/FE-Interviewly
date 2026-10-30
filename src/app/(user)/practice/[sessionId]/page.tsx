@@ -34,6 +34,7 @@ import { AudioWaveformVisualizer } from "./components/AudioWaveformVisualizer";
 import { StarGuidanceDrawer } from "./components/StarGuidanceDrawer";
 import { SimpleUserSelect } from "@/components/user-component/common";
 import { voiceApi, type VoiceOptionsResponse } from "@/services/voiceApi";
+import { getStoredToken } from "@/services/apiClient";
 import { toast } from "@/components/user-component/toast/UserToast";
 import { useI18n } from "@/context/I18nContext";
 import { INTERVIEW_LANGUAGES, getInterviewLanguage, type InterviewLanguage } from "@/lib/interviewLanguages";
@@ -115,6 +116,7 @@ export default function InterviewRoomPage({
   // Audio replay
   const [playingAudioKey, setPlayingAudioKey] = useState<string | null>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const activeBlobUrlRef = useRef<string | null>(null);
 
   // Auto-scroll ref (mot thanh cuon chung cho ca khung chat)
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
@@ -557,12 +559,16 @@ function changeInterviewLanguage(code: string) {
   };
 
 // Audio Replay Player Toggle (chuẩn hóa URL blob, relative và origin để phát lại mượt mà)
-  const togglePlayAudio = (key: string, rawUrl: string) => {
+  const togglePlayAudio = async (key: string, rawUrl: string) => {
     if (!rawUrl) return;
     if (playingAudioKey === key) {
       if (audioPlayerRef.current) {
         audioPlayerRef.current.pause();
         audioPlayerRef.current = null;
+      }
+      if (activeBlobUrlRef.current) {
+        URL.revokeObjectURL(activeBlobUrlRef.current);
+        activeBlobUrlRef.current = null;
       }
       setPlayingAudioKey(null);
       return;
@@ -571,38 +577,86 @@ function changeInterviewLanguage(code: string) {
       audioPlayerRef.current.pause();
       audioPlayerRef.current = null;
     }
-
-    const resolvedUrl =
-      rawUrl.startsWith("blob:") ||
-      rawUrl.startsWith("data:") ||
-      rawUrl.startsWith("http://") ||
-      rawUrl.startsWith("https://")
-        ? rawUrl
-        : `${window.location.origin}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
+    if (activeBlobUrlRef.current) {
+      URL.revokeObjectURL(activeBlobUrlRef.current);
+      activeBlobUrlRef.current = null;
+    }
 
     try {
-      const audio = new Audio(resolvedUrl);
+      let playbackUrl = rawUrl;
+      // If it's a server audio path, fetch authenticated blob to allow secure playback
+      if (!rawUrl.startsWith("blob:") && !rawUrl.startsWith("data:")) {
+        const token = getStoredToken();
+        const headers: HeadersInit = {};
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "";
+        const fetchUrl = rawUrl.startsWith("http")
+          ? rawUrl
+          : `${apiBase.replace(/\/+$/, "")}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
+
+        const res = await fetch(fetchUrl, { headers });
+        if (!res.ok) {
+          if (res.status === 404) {
+            toast.error("File ghi âm không tồn tại hoặc đã hết hạn lưu trữ.");
+          } else if (res.status === 401 || res.status === 403) {
+            toast.error("Bạn không có quyền nghe lại đoạn ghi âm này.");
+          } else {
+            toast.error("Không thể tải file âm thanh.");
+          }
+          setPlayingAudioKey(null);
+          return;
+        }
+        const blob = await res.blob();
+        playbackUrl = URL.createObjectURL(blob);
+        activeBlobUrlRef.current = playbackUrl;
+      }
+
+      const audio = new Audio(playbackUrl);
       audioPlayerRef.current = audio;
       setPlayingAudioKey(key);
-      audio.onended = () => {
+
+      const cleanupCurrentAudio = () => {
         setPlayingAudioKey(null);
         audioPlayerRef.current = null;
+        if (activeBlobUrlRef.current) {
+          URL.revokeObjectURL(activeBlobUrlRef.current);
+          activeBlobUrlRef.current = null;
+        }
       };
+
+      audio.onended = cleanupCurrentAudio;
       audio.onerror = (e) => {
-        console.warn("Audio playback error on url:", resolvedUrl, e);
-        setPlayingAudioKey(null);
-        audioPlayerRef.current = null;
+        console.warn("Audio playback error on url:", rawUrl, e);
+        cleanupCurrentAudio();
       };
       audio.play().catch((err) => {
         console.warn("audio.play() failed:", err);
-        setPlayingAudioKey(null);
-        audioPlayerRef.current = null;
+        cleanupCurrentAudio();
       });
     } catch (err) {
       console.warn("Failed to initialize Audio element:", err);
       setPlayingAudioKey(null);
+      if (activeBlobUrlRef.current) {
+        URL.revokeObjectURL(activeBlobUrlRef.current);
+        activeBlobUrlRef.current = null;
+      }
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+        audioPlayerRef.current = null;
+      }
+      if (activeBlobUrlRef.current) {
+        URL.revokeObjectURL(activeBlobUrlRef.current);
+        activeBlobUrlRef.current = null;
+      }
+    };
+  }, []);
 
   // Auto scroll khung chat chung xuong tin nhan moi nhat
   // Deduplicated list of turns to completely guarantee no double card rendering
