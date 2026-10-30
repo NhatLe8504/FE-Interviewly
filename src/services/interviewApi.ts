@@ -1,6 +1,5 @@
 import { store } from "@/redux/store";
 import { interviewApiSlice } from "@/redux/api/interviewApi";
-import { getStoredToken } from "./apiClient";
 import type {
   StartSessionIn,
   SessionOut,
@@ -88,39 +87,7 @@ export interface SubmitTurnResponse {
   is_completed: boolean;
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:8000";
-
 export const interviewApi = {
-  /**
-   * Fetch active domains from catalog via RTK Query
-   */
-  async getDomains(): Promise<CatalogDomain[]> {
-    return store
-      .dispatch(interviewApiSlice.endpoints.getDomains.initiate())
-      .unwrap();
-  },
-
-  /**
-   * Fetch roles for a specific domain via RTK Query
-   */
-  async getRoles(domainId?: number | string): Promise<CatalogRole[]> {
-    return store
-      .dispatch(interviewApiSlice.endpoints.getRoles.initiate(domainId))
-      .unwrap();
-  },
-
-  /**
-   * Check current user quota via RTK Query
-   */
-  async checkSubscriptionQuota(): Promise<SubscriptionQuota> {
-    return store
-      .dispatch(interviewApiSlice.endpoints.checkSubscriptionQuota.initiate())
-      .unwrap();
-  },
-
   /**
    * Khởi tạo phiên phỏng vấn mới với AI via RTK Query
    */
@@ -130,82 +97,6 @@ export const interviewApi = {
     return store
       .dispatch(interviewApiSlice.endpoints.startSession.initiate(payload))
       .unwrap();
-  },
-
-  /**
-   * Lấy thông tin trạng thái phiên hiện tại via RTK Query
-   */
-  async getSession(sessionId: string | number): Promise<SessionResponse & SessionOut> {
-    return store
-      .dispatch(interviewApiSlice.endpoints.getSession.initiate(sessionId))
-      .unwrap();
-  },
-
-  /**
-   * Gửi câu trả lời của ứng viên cho lượt hiện tại via RTK Query
-   */
-  async submitTurn(
-    sessionId: string | number,
-    param2: number | TurnSubmitIn | SubmitTurnPayload,
-    param3?: TurnSubmitIn | SubmitTurnPayload
-  ): Promise<TurnOut> {
-    const turnNumber = typeof param2 === "number" ? param2 : 1;
-    const data = ((typeof param2 === "object" ? param2 : param3) || {
-      answer_text: "",
-      duration_seconds: 0,
-    }) as (TurnSubmitIn & SubmitTurnPayload);
-
-    return store
-      .dispatch(
-        interviewApiSlice.endpoints.submitTurn.initiate({
-          sessionId,
-          turnNumber,
-          data,
-        })
-      )
-      .unwrap();
-  },
-
-  /**
-   * Lấy kết quả chấm điểm Rubric cho 1 turn cụ thể via RTK Query
-   */
-  async getTurnEvaluation(
-    sessionId: string | number,
-    turnId: string
-  ): Promise<RubricEvaluationOut> {
-    return store
-      .dispatch(
-        interviewApiSlice.endpoints.getTurnEvaluation.initiate({
-          sessionId,
-          turnId,
-        })
-      )
-      .unwrap();
-  },
-
-  /**
-   * Hoàn thành phiên và lấy bảng điểm tổng kết toàn phiên via RTK Query
-   */
-  async getSessionResult(sessionId: string | number): Promise<SessionResultOut> {
-    return store
-      .dispatch(interviewApiSlice.endpoints.getSessionResult.initiate(sessionId))
-      .unwrap();
-  },
-
-  /**
-   * Lấy URL SSE endpoint kèm query token phục vụ EventSource
-   */
-  getStreamUrl(sessionId: string | number): string {
-    const token = getStoredToken();
-    const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : "";
-    return `${API_BASE_URL}/api/v1/interviews/sessions/${sessionId}/stream${tokenQuery}`;
-  },
-
-  /**
-   * Get SSE streaming URL for an interview session (alias)
-   */
-  getSessionStreamUrl(sessionId: number | string): string {
-    return this.getStreamUrl(sessionId);
   },
 };
 
