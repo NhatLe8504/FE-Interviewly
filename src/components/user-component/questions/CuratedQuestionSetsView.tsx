@@ -121,6 +121,7 @@ export function CuratedQuestionSetsView({
   const [newComment, setNewComment] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (!detailSet) return;
@@ -143,6 +144,7 @@ export function CuratedQuestionSetsView({
     e.preventDefault();
     if (!detailSet || !newComment.trim()) return;
     setIsSubmittingReview(true);
+    setReviewError(null);
     const created = await catalogApi.submitQuestionSetReview(detailSet.set_id, {
       rating: newRating,
       comment: newComment.trim(),
@@ -156,6 +158,9 @@ export function CuratedQuestionSetsView({
       setNewComment("");
       setReviewSuccess(true);
       setTimeout(() => setReviewSuccess(false), 3000);
+    }
+    else if (!created) {
+      setReviewError("Vui lòng đăng nhập để gửi nhận xét và đánh giá cho bộ đề này.");
     }
     setIsSubmittingReview(false);
   };
@@ -793,6 +798,9 @@ export function CuratedQuestionSetsView({
                     rows={2}
                     className="w-full p-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-paper)] text-xs text-[var(--ink)] outline-none"
                   />
+                  {reviewError && (
+                    <div className="text-rose-600 text-xs font-semibold">{reviewError}</div>
+                  )}
                   {reviewSuccess && (
                     <div className="text-emerald-700 text-xs font-bold flex items-center gap-1">
                       <CheckCircle2 size={13} />
