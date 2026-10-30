@@ -64,19 +64,39 @@ export function JDInterviewWorkspace() {
     if (!jobId) return;
     if (jobState?.status === "COMPLETED" || jobState?.status === "FAILED") return;
 
+    let isStopped = false;
     const interval = setInterval(async () => {
+      if (isStopped) return;
       try {
         const res = await jdInterviewApi.getJobStatus(jobId);
+        if (isStopped) return;
         setJobState(res);
         if (res.status === "FAILED") {
           setErrorMessage(res.error || "Quá trình phân tích JD thất bại. Vui lòng thử lại.");
         }
       } catch (err: any) {
         console.error("Polling error:", err);
+        const errStr = String(err?.message || err);
+        if (
+          err?.status === 401 ||
+          err?.status === 403 ||
+          errStr.includes("401") ||
+          errStr.includes("403") ||
+          errStr.includes("Unauthorized") ||
+          errStr.includes("Forbidden") ||
+          errStr.includes("đăng nhập")
+        ) {
+          isStopped = true;
+          clearInterval(interval);
+          setErrorMessage("Bạn chưa đăng nhập hoặc không có quyền xem tiến trình phân tích JD này.");
+        }
       }
     }, 1200);
 
-    return () => clearInterval(interval);
+    return () => {
+      isStopped = true;
+      clearInterval(interval);
+    };
   }, [jobId, jobState?.status]);
 
   const handleStartGeneration = async () => {
@@ -113,7 +133,12 @@ export function JDInterviewWorkspace() {
       setJobId(res.job_id);
       setJobState(res);
     } catch (err: any) {
-      setErrorMessage(err.message || "Không thể gửi yêu cầu tạo phỏng vấn. Vui lòng kiểm tra lại.");
+      const errStr = String(err?.message || err);
+      if (err?.status === 401 || errStr.includes("401") || errStr.includes("Unauthorized")) {
+        setErrorMessage("Vui lòng đăng nhập để bắt đầu phân tích và tạo câu hỏi phỏng vấn từ JD.");
+      } else {
+        setErrorMessage(err?.message || "Không thể gửi yêu cầu tạo phỏng vấn. Vui lòng kiểm tra lại.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -145,7 +170,14 @@ export function JDInterviewWorkspace() {
         setErrorMessage("Không thể khởi tạo phòng phỏng vấn.");
       }
     } catch (err: any) {
-      setErrorMessage(err.message || "Lỗi khi bắt đầu buổi phỏng vấn.");
+      const errStr = String(err?.message || err);
+      if (err?.status === 401 || errStr.includes("401")) {
+        setErrorMessage("Vui lòng đăng nhập để bắt đầu phiên phỏng vấn này.");
+      } else if (err?.status === 403 || errStr.includes("403") || errStr.includes("Forbidden")) {
+        setErrorMessage("Bạn không có quyền thực hiện phỏng vấn với bộ đề JD riêng tư này.");
+      } else {
+        setErrorMessage(err?.message || "Lỗi khi bắt đầu buổi phỏng vấn.");
+      }
     } finally {
       setIsStartingSession(false);
     }
