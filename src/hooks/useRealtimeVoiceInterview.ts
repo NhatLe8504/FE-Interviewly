@@ -2,6 +2,7 @@
 import type { QuestionIntentContext, StageConfigIn } from "@/types/interview";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getStoredToken } from "@/services/apiClient";
 
 export type AiVoiceState = "idle" | "listening" | "thinking" | "speaking" | "completed";
 
@@ -813,21 +814,26 @@ export function useRealtimeVoiceInterview({
   }, [sendMessage]);
 
   const getWsUrl = useCallback(() => {
+    const token = getStoredToken();
+    if (!token) {
+      return null;
+    }
+    const tokenParam = `?token=${encodeURIComponent(token)}`;
     if (process.env.NEXT_PUBLIC_WS_URL) {
       const base = process.env.NEXT_PUBLIC_WS_URL.replace(/\/+$/, "");
-      return `${base}/api/v1/voice/ws/${sessionId}`;
+      return `${base}/api/v1/voice/ws/${sessionId}${tokenParam}`;
     }
     const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL;
     if (apiBase) {
       const wsBase = apiBase.replace(/^http/, "ws").replace(/\/+$/, "");
-      return `${wsBase}/api/v1/voice/ws/${sessionId}`;
+      return `${wsBase}/api/v1/voice/ws/${sessionId}${tokenParam}`;
     }
     if (typeof window !== "undefined") {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const host = window.location.host;
-      return `${protocol}//${host}/api/v1/voice/ws/${sessionId}`;
+      return `${protocol}//${host}/api/v1/voice/ws/${sessionId}${tokenParam}`;
     }
-    return `ws://localhost:8000/api/v1/voice/ws/${sessionId}`;
+    return `ws://localhost:8000/api/v1/voice/ws/${sessionId}${tokenParam}`;
   }, [sessionId]);
 
   // Main WebSocket Lifecycle
@@ -856,6 +862,12 @@ export function useRealtimeVoiceInterview({
       cleanupSocket(wsRef.current);
 
       const wsUrl = getWsUrl();
+      if (!wsUrl) {
+        setIsConnected(false);
+        setIsReconnecting(false);
+        setError("Vui lòng đăng nhập để tham gia phiên phỏng vấn.");
+        return;
+      }
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
@@ -1126,6 +1138,13 @@ export function useRealtimeVoiceInterview({
         if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
 
         if (event.code === 1000 || isManuallyClosedRef.current || isCompleted) {
+          return;
+        }
+
+        // On auth failure or policy close (code 1008, 4401, 4403), stop retrying immediately
+        if (event.code === 1008 || event.code === 4401 || event.code === 4403) {
+          setIsReconnecting(false);
+          setError("Phiên phỏng vấn chưa được xác thực hoặc không hợp lệ. Vui lòng đăng nhập lại.");
           return;
         }
 
