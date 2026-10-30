@@ -282,6 +282,8 @@ export function useRealtimeVoiceInterview({
   const [activeVoice, setActiveVoice] = useState<string>(voice || "vi-VN-HoaiMyNeural");
   const [activePitch, setActivePitch] = useState<string>(pitch || "+0Hz");
   const [isCompleted, setIsCompleted] = useState(false);
+  const [isStoppingSession, setIsStoppingSession] = useState(false);
+  const isStoppingSessionRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [sessionDurationSeconds, setSessionDurationSeconds] = useState(0);
 
@@ -698,17 +700,30 @@ export function useRealtimeVoiceInterview({
     sendMessage({ type: "config", mock_mode: newMode });
   }, [sendMessage]);
 
-  // End Session Early
+  // End Session Early (requests server stop and awaits server ACK)
   const endSessionEarly = useCallback(() => {
-    isManuallyClosedRef.current = true;
+    if (isCompletedRef.current || isStoppingSessionRef.current) return false;
+    if (wsRef.current?.readyState !== WebSocket.OPEN) {
+      setError("Không thể kết nối đến máy chủ để kết thúc phỏng vấn. Vui lòng kiểm tra kết nối mạng.");
+      return false;
+    }
+
     if (playerRef.current) playerRef.current.stop();
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
       browserTtsPendingCountRef.current = 0;
     }
-    sendMessage({ type: "stop_session" });
-    setIsCompleted(true);
-    setAiState("completed");
+
+    const sent = sendMessage({ type: "stop_session" });
+    if (sent) {
+      isStoppingSessionRef.current = true;
+      setIsStoppingSession(true);
+      setError(null);
+      return true;
+    } else {
+      setError("Không thể gửi yêu cầu dừng phỏng vấn. Vui lòng thử lại.");
+      return false;
+    }
   }, [sendMessage]);
 
   // Send Typed Text Message
@@ -940,6 +955,8 @@ export function useRealtimeVoiceInterview({
               setAiState("speaking");
             } else if (rawState === "COMPLETED") {
               pendingCompletionRef.current = true;
+              isStoppingSessionRef.current = false;
+              setIsStoppingSession(false);
               if (!playerRef.current?.isPlaying()) {
                 setAiState("completed");
                 setIsCompleted(true);
@@ -1100,6 +1117,8 @@ export function useRealtimeVoiceInterview({
 
             if (data.is_completed) {
               pendingCompletionRef.current = true;
+              isStoppingSessionRef.current = false;
+              setIsStoppingSession(false);
               if (!playerRef.current?.isPlaying()) {
                 setIsCompleted(true);
                 setAiState("completed");
@@ -1112,6 +1131,10 @@ export function useRealtimeVoiceInterview({
               }, 400);
             }
           } else if (type === "error") {
+            if (isStoppingSessionRef.current) {
+              isStoppingSessionRef.current = false;
+              setIsStoppingSession(false);
+            }
             if (data.full_text) setCurrentQuestion(data.full_text);
             submissionPendingRef.current = false;
             playerRef.current?.setExpectingMoreAudio(false);
@@ -1132,6 +1155,11 @@ export function useRealtimeVoiceInterview({
       ws.onclose = (event) => {
         if (wsRef.current !== ws) return;
         setIsConnected(false);
+        if (isStoppingSessionRef.current && !isCompletedRef.current) {
+          isStoppingSessionRef.current = false;
+          setIsStoppingSession(false);
+          setError("Mất kết nối máy chủ khi đang kết thúc phiên. Vui lòng tải lại trang.");
+        }
         submissionPendingRef.current = false;
         playerRef.current?.stop();
         setIsAudioPlaying(false);
@@ -1180,6 +1208,7 @@ export function useRealtimeVoiceInterview({
     reconnectCount,
     aiState,
     isCompleted,
+    isStoppingSession,
     error,
     sessionDurationSeconds,
     currentStage,

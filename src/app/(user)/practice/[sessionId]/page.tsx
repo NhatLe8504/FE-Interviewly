@@ -233,6 +233,7 @@ export default function InterviewRoomPage({
     isReconnecting,
     aiState,
     isCompleted,
+    isStoppingSession,
     sessionDurationSeconds,
     currentStage,
     turnId,
@@ -551,10 +552,16 @@ function changeInterviewLanguage(code: string) {
     }
   };
 
+  useEffect(() => {
+    if (isCompleted) {
+      router.push(`/practice/${sessionId}/result`);
+    }
+  }, [isCompleted, sessionId, router]);
+
   const handleEndInterview = () => {
+    if (isStoppingSession || isCompleted) return;
     if (window.confirm("Bạn có chắc chắn muốn kết thúc buổi phỏng vấn này?")) {
       endSessionEarly();
-      router.push(`/practice/${sessionId}/result`);
     }
   };
 
@@ -858,10 +865,11 @@ function changeInterviewLanguage(code: string) {
                   type="button"
                   className={styles.roundEndSessionBtn}
                   onClick={handleEndInterview}
+                  disabled={isStoppingSession}
                   title="Kết thúc phỏng vấn sớm"
                 >
                   <Square size={13} fill="currentColor" />
-                  <span>Kết thúc</span>
+                  <span>{isStoppingSession ? "Đang kết thúc..." : "Kết thúc"}</span>
                 </button>
               )}
               <button
@@ -1648,12 +1656,13 @@ function changeInterviewLanguage(code: string) {
                   <button
                     type="button"
                     className={styles.btnEndInterviewFull}
+                    disabled={isStoppingSession}
                     onClick={() => {
                       setIsSettingsOpen(false);
                       handleEndInterview();
                     }}
                   >
-                    <span>Kết thúc phỏng vấn sớm</span>
+                    <span>{isStoppingSession ? "Đang kết thúc phỏng vấn..." : "Kết thúc phỏng vấn sớm"}</span>
                   </button>
                 )}
               </div>
