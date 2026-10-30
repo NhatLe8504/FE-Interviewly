@@ -230,13 +230,17 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Auto-connect to presence websocket on mount or token change
+  // Auto-connect to presence websocket only for authenticated admin users
   useEffect(() => {
-    connect();
+    if (user && user.role === "admin" && token) {
+      connect();
+    } else {
+      disconnect();
+    }
     return () => {
       disconnect();
     };
-  }, [connect, disconnect]);
+  }, [user, token, connect, disconnect]);
 
   return (
     <SocketContext.Provider

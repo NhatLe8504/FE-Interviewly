@@ -53,10 +53,22 @@ export const jobsApi = {
     });
   },
 
+  /**
+   * Admin-only operations for job synchronization and company branding backfill
+   */
   syncJobs: async (query?: string): Promise<{ status: string; synced_jobs: number }> => {
     const endpoint = query ? `/api/v1/jobs/sync?query=${encodeURIComponent(query)}` : "/api/v1/jobs/sync";
     return request<{ status: string; synced_jobs: number }>(endpoint, {
       method: "POST",
+    });
+  },
+  getSyncStatus: async (): Promise<any> => {
+    return request<any>('/api/v1/jobs/sync/status');
+  },
+
+  backfillBranding: async (): Promise<any> => {
+    return request<any>('/api/v1/jobs/backfill-branding', {
+      method: 'POST',
     });
   },
 };
