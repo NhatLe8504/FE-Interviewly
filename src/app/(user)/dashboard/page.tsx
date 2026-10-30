@@ -25,6 +25,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<CandidateDashboardData | null>(null);
   const [trends, setTrends] = useState<ProgressTrendsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -35,52 +36,10 @@ export default function DashboardPage() {
       ]);
       setData(dashRes);
       setTrends(trendsRes);
-    } catch {
-      setData({
-        candidate_id: 1,
-        kpi: {
-          total_interviews: 6,
-          completed_interviews: 5,
-          avg_score: 83.5,
-          total_practice_minutes: 120,
-          streak_days: 3,
-        },
-        skill_radar: {
-          clarity: 82,
-          logic: 85,
-          evidence: 74,
-          delivery: 88,
-          star_method: 79,
-        },
-        recent_sessions: [
-          {
-            session_id: 101,
-            domain_name: "Công nghệ thông tin",
-            role_name: "Backend Developer (Python/FastAPI)",
-            mode: "voice",
-            score: 88,
-            status: "completed",
-            started_at: new Date().toISOString(),
-          },
-          {
-            session_id: 102,
-            domain_name: "Công nghệ thông tin",
-            role_name: "Fullstack Engineer",
-            mode: "text",
-            score: 79,
-            status: "completed",
-            started_at: new Date(Date.now() - 86400000).toISOString(),
-          },
-        ],
-        recommendations: [
-          {
-            weak_area: "Dẫn chứng thực tế (Concrete Examples)",
-            score: 74,
-            recommendation: "Bổ sung số liệu định lượng (phần trăm tăng trưởng, thời gian giảm tải) vào câu trả lời.",
-            suggested_question: "Hãy kể về một dự án gần nhất mà bạn đã tối ưu hóa hiệu năng và kết quả đạt được cụ thể là bao nhiêu?",
-          },
-        ],
-      });
+    } catch (err: any) {
+      setData(null);
+      setTrends(null);
+      setError(err?.message || "Không thể tải dữ liệu bảng điều khiển.");
     } finally {
       setLoading(false);
     }
@@ -89,6 +48,19 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  if (error && !data) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center">
+        <div className="max-w-md w-full p-8 rounded-3xl border border-red-500/20 bg-slate-900/90 shadow-xl space-y-4">
+          <p className="text-red-400 font-semibold">{error}</p>
+          <button onClick={fetchData} className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium transition-colors">
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading && !data) {
     return (

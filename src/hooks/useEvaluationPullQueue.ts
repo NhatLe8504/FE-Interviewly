@@ -3,6 +3,8 @@
 
 import { useState, useRef, useCallback } from "react";
 import { catalogApi } from "@/services/catalogApi";
+import { getStoredToken } from "@/services/apiClient";
+import { toast } from "@/components/user-component/toast";
 import type { AIEvaluationResult } from "@/types/catalog";
 import type { DeliveryMetrics } from "@/types/delivery";
 
@@ -92,6 +94,15 @@ export function useEvaluationPullQueue() {
     ) => {
       const qid = Number(payload.question_id);
       if (activeQuestionPollersRef.current.has(qid)) return;
+      if (!getStoredToken()) {
+        toast.error("Vui lòng đăng nhập để gửi bài làm và nhận đánh giá từ AI Coach!");
+        setTasksMap((prev) => ({
+          ...prev,
+          [qid]: { status: "failed" },
+        }));
+        return;
+      }
+
       activeQuestionPollersRef.current.add(qid);
 
       setTasksMap((prev) => ({
@@ -278,6 +289,12 @@ export function useEvaluationPullQueue() {
       }>;
       language?: string;
     }) => {
+      if (!getStoredToken()) {
+        toast.error("Vui lòng đăng nhập để nhận đánh giá tổng quan từ AI Coach!");
+        setOverallSynthesis({ status: "failed" });
+        return null;
+      }
+
       if (activeSynthesisPollerRef.current) return;
       activeSynthesisPollerRef.current = true;
 

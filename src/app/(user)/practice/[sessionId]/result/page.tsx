@@ -46,71 +46,9 @@ export default function InterviewResultPage({
           const firstCandidate = res.turns.find((t) => t.speaker === "candidate");
           setExpandedTurns({ [firstCandidate ? firstCandidate.turn_id : res.turns[0].turn_id]: true });
         }
-      } catch {
-        // Fallback realistic presentation data if sessionId does not exist in DB yet
-        setData({
-          session_id: parseInt(sessionId) || 101,
-          candidate_id: 1,
-          status: "completed",
-          total_score: 85.0,
-          readiness_badge: "Sẵn sàng ứng tuyển (Interview Ready)",
-          clarity_score: 86.0,
-          structure_score: 82.0,
-          evidence_score: 88.0,
-          speaking_pace_wpm: 135.0,
-          pace_rating: "Lý tưởng (Ideal)",
-          filler_count: 2,
-          filler_words: ["à", "ừm"],
-          pause_duration: 3.5,
-          star_analysis: {
-            situation: true,
-            task: true,
-            action: true,
-            result: true,
-          },
-          turns: [
-            {
-              turn_id: 1,
-              turn_number: 1,
-              speaker: "ai",
-              question_id: 1,
-              message_text: "Hãy chia sẻ về một thử thách kỹ thuật phức tạp nhất mà bạn từng giải quyết trong dự án gần đây?",
-              audio_url: null,
-              transcribed_text: null,
-              clarity_score: null,
-              logic_score: null,
-              example_score: null,
-              overall_score: null,
-              feedback_text: null,
-              speaking_pace: null,
-              hesitation_count: 0,
-              filler_word_count: 0,
-              tips_text: null,
-              created_at: new Date().toISOString(),
-            },
-            {
-              turn_id: 2,
-              turn_number: 2,
-              speaker: "candidate",
-              question_id: null,
-              message_text: "Trong dự án trước, hệ thống gặp tình trạng database connection pool bị cạn kiệt khi lượng người dùng tăng đột biến. Em đã tiến hành profiling câu query, bổ sung Redis cache cho các bảng dữ liệu tĩnh và tối ưu index, giúp giảm 65% tải cho PostgreSQL.",
-              audio_url: null,
-              transcribed_text: "Trong dự án trước, hệ thống gặp tình trạng connection pool...",
-              clarity_score: 88.0,
-              logic_score: 85.0,
-              example_score: 90.0,
-              overall_score: 88.0,
-              feedback_text: "Câu trả lời xuất sắc! Bạn đã nêu bật được nguyên nhân gốc rễ và số liệu định lượng (giảm 65% tải) rất thuyết phục.",
-              speaking_pace: 135.0,
-              hesitation_count: 1,
-              filler_word_count: 1,
-              tips_text: "Tiếp tục giữ nhịp độ nói tự tin này ở các câu hỏi tiếp theo.",
-              created_at: new Date().toISOString(),
-            },
-          ],
-        });
-        setExpandedTurns({ 2: true });
-      } finally {
+      } catch (err: any) {
+      setData(null);
+    } finally {
         setLoading(false);
       }
     }

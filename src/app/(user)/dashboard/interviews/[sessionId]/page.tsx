@@ -37,65 +37,9 @@ export default function SessionDetailPage({
       try {
         const res = await historyApi.getSessionDetails(sessionId);
         setData(res);
-      } catch {
-        // Fallback realistic presentation data
-        setData({
-          session_id: parseInt(sessionId) || 101,
-          candidate_id: 1,
-          domain_name: "Công nghệ thông tin",
-          role_name: "Backend Developer (Python/FastAPI)",
-          experience_level: "junior",
-          language: "vi",
-          mode: "voice",
-          status: "completed",
-          total_score: 85.0,
-          started_at: new Date().toISOString(),
-          completed_at: new Date().toISOString(),
-          avg_clarity: 86.0,
-          avg_logic: 82.0,
-          avg_example: 88.0,
-          turns: [
-            {
-              turn_id: 1,
-              turn_number: 1,
-              speaker: "ai",
-              question_id: 1,
-              message_text: "Chào bạn! Hãy giới thiệu ngắn gọn về một dự án phần mềm tâm đắc nhất bạn từng tham gia?",
-              audio_url: null,
-              transcribed_text: null,
-              clarity_score: null,
-              logic_score: null,
-              example_score: null,
-              overall_score: null,
-              feedback_text: null,
-              speaking_pace: null,
-              hesitation_count: 0,
-              filler_word_count: 0,
-              tips_text: null,
-              created_at: new Date().toISOString(),
-            },
-            {
-              turn_id: 2,
-              turn_number: 2,
-              speaker: "candidate",
-              question_id: null,
-              message_text: "Em đã tham gia phát triển hệ thống e-commerce với FastAPI và PostgreSQL. Trong đó, em đảm nhận module giỏ hàng và thanh toán VNPay, xử lý được 500 yêu cầu/giây.",
-              audio_url: null,
-              transcribed_text: "Em đã tham gia phát triển hệ thống e-commerce...",
-              clarity_score: 85.0,
-              logic_score: 82.0,
-              example_score: 88.0,
-              overall_score: 85.0,
-              feedback_text: "Câu trả lời ngắn gọn, có nêu rõ trách nhiệm cụ thể và thông số kỹ thuật ấn tượng.",
-              speaking_pace: 130.0,
-              hesitation_count: 1,
-              filler_word_count: 1,
-              tips_text: "Có thể bổ sung thêm khó khăn gặp phải khi tích hợp cổng thanh toán.",
-              created_at: new Date().toISOString(),
-            },
-          ],
-        });
-      } finally {
+      } catch (err: any) {
+      setData(null);
+    } finally {
         setLoading(false);
       }
     }

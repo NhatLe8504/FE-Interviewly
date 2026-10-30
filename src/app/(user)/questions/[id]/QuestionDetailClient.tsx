@@ -603,6 +603,11 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
         });
 
         const rawResult = await Promise.race([evalPromise, timeoutPromise]);
+        if (!rawResult) {
+          setIsEvaluating(false);
+          toast.error("Không nhận được kết quả chấm điểm từ AI. Vui lòng kiểm tra đăng nhập và thử lại.");
+          return;
+        }
 
         const scaled = scaleEvaluationResult(
           rawResult,
@@ -722,6 +727,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
           audio_duration_seconds: finalVoiceSec,
         },
         (result) => {
+          if (!result) return;
           const scaled = scaleEvaluationResult(
             result,
             {

@@ -35,48 +35,8 @@ export default function InterviewHistoryPage() {
         status: statusFilter || undefined,
       });
       setData(res);
-    } catch {
-      // Fallback data
-      setData({
-        items: [
-          {
-            session_id: 101,
-            candidate_id: 1,
-            domain_id: 1,
-            domain_name: "Công nghệ thông tin",
-            role_id: 2,
-            role_name: "Backend Developer (Python/FastAPI)",
-            experience_level: "junior",
-            language: "vi",
-            mode: "voice",
-            status: "completed",
-            total_score: 85.0,
-            started_at: new Date().toISOString(),
-            completed_at: new Date().toISOString(),
-            total_turns: 4,
-          },
-          {
-            session_id: 102,
-            candidate_id: 1,
-            domain_id: 1,
-            domain_name: "Công nghệ thông tin",
-            role_id: 3,
-            role_name: "Frontend Engineer (React/Next.js)",
-            experience_level: "middle",
-            language: "vi",
-            mode: "text",
-            status: "completed",
-            total_score: 79.0,
-            started_at: new Date(Date.now() - 86400000).toISOString(),
-            completed_at: new Date(Date.now() - 86400000).toISOString(),
-            total_turns: 3,
-          },
-        ],
-        total: 2,
-        page: 1,
-        page_size: 10,
-        total_pages: 1,
-      });
+    } catch (err: any) {
+      setData({ items: [], total: 0, page: 1, page_size: 10, total_pages: 0 });
     } finally {
       setLoading(false);
     }

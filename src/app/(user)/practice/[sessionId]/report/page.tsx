@@ -24,30 +24,9 @@ export default function PracticeReportPage({
       try {
         const res = await historyApi.getSessionResult(sessionId);
         setResult(res);
-      } catch {
-        setResult({
-          session_id: parseInt(sessionId) || 101,
-          candidate_id: 1,
-          status: "completed",
-          total_score: 85.0,
-          readiness_badge: "Sẵn sàng ứng tuyển (Interview Ready)",
-          clarity_score: 86.0,
-          structure_score: 82.0,
-          evidence_score: 88.0,
-          speaking_pace_wpm: 135.0,
-          pace_rating: "Lý tưởng (Ideal)",
-          filler_count: 2,
-          filler_words: ["à", "ừm"],
-          pause_duration: 3.5,
-          star_analysis: {
-            situation: true,
-            task: true,
-            action: true,
-            result: true,
-          },
-          turns: [],
-        });
-      } finally {
+      } catch (err: any) {
+      setResult(null);
+    } finally {
         setLoading(false);
       }
     }

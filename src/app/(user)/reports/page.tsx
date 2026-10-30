@@ -25,26 +25,9 @@ export default function ReportsPage() {
       try {
         const res = await historyApi.getInterviewHistory({ pageSize: 20 });
         setSessions(res.items);
-      } catch {
-        setSessions([
-          {
-            session_id: 101,
-            candidate_id: 1,
-            domain_id: 1,
-            domain_name: "Công nghệ thông tin",
-            role_id: 2,
-            role_name: "Backend Developer (Python/FastAPI)",
-            experience_level: "junior",
-            language: "vi",
-            mode: "voice",
-            status: "completed",
-            total_score: 85.0,
-            started_at: new Date().toISOString(),
-            completed_at: new Date().toISOString(),
-            total_turns: 4,
-          },
-        ]);
-      } finally {
+      } catch (err: any) {
+      setSessions([]);
+    } finally {
         setLoading(false);
       }
     }

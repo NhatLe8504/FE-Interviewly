@@ -48,92 +48,10 @@ export default function ReportDetailPage({
         ]);
         setResultData(resResult);
         setSessionDetail(resDetail);
-      } catch {
-        // Fallback realistic presentation data for demonstration & offline resilience
-        const fallbackResult: SessionResultData = {
-          session_id: parseInt(id) || 101,
-          candidate_id: 1,
-          status: "completed",
-          total_score: 85.0,
-          readiness_badge: "Sẵn sàng ứng tuyển (Interview Ready)",
-          clarity_score: 86.0,
-          structure_score: 82.0,
-          evidence_score: 88.0,
-          speaking_pace_wpm: 135.0,
-          pace_rating: "Lý tưởng (Ideal)",
-          filler_count: 2,
-          filler_words: ["à", "ừm"],
-          pause_duration: 3.5,
-          star_analysis: {
-            situation: true,
-            task: true,
-            action: true,
-            result: true,
-          },
-          turns: [
-            {
-              turn_id: 1,
-              turn_number: 1,
-              speaker: "ai",
-              question_id: 1,
-              message_text: "Chào bạn, hãy chia sẻ về một bài toán kỹ thuật phức tạp bạn từng giải quyết trong hệ thống phân tán?",
-              audio_url: null,
-              transcribed_text: null,
-              clarity_score: null,
-              logic_score: null,
-              example_score: null,
-              overall_score: null,
-              feedback_text: null,
-              speaking_pace: null,
-              hesitation_count: 0,
-              filler_word_count: 0,
-              tips_text: null,
-              created_at: new Date().toISOString(),
-            },
-            {
-              turn_id: 2,
-              turn_number: 2,
-              speaker: "candidate",
-              question_id: null,
-              message_text: "Trong dự án trước, dịch vụ thanh toán gặp hiện tượng nghẽn I/O khi đạt 1.000 req/s. Em đã tách luồng xử lý bất đồng bộ qua RabbitMQ và tối ưu hóa index Postgres, giúp giảm độ trễ P99 từ 1.8s xuống còn 220ms.",
-              audio_url: null,
-              transcribed_text: "Trong dự án trước, dịch vụ thanh toán gặp hiện tượng nghẽn I/O...",
-              clarity_score: 88.0,
-              logic_score: 85.0,
-              example_score: 90.0,
-              overall_score: 88.0,
-              feedback_text: "Câu trả lời mạch lạc, sử dụng số liệu P99 rõ ràng và giải pháp kiến trúc thuyết phục.",
-              speaking_pace: 135.0,
-              hesitation_count: 1,
-              filler_word_count: 1,
-              tips_text: "Có thể bổ sung thêm cơ chế failover nếu hàng đợi RabbitMQ bị đầy.",
-              ideal_answer: "Khi đối mặt với nghẽn cổ chai I/O 1.000 req/s, giải pháp chuẩn hóa bao gồm: 1. Áp dụng Message Broker (RabbitMQ) để decoupled kiến trúc; 2. Cache các query đọc lặp lại bằng Redis; 3. Giám sát bằng Prometheus/Grafana để đo lường p99 latency.",
-              created_at: new Date().toISOString(),
-            },
-          ],
-        };
-
-        const fallbackDetail: SessionDetailData = {
-          session_id: parseInt(id) || 101,
-          candidate_id: 1,
-          domain_name: "Công nghệ thông tin",
-          role_name: "Backend Developer (Python/FastAPI)",
-          experience_level: "junior",
-          language: "vi",
-          mode: "voice",
-          status: "completed",
-          total_score: 85.0,
-          started_at: new Date().toISOString(),
-          completed_at: new Date().toISOString(),
-          avg_clarity: 86.0,
-          avg_logic: 82.0,
-          avg_example: 88.0,
-          turns: fallbackResult.turns,
-        };
-
-        setResultData(fallbackResult);
-        setSessionDetail(fallbackDetail);
-      } finally {
+      } catch (err: any) {
+      setResultData(null);
+      setSessionDetail(null);
+    } finally {
         setLoading(false);
       }
     }

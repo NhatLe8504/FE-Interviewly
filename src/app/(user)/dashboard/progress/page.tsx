@@ -27,50 +27,9 @@ export default function ProgressPage() {
       try {
         const res = await analyticsApi.getProgressTrends(15);
         setData(res);
-      } catch {
-        // Fallback data
-        setData({
-          candidate_id: 1,
-          trends: [
-            {
-              session_id: 98,
-              date: "01/09",
-              overall_score: 68.0,
-              clarity_score: 70.0,
-              logic_score: 65.0,
-              example_score: 68.0,
-              speaking_pace_wpm: 110.0,
-              filler_words_count: 5,
-              star_completion_rate: 60.0,
-            },
-            {
-              session_id: 99,
-              date: "05/09",
-              overall_score: 75.0,
-              clarity_score: 78.0,
-              logic_score: 72.0,
-              example_score: 74.0,
-              speaking_pace_wpm: 122.0,
-              filler_words_count: 3,
-              star_completion_rate: 70.0,
-            },
-            {
-              session_id: 101,
-              date: "12/09",
-              overall_score: 85.0,
-              clarity_score: 86.0,
-              logic_score: 82.0,
-              example_score: 88.0,
-              speaking_pace_wpm: 135.0,
-              filler_words_count: 1,
-              star_completion_rate: 85.0,
-            },
-          ],
-          avg_wpm: 132.0,
-          avg_filler_count: 1.8,
-          star_mastery_rate: 82.0,
-        });
-      } finally {
+      } catch (err: any) {
+      setData(null);
+    } finally {
         setLoading(false);
       }
     }
