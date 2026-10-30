@@ -26,7 +26,7 @@ import {
   type InterviewSessionAdmin,
   type InterviewSessionDetailPage,
 } from "@/services/admin/interviewAdminApi";
-import { AdminEmptyState, AdminPageHeader, AdminStatCard } from "@/components/admin";
+import { AdminEmptyState, AdminPageHeader, AdminStatCard, AdminPagination } from "@/components/admin";
 import { Avatar, AvatarFallback } from "@/components/admin/ui/avatar";
 import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
@@ -83,6 +83,8 @@ export function AdminInterviewsClient() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   // Quick Preview State
   const [previewSession, setPreviewSession] = useState<InterviewSessionDetailPage | null>(null);
@@ -108,8 +110,8 @@ export function AdminInterviewsClient() {
       const data = await interviewAdminApi.getInterviews({
         status: statusFilter,
         search: searchQuery.trim() || undefined,
-        limit: 50,
-        offset: 0,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
       });
       setInterviews(data.items);
       setTotal(data.total);
@@ -118,7 +120,7 @@ export function AdminInterviewsClient() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, searchQuery]);
+  }, [statusFilter, searchQuery, page, pageSize]);
 
   useEffect(() => {
     fetchInterviews();
@@ -187,7 +189,7 @@ export function AdminInterviewsClient() {
                   placeholder="Tìm email, họ tên ứng viên..."
                   className="pl-8 text-sm"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") fetchInterviews();
                   }}
@@ -336,6 +338,22 @@ export function AdminInterviewsClient() {
                 </tbody>
               </table>
             </div>
+          )}
+
+          {!loading && interviews.length > 0 && (
+            <AdminPagination
+              currentPage={page}
+              totalPages={Math.max(1, Math.ceil(total / pageSize))}
+              totalItems={total}
+              pageSize={pageSize}
+              onPageChange={(p) => setPage(p)}
+              onPageSizeChange={(s) => {
+                setPageSize(s);
+                setPage(1);
+              }}
+              pageSizeOptions={[10, 15, 25, 50]}
+              itemName="phiên phỏng vấn"
+            />
           )}
         </CardContent>
       </Card>
