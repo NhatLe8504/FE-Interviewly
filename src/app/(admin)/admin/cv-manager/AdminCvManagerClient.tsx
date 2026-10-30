@@ -25,7 +25,7 @@ import {
   type CvDocumentDetailAdmin,
   type AtsRulesConfig,
 } from "@/services/admin/cvAdminApi";
-import { AdminEmptyState, AdminPageHeader, AdminStatCard } from "@/components/admin";
+import { AdminEmptyState, AdminPageHeader, AdminStatCard, AdminPagination } from "@/components/admin";
 import { Avatar, AvatarFallback } from "@/components/admin/ui/avatar";
 import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
@@ -86,6 +86,8 @@ export function AdminCvManagerClient() {
   const [loading, setLoading] = useState(true);
   const [templateFilter, setTemplateFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   // Detail Modal State
   const [selectedCv, setSelectedCv] = useState<CvDocumentDetailAdmin | null>(null);
@@ -131,8 +133,8 @@ export function AdminCvManagerClient() {
       const data = await cvAdminApi.getCvs({
         search: searchQuery.trim() || undefined,
         template_id: templateFilter,
-        limit: 50,
-        offset: 0,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
       });
       setCvs(data.items);
       setTotal(data.total);
@@ -141,7 +143,7 @@ export function AdminCvManagerClient() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, templateFilter]);
+  }, [searchQuery, templateFilter, page, pageSize]);
 
   useEffect(() => {
     fetchCvs();
@@ -224,14 +226,14 @@ export function AdminCvManagerClient() {
                   placeholder="Tìm tên ứng viên, email, CV..."
                   className="pl-8 text-sm"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") fetchCvs();
                   }}
                 />
               </div>
 
-              <Select value={templateFilter} onValueChange={setTemplateFilter}>
+              <Select value={templateFilter} onValueChange={(val) => { setTemplateFilter(val); setPage(1); }}>
                 <SelectTrigger className="w-44 text-sm">
                   <SelectValue placeholder="Mẫu CV" />
                 </SelectTrigger>
@@ -361,6 +363,22 @@ export function AdminCvManagerClient() {
                 </tbody>
               </table>
             </div>
+          )}
+
+          {!loading && cvs.length > 0 && (
+            <AdminPagination
+              currentPage={page}
+              totalPages={Math.max(1, Math.ceil(total / pageSize))}
+              totalItems={total}
+              pageSize={pageSize}
+              onPageChange={(p) => setPage(p)}
+              onPageSizeChange={(s) => {
+                setPageSize(s);
+                setPage(1);
+              }}
+              pageSizeOptions={[10, 15, 25, 50]}
+              itemName="hồ sơ CV"
+            />
           )}
         </CardContent>
       </Card>

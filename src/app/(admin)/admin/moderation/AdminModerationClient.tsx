@@ -24,7 +24,7 @@ import {
   type ModerationCreateIn,
   type ModerationItem,
 } from "@/services/admin/moderationAdminApi";
-import { AdminEmptyState, AdminPageHeader, AdminStatCard } from "@/components/admin";
+import { AdminEmptyState, AdminPageHeader, AdminStatCard, AdminPagination } from "@/components/admin";
 import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/admin/ui/card";
@@ -71,6 +71,8 @@ export function AdminModerationClient() {
   const [loading, setLoading] = useState(true);
   const [targetTypeFilter, setTargetTypeFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   // Detail Modal State
   const [selectedLogForDetail, setSelectedLogForDetail] = useState<ModerationItem | null>(null);
@@ -90,8 +92,8 @@ export function AdminModerationClient() {
     try {
       const data = await moderationAdminApi.getLogs({
         target_type: targetTypeFilter !== "all" ? targetTypeFilter : undefined,
-        limit: 50,
-        offset: 0,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
       });
       setLogs(data.items);
       setTotal(data.total);
@@ -100,7 +102,7 @@ export function AdminModerationClient() {
     } finally {
       setLoading(false);
     }
-  }, [targetTypeFilter]);
+  }, [targetTypeFilter, page, pageSize]);
 
   useEffect(() => {
     fetchLogs();
@@ -221,11 +223,11 @@ export function AdminModerationClient() {
                   placeholder="Tìm theo lý do, mã đối tượng..."
                   className="pl-8 text-sm"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
                 />
               </div>
 
-              <Select value={targetTypeFilter} onValueChange={setTargetTypeFilter}>
+              <Select value={targetTypeFilter} onValueChange={(val) => { setTargetTypeFilter(val); setPage(1); }}>
                 <SelectTrigger className="w-44 text-sm">
                   <SelectValue placeholder="Loại đối tượng" />
                 </SelectTrigger>
@@ -369,6 +371,22 @@ export function AdminModerationClient() {
                 </tbody>
               </table>
             </div>
+          )}
+
+          {!loading && filteredLogs.length > 0 && (
+            <AdminPagination
+              currentPage={page}
+              totalPages={Math.max(1, Math.ceil(total / pageSize))}
+              totalItems={total}
+              pageSize={pageSize}
+              onPageChange={(p) => setPage(p)}
+              onPageSizeChange={(s) => {
+                setPageSize(s);
+                setPage(1);
+              }}
+              pageSizeOptions={[10, 15, 25, 50]}
+              itemName="nhật ký kiểm duyệt"
+            />
           )}
         </CardContent>
       </Card>
