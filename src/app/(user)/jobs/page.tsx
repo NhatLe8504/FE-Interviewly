@@ -158,7 +158,7 @@ export default function JobsPage() {
       if (res.has_existing_session) {
         toast.success(`Buổi luyện đã sẵn sàng! Đang chuyển đến phòng luyện tập...`);
       } else {
-        toast.success(`Đã chuẩn bị kịch bản phỏng vấn cho vị trí: ${job.title}!`);
+        toast.success(`Đang chuẩn bị kịch bản phỏng vấn AI cho vị trí: ${job.title}...`);
       }
       if (typeof window !== "undefined") {
         sessionStorage.setItem("target_job_title", job.title);
@@ -175,7 +175,7 @@ export default function JobsPage() {
         toast.error("Vui lòng đăng nhập để bắt đầu buổi luyện phỏng vấn!");
         router.push(`/auth/login?redirect=/jobs/${job.job_id}`);
       } else {
-        toast.error("Khởi tạo buổi phỏng vấn thất bại. Vui lòng thử lại!");
+        toast.error(errMsg || "Khởi tạo buổi phỏng vấn thất bại. Vui lòng thử lại!");
       }
     }
   };
