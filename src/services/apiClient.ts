@@ -87,10 +87,26 @@ export async function request<T>(
     throw new ApiError(errorMessage, response.status, errorData);
   }
 
-  // Handle empty responses (204 or void)
+  // Handle empty responses (204 No Content, 205 Reset Content, or empty body)
+  if (
+    response.status === 204 ||
+    response.status === 205 ||
+    response.headers.get("content-length") === "0"
+  ) {
+    return {} as T;
+  }
+
   const contentType = response.headers.get("content-type");
   if (contentType && contentType.includes("application/json")) {
-    return (await response.json()) as T;
+    const text = await response.text();
+    if (!text || text.trim() === "") {
+      return {} as T;
+    }
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      return {} as T;
+    }
   }
 
   return {} as T;
