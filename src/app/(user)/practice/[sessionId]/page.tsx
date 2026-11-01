@@ -197,9 +197,19 @@ export default function InterviewRoomPage({
       const all = window.speechSynthesis.getVoices();
       if (!all || all.length === 0) return;
       const langPrefix = (language || "vi").toLowerCase();
-      const filtered = all.filter((v) =>
-        langPrefix === "vi" ? v.lang.toLowerCase().startsWith("vi") : v.lang.toLowerCase().startsWith(langPrefix)
-      );
+      const filtered = all.filter((v) => {
+        const l = (v.lang || "").toLowerCase().replace(/_/g, "-");
+        const n = (v.name || "").toLowerCase();
+        if (langPrefix === "vi") {
+          return (
+            l.startsWith("vi") ||
+            n.includes("vietnam") ||
+            n.includes("tiếng việt") ||
+            n.includes("vietnamese")
+          );
+        }
+        return l.startsWith(langPrefix);
+      });
       setBrowserVoices(filtered.length > 0 ? filtered : all.slice(0, 20));
     };
     updateVoices();

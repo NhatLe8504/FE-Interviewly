@@ -455,20 +455,56 @@ export function useRealtimeVoiceInterview({
       const utterance = new SpeechSynthesisUtterance(clean);
       const voices = window.speechSynthesis.getVoices();
 
+      // Xác định chuẩn mã locale theo ngôn ngữ phỏng vấn (mặc định vi-VN)
+      const requestedLang = (optionsRef.current.language || "vi").toLowerCase();
+      const targetLocale = requestedLang.startsWith("vi")
+        ? "vi-VN"
+        : requestedLang.startsWith("en")
+        ? "en-US"
+        : requestedLang.startsWith("ja")
+        ? "ja-JP"
+        : requestedLang.startsWith("ko")
+        ? "ko-KR"
+        : requestedLang.startsWith("zh")
+        ? "zh-CN"
+        : requestedLang;
+
+      const isViMatch = (v: SpeechSynthesisVoice) => {
+        const l = (v.lang || "").toLowerCase().replace(/_/g, "-");
+        const n = (v.name || "").toLowerCase();
+        return (
+          l.startsWith("vi") ||
+          n.includes("vietnam") ||
+          n.includes("tiếng việt") ||
+          n.includes("vietnamese")
+        );
+      };
+
       let voiceToUse: SpeechSynthesisVoice | undefined;
       if (browserVoiceRef.current) {
         voiceToUse = voices.find((v) => v.name === browserVoiceRef.current);
       }
       if (!voiceToUse) {
-        const langCode = (optionsRef.current.language || "vi").toLowerCase();
-        if (langCode === "vi") {
-          voiceToUse = voices.find((v) => v.lang.toLowerCase().startsWith("vi"));
+        if (targetLocale.startsWith("vi")) {
+          const viVoices = voices.filter(isViMatch);
+          voiceToUse =
+            viVoices.find((v) => {
+              const n = v.name.toLowerCase();
+              return n.includes("natural") || n.includes("online") || n.includes("google") || n.includes("neural");
+            }) || viVoices[0];
         } else {
-          voiceToUse = voices.find((v) => v.lang.toLowerCase().startsWith(langCode));
+          voiceToUse = voices.find((v) =>
+            (v.lang || "").toLowerCase().replace(/_/g, "-").startsWith(targetLocale.slice(0, 2))
+          );
         }
       }
+
+      // BẮT BUỘC gán utterance.lang để trình duyệt áp dụng đúng bộ phát âm tiếng Việt, không đọc lơ lớ theo chuẩn tiếng Anh
       if (voiceToUse) {
         utterance.voice = voiceToUse;
+        utterance.lang = (voiceToUse.lang || targetLocale).replace(/_/g, "-");
+      } else {
+        utterance.lang = targetLocale;
       }
 
       const pitchHz = parseInt(activePitch, 10) || 0;
