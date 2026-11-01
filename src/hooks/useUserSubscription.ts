@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useGetMySubscriptionQuery } from "@/redux/api/billingApi";
 import { useCheckSubscriptionQuotaQuery } from "@/redux/api/interviewApi";
@@ -79,11 +79,43 @@ export function useUserSubscription() {
       : subData?.plan?.plan_name ||
         (quotaData?.plan === "pro" ? "Pro Plan" : isSubscribed ? "Pro Plan" : "Free Plan");
 
+  // Hybrid Usage Quota metrics
+  const voiceMinutes = useMemo(() => {
+    if (quotaData?.voice_minutes) {
+      return quotaData.voice_minutes;
+    }
+    return {
+      total: isSubscribed ? 300 : 15,
+      used: 0,
+      remaining: isSubscribed ? 300 : 15,
+      allowed: true,
+    };
+  }, [quotaData?.voice_minutes, isSubscribed]);
+
+  const cvGenerations = useMemo(() => {
+    if (quotaData?.cv_generations) {
+      return quotaData.cv_generations;
+    }
+    return {
+      total: isSubscribed ? 15 : 1,
+      used: 0,
+      remaining: isSubscribed ? 15 : 1,
+      allowed: true,
+    };
+  }, [quotaData?.cv_generations, isSubscribed]);
+
   return {
     isSubscribed,
+    hasActiveSubscription: isSubscribed,
     planName,
     subscription: subData,
     quota: quotaData,
+    voiceMinutes,
+    voiceMinutesRemaining: voiceMinutes.remaining,
+    canUseVoice: voiceMinutes.allowed,
+    cvGenerations,
+    cvGenerationsRemaining: cvGenerations.remaining,
+    canUseCv: cvGenerations.allowed,
     isLoading: isSubLoading || isQuotaLoading,
     refetch: () => {
       refetchSub();

@@ -18,7 +18,8 @@ export interface StageConfigIn {
 }
 
 export interface QuestionIntentContext {
-  question_id: number;
+  question_id: number | null;
+  question_type?: "behavioral" | "technical" | "situational" | "generic";
   intent: string;
   stage_key: string;
   difficulty?: number;
@@ -56,6 +57,7 @@ export interface SessionOut {
 export interface TurnSubmitIn {
   answer_text: string;
   duration_seconds: number;
+  pause_duration_seconds?: number;
   audio_blob?: Blob;
   audio_url?: string;
 }

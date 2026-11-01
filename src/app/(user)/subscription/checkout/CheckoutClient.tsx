@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -13,11 +13,17 @@ import {
   X,
   Lock,
   QrCode,
+  Mic,
+  FileText,
+  RotateCw,
+  AlertCircle,
 } from "lucide-react";
 import styles from "./checkout.module.css";
 import { useAuth } from "@/context/AuthContext";
 import { useCreateCheckoutMutation, useVerifyPaymentMutation } from "@/redux/api/user/billingApi";
+import { DEFAULT_PLANS } from "@/services/billingApi";
 import { toast } from "@/components/user-component/toast";
+import type { SubscriptionPlan } from "@/types/billing";
 
 // Synthesize a loud, crystal-clear, bright two-tone "Ting... TING!" payment notification chime
 function playSuccessChime() {
@@ -100,29 +106,61 @@ export function CheckoutClient() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
 
-  // Selected billing plan cycle
-  const initialPlanParam = searchParams.get("plan");
-  const [cycle, setCycle] = useState<BillingCycle>(() => {
+  // Read URL parameters
+  const planIdParam = searchParams.get("plan_id");
+  const planNameParam = searchParams.get("plan");
+
+  // Determine initial plan
+  const [selectedPlanId, setSelectedPlanId] = useState<number>(() => {
+    if (planIdParam) {
+      const parsed = parseInt(planIdParam, 10);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
     if (
-      initialPlanParam === "sprint_7days" ||
-      initialPlanParam === "pro_weekly" ||
-      initialPlanParam === "weekly" ||
-      initialPlanParam === "7days"
+      planNameParam === "sprint_7days" ||
+      planNameParam === "pro_weekly" ||
+      planNameParam === "weekly" ||
+      planNameParam === "7days"
     ) {
-      return "weekly";
+      return 4; // Sprint 7 days
     }
-    if (initialPlanParam === "pro_yearly" || initialPlanParam === "yearly") {
-      return "yearly";
+    if (planNameParam === "pro_yearly" || planNameParam === "yearly") {
+      return 3; // Pro Yearly
     }
+    return 2; // Pro Monthly default
+  });
+
+  // Cycle switcher for subscription plans
+  const [cycle, setCycle] = useState<BillingCycle>(() => {
+    if (selectedPlanId === 4) return "weekly";
+    if (selectedPlanId === 3) return "yearly";
     return "monthly";
   });
 
+  const handleCycleChange = (newCycle: BillingCycle) => {
+    setCycle(newCycle);
+    const newId = newCycle === "weekly" ? 4 : newCycle === "yearly" ? 3 : 2;
+    setSelectedPlanId(newId);
+  };
+
+  // Find active plan details
+  const activePlan: SubscriptionPlan = useMemo(() => {
+    const found = DEFAULT_PLANS.find((p) => p.plan_id === selectedPlanId);
+    if (found) return found;
+    // Default fallback to Pro Monthly
+    return DEFAULT_PLANS[2];
+  }, [selectedPlanId]);
+
+  const isAddon = Boolean(activePlan.plan_type === "addon" || selectedPlanId >= 100);
+
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [orderCode, setOrderCode] = useState<string>("IC847061");
+  const [orderCode, setOrderCode] = useState<string>("");
+  const [isCreatingCheckout, setIsCreatingCheckout] = useState<boolean>(true);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const [createCheckoutApi] = useCreateCheckoutMutation();
   const [verifyPaymentApi, { isLoading: isVerifying }] = useVerifyPaymentMutation();
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
 
   useEffect(() => {
     if (showSuccessModal) {
@@ -130,41 +168,68 @@ export function CheckoutClient() {
     }
   }, [showSuccessModal]);
 
-  // Plan ID mapping
-  const planId = cycle === "weekly" ? 4 : cycle === "monthly" ? 2 : 3;
+  // Initialize checkout with backend to obtain real transaction reference
+  const initCheckout = useCallback(async () => {
+    setIsCreatingCheckout(true);
+    setCheckoutError(null);
+    try {
+      const res = await createCheckoutApi({ plan_id: selectedPlanId }).unwrap();
+      if (res && res.transaction_ref) {
+        setOrderCode(res.transaction_ref);
+      } else {
+        setCheckoutError("Không nhận được mã giao dịch từ hệ thống. Vui lòng thử lại.");
+      }
+    } catch (err: any) {
+      setCheckoutError(err?.data?.detail || "Không thể khởi tạo phiên thanh toán. Vui lòng bấm thử lại.");
+    } finally {
+      setIsCreatingCheckout(false);
+    }
+  }, [selectedPlanId, createCheckoutApi]);
 
-  // Initialize or fetch real transaction reference from Backend
   useEffect(() => {
-    let isMounted = true;
-    async function initCheckout() {
+    initCheckout();
+  }, [initCheckout]);
+
+  // Automated Real-Time Polling for VietQR payment confirmation (every 3.5s)
+  useEffect(() => {
+    if (!orderCode || showSuccessModal) return;
+    let isCancelled = false;
+
+    const intervalId = setInterval(async () => {
       try {
-        const res = await createCheckoutApi({ plan_id: planId }).unwrap();
-        if (isMounted && res.transaction_ref) {
-          setOrderCode(res.transaction_ref);
+        const res = await verifyPaymentApi({ transaction_ref: orderCode }).unwrap();
+        if (!isCancelled && res.status === "success") {
+          toast.success("Thanh toán thành công! Gói cước đã được kích hoạt.");
+          setShowSuccessModal(true);
+          clearInterval(intervalId);
         }
       } catch {
-        if (isMounted) {
-          const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-          setOrderCode(`IC${randomSuffix}`);
-        }
+        // Continue polling silently
       }
-    }
-    initCheckout();
+    }, 3500);
+
     return () => {
-      isMounted = false;
+      isCancelled = true;
+      clearInterval(intervalId);
     };
-  }, [planId, createCheckoutApi]);
+  }, [orderCode, showSuccessModal, verifyPaymentApi]);
 
   // Pricing calculations
-  const price = cycle === "weekly" ? 49000 : cycle === "monthly" ? 99000 : 899000;
-  const originalPrice = cycle === "weekly" ? 79000 : cycle === "monthly" ? 149000 : 1188000;
-  const discountAmount = originalPrice - price;
+  const price = activePlan.price;
+  const originalPrice = isAddon
+    ? price
+    : cycle === "weekly"
+    ? 79000
+    : cycle === "monthly"
+    ? 149000
+    : 1188000;
+  const discountAmount = Math.max(0, originalPrice - price);
   const formattedPrice = new Intl.NumberFormat("vi-VN").format(price) + " đ";
   const formattedOriginalPrice = new Intl.NumberFormat("vi-VN").format(originalPrice) + " đ";
 
   // Official MB Bank & VietQR transfer parameters
   const bankInfo = useMemo(() => {
-    const transferContent = orderCode;
+    const transferContent = orderCode || "DANG_KHOI_TAO";
     return {
       bankName: "MB Bank (Ngân hàng Quân Đội)",
       bankShortName: "MB",
@@ -189,27 +254,23 @@ export function CheckoutClient() {
   };
 
   const handleConfirmPaid = async () => {
+    if (!orderCode) return;
     try {
       const res = await verifyPaymentApi({ transaction_ref: orderCode }).unwrap();
       if (res.status === "success") {
         toast.success("Xác nhận thanh toán thành công! Gói cước đã được kích hoạt.");
         setShowSuccessModal(true);
       } else {
-        toast.info("Đang kiểm tra giao dịch từ ngân hàng. Gói cước sẽ tự động kích hoạt ngay khi nhận tiền.");
-        setShowSuccessModal(true);
+        toast.info(
+          "Hệ thống đang kiểm tra giao dịch từ ngân hàng VietQR. Vui lòng đợi trong giây lát, trang sẽ tự động kích hoạt ngay khi nhận tiền."
+        );
       }
     } catch {
-      toast.info("Hệ thống xGate đang kiểm tra giao dịch. Bạn có thể bắt đầu phiên phỏng vấn ngay.");
-      setShowSuccessModal(true);
+      toast.info("Đang kiểm tra đối soát với ngân hàng qua xGate. Vui lòng đợi trong ít giây...");
     }
   };
 
-  const planDisplayName =
-    cycle === "weekly"
-      ? "Gói Cấp Tốc (7-Day Sprint)"
-      : cycle === "monthly"
-      ? "Gói Chuyên Nghiệp (Pro Monthly)"
-      : "Gói Chuyên Nghiệp (Pro Yearly)";
+  const planDisplayName = activePlan.plan_name;
 
   return (
     <main className={styles.container}>
@@ -217,293 +278,373 @@ export function CheckoutClient() {
       <section className={styles.header}>
         <div className={styles.badge}>
           <ShieldCheck size={14} />
-          <span>Thanh toán an toàn & Đối soát tự động</span>
+          <span>Thanh toán an toàn & Đối soát tự động VietQR Napas 247</span>
         </div>
         <h1 className={styles.title}>
-          Thanh toán & Kích hoạt <em>Interviewly PRO</em>
+          Thanh toán & Kích hoạt <em>{isAddon ? "Gói Nạp Thêm" : "Interviewly PRO"}</em>
         </h1>
         <p className={styles.subtitle}>
-          Quét mã VietQR chuyển khoản nhanh qua ứng dụng ngân hàng bất kỳ. Hệ thống tự động xác nhận và kích hoạt gói cước trong vòng 3 giây.
+          Quét mã VietQR chuyển khoản nhanh qua ứng dụng ngân hàng bất kỳ. Hệ thống đối soát xGate tự động xác nhận và kích hoạt trong vòng 3 giây.
         </p>
       </section>
 
-      <div className={styles.layout}>
-        {/* LEFT COLUMN: Single Payment Method - VietQR / MB Bank */}
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>
-            <QrCode size={18} className="text-amber-600" />
-            <span>Chuyển khoản qua mã VietQR</span>
-          </h2>
-          <p className={styles.cardSubtitle}>
-            Mở ứng dụng ngân hàng hoặc ví điện tử bất kỳ, quét mã QR bên dưới để thanh toán tức thì với nội dung tự động.
+      {/* Loading or Error State */}
+      {isCreatingCheckout ? (
+        <div style={{ textAlign: "center", padding: "60px 20px" }}>
+          <RotateCw size={36} className="animate-spin text-amber-600 mx-auto mb-3" />
+          <p style={{ fontSize: 16, fontWeight: 700, color: "var(--ink, #211914)" }}>
+            Đang khởi tạo mã giao dịch xGate VietQR...
           </p>
+        </div>
+      ) : checkoutError ? (
+        <div style={{ maxWidth: 500, margin: "40px auto", textAlign: "center", padding: 24, background: "#fff", borderRadius: 16, border: "1.5px solid #ef4444" }}>
+          <AlertCircle size={40} className="text-red-500 mx-auto mb-2" />
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: "#991b1b", marginBottom: 8 }}>
+            Khởi tạo thanh toán không thành công
+          </h3>
+          <p style={{ fontSize: 14, color: "#666", marginBottom: 16 }}>{checkoutError}</p>
+          <button
+            type="button"
+            className={styles.primaryButton}
+            onClick={initCheckout}
+            style={{ margin: "0 auto", padding: "10px 24px" }}
+          >
+            <RotateCw size={14} /> Thử lại
+          </button>
+        </div>
+      ) : (
+        <div className={styles.layout}>
+          {/* LEFT COLUMN: Single Payment Method - VietQR / MB Bank */}
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>
+              <QrCode size={18} className="text-amber-600" />
+              <span>Chuyển khoản qua mã VietQR</span>
+            </h2>
+            <p className={styles.cardSubtitle}>
+              Mở ứng dụng ngân hàng hoặc ví điện tử bất kỳ, quét mã QR bên dưới để thanh toán tức thì với nội dung tự động.
+            </p>
 
-          <div className={styles.qrWrapper}>
-            {/* QR Image Container */}
-            <div className={styles.qrImageContainer}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={bankInfo.qrUrl}
-                alt="Mã VietQR thanh toán Interviewly PRO"
-                className={styles.qrImage}
-              />
-            </div>
-
-            {/* Badges */}
-            <div className={styles.bankBadgeRow}>
-              <span className={styles.bankBadge}>MB Bank Quân Đội</span>
-              <span className={styles.napasBadge}>Napas 247 Chuyển nhanh</span>
-              <span className={styles.bankBadge}>xGate Xác thực tự động</span>
-            </div>
-
-            {/* Detailed Transfer Information */}
-            <div className={styles.transferTable}>
-              <div className={styles.transferRow}>
-                <span className={styles.transferLabel}>Ngân hàng thụ hưởng:</span>
-                <span className={styles.transferValue}>{bankInfo.bankName}</span>
+            <div className={styles.qrWrapper}>
+              {/* QR Image Container */}
+              <div className={styles.qrImageContainer}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={bankInfo.qrUrl}
+                  alt={`Mã VietQR thanh toán ${planDisplayName}`}
+                  className={styles.qrImage}
+                />
               </div>
 
-              <div className={styles.transferRow}>
-                <span className={styles.transferLabel}>Chủ tài khoản:</span>
-                <span className={styles.transferValue}>{bankInfo.accountName}</span>
+              {/* Badges */}
+              <div className={styles.bankBadgeRow}>
+                <span className={styles.bankBadge}>MB Bank Quân Đội</span>
+                <span className={styles.napasBadge}>Napas 247 Chuyển nhanh</span>
+                <span className={styles.bankBadge}>xGate Tự động kích hoạt</span>
               </div>
 
-              <div className={styles.transferRow}>
-                <span className={styles.transferLabel}>Số tài khoản:</span>
-                <div className={styles.transferValue}>
-                  <span style={{ fontFamily: "monospace", fontSize: "15px", letterSpacing: "0.05em" }}>
-                    {bankInfo.accountNumber}
-                  </span>
-                  <button
-                    type="button"
-                    className={`${styles.copyButton} ${copiedKey === "account" ? styles.copiedButton : ""}`}
-                    onClick={() => handleCopy("account", bankInfo.accountNumber)}
-                    title="Sao chép số tài khoản"
-                  >
-                    {copiedKey === "account" ? <Check size={12} /> : <Copy size={12} />}
-                    <span>{copiedKey === "account" ? "Đã chép" : "Sao chép"}</span>
-                  </button>
+              {/* Detailed Transfer Information */}
+              <div className={styles.transferTable}>
+                <div className={styles.transferRow}>
+                  <span className={styles.transferLabel}>Ngân hàng thụ hưởng:</span>
+                  <span className={styles.transferValue}>{bankInfo.bankName}</span>
                 </div>
-              </div>
 
-              <div className={styles.transferRow}>
-                <span className={styles.transferLabel}>Số tiền cần chuyển:</span>
-                <div className={styles.transferValue}>
-                  <span style={{ color: "#ea580c", fontSize: "16px", fontWeight: 800 }}>
-                    {bankInfo.formattedAmount}
-                  </span>
-                  <button
-                    type="button"
-                    className={`${styles.copyButton} ${copiedKey === "amount" ? styles.copiedButton : ""}`}
-                    onClick={() => handleCopy("amount", String(bankInfo.amountNumber))}
-                    title="Sao chép số tiền"
-                  >
-                    {copiedKey === "amount" ? <Check size={12} /> : <Copy size={12} />}
-                    <span>{copiedKey === "amount" ? "Đã chép" : "Sao chép"}</span>
-                  </button>
+                <div className={styles.transferRow}>
+                  <span className={styles.transferLabel}>Chủ tài khoản:</span>
+                  <span className={styles.transferValue}>{bankInfo.accountName}</span>
                 </div>
-              </div>
 
-              <div className={styles.transferRow}>
-                <span className={styles.transferLabel}>Nội dung chuyển khoản:</span>
-                <div className={styles.transferValue}>
-                  <span
-                    style={{
-                      fontFamily: "monospace",
-                      backgroundColor: "#fef3c7",
-                      padding: "3px 10px",
-                      borderRadius: "6px",
-                      color: "#92400e",
-                      border: "1px dashed #f59e0b",
-                      fontWeight: 800,
-                      letterSpacing: "0.05em",
-                    }}
-                  >
-                    {bankInfo.content}
-                  </span>
-                  <button
-                    type="button"
-                    className={`${styles.copyButton} ${copiedKey === "content" ? styles.copiedButton : ""}`}
-                    onClick={() => handleCopy("content", bankInfo.content)}
-                    title="Sao chép nội dung chuyển khoản"
-                  >
-                    {copiedKey === "content" ? <Check size={12} /> : <Copy size={12} />}
-                    <span>{copiedKey === "content" ? "Đã chép" : "Sao chép"}</span>
-                  </button>
+                <div className={styles.transferRow}>
+                  <span className={styles.transferLabel}>Số tài khoản:</span>
+                  <div className={styles.transferValue}>
+                    <span style={{ fontFamily: "monospace", fontSize: "15px", letterSpacing: "0.05em" }}>
+                      {bankInfo.accountNumber}
+                    </span>
+                    <button
+                      type="button"
+                      className={`${styles.copyButton} ${copiedKey === "account" ? styles.copiedButton : ""}`}
+                      onClick={() => handleCopy("account", bankInfo.accountNumber)}
+                      title="Sao chép số tài khoản"
+                    >
+                      {copiedKey === "account" ? <Check size={12} /> : <Copy size={12} />}
+                      <span>{copiedKey === "account" ? "Đã chép" : "Sao chép"}</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Steps guide */}
-            <div className={styles.stepsContainer}>
-              <div className={styles.stepItem}>
-                <div className={styles.stepNumber}>1</div>
-                <p className={styles.stepText}>Mở ứng dụng Mobile Banking hoặc Ví điện tử</p>
-              </div>
-              <div className={styles.stepItem}>
-                <div className={styles.stepNumber}>2</div>
-                <p className={styles.stepText}>Chọn Quét mã QR hoặc chuyển khoản đúng số tài khoản</p>
-              </div>
-              <div className={styles.stepItem}>
-                <div className={styles.stepNumber}>3</div>
-                <p className={styles.stepText}>Kiểm tra đúng số tiền và nội dung chuyển khoản ({orderCode})</p>
-              </div>
-            </div>
+                <div className={styles.transferRow}>
+                  <span className={styles.transferLabel}>Số tiền cần chuyển:</span>
+                  <div className={styles.transferValue}>
+                    <span style={{ color: "#ea580c", fontSize: "16px", fontWeight: 800 }}>
+                      {bankInfo.formattedAmount}
+                    </span>
+                    <button
+                      type="button"
+                      className={`${styles.copyButton} ${copiedKey === "amount" ? styles.copiedButton : ""}`}
+                      onClick={() => handleCopy("amount", String(bankInfo.amountNumber))}
+                      title="Sao chép số tiền"
+                    >
+                      {copiedKey === "amount" ? <Check size={12} /> : <Copy size={12} />}
+                      <span>{copiedKey === "amount" ? "Đã chép" : "Sao chép"}</span>
+                    </button>
+                  </div>
+                </div>
 
-            {/* Confirm Paid Action Button */}
-            <div className={styles.buttonGroup}>
-              <button
-                type="button"
-                className={styles.primaryButton}
-                onClick={handleConfirmPaid}
-                disabled={isVerifying}
-              >
-                {isVerifying ? (
-                  <>
+                <div className={styles.transferRow}>
+                  <span className={styles.transferLabel}>Nội dung chuyển khoản:</span>
+                  <div className={styles.transferValue}>
                     <span
                       style={{
-                        width: "16px",
-                        height: "16px",
-                        border: "2px solid #ffffff",
-                        borderTopColor: "transparent",
-                        borderRadius: "50%",
-                        animation: "spin 1s linear infinite",
-                        display: "inline-block",
+                        fontFamily: "monospace",
+                        backgroundColor: "#fef3c7",
+                        padding: "3px 10px",
+                        borderRadius: "6px",
+                        color: "#92400e",
+                        border: "1px dashed #f59e0b",
+                        fontWeight: 800,
+                        letterSpacing: "0.05em",
                       }}
-                    />
-                    <span>Đang xác thực giao dịch qua xGate...</span>
+                    >
+                      {bankInfo.content}
+                    </span>
+                    <button
+                      type="button"
+                      className={`${styles.copyButton} ${copiedKey === "content" ? styles.copiedButton : ""}`}
+                      onClick={() => handleCopy("content", bankInfo.content)}
+                      title="Sao chép nội dung chuyển khoản"
+                    >
+                      {copiedKey === "content" ? <Check size={12} /> : <Copy size={12} />}
+                      <span>{copiedKey === "content" ? "Đã chép" : "Sao chép"}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Steps guide */}
+              <div className={styles.stepsContainer}>
+                <div className={styles.stepItem}>
+                  <div className={styles.stepNumber}>1</div>
+                  <p className={styles.stepText}>Mở ứng dụng Mobile Banking hoặc Ví điện tử</p>
+                </div>
+                <div className={styles.stepItem}>
+                  <div className={styles.stepNumber}>2</div>
+                  <p className={styles.stepText}>Chọn Quét mã QR hoặc chuyển khoản đúng số tài khoản</p>
+                </div>
+                <div className={styles.stepItem}>
+                  <div className={styles.stepNumber}>3</div>
+                  <p className={styles.stepText}>Kiểm tra đúng số tiền và nội dung chuyển khoản ({orderCode})</p>
+                </div>
+              </div>
+
+              {/* Confirm Paid Action Button */}
+              <div className={styles.buttonGroup}>
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  onClick={handleConfirmPaid}
+                  disabled={isVerifying}
+                >
+                  {isVerifying ? (
+                    <>
+                      <span
+                        style={{
+                          width: "16px",
+                          height: "16px",
+                          border: "2px solid #ffffff",
+                          borderTopColor: "transparent",
+                          borderRadius: "50%",
+                          animation: "spin 1s linear infinite",
+                          display: "inline-block",
+                        }}
+                      />
+                      <span>Đang xác thực giao dịch qua xGate...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={18} />
+                      <span>Tôi đã chuyển khoản thành công</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: Order Summary & Plan Selector */}
+          <div>
+            <div className={styles.card}>
+              <h2 className={styles.cardTitle}>
+                <Sparkles size={18} className="text-amber-600" />
+                <span>{isAddon ? "Gói nạp bổ sung" : "Gói cước đã chọn"}</span>
+              </h2>
+              <p className={styles.cardSubtitle}>
+                {isAddon
+                  ? "Phút hoặc lượt tạo CV sẽ được cộng dồn trực tiếp vào tài khoản của bạn ngay khi giao dịch hoàn tất."
+                  : "Bạn có thể linh hoạt chuyển đổi gói cước trước khi chuyển khoản."}
+              </p>
+
+              {/* Billing Cycle Switcher (hidden for Addons) */}
+              {!isAddon && (
+                <div className={styles.planSwitcher}>
+                  <button
+                    type="button"
+                    className={`${styles.planOption} ${cycle === "weekly" ? styles.planOptionActive : ""}`}
+                    onClick={() => handleCycleChange("weekly")}
+                  >
+                    <span>7 Ngày</span>
+                    <span className={styles.sprintBadge}>Cấp tốc</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.planOption} ${cycle === "monthly" ? styles.planOptionActive : ""}`}
+                    onClick={() => handleCycleChange("monthly")}
+                  >
+                    <span>Gói Tháng</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.planOption} ${cycle === "yearly" ? styles.planOptionActive : ""}`}
+                    onClick={() => handleCycleChange("yearly")}
+                  >
+                    <span>1 Năm</span>
+                    <span className={styles.discountBadge}>-25%</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Summary Price Header */}
+              <div className={styles.summaryHeader}>
+                <div className={styles.planCardHeader}>
+                  <span className={styles.planName}>{planDisplayName}</span>
+                  <span className={styles.planBadge}>
+                    {isAddon
+                      ? "Nạp dùng ngay"
+                      : cycle === "weekly"
+                      ? "Cấp tốc 7 ngày"
+                      : cycle === "monthly"
+                      ? "Phổ biến nhất"
+                      : "Tiết kiệm 25%"}
+                  </span>
+                </div>
+
+                <div className={styles.priceDisplay}>
+                  {!isAddon && <span className={styles.originalPrice}>{formattedOriginalPrice}</span>}
+                  <span className={styles.priceAmount}>{formattedPrice}</span>
+                  <span className={styles.pricePeriod}>
+                    {isAddon
+                      ? " (một lần)"
+                      : cycle === "weekly"
+                      ? "/ 7 ngày"
+                      : cycle === "monthly"
+                      ? "/ tháng"
+                      : "/ năm"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Features Entitlements */}
+              <p style={{ fontSize: "13px", fontWeight: 700, color: "var(--ink, #211914)", margin: "0 0 14px" }}>
+                Đặc quyền gói bao gồm:
+              </p>
+              <ul className={styles.featureList}>
+                {isAddon ? (
+                  <>
+                    {activePlan.feature_limits.voice_minutes ? (
+                      <li className={styles.featureItem}>
+                        <div className={styles.featureIcon}><Mic size={12} /></div>
+                        <span>Cộng thêm <strong>{activePlan.feature_limits.voice_minutes} phút</strong> phỏng vấn giọng nói AI</span>
+                      </li>
+                    ) : null}
+                    {activePlan.feature_limits.cv_generations ? (
+                      <li className={styles.featureItem}>
+                        <div className={styles.featureIcon}><FileText size={12} /></div>
+                        <span>Cộng thêm <strong>{activePlan.feature_limits.cv_generations} lượt</strong> tạo CV chuẩn ATS theo JD</span>
+                      </li>
+                    ) : null}
+                    <li className={styles.featureItem}>
+                      <div className={styles.featureIcon}><Check size={12} /></div>
+                      <span>Không giới hạn hạn dùng • Dùng song song với gói hiện tại</span>
+                    </li>
+                    <li className={styles.featureItem}>
+                      <div className={styles.featureIcon}><Check size={12} /></div>
+                      <span>Xem lại kết quả & báo cáo phiên đã tạo <strong>miễn phí vĩnh viễn</strong></span>
+                    </li>
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 size={18} />
-                    <span>Tôi đã chuyển khoản thành công</span>
+                    <li className={styles.featureItem}>
+                      <div className={styles.featureIcon}><Check size={12} /></div>
+                      <span><strong>{cycle === "weekly" ? "60 phút (~2-3 phiên)" : cycle === "yearly" ? "4.000 phút (~130 phiên)" : "300 phút (~10 phiên)"}</strong> phỏng vấn giọng nói AI</span>
+                    </li>
+                    <li className={styles.featureItem}>
+                      <div className={styles.featureIcon}><Check size={12} /></div>
+                      <span><strong>{cycle === "weekly" ? "3 lượt" : cycle === "yearly" ? "200 lượt" : "15 lượt"}</strong> tạo CV AI chuyên sâu theo JD</span>
+                    </li>
+                    <li className={styles.featureItem}>
+                      <div className={styles.featureIcon}><Check size={12} /></div>
+                      <span>Phân tích tốc độ nói WPM & phát hiện từ đệm đa ngữ</span>
+                    </li>
+                    <li className={styles.featureItem}>
+                      <div className={styles.featureIcon}><Check size={12} /></div>
+                      <span>Chấm điểm chi tiết theo thang Rubric 3 tiêu chí & STAR</span>
+                    </li>
+                    <li className={styles.featureItem}>
+                      <div className={styles.featureIcon}><Check size={12} /></div>
+                      <span>Xuất báo cáo kỹ năng chi tiết định dạng PDF A4 chuẩn quốc tế</span>
+                    </li>
                   </>
                 )}
-              </button>
+              </ul>
+
+              {/* Calculation Breakdown */}
+              <div className={styles.calcBox}>
+                <div className={styles.calcRow}>
+                  <span>Đơn giá niêm yết:</span>
+                  <span>{formattedOriginalPrice}</span>
+                </div>
+                {!isAddon && discountAmount > 0 && (
+                  <div className={styles.calcRow}>
+                    <span>Ưu đãi thành viên:</span>
+                    <span style={{ color: "#16a34a", fontWeight: 700 }}>
+                      - {new Intl.NumberFormat("vi-VN").format(discountAmount)} đ
+                    </span>
+                  </div>
+                )}
+                <div className={styles.calcRow}>
+                  <span>Thuế VAT:</span>
+                  <span>0 đ (Đã bao gồm)</span>
+                </div>
+                <div className={`${styles.calcRow} ${styles.calcRowTotal}`}>
+                  <span>Tổng thanh toán:</span>
+                  <span className={styles.totalHighlight}>{formattedPrice}</span>
+                </div>
+              </div>
+
+              {/* User credentials notice */}
+              {user && (
+                <div className={styles.userNotice}>
+                  <span>Tài khoản kích hoạt: <strong>{user.email || user.full_name}</strong></span>
+                </div>
+              )}
+
+              {/* Switch to main plans link if currently viewing addon */}
+              {isAddon && (
+                <div style={{ marginTop: 14, textAlign: "center" }}>
+                  <Link href="/pricing" style={{ fontSize: 13, color: "#8b4513", textDecoration: "underline", fontWeight: 600 }}>
+                    ← Xem lại các gói thành viên Sprint / Pro
+                  </Link>
+                </div>
+              )}
+
+              {/* Trust and security guarantees */}
+              <div className={styles.guaranteeBox}>
+                <Lock size={18} color="#059669" style={{ flexShrink: 0 }} />
+                <span>Giao dịch an toàn 100% qua Napas 247 & xGate đối soát tự động. Cam kết bảo lưu kết quả miễn phí.</span>
+              </div>
             </div>
           </div>
         </div>
-
-        {/* RIGHT COLUMN: Order Summary & Plan Selector */}
-        <div>
-          <div className={styles.card}>
-            <h2 className={styles.cardTitle}>
-              <Sparkles size={18} className="text-amber-600" />
-              <span>Gói cước đã chọn</span>
-            </h2>
-            <p className={styles.cardSubtitle}>
-              Bạn có thể linh hoạt chuyển đổi gói cước trước khi chuyển khoản.
-            </p>
-
-            {/* Billing Cycle Switcher */}
-            <div className={styles.planSwitcher}>
-              <button
-                type="button"
-                className={`${styles.planOption} ${cycle === "weekly" ? styles.planOptionActive : ""}`}
-                onClick={() => setCycle("weekly")}
-              >
-                <span>7 Ngày</span>
-                <span className={styles.sprintBadge}>Cấp tốc</span>
-              </button>
-              <button
-                type="button"
-                className={`${styles.planOption} ${cycle === "monthly" ? styles.planOptionActive : ""}`}
-                onClick={() => setCycle("monthly")}
-              >
-                <span>Gói Tháng</span>
-              </button>
-              <button
-                type="button"
-                className={`${styles.planOption} ${cycle === "yearly" ? styles.planOptionActive : ""}`}
-                onClick={() => setCycle("yearly")}
-              >
-                <span>1 Năm</span>
-                <span className={styles.discountBadge}>-25%</span>
-              </button>
-            </div>
-
-            {/* Summary Price Header */}
-            <div className={styles.summaryHeader}>
-              <div className={styles.planCardHeader}>
-                <span className={styles.planName}>{planDisplayName}</span>
-                <span className={styles.planBadge}>
-                  {cycle === "weekly" ? "Cấp tốc 7 ngày" : cycle === "monthly" ? "Phổ biến nhất" : "Tiết kiệm 25%"}
-                </span>
-              </div>
-
-              <div className={styles.priceDisplay}>
-                <span className={styles.originalPrice}>{formattedOriginalPrice}</span>
-                <span className={styles.priceAmount}>{formattedPrice}</span>
-                <span className={styles.pricePeriod}>
-                  {cycle === "weekly" ? "/ 7 ngày" : cycle === "monthly" ? "/ tháng" : "/ năm"}
-                </span>
-              </div>
-            </div>
-
-            {/* Features Entitlements */}
-            <p style={{ fontSize: "13px", fontWeight: 700, color: "var(--ink, #211914)", margin: "0 0 14px" }}>
-              Đặc quyền gói cước bao gồm:
-            </p>
-            <ul className={styles.featureList}>
-              <li className={styles.featureItem}>
-                <div className={styles.featureIcon}><Check size={12} /></div>
-                <span><strong>{cycle === "weekly" ? "35 lượt phỏng vấn AI" : "Không giới hạn lượt phỏng vấn"}</strong> {cycle === "weekly" ? "cấp tốc trong 7 ngày" : "chuyên sâu đa ngành nghề"}</span>
-              </li>
-              <li className={styles.featureItem}>
-                <div className={styles.featureIcon}><Check size={12} /></div>
-                <span>Phân tích tốc độ nói WPM & phát hiện từ đệm đa ngữ</span>
-              </li>
-              <li className={styles.featureItem}>
-                <div className={styles.featureIcon}><Check size={12} /></div>
-                <span>Chấm điểm chi tiết theo thang Rubric 3 tiêu chí</span>
-              </li>
-              <li className={styles.featureItem}>
-                <div className={styles.featureIcon}><Check size={12} /></div>
-                <span>Hướng dẫn phản xạ STAR thời gian thực trong phòng phỏng vấn</span>
-              </li>
-              <li className={styles.featureItem}>
-                <div className={styles.featureIcon}><Check size={12} /></div>
-                <span>Xuất báo cáo kỹ năng chi tiết định dạng PDF A4 chuẩn quốc tế</span>
-              </li>
-            </ul>
-
-            {/* Calculation Breakdown */}
-            <div className={styles.calcBox}>
-              <div className={styles.calcRow}>
-                <span>Đơn giá niêm yết:</span>
-                <span>{formattedOriginalPrice}</span>
-              </div>
-              <div className={styles.calcRow}>
-                <span>Ưu đãi thành viên:</span>
-                <span style={{ color: "#16a34a", fontWeight: 700 }}>
-                  - {new Intl.NumberFormat("vi-VN").format(discountAmount)} đ
-                </span>
-              </div>
-              <div className={styles.calcRow}>
-                <span>Thuế VAT:</span>
-                <span>0 đ (Đã bao gồm)</span>
-              </div>
-              <div className={`${styles.calcRow} ${styles.calcRowTotal}`}>
-                <span>Tổng thanh toán:</span>
-                <span className={styles.totalHighlight}>{formattedPrice}</span>
-              </div>
-            </div>
-
-            {/* User credentials notice */}
-            {user && (
-              <div className={styles.userNotice}>
-                <span>Tài khoản kích hoạt: <strong>{user.email || user.full_name}</strong></span>
-              </div>
-            )}
-
-            {/* Trust and security guarantees */}
-            <div className={styles.guaranteeBox}>
-              <Lock size={18} color="#059669" style={{ flexShrink: 0 }} />
-              <span>Giao dịch an toàn 100% qua Napas 247 & xGate đối soát tự động. Cam kết hoàn tiền trong 7 ngày.</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* PAYMENT SUCCESS CELEBRATION MODAL */}
       {showSuccessModal && (
@@ -549,9 +690,9 @@ export function CheckoutClient() {
               <span>KÍCH HOẠT THÀNH CÔNG</span>
             </div>
 
-            <h3 className={styles.modalTitle}>Chào Mừng Bạn Đến Với PRO!</h3>
+            <h3 className={styles.modalTitle}>Chào Mừng Bạn Đến Với Interviewly PRO!</h3>
             <p className={styles.modalDesc}>
-              Hệ thống xGate đã ghi nhận giao dịch chuyển khoản thành công. Tài khoản của bạn đã được kích hoạt đầy đủ đặc quyền gói <strong>{planDisplayName}</strong>.
+              Hệ thống xGate đã ghi nhận giao dịch chuyển khoản thành công. Tài khoản của bạn đã được kích hoạt đầy đủ quyền lợi của <strong>{planDisplayName}</strong>.
             </p>
 
             <div className={styles.receiptCard}>
@@ -565,14 +706,14 @@ export function CheckoutClient() {
               </div>
               <div className={styles.receiptRow}>
                 <span className={styles.receiptLabel}>Số tiền:</span>
-                <span className={styles.receiptValue} style={{ color: "#16a34a", fontSize: "14px" }}>
+                <span className={styles.receiptValue} style={{ color: "#16a34a", fontSize: "14px", fontWeight: 700 }}>
                   {formattedPrice}
                 </span>
               </div>
               <div className={styles.receiptRow}>
                 <span className={styles.receiptLabel}>Trạng thái:</span>
-                <span className={styles.receiptValue} style={{ color: "#16a34a" }}>
-                  Đã hoàn tất
+                <span className={styles.receiptValue} style={{ color: "#16a34a", fontWeight: 700 }}>
+                  Đã hoàn tất (Active)
                 </span>
               </div>
             </div>

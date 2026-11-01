@@ -25,6 +25,10 @@ interface VoiceRecognition {
 interface VoiceDraftOptions {
   enabled: boolean;
   canRecord: boolean;
+  autoListen: boolean;
+  canInterrupt: boolean;
+  aiSpeechText: string;
+  onSpeechStart: () => void;
   language: string;
   onSubmit: (text: string, durationSeconds: number, audioBlob?: Blob | null) => boolean;
 }
@@ -40,14 +44,26 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
   const [volume, setVolume] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [sttSupported, setSttSupported] = useState(true);
-  const [autoSubmit, setAutoSubmit] = useState(false);
   const [silenceRemaining, setSilenceRemaining] = useState<number | null>(null);
   const optionsRef = useRef(options);
   optionsRef.current = options;
+  const [autoSubmit, setAutoSubmit] = useState(options.autoListen);
+  useEffect(() => {
+    setAutoSubmit(options.autoListen);
+  }, [options.autoListen]);
+  const autoSubmitRef = useRef(autoSubmit);
+  autoSubmitRef.current = autoSubmit;
+  const toggleAutoSubmit = useCallback(() => {
+    setAutoSubmit((prev) => !prev);
+  }, []);
   const stateRef = useRef<VoiceDraftState>("idle");
   const transcriptRef = useRef("");
   const interimRef = useRef("");
-  const autoSubmitRef = useRef(false);
+  const interruptedRef = useRef(false);
+  const pendingSubmissionRef = useRef(false);
+  const durationRef = useRef(0);
+  const recentAiSpeechRef = useRef("");
+  if (options.aiSpeechText.trim()) recentAiSpeechRef.current = options.aiSpeechText;
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recognitionRef = useRef<VoiceRecognition | null>(null);
@@ -84,6 +100,8 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
   const discard = useCallback(() => {
     if (stateRef.current === "recording" || stateRef.current === "processing") return;
     captureIdRef.current += 1;
+    pendingSubmissionRef.current = false;
+    interruptedRef.current = false;
     clearAudioUrl();
     transcriptRef.current = "";
     interimRef.current = "";
@@ -94,6 +112,33 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
     updateState("idle");
   }, [clearAudioUrl, updateState]);
 
+  const cancelRecording = useCallback(() => {
+    captureIdRef.current += 1;
+    recognitionEndedRef.current?.();
+    recognitionEndedRef.current = null;
+    const recognition = recognitionRef.current;
+    if (recognition) {
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = null;
+      recognition.abort();
+      recognitionRef.current = null;
+    }
+    const recorder = recorderRef.current;
+    if (recorder?.state !== "inactive") recorder?.stop();
+    releaseAudio();
+    clearAudioUrl();
+    transcriptRef.current = "";
+    interimRef.current = "";
+    pendingSubmissionRef.current = false;
+    interruptedRef.current = false;
+    setTranscript("");
+    setInterimTranscript("");
+    setSilenceRemaining(null);
+    setError(null);
+    updateState("idle");
+  }, [clearAudioUrl, releaseAudio, updateState]);
+
   const submit = useCallback(() => {
     if (stateRef.current !== "review") return;
     const answer = transcriptRef.current.trim();
@@ -101,16 +146,16 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
       setError("Chưa nhận diện được lời nói. Bạn có thể nhập lại nội dung hoặc thu âm lại.");
       return;
     }
-    if (!optionsRef.current.canRecord || !optionsRef.current.onSubmit(answer, durationSeconds, audioBlobRef.current)) {
+    if (!optionsRef.current.canRecord || !optionsRef.current.onSubmit(answer, durationRef.current, audioBlobRef.current)) {
       setError("Chưa thể gửi lúc này. Bản thu vẫn được giữ lại; hãy đợi AI sẵn sàng hoặc kết nối lại.");
       return;
     }
     discard();
-  }, [discard, durationSeconds]);
+  }, [discard]);
 
   const startRecording = useCallback(async () => {
     const current = optionsRef.current;
-    if (!current.enabled || !current.canRecord || !["idle", "review"].includes(stateRef.current)) return;
+    if (!current.enabled || (!current.canRecord && !current.canInterrupt) || !["idle", "review"].includes(stateRef.current)) return;
     const browser = window as typeof window & {
       SpeechRecognition?: new () => VoiceRecognition;
       webkitSpeechRecognition?: new () => VoiceRecognition;
@@ -122,13 +167,16 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
       return;
     }
     const captureId = ++captureIdRef.current;
+    interruptedRef.current = false;
+    pendingSubmissionRef.current = false;
     updateState("requesting");
     setError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
-      if (captureId !== captureIdRef.current || !optionsRef.current.enabled || !optionsRef.current.canRecord) {
+      if (captureId !== captureIdRef.current || !optionsRef.current.enabled ||
+          (!optionsRef.current.canRecord && !optionsRef.current.canInterrupt)) {
         stream.getTracks().forEach((track) => track.stop());
         if (captureId === captureIdRef.current) updateState(audioUrlRef.current ? "review" : "idle");
         return;
@@ -138,7 +186,7 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
       contextRef.current = context;
       await context.resume();
       if (captureId !== captureIdRef.current) return;
-      if (!optionsRef.current.enabled || !optionsRef.current.canRecord) {
+      if (!optionsRef.current.enabled || (!optionsRef.current.canRecord && !optionsRef.current.canInterrupt)) {
         releaseAudio();
         updateState(audioUrlRef.current ? "review" : "idle");
         return;
@@ -172,6 +220,16 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
           if (result.isFinal) finalText += `${result[0].transcript} `;
           else interimText += `${result[0].transcript} `;
         }
+        if (optionsRef.current.autoListen && !interruptedRef.current) {
+          const candidate = (finalText || interimText).toLowerCase().replace(/[.,!?;:]/g, "").trim();
+          const aiSpeech = recentAiSpeechRef.current.toLowerCase().replace(/[.,!?;:]/g, "").replace(/\s+/g, " ");
+          if (aiSpeech && candidate && aiSpeech.includes(candidate)) return;
+          if (optionsRef.current.canInterrupt) {
+            if (candidate.length < 4) return;
+            interruptedRef.current = true;
+            optionsRef.current.onSpeechStart();
+          }
+        }
         transcriptRef.current = [transcriptRef.current, finalText.trim()].filter(Boolean).join(" ");
         interimRef.current = interimText.trim();
         setTranscript(transcriptRef.current);
@@ -184,9 +242,7 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
         setError(event.error === "not-allowed" || event.error === "service-not-allowed"
           ? "Quyền nhận diện giọng nói bị từ chối. Bản thu vẫn có thể nghe lại và nhập nội dung trước khi gửi."
           : "Nhận diện giọng nói bị gián đoạn. Hãy kiểm tra bản chép lời trước khi gửi.");
-        setAutoSubmit(false);
-        autoSubmitRef.current = false;
-        void stopRef.current();
+        void stopRef.current(false);
       };
       recognition.onend = () => {
         recognitionRunning = false;
@@ -199,11 +255,11 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
             recognitionRunning = true;
           } catch {
             setError("Nhận diện đã dừng. Hãy kết thúc bản thu và kiểm tra nội dung trước khi gửi.");
-            void stopRef.current();
+            void stopRef.current(false);
           }
         }
       };
-      stopRef.current = async (automatic = false) => {
+      stopRef.current = async (submitAfterStop = true) => {
         if (stateRef.current !== "recording" || captureId !== captureIdRef.current) return;
         updateState("processing");
         if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
@@ -211,6 +267,7 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
         setSilenceRemaining(null);
         setVolume(0);
         const duration = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+        durationRef.current = duration;
         setDurationSeconds(duration);
         const audioReady = new Promise<Blob>((resolve) => {
           recorder.onstop = () => resolve(new Blob(chunks, { type: recorder.mimeType }));
@@ -247,8 +304,9 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
         setTranscript(answer);
         setInterimTranscript("");
         updateState("review");
-        if (automatic && autoSubmitRef.current && optionsRef.current.enabled && optionsRef.current.canRecord && answer) {
-          if (optionsRef.current.onSubmit(answer, duration, blob)) discard();
+        if (submitAfterStop && optionsRef.current.enabled && answer) {
+          if (!optionsRef.current.canRecord) pendingSubmissionRef.current = true;
+          else if (optionsRef.current.onSubmit(answer, duration, blob)) discard();
           else setError("Không gửi được câu trả lời. Bản thu được giữ lại để bạn gửi lại.");
         } else if (!answer) {
           setError("Chưa nhận diện được lời nói. Nghe lại bản thu rồi nhập nội dung, hoặc thu âm lại.");
@@ -278,7 +336,9 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
           setVolume(Math.min(100, Math.round(rms * 500)));
           setDurationSeconds(Math.floor((now - startedAt) / 1000));
           const silenceMs = now - lastVoiceAt;
-          const canAutoSend = autoSubmitRef.current && hasVoice && Boolean(transcriptRef.current || interimRef.current);
+          const canAutoSend = autoSubmitRef.current && hasVoice &&
+            (!optionsRef.current.canInterrupt || interruptedRef.current) &&
+            Boolean(transcriptRef.current || interimRef.current);
           setSilenceRemaining(canAutoSend && silenceMs > 800 ? Math.max(0, Math.ceil((AUTO_SEND_SILENCE_MS - silenceMs) / 1000)) : null);
           if (canAutoSend && silenceMs >= AUTO_SEND_SILENCE_MS) {
             void stopRef.current(true);
@@ -295,8 +355,6 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
       releaseAudio();
       const denied = cause instanceof DOMException && cause.name === "NotAllowedError";
       setError(denied ? "Micro bị từ chối. Hãy cấp quyền micro hoặc chuyển sang nhập văn bản." : "Không thể bắt đầu thu âm. Kiểm tra micro và thử lại.");
-      setAutoSubmit(false);
-      autoSubmitRef.current = false;
       updateState(audioUrlRef.current ? "review" : "idle");
     }
   }, [clearAudioUrl, discard, releaseAudio, updateState]);
@@ -307,9 +365,18 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
       releaseAudio();
       updateState(audioUrlRef.current ? "review" : "idle");
     }
-    if ((!options.enabled || !options.canRecord) && state === "recording") void stopRef.current();
-    if (options.enabled && options.canRecord && autoSubmit && state === "idle" && !error) void startRecording();
-  }, [options.enabled, options.canRecord, autoSubmit, state, error, startRecording, releaseAudio, updateState]);
+    if ((!options.enabled || (!options.canRecord && !options.canInterrupt && !interruptedRef.current)) &&
+        state === "recording") void stopRef.current(false);
+    if (options.enabled && (options.canRecord || options.canInterrupt) && options.autoListen &&
+        state === "idle" && !error) void startRecording();
+  }, [options.enabled, options.canRecord, options.canInterrupt, options.autoListen, state, error, startRecording, releaseAudio, updateState]);
+
+  useEffect(() => {
+    if (state === "review" && options.canRecord && pendingSubmissionRef.current) {
+      pendingSubmissionRef.current = false;
+      submit();
+    }
+  }, [state, options.canRecord, submit]);
 
   useEffect(() => () => {
     captureIdRef.current += 1;
@@ -330,13 +397,7 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
 
   return {
     state, transcript, interimTranscript, audioUrl, durationSeconds, volume, error, sttSupported, audioBlob: audioBlobRef.current,
-    autoSubmit, silenceRemaining, startRecording, stopRecording: () => stopRef.current(), discard, submit,
+    autoSubmit, toggleAutoSubmit, silenceRemaining, startRecording, stopRecording: () => stopRef.current(true), cancelRecording, discard, submit,
     editTranscript: (text: string) => { transcriptRef.current = text; setTranscript(text); },
-    toggleAutoSubmit: () => {
-      autoSubmitRef.current = !autoSubmitRef.current;
-      setAutoSubmit(autoSubmitRef.current);
-      setSilenceRemaining(null);
-      setError(null);
-    },
   };
 }
