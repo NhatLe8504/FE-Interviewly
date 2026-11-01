@@ -20,10 +20,9 @@ import {
   Volume2,
 } from "lucide-react";
 import { historyApi } from "@/services/historyApi";
-import { SessionResultData, SessionDetailData, SkillRadar } from "@/types/analytics";
+import { SessionResultData, SessionDetailData } from "@/types/analytics";
 import { SpeechQualityCard } from "@/components/analytics/SpeechQualityCard";
 import { StarBreakdownCard } from "@/components/analytics/StarBreakdownCard";
-import { ScoreRadarChart } from "@/components/analytics/ScoreRadarChart";
 import { AudioPlayerTurn } from "@/components/analytics/AudioPlayerTurn";
 
 export default function ReportDetailPage({
@@ -68,17 +67,15 @@ export default function ReportDetailPage({
     );
   }
 
-  const result = resultData!;
-  const pdfUrl = historyApi.getPdfDownloadUrl(id);
+  if (!resultData) {
+    return <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4 text-slate-300">
+      <p>Chưa tải được báo cáo phiên phỏng vấn.</p>
+      <Link href="/reports" className="text-sky-400">Quay lại danh sách báo cáo</Link>
+    </div>;
+  }
 
-  const radarData: SkillRadar = {
-    clarity: result.clarity_score || 80,
-    logic: result.structure_score || 80,
-    evidence: result.evidence_score || 80,
-    delivery: Math.min(100, Math.round((result.speaking_pace_wpm / 150) * 100)),
-    star_method:
-      (Object.values(result.star_analysis).filter(Boolean).length / 4) * 100,
-  };
+  const result = resultData;
+  const pdfUrl = historyApi.getPdfDownloadUrl(id);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -178,9 +175,9 @@ export default function ReportDetailPage({
               </span>
               <div className="flex items-baseline gap-1 justify-end">
                 <span className="text-3xl sm:text-4xl font-black text-sky-400">
-                  {result.total_score}
+                  {result.total_score ?? "—"}
                 </span>
-                <span className="text-xs text-slate-500 font-medium">/ 100</span>
+                {result.total_score !== null && <span className="text-xs text-slate-500 font-medium">/ 100</span>}
               </div>
               <span className="text-[11px] text-emerald-400 font-medium block mt-0.5">
                 {result.readiness_badge}
@@ -198,12 +195,12 @@ export default function ReportDetailPage({
         <div className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-400">1. Độ rõ ràng & Mạch lạc</span>
-            <span className="text-lg font-bold text-sky-400">{result.clarity_score}/100</span>
+            <span className="text-lg font-bold text-sky-400">{result.clarity_score ?? "—"}/100</span>
           </div>
           <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
             <div
               className="h-full rounded-full bg-sky-500"
-              style={{ width: `${result.clarity_score}%` }}
+              style={{ width: `${result.clarity_score ?? 0}%` }}
             />
           </div>
           <p className="text-xs text-slate-400 pt-1">
@@ -214,12 +211,12 @@ export default function ReportDetailPage({
         <div className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-400">2. Cấu trúc logic</span>
-            <span className="text-lg font-bold text-emerald-400">{result.structure_score}/100</span>
+            <span className="text-lg font-bold text-emerald-400">{result.structure_score ?? "—"}/100</span>
           </div>
           <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
             <div
               className="h-full rounded-full bg-emerald-500"
-              style={{ width: `${result.structure_score}%` }}
+              style={{ width: `${result.structure_score ?? 0}%` }}
             />
           </div>
           <p className="text-xs text-slate-400 pt-1">
@@ -230,16 +227,16 @@ export default function ReportDetailPage({
         <div className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-400">3. Dẫn chứng thực tế</span>
-            <span className="text-lg font-bold text-amber-400">{result.evidence_score}/100</span>
+            <span className="text-lg font-bold text-amber-400">{result.evidence_score ?? "—"}/100</span>
           </div>
           <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
             <div
               className="h-full rounded-full bg-amber-500"
-              style={{ width: `${result.evidence_score}%` }}
+              style={{ width: `${result.evidence_score ?? 0}%` }}
             />
           </div>
           <p className="text-xs text-slate-400 pt-1">
-            Minh họa bằng số liệu định lượng, kết quả dự án thực tế sinh động.
+            Minh họa bằng ví dụ hoặc cách kiểm chứng cụ thể, không cần số liệu tự suy diễn.
           </p>
         </div>
       </div>
@@ -247,31 +244,33 @@ export default function ReportDetailPage({
       {/* Analytics Breakdown: Speech, STAR, Radar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
-          <SpeechQualityCard
+          {(result.speaking_pace_wpm !== null || result.filler_count !== null) ? <SpeechQualityCard
             wpm={result.speaking_pace_wpm}
             paceRating={result.pace_rating}
             fillerCount={result.filler_count}
             fillerWords={result.filler_words}
             pauseDuration={result.pause_duration}
-          />
+          /> : <p className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800 text-slate-400">Chưa có dữ liệu đo chất lượng giọng nói.</p>}
         </div>
 
         <div className="lg:col-span-1">
-          <StarBreakdownCard analysis={result.star_analysis} />
+          {result.star_analysis ? <StarBreakdownCard analysis={result.star_analysis} /> :
+            <p className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800 text-slate-400">Chưa có câu trả lời hành vi được chấm theo STAR.</p>}
         </div>
 
         <div className="lg:col-span-1 p-6 rounded-3xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
               <Award className="w-4 h-4 text-sky-400" />
-              <span>Biểu Đồ Radar 5 Khía Cạnh</span>
+              <span>Độ Phủ Đánh Giá</span>
             </h3>
             <p className="text-xs text-slate-400 mt-1">
-              Phân tích tổng hợp năng lực ứng viên qua 5 trục tiêu chuẩn.
+              {result.evaluation_status === "ready" ? "Đã đánh giá đầy đủ các lượt chuyên môn." :
+                "Điểm tổng chỉ có khi tất cả lượt chuyên môn được chấm; không dùng số giả để lấp dữ liệu thiếu."}
             </p>
           </div>
-          <div className="py-2">
-            <ScoreRadarChart data={radarData} />
+          <div className="py-4 text-2xl font-bold text-sky-400">
+            {result.evaluated_turns}/{result.eligible_turns} <span className="text-sm font-normal text-slate-400">lượt chuyên môn</span>
           </div>
         </div>
       </div>
@@ -291,6 +290,7 @@ export default function ReportDetailPage({
         <div className="space-y-4">
           {result.turns.map((turn) => {
             const isCandidate = turn.speaker === "candidate";
+            const hasAnswer = isCandidate || Boolean(turn.transcribed_text);
 
             return (
               <div
@@ -314,7 +314,7 @@ export default function ReportDetailPage({
                     </div>
                     <div>
                       <span className="text-xs font-bold text-slate-200">
-                        {isCandidate ? "Ứng viên trả lời" : "AI Người phỏng vấn"}
+                        {hasAnswer && !isCandidate ? "AI · Ứng viên" : isCandidate ? "Ứng viên trả lời" : "AI Người phỏng vấn"}
                       </span>
                       <span className="text-[10px] text-slate-500 ml-2">
                         Lượt #{turn.turn_number}
@@ -331,21 +331,22 @@ export default function ReportDetailPage({
 
                 {/* Content Bubble */}
                 <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80">
-                  {turn.message_text || "Không có nội dung."}
+                  {turn.message_text || turn.transcribed_text || "Không có nội dung."}
                 </p>
+                {!isCandidate && turn.transcribed_text && <p className="mt-2 text-xs text-slate-200 leading-relaxed bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80"><strong>Ứng viên:</strong> {turn.transcribed_text}</p>}
 
                 {/* Voice Player */}
-                {isCandidate && (
+                {hasAnswer && (
                   <div className="mt-3">
                     <AudioPlayerTurn
-                      audioUrl={turn.audio_url}
+                      audioUrl={isCandidate ? turn.audio_url : turn.user_audio_url}
                       turnNumber={turn.turn_number}
                     />
                   </div>
                 )}
 
                 {/* AI Detailed Feedback */}
-                {isCandidate && turn.feedback_text && (
+                {hasAnswer && turn.feedback_text && (
                   <div className="mt-4 p-4 rounded-2xl bg-sky-950/20 border border-sky-500/20 space-y-2.5">
                     <div className="flex items-center gap-1.5 text-xs font-semibold text-sky-400">
                       <Sparkles className="w-4 h-4" />
@@ -382,14 +383,14 @@ export default function ReportDetailPage({
                 )}
 
                 {/* Ideal Answer Suggestion */}
-                {isCandidate && (turn.ideal_answer || turn.tips_text) && (
+                {hasAnswer && turn.ideal_answer && (
                   <div className="mt-3 p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/20 space-y-2">
                     <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
                       <CheckCircle2 className="w-4 h-4" />
                       <span>Câu Trả Lời Mẫu Xuất Sắc (AI Ideal Answer)</span>
                     </div>
                     <p className="text-xs text-emerald-200/90 leading-relaxed">
-                      {turn.ideal_answer || turn.tips_text}
+                      {turn.ideal_answer}
                     </p>
                   </div>
                 )}

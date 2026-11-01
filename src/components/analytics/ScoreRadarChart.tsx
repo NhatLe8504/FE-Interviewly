@@ -30,7 +30,7 @@ export function ScoreRadarChart({ data, className }: ScoreRadarChartProps) {
     { subject: "Dẫn chứng thực tế", score: data.evidence, fullMark: 100 },
     { subject: "Phong thái giọng nói", score: data.delivery, fullMark: 100 },
     { subject: "Khung STAR", score: data.star_method, fullMark: 100 },
-  ];
+  ].filter((item) => item.score !== null);
 
   if (!mounted) {
     return (
@@ -38,6 +38,12 @@ export function ScoreRadarChart({ data, className }: ScoreRadarChartProps) {
         Đang tải biểu đồ radar...
       </div>
     );
+  }
+
+  if (chartData.length < 3) {
+    return <div className={`h-64 flex items-center justify-center text-sm text-slate-400 text-center ${className || ""}`}>
+      Chưa có đủ ba tiêu chí đã chấm để vẽ radar.
+    </div>;
   }
 
   return (

@@ -140,6 +140,7 @@ export default function SessionDetailPage({
         <div className="space-y-4">
           {session.turns.map((turn) => {
             const isCandidate = turn.speaker === "candidate";
+            const hasAnswer = isCandidate || Boolean(turn.transcribed_text);
 
             return (
               <div
@@ -164,7 +165,7 @@ export default function SessionDetailPage({
                     </div>
                     <div>
                       <span className="text-xs font-bold text-slate-200">
-                        {isCandidate ? "Ứng viên (Bạn)" : "AI Người phỏng vấn"}
+                        {hasAnswer && !isCandidate ? "AI · Ứng viên" : isCandidate ? "Ứng viên (Bạn)" : "AI Người phỏng vấn"}
                       </span>
                       <span className="text-[10px] text-slate-500 ml-2">Lượt #{turn.turn_number}</span>
                     </div>
@@ -179,21 +180,24 @@ export default function SessionDetailPage({
 
                 {/* Message Text */}
                 <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/50 p-4 rounded-2xl border border-slate-800/80">
-                  {turn.message_text || "Không có nội dung."}
+                  {turn.message_text || turn.transcribed_text || "Không có nội dung."}
                 </p>
+                {!isCandidate && turn.transcribed_text && (
+                  <p className="mt-2 text-xs text-slate-200 leading-relaxed bg-slate-950/50 p-4 rounded-2xl border border-slate-800/80">Ứng viên: {turn.transcribed_text}</p>
+                )}
 
                 {/* Audio Player Turn if Voice */}
-                {isCandidate && (
+                {hasAnswer && (
                   <div className="mt-3">
                     <AudioPlayerTurn
-                      audioUrl={turn.audio_url}
+                      audioUrl={isCandidate ? turn.audio_url : turn.user_audio_url}
                       turnNumber={turn.turn_number}
                     />
                   </div>
                 )}
 
                 {/* Turn Feedback */}
-                {isCandidate && turn.feedback_text && (
+                {hasAnswer && turn.feedback_text && (
                   <div className="mt-4 p-4 rounded-2xl bg-sky-950/20 border border-sky-500/20 space-y-2">
                     <div className="flex items-center gap-1.5 text-xs font-semibold text-sky-400">
                       <Sparkles className="w-3.5 h-3.5" />

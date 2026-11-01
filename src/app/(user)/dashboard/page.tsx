@@ -74,7 +74,7 @@ export default function DashboardPage() {
   const kpi = data?.kpi || {
     total_interviews: 0,
     completed_interviews: 0,
-    avg_score: 0,
+    avg_score: null,
     total_practice_minutes: 0,
     streak_days: 0,
   };
@@ -139,11 +139,11 @@ export default function DashboardPage() {
             <Award className="w-4 h-4 text-amber-400" />
           </div>
           <div className="text-3xl font-extrabold text-slate-100">
-            {kpi.avg_score} <span className="text-base font-normal text-slate-400">/ 100</span>
+            {kpi.avg_score ?? "—"} {kpi.avg_score !== null && <span className="text-base font-normal text-slate-400">/ 100</span>}
           </div>
           <div className="text-xs text-emerald-400 mt-2 flex items-center gap-1 font-medium">
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>Mức độ sẵn sàng: Khá tốt</span>
+            <span>{kpi.avg_score === null ? "Chưa có phiên được chấm đủ" : "Trung bình các phiên đã chấm đủ"}</span>
           </div>
         </div>
 
@@ -194,11 +194,11 @@ export default function DashboardPage() {
           <ScoreTrendLineChart data={trends?.trends || []} />
         </div>
 
-        {/* 5-Axis Radar Chart (1 Col) */}
+        {/* Radar Chart (1 Col) */}
         <div className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800 backdrop-blur-sm flex flex-col justify-between">
           <div className="mb-2">
-            <h2 className="text-lg font-bold text-slate-100">Đánh Giá 5 Khía Cạnh</h2>
-            <p className="text-xs text-slate-400">Điểm mạnh & điểm cần phát huy</p>
+            <h2 className="text-lg font-bold text-slate-100">Các Tiêu Chí Đã Được Chấm</h2>
+            <p className="text-xs text-slate-400">Chỉ hiện trục có bằng chứng đánh giá</p>
           </div>
 
           {data?.skill_radar ? (
