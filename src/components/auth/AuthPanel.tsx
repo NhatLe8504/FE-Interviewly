@@ -83,6 +83,37 @@ export default function AuthPanel({
     }
   }, [otpCountdown]);
 
+  const handlePostAuthRedirect = (tokenRes?: any, userProfile?: any) => {
+    // 1. Force password setup popup for first-time Google users (or users without password)
+    if (tokenRes?.needs_password || userProfile?.needs_password) {
+      setPendingAuthResponse({ tokenRes, userProfile });
+      setShowSetPasswordPopup(true);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    // 2. Check if user hasn't completed onboarding -> redirect to /onboarding
+    if (tokenRes?.is_onboarded === false || (userProfile && !userProfile.is_onboarded)) {
+      window.location.href = "/onboarding";
+      return;
+    }
+
+    // 3. Otherwise redirect to admin or home
+    if (userProfile?.role === "admin") {
+      window.location.href = "/admin";
+      return;
+    }
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const redirectUrl = searchParams.get("redirect");
+    if (redirectUrl && redirectUrl.startsWith("/")) {
+      window.location.href = redirectUrl;
+      return;
+    }
+    window.location.href = "/";
+  };
+
   // Initialize Google Identity Services (GSI)
   useEffect(() => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
@@ -152,37 +183,6 @@ export default function AuthPanel({
       return () => clearInterval(interval);
     }
   }, [googleLogin, router]);
-
-  const handlePostAuthRedirect = (tokenRes?: any, userProfile?: any) => {
-    // 1. Force password setup popup for first-time Google users (or users without password)
-    if (tokenRes?.needs_password || userProfile?.needs_password) {
-      setPendingAuthResponse({ tokenRes, userProfile });
-      setShowSetPasswordPopup(true);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    // 2. Check if user hasn't completed onboarding -> redirect to /onboarding
-    if (tokenRes?.is_onboarded === false || (userProfile && !userProfile.is_onboarded)) {
-      window.location.href = "/onboarding";
-      return;
-    }
-
-    // 3. Otherwise redirect to admin or home
-    if (userProfile?.role === "admin") {
-      window.location.href = "/admin";
-      return;
-    }
-
-    const searchParams = new URLSearchParams(window.location.search);
-    const redirectUrl = searchParams.get("redirect");
-    if (redirectUrl && redirectUrl.startsWith("/")) {
-      window.location.href = redirectUrl;
-      return;
-    }
-    window.location.href = "/";
-  };
 
   const handleSetInitialPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

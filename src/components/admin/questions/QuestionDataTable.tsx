@@ -265,13 +265,6 @@ export function QuestionDataTable({
     setPage(1);
   };
 
-  React.useEffect(() => {
-    if (triggerCreate) {
-      handleOpenCreate();
-      onTriggerCreateHandled?.();
-    }
-  }, [triggerCreate]);
-
   // Action: Toggle active
   const handleToggleActive = (questionId: number) => {
     setQuestions((prev) =>
@@ -421,6 +414,13 @@ export function QuestionDataTable({
     });
     setIsCreateOpen(true);
   };
+
+  React.useEffect(() => {
+    if (triggerCreate) {
+      handleOpenCreate();
+      onTriggerCreateHandled?.();
+    }
+  }, [triggerCreate, onTriggerCreateHandled]);
 
   // Save Create or Edit
   const handleSaveForm = async (e: React.FormEvent) => {

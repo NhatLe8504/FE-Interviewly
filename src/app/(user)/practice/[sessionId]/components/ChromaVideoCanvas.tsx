@@ -108,14 +108,19 @@ export function ChromaVideoCanvas({
   }, [width, height]);
 
   // Continuous render loop when speaking
+  const renderLoopRef = useRef<() => void>(() => {});
   const renderLoop = useCallback(() => {
     const video = videoRef.current;
     if (!video || video.paused || video.ended) {
       return;
     }
     processAndDrawFrame();
-    animFrameIdRef.current = requestAnimationFrame(renderLoop);
+    animFrameIdRef.current = requestAnimationFrame(() => renderLoopRef.current());
   }, [processAndDrawFrame]);
+
+  useEffect(() => {
+    renderLoopRef.current = renderLoop;
+  }, [renderLoop]);
 
   // Synchronize video playback with AI speaking state
   useEffect(() => {

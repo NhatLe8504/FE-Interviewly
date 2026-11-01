@@ -427,12 +427,6 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
     };
   }, [propQuestionId, qParam, setParam, searchParams]);
 
-  // Automatically reset to Quiz mode (Part 1) and reset voice recorder on question change
-  useEffect(() => {
-    setPracticeType("quiz");
-    voiceRecorder.reset();
-  }, [currentIdx]);
-
   // Current Question
   const currentQuestion = useMemo(() => {
     if (questionsList.length === 0 || currentIdx < 0 || currentIdx >= questionsList.length) {
@@ -509,6 +503,12 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
   const voiceRecorder = useDeliveryVoiceRecorder({
     language: currentQuestion?.language === "en" ? "en-US" : "vi-VN",
   });
+
+  // Automatically reset to Quiz mode (Part 1) and reset voice recorder on question change
+  useEffect(() => {
+    setPracticeType("quiz");
+    voiceRecorder.reset();
+  }, [currentIdx, voiceRecorder]);
 
   const voiceCaptureRef = useRef<{
     audioUrl: string | null;

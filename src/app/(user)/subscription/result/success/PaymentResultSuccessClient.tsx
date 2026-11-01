@@ -9,7 +9,7 @@ export function PaymentResultSuccessClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const txnRef = searchParams.get("vnp_TxnRef") || searchParams.get("orderCode") || `ITVLY-${Date.now().toString().slice(-6)}`;
+  const txnRef = searchParams.get("vnp_TxnRef") || searchParams.get("orderCode") || "ITVLY-SUCCESS";
   const rawAmount = searchParams.get("vnp_Amount");
   const amountNumber = rawAmount ? Number(rawAmount) / 100 : 99000;
   const formattedAmount = new Intl.NumberFormat("vi-VN").format(amountNumber) + " đ";
