@@ -233,7 +233,7 @@ export function AdminInterviewDetailClient() {
                       )}
                     </div>
                     <p className="text-sm text-foreground leading-relaxed italic">
-                      "{turn.transcribed_text || "— Không nhận diện được lời nói hoặc ứng viên bỏ qua —"}"
+                      &ldquo;{turn.transcribed_text || "— Không nhận diện được lời nói hoặc ứng viên bỏ qua —"}&rdquo;
                     </p>
 
                     {turn.audio_file_url && (

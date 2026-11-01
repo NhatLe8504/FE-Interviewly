@@ -9,6 +9,8 @@ export interface StarTemplateAdmin {
   result_guide?: string | null;
   language: "vi" | "en";
   created_at?: string | null;
+  usage_count?: number;
+  is_active?: boolean;
 }
 
 export interface StarTemplateCreateIn {
@@ -21,6 +23,7 @@ export interface StarTemplateCreateIn {
 }
 
 export interface StarTemplateUpdateIn {
+  is_active?: boolean;
   title?: string;
   situation_guide?: string | null;
   task_guide?: string | null;
