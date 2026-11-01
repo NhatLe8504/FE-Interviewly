@@ -104,6 +104,32 @@ export interface CvListItem {
   updated_at: string;
 }
 
+export type CvGenerationStatus = "PREPARING" | "QUESTIONS_READY" | "GENERATING" | "COMPLETED" | "FAILED";
+
+export interface CvJobQuestion {
+  id: string;
+  question: string;
+  hint: string;
+  required: boolean;
+}
+
+export interface CvGenerationJob {
+  job_id: string;
+  target_job_id: string | null;
+  job_title: string;
+  company_name: string;
+  status: CvGenerationStatus;
+  retry_stage: string | null;
+  questions: CvJobQuestion[];
+  answers: Record<string, string>;
+  template_id: CvTemplateId | null;
+  color_theme: CvColorTheme | null;
+  cv_id: number | null;
+  error_message: string | null;
+}
+
+export type CvGenerationNotification = Pick<CvGenerationJob, "job_id" | "job_title" | "status" | "cv_id">;
+
 export interface CvCreatePayload {
   title?: string;
   template_id?: CvTemplateId;

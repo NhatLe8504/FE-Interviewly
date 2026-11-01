@@ -4,6 +4,10 @@ import {
   CvCreatePayload,
   CvDocument,
   CvGenerateDraftPayload,
+  CvGenerationJob,
+  CvGenerationNotification,
+  CvTemplateId,
+  CvColorTheme,
   CvListItem,
   CvSelectionRefinePayload,
   CvSelectionRefineResponse,
@@ -12,6 +16,39 @@ import {
 } from "@/types/cv";
 
 export const cvApi = {
+  startGeneration: async (targetJobId: string): Promise<CvGenerationJob> =>
+    request<CvGenerationJob>("/api/v1/cvs/generation-jobs", {
+      method: "POST",
+      body: JSON.stringify({ target_job_id: targetJobId }),
+    }),
+
+  getGeneration: async (jobId: string): Promise<CvGenerationJob> =>
+    request<CvGenerationJob>(`/api/v1/cvs/generation-jobs/${encodeURIComponent(jobId)}`),
+
+  submitGenerationAnswers: async (
+    jobId: string,
+    answers: Record<string, string>,
+    templateId: CvTemplateId,
+    colorTheme: CvColorTheme
+  ): Promise<CvGenerationJob> =>
+    request<CvGenerationJob>(`/api/v1/cvs/generation-jobs/${encodeURIComponent(jobId)}/answers`, {
+      method: "POST",
+      body: JSON.stringify({ answers, template_id: templateId, color_theme: colorTheme }),
+    }),
+
+  retryGeneration: async (jobId: string): Promise<CvGenerationJob> =>
+    request<CvGenerationJob>(`/api/v1/cvs/generation-jobs/${encodeURIComponent(jobId)}/retry`, { method: "POST" }),
+
+  editGenerationAnswers: async (jobId: string): Promise<CvGenerationJob> =>
+    request<CvGenerationJob>(`/api/v1/cvs/generation-jobs/${encodeURIComponent(jobId)}/edit-answers`, { method: "POST" }),
+
+  getGenerationNotifications: async (): Promise<CvGenerationNotification[]> =>
+    request<CvGenerationNotification[]>("/api/v1/cvs/generation-jobs/notifications"),
+
+  acknowledgeGenerationNotification: async (jobId: string): Promise<void> => {
+    await request<void>(`/api/v1/cvs/generation-jobs/${encodeURIComponent(jobId)}/notification-read`, { method: "POST" });
+  },
+
   getUserSkillsSummary: async (): Promise<UserSkillsSummaryResponse> => {
     return request<UserSkillsSummaryResponse>("/api/v1/cvs/user-skills-summary");
   },
