@@ -22,6 +22,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { courseApi } from "@/services/courseApi";
+import { parseVideoUrl } from "@/lib/videoUtils";
 import type { CourseDetailOut, LessonOut } from "@/types/course";
 import styles from "./lessonViewer.module.css";
 
@@ -175,6 +176,7 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
   const totalLessons = allLessons.length;
   const progressPercent = Math.round((completedCount / Math.max(1, totalLessons)) * 100);
   const isCurrentCompleted = lesson ? completedIds.has(lesson.lesson_id) : false;
+  const videoInfo = useMemo(() => parseVideoUrl(lesson?.video_url), [lesson?.video_url]);
 
   // Filtered tracks for sidebar search
   const filteredSections = useMemo(() => {
@@ -316,7 +318,7 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
             title="Quay lại trang chi tiết khóa học"
           >
             <ArrowLeft size={13} />
-            <span>Về Lộ Trình: {course.title.split(" (")[0]}</span>
+            <span>Về lộ trình</span>
           </Link>
 
           <span className={styles.divider}>/</span>
@@ -390,21 +392,22 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
         {/* Left / Center Canvas */}
         <div className={styles.mainCanvas}>
           {/* Video Player or Reading Hero */}
-          {lesson.video_url ? (
+          {videoInfo ? (
             <div className={styles.videoWrapper}>
               <div className={styles.videoStage}>
-                {lesson.video_url.includes("youtube.com") || lesson.video_url.includes("youtu.be") ? (
+                {videoInfo.isIframe ? (
                   <iframe
-                    src={lesson.video_url}
+                    src={videoInfo.embedUrl}
                     title={lesson.title}
                     className={styles.videoIframe}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
                 ) : (
                   <video
-                    src={lesson.video_url}
+                    src={videoInfo.embedUrl}
                     controls
+                    playsInline
                     style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }}
                   />
                 )}

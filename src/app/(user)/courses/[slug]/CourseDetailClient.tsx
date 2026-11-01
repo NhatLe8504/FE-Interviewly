@@ -25,6 +25,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { courseApi } from "@/services/courseApi";
+import { parseVideoUrl } from "@/lib/videoUtils";
 import type { CourseDetailOut, CourseOut, LessonOut } from "@/types/course";
 import { PageMascot } from "@/components/user-component/common/PageMascot";
 import styles from "./courseDetail.module.css";
@@ -104,6 +105,8 @@ export default function CourseDetailClient({ slug }: CourseDetailClientProps) {
   const previewLesson = useMemo(() => {
     return flattenedLessons.find((ls) => ls.is_free && ls.video_url);
   }, [flattenedLessons]);
+
+  const previewVideoInfo = useMemo(() => parseVideoUrl(previewLesson?.video_url), [previewLesson?.video_url]);
 
   const firstLesson = flattenedLessons[0];
   const firstLessonUrl = firstLesson
@@ -538,12 +541,23 @@ export default function CourseDetailClient({ slug }: CourseDetailClientProps) {
               </button>
             </div>
             <div style={{ position: "relative", paddingTop: "56.25%" }}>
-              <video
-                src={previewLesson.video_url}
-                controls
-                autoPlay
-                style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-              />
+              {previewVideoInfo?.isIframe ? (
+                <iframe
+                  src={previewVideoInfo.embedUrl}
+                  title={previewLesson.title}
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              ) : (
+                <video
+                  src={previewVideoInfo?.embedUrl || previewLesson.video_url}
+                  controls
+                  autoPlay
+                  playsInline
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+                />
+              )}
             </div>
           </div>
         </div>
