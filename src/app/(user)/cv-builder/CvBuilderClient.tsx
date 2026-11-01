@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CvDocument, CvAtsScoreResponse, CvListItem } from "@/types/cv";
 import { cvApi } from "@/services/cvApi";
 import { CvTopBar } from "@/components/cv/CvTopBar";
@@ -14,6 +14,7 @@ import { CvCardDeck } from "@/components/cv/CvCardDeck";
 import { useUserSubscription } from "@/hooks/useUserSubscription";
 import { toast } from "@/components/user-component/toast";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 import s from "./cvBuilder.module.css";
 
 const DRAFT_STORAGE_KEY = "interviewly_cv_active_draft";
@@ -51,6 +52,7 @@ const BLANK_CV: CvDocument = {
 
 export default function CvBuilderClient() {
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const cvIdParam = searchParams.get("id");
   const jobIdParam = searchParams.get("jobId");
@@ -58,7 +60,9 @@ export default function CvBuilderClient() {
   const [cv, setCv] = useState<CvDocument>(BLANK_CV);
   const [cvList, setCvList] = useState<CvListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [zoom, setZoom] = useState(1.0);
   const [showAiDraftModal, setShowAiDraftModal] = useState(false);
 
@@ -97,6 +101,10 @@ export default function CvBuilderClient() {
   // CHỈ chạy loading spinner ở lần tải trang ĐẦU TIÊN
   useEffect(() => {
     if (isFirstLoadDone.current) return;
+    if (jobIdParam && !cvIdParam) {
+      router.replace(`/cv-builder/setup?jobId=${encodeURIComponent(jobIdParam)}`);
+      return;
+    }
 
     async function initCv() {
       setLoading(true);
@@ -127,34 +135,7 @@ export default function CvBuilderClient() {
             if (fetched.ats_feedback) setAtsScoreData(fetched.ats_feedback);
           } catch (err) {
             console.warn("Failed to fetch cv from server:", err);
-            if (cachedDraft && String(cachedDraft.id) === cvIdParam) {
-              setCv(cachedDraft);
-            }
-          }
-        } else if (jobIdParam) {
-          try {
-            const created = await cvApi.createCv({
-              title: `CV Ứng Tuyển - ${new Date().toLocaleDateString("vi-VN")}`,
-              target_job_id: jobIdParam,
-              load_from_user_skills: true,
-            });
-            if (!created.personal_info.avatar_url && savedAvatar) {
-              created.personal_info.avatar_url = savedAvatar;
-            }
-            setCv(created);
-            await fetchCvList();
-            syncUrl(`/cv-builder?id=${created.id}`);
-          } catch {
-            // Fallback khi offline hoặc không có token
-            if (cachedDraft) {
-              setCv(cachedDraft);
-            } else {
-              setCv({
-                ...BLANK_CV,
-                target_job_id: jobIdParam,
-                personal_info: { ...BLANK_CV.personal_info, avatar_url: savedAvatar || "" },
-              });
-            }
+            setLoadError(err instanceof Error ? err.message : "Không thể tải CV từ máy chủ.");
           }
         } else {
           // Trường hợp không có param:
@@ -194,18 +175,18 @@ export default function CvBuilderClient() {
     }
 
     initCv();
-  }, [cvIdParam, jobIdParam, fetchCvList, syncUrl]);
+  }, [cvIdParam, jobIdParam, fetchCvList, syncUrl, router]);
 
   // Tự động cache CV vào localStorage khi có thay đổi (F5 không mất dữ liệu)
   useEffect(() => {
-    if (!loading && cv) {
+    if (!loading && !loadError && cv) {
       try {
         localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(cv));
       } catch (err) {
         console.warn("Could not save active draft to localStorage:", err);
       }
     }
-  }, [cv, loading]);
+  }, [cv, loading, loadError]);
 
   const handleUpdate = useCallback((updated: Partial<CvDocument>) => {
     setCv((prev) => ({
@@ -340,8 +321,25 @@ export default function CvBuilderClient() {
     toast.success("Đã khởi tạo bản CV mới. Nhập thông tin và bấm Lưu CV!");
   };
 
-  // Delete a CV from deck
+  // Delete a CV from deck or clear draft
   const handleDeleteCv = async (id: number) => {
+    if (!id || id <= 0) {
+      const savedAvatar = typeof window !== "undefined" ? localStorage.getItem(AVATAR_STORAGE_KEY) : null;
+      const freshDraft: CvDocument = {
+        ...BLANK_CV,
+        id: 0,
+        title: "Bản CV #1",
+        personal_info: { ...BLANK_CV.personal_info, avatar_url: savedAvatar || "" },
+      };
+      setCv(freshDraft);
+      try {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+      } catch {}
+      syncUrl("/cv-builder");
+      toast.success("Đã xóa bản thảo CV thành công!");
+      return;
+    }
+
     const target = cvList.find((c) => c.id === id);
     const title = target?.title || "Bản CV này";
     if (!window.confirm(`Bạn có chắc chắn muốn xóa "${title}" không? Hành động này sẽ giải phóng 1 slot CV.`)) {
@@ -349,21 +347,53 @@ export default function CvBuilderClient() {
     }
 
     try {
+      setDeletingId(id);
       await cvApi.deleteCv(id);
       toast.success("Đã xóa bản CV thành công!");
-      const updatedList = await fetchCvList();
 
+      // Optimistically remove from state immediately
+      const updatedList = cvList.filter((c) => c.id !== id);
+      setCvList(updatedList);
+
+      // If active CV was the deleted one, switch to next or reset to clean draft
       if (cv.id === id) {
         if (updatedList.length > 0) {
-          const nextCv = await cvApi.getCv(updatedList[0].id);
-          setCv(nextCv);
-          syncUrl(`/cv-builder?id=${nextCv.id}`);
+          try {
+            const nextCv = await cvApi.getCv(updatedList[0].id);
+            setCv(nextCv);
+            syncUrl(`/cv-builder?id=${nextCv.id}`);
+          } catch {
+            setCv({
+              ...BLANK_CV,
+              id: updatedList[0].id,
+              title: updatedList[0].title,
+            });
+            syncUrl(`/cv-builder?id=${updatedList[0].id}`);
+          }
         } else {
-          handleCreateNew();
+          const savedAvatar = typeof window !== "undefined" ? localStorage.getItem(AVATAR_STORAGE_KEY) : null;
+          const freshDraft: CvDocument = {
+            ...BLANK_CV,
+            id: 0,
+            title: "Bản CV #1",
+            personal_info: { ...BLANK_CV.personal_info, avatar_url: savedAvatar || "" },
+          };
+          setCv(freshDraft);
+          try {
+            localStorage.removeItem(DRAFT_STORAGE_KEY);
+          } catch {}
+          syncUrl("/cv-builder");
         }
       }
-    } catch (err) {
-      toast.error("Không thể xóa bản CV. Vui lòng thử lại!");
+
+      // Background re-fetch to sync
+      fetchCvList().catch(console.warn);
+    } catch (err: any) {
+      console.error("Delete CV error:", err);
+      const errMsg = err?.message || err?.data?.detail || "Không thể xóa bản CV. Vui lòng thử lại!";
+      toast.error(errMsg);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -448,8 +478,16 @@ export default function CvBuilderClient() {
     );
   }
 
+  if (loadError) {
+    return <div className={s.loadingContainer} role="alert">
+      <p className={s.loadingText}>Không thể mở CV: {loadError}</p>
+      <button type="button" onClick={() => window.location.reload()}>Thử tải lại</button>
+      <Link href="/jobs">Trở về trang tuyển dụng</Link>
+    </div>;
+  }
+
   return (
-    <div className={s.pageContainer}>
+    <div id="cv-print-root" className={s.pageContainer}>
       {/* LEFT VERTICAL LIQUID GLASS TOOLBAR */}
       <CvTopBar
         cv={cv}
@@ -516,6 +554,7 @@ export default function CvBuilderClient() {
             onCreateNew={handleCreateNew}
             onDeleteCv={handleDeleteCv}
             onUpgradeRequired={handleUpgradeRequired}
+            deletingId={deletingId}
           />
         </div>
       </div>

@@ -23,6 +23,7 @@ interface CvCardDeckProps {
   onCreateNew: () => void;
   onDeleteCv: (id: number) => void;
   onUpgradeRequired?: () => void;
+  deletingId?: number | null;
 }
 
 const MAX_SLOTS = 5;
@@ -44,6 +45,7 @@ export const CvCardDeck: React.FC<CvCardDeckProps> = ({
   onCreateNew,
   onDeleteCv,
   onUpgradeRequired,
+  deletingId,
 }) => {
   const [viewMode, setViewMode] = useState<"fan" | "list">("fan");
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
@@ -164,14 +166,17 @@ export const CvCardDeck: React.FC<CvCardDeckProps> = ({
                     </span>
                     <button
                       type="button"
+                      disabled={deletingId === item.id}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDeleteCv(item.id);
+                        if (deletingId !== item.id) {
+                          onDeleteCv(item.id);
+                        }
                       }}
                       className={s.cardDeleteBtn}
                       title="Xóa bản CV này"
                     >
-                      <Trash2 style={{ width: 11, height: 11 }} />
+                      <Trash2 style={{ width: 11, height: 11, opacity: deletingId === item.id ? 0.4 : 1 }} />
                     </button>
                   </div>
 
@@ -255,12 +260,15 @@ export const CvCardDeck: React.FC<CvCardDeckProps> = ({
 
                   <button
                     type="button"
+                    disabled={deletingId === item.id}
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDeleteCv(item.id);
+                      if (deletingId !== item.id) {
+                        onDeleteCv(item.id);
+                      }
                     }}
                     className={s.cardDeleteBtn}
-                    style={{ opacity: 1 }}
+                    style={{ opacity: deletingId === item.id ? 0.4 : 1 }}
                     title="Xóa CV"
                   >
                     <Trash2 style={{ width: 11, height: 11 }} />

@@ -319,6 +319,7 @@ export function AdminRolesClient() {
               }
             />
           ) : (
+            <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -448,6 +449,7 @@ export function AdminRolesClient() {
               pageSizeOptions={[5, 10, 20, 50]}
               itemName="vị trí"
             />
+            </>
           )}
         </CardContent>
       </Card>
