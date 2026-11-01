@@ -41,7 +41,7 @@ export function JobQuickActionPanel({ job, onStartPractice, isStarting = false }
         {/* AI CV Generator Button */}
         <div className="mt-3">
           <Button asChild variant="home-secondary" className="w-full border-blue-500/40 text-blue-600 dark:text-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/40 font-bold">
-            <Link href={`/cv-builder?jobId=${job.job_id}`}>
+            <Link href={`/cv-builder/setup?jobId=${encodeURIComponent(job.job_id)}`}>
               <Sparkles className="size-4 text-blue-500 mr-1.5 animate-pulse" />
               Tạo CV cho Job này với AI
             </Link>

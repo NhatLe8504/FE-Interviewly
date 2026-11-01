@@ -62,7 +62,7 @@ export function JDInterviewWorkspace() {
   // Status Polling Effect
   useEffect(() => {
     if (!jobId) return;
-    if (jobState?.status === "COMPLETED" || jobState?.status === "FAILED") return;
+    if (jobState?.status === "COMPLETED") return;
 
     let isStopped = false;
     const interval = setInterval(async () => {
@@ -72,12 +72,22 @@ export function JDInterviewWorkspace() {
         if (isStopped) return;
         setJobState(res);
         if (res.status === "FAILED") {
-          setErrorMessage(res.error || "Quá trình phân tích JD thất bại. Vui lòng thử lại.");
+          setJobState(null);
+          setJobId(null);
+          setErrorMessage("Yêu cầu đã được hoàn tác; bạn có thể gửi lại mô tả công việc.");
+          router.replace("/practice/new");
         }
       } catch (err: any) {
         console.error("Polling error:", err);
         const errStr = String(err?.message || err);
-        if (
+        if (err?.status === 404) {
+          isStopped = true;
+          clearInterval(interval);
+          setJobState(null);
+          setJobId(null);
+          setErrorMessage("Yêu cầu không hoàn tất nên dữ liệu đã được hoàn tác. Bạn có thể gửi lại JD.");
+          router.replace("/practice/new");
+        } else if (
           err?.status === 401 ||
           err?.status === 403 ||
           errStr.includes("401") ||
@@ -157,7 +167,7 @@ export function JDInterviewWorkspace() {
               roleLabel: sess.role,
               companyName: sess.company_name || "",
               levelLabel: sess.seniority,
-              mode: "text",
+              mode: "voice",
               bargeInEnabled: true,
               selected_stages: ["warmup", "technical", "closing"],
             })
@@ -370,7 +380,7 @@ export function JDInterviewWorkspace() {
           <Button
             type="button"
             variant="home-primary"
-            disabled={isSubmitting || (jobState?.status && jobState.status !== "COMPLETED" && jobState.status !== "FAILED")}
+            disabled={isSubmitting || (jobState?.status && jobState.status !== "COMPLETED")}
             onClick={handleStartGeneration}
             className={styles.submitAction}
           >
@@ -397,7 +407,7 @@ export function JDInterviewWorkspace() {
                 {jobState.progress_pct}%
               </div>
               <div className={styles.progressHeading}>
-                <h3>{jobState.status === "COMPLETED" ? "Buổi luyện đã sẵn sàng" : jobState.status === "FAILED" ? "Chưa thể chuẩn bị buổi luyện" : "Đang chuẩn bị buổi luyện của bạn"}</h3>
+                <h3>{jobState.status === "COMPLETED" ? "Buổi luyện đã sẵn sàng" : "Đang chuẩn bị buổi luyện của bạn"}</h3>
                 <p>{jobState.stage}</p>
               </div>
             </div>
@@ -405,10 +415,6 @@ export function JDInterviewWorkspace() {
             {jobState.status === "COMPLETED" ? (
               <span className={`${styles.progressStatus} ${styles.statusReady}`}>
                 <CheckCircle2 className="size-3.5" /> Hoàn thành
-              </span>
-            ) : jobState.status === "FAILED" ? (
-              <span className={`${styles.progressStatus} ${styles.statusFailed}`}>
-                <AlertTriangle className="size-3.5" /> Thất bại
               </span>
             ) : (
               <span className={styles.progressStatus}>
@@ -574,7 +580,7 @@ export function JDInterviewWorkspace() {
 
                       {item.sample_good_answer && (
                         <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-1">
-                          <span className="font-bold text-primary text-[11px]">Gợi ý cấu trúc trả lời chuẩn STAR:</span>
+                          <span className="font-bold text-primary text-[11px]">Gợi ý trả lời theo loại câu hỏi:</span>
                           <p className="text-[11px] text-muted-foreground leading-relaxed">{item.sample_good_answer}</p>
                         </div>
                       )}

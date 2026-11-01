@@ -111,7 +111,18 @@ export function useEvaluationPullQueue() {
       }));
 
       // 1. Instant Quiz Score (0ms)
-      const quizScore = payload.is_quiz_correct === true ? 15.0 : 0.0;
+      let quizScore = 0.0;
+      if (payload.quiz_answer) {
+        try {
+          const verified = await catalogApi.evaluateAnswer(qid, {
+            type: "quiz",
+            selected_option_id: payload.quiz_answer,
+          });
+          quizScore = verified.modal_breakdown?.quiz_score || 0.0;
+        } catch {
+          toast.error("Không thể xác minh đáp án trắc nghiệm. Vui lòng thử lại.");
+        }
+      }
       const text = (payload.text_answer || "").trim();
       const transcript = (payload.transcript || "").trim();
       const delivery = payload.delivery_metrics;
@@ -156,64 +167,47 @@ export function useEvaluationPullQueue() {
       const { actualWords: cleanWords } = cleanCandidateText(text);
       const hasVoiceRecording = Boolean((delivery?.durationMs && delivery.durationMs >= 3500) || transcript.trim().length > 0);
 
-      const textScore = cleanWords === 0
-        ? 0.0
-        : textResult && typeof textResult.text_score === "number"
-        ? textResult.text_score
-        : (cleanWords >= 15 ? 18.0 : 4.0);
-
-      const durSec = Math.round((delivery?.durationMs || 0) / 1000);
-      const voiceScore = !hasVoiceRecording
-        ? 0.0
-        : voiceResult && typeof voiceResult.voice_score === "number" && voiceResult.voice_score > 0
-        ? voiceResult.voice_score
-        : Math.min(42.0, Math.max(22.0, 18.0 + durSec * 1.2));
+      const textScore = cleanWords > 0 && typeof textResult?.text_score === "number"
+        ? Math.max(0, Math.min(35, textResult.text_score)) : 0.0;
+      const voiceScore = hasVoiceRecording && typeof voiceResult?.voice_score === "number"
+        ? Math.max(0, Math.min(50, voiceResult.voice_score)) : 0.0;
 
       const totalScore = Math.min(100, Math.round(quizScore + textScore + voiceScore));
       const passed = totalScore >= 70;
 
       // Extract specific feedbacks from LLM without any generic placeholder
       const textFeedback = cleanWords === 0
-        ? "Bạn chưa nhập nội dung câu trả lời cho phần tự luận (chỉ có các tiêu đề mẫu gợi ý). Hãy diễn giải chi tiết tình huống thực tế của bạn theo khung STAR để được chấm điểm."
-        : textResult?.text_feedback || textResult?.feedback || (cleanWords < 15
-          ? `Câu trả lời tự luận quá ngắn (${cleanWords} từ thực tế), chưa đủ thông tin để AI đánh giá theo khung STAR. Hãy trình bày chi tiết từ 100 - 300 từ.`
-          : "Nội dung tự luận đã được ghi nhận và phân tích chi tiết theo khung STAR.");
+        ? "Bạn chưa nhập câu trả lời tự luận."
+        : textResult?.text_feedback || textResult?.feedback || "Chưa có kết quả đánh giá nội dung; vui lòng thử lại.";
 
       const textImprovements = cleanWords === 0
-        ? ["Hãy trình bày cụ thể bối cảnh, nhiệm vụ, giải pháp và kết quả dự án thực tế theo khung STAR."]
+        ? ["Hãy trình bày câu trả lời phù hợp với yêu cầu câu hỏi."]
         : textResult?.text_improvements || textResult?.improvements || [];
 
       const textStrengths = textResult?.text_strengths || textResult?.strengths || [];
 
       const voiceFeedback = !hasVoiceRecording
-        ? "Chưa thực hiện ghi âm câu trả lời cho câu này (chiếm 50% số điểm câu hỏi). Hãy sử dụng micro để luyện tập phát biểu trực tiếp."
-        : voiceResult?.voice_feedback || voiceResult?.feedback || (transcript
-          ? `Nội dung phát biểu "${transcript.slice(0, 80)}..." đã được AI phân tích nhịp điệu và ngữ nghĩa.`
-          : `Bản ghi âm ${Math.round((delivery?.durationMs || 0) / 1000)}s đã được ghi nhận và phân tích nhịp điệu.`);
+        ? "Chưa thực hiện ghi âm câu trả lời cho câu này."
+        : voiceResult?.voice_feedback || voiceResult?.feedback || "Chưa có kết quả đánh giá giọng nói từ máy chủ.";
+      const provisionalNote = voiceResult?.score_provisional
+        ? " (Điểm nói tham khảo từ transcript trình duyệt; chưa xác minh file âm thanh.)" : "";
 
       const voiceImprovements = voiceResult?.voice_improvements || voiceResult?.improvements || [];
       const voiceStrengths = voiceResult?.voice_strengths || voiceResult?.strengths || [];
 
       const mergedResult: AIEvaluationResult = {
         score: totalScore,
+        score_provisional: Boolean(voiceResult?.score_provisional),
         passed,
-        general_feedback: textFeedback,
+        general_feedback: textFeedback + provisionalNote,
         text_feedback: textFeedback,
         text_improvements: textImprovements,
         text_strengths: textStrengths,
         voice_feedback: voiceFeedback,
         voice_improvements: voiceImprovements,
         voice_strengths: voiceStrengths,
-        star_breakdown: textResult?.star_breakdown || {
-          situation_score: text ? 6 : 0,
-          situation_feedback: text ? "Bối cảnh cơ bản." : "Chưa có nội dung.",
-          task_score: text ? 6 : 0,
-          task_feedback: text ? "Nhiệm vụ cơ bản." : "Chưa có nội dung.",
-          action_score: text ? 6 : 0,
-          action_feedback: text ? "Hành động cơ bản." : "Chưa có nội dung.",
-          result_score: text ? 5 : 0,
-          result_feedback: text ? "Kết quả cơ bản." : "Chưa có nội dung.",
-        },
+        answer_framework: textResult?.answer_framework || "generic",
+        star_breakdown: textResult?.answer_framework === "star" ? (textResult?.star_breakdown || null) : null,
         rubric_scores: [
           {
             criterion_id: "quiz",
@@ -225,7 +219,7 @@ export function useEvaluationPullQueue() {
           },
           {
             criterion_id: "text",
-            criterion_name: "Tự luận khung STAR (35%)",
+            criterion_name: textResult?.answer_framework === "star" ? "Tự luận STAR (35%)" : "Nội dung trả lời (35%)",
             score: Math.min(10, Math.round((textScore / 35.0) * 10)),
             max_score: 10,
             level_label: `${textScore}/35đ`,

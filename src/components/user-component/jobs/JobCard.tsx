@@ -73,7 +73,7 @@ export function JobCard({ job, onStartPractice, isStarting = false }: JobCardPro
           </a>
         </Button>
         <Button asChild variant="ghost" size="home-compact" className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-xs px-2 font-semibold" title="Tạo CV với AI cho vị trí này">
-          <Link href={`/cv-builder?jobId=${job.job_id}`}>
+          <Link href={`/cv-builder/setup?jobId=${encodeURIComponent(job.job_id)}`}>
             <Sparkles className="size-3.5 mr-1 text-blue-500" /> Tạo CV
           </Link>
         </Button>

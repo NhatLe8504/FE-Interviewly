@@ -30,7 +30,7 @@ export const historyApiSlice = baseApi.injectEndpoints({
     }),
 
     getHistoricalSessionResult: builder.query<SessionResultData, number | string>({
-      query: (sessionId) => `/api/v1/interviews/sessions/${sessionId}/result`,
+      query: (sessionId) => `/api/v1/analytics/sessions/${sessionId}/result`,
       providesTags: (_result, _err, id) => [{ type: "Session", id }, "Analytics"],
     }),
   }),

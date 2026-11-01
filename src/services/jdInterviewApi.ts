@@ -80,6 +80,13 @@ export interface JDStartSessionResponse {
 }
 
 export const jdInterviewApi = {
+  getNotifications: () => request<Array<{ job_id: string; message: string }>>(
+    "/api/v1/interviews/from-jd/notifications"
+  ),
+  acknowledgeNotification: (jobId: string) => request<void>(
+    `/api/v1/interviews/from-jd/jobs/${encodeURIComponent(jobId)}/notification-read`,
+    { method: "POST" }
+  ),
   submitText: async (
     text: string,
     durationMinutes = 45,
