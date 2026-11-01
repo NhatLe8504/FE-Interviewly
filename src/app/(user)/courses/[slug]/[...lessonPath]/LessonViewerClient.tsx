@@ -7,21 +7,19 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
-  Play,
-  FileText,
-  Sparkles,
-  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Check,
   Clock,
+  Sparkles,
   BookOpen,
-  Lock,
   Search,
   X,
   Edit3,
-  RotateCcw,
+  HelpCircle,
+  List,
+  Lock,
   GraduationCap,
-  Layers,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { courseApi } from "@/services/courseApi";
 import type { CourseDetailOut, LessonOut } from "@/types/course";
@@ -37,7 +35,6 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
 
   const chapterId = lessonPath.length > 0 ? parseInt(lessonPath[0], 10) : NaN;
   const lessonId = lessonPath.length > 1 ? parseInt(lessonPath[1], 10) : NaN;
-
   const isInvalidUrl = isNaN(chapterId) || isNaN(lessonId);
 
   const [course, setCourse] = useState<CourseDetailOut | null>(null);
@@ -46,18 +43,21 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Sidebar visibility & search
+  // Sidebar visibility & tracks search
   const [showTracks, setShowTracks] = useState<boolean>(true);
   const [tracksSearch, setTracksSearch] = useState<string>("");
-  const [openChapterIds, setOpenChapterIds] = useState<Set<number>>(new Set());
+  const [openChapterId, setOpenChapterId] = useState<number | null>(null);
 
-  // Active Tab: "content" | "practice"
-  const [activeTab, setActiveTab] = useState<"content" | "practice">("content");
+  // Active Tab: "guide" | "practice" | "notes"
+  const [activeTab, setActiveTab] = useState<"guide" | "practice" | "notes">("guide");
 
-  // Local storage completed lessons & personal notes (Gate G3, P4)
+  // Local storage completed lessons & notes
   const storageKey = `completed_lessons_${slug}`;
   const [completedIds, setCompletedIds] = useState<Set<number>>(new Set());
+
+  // Notes Drawer & Help Modal
   const [showNotesDrawer, setShowNotesDrawer] = useState<boolean>(false);
+  const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
   const noteKey = `lesson_note_${slug}_${lessonId}`;
   const [personalNote, setPersonalNote] = useState<string>("");
 
@@ -82,7 +82,7 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
         if (!active) return;
         setCourse(courseData);
         setLesson(lessonData);
-        setOpenChapterIds(new Set([lessonData.chapter_id]));
+        setOpenChapterId(lessonData.chapter_id);
       })
       .catch((err: any) => {
         if (!active) return;
@@ -99,7 +99,7 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
     };
   }, [slug, lessonId, isInvalidUrl]);
 
-  // Load local completed states and notes
+  // Load completed state & note from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem(storageKey);
@@ -171,24 +171,26 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
     return course.chapters.find((ch) => ch.chapter_id === lesson.chapter_id) || null;
   }, [course, lesson]);
 
-  const toggleChapterAccordion = (chId: number) => {
-    setOpenChapterIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(chId)) {
-        next.delete(chId);
-      } else {
-        next.add(chId);
-      }
-      return next;
-    });
-  };
-
   const completedCount = completedIds.size;
   const totalLessons = allLessons.length;
   const progressPercent = Math.round((completedCount / Math.max(1, totalLessons)) * 100);
   const isCurrentCompleted = lesson ? completedIds.has(lesson.lesson_id) : false;
 
-  // Render Loading
+  // Filtered tracks for sidebar search
+  const filteredSections = useMemo(() => {
+    if (!course || !course.chapters) return [];
+    const kw = tracksSearch.trim().toLowerCase();
+    return course.chapters
+      .map((sec) => ({
+        ...sec,
+        lessons: (sec.lessons || []).filter((l) =>
+          !kw || l.title.toLowerCase().includes(kw)
+        ),
+      }))
+      .filter((sec) => sec.lessons.length > 0);
+  }, [course, tracksSearch]);
+
+  // Loading state
   if (loading) {
     return (
       <div className={styles.pageShell}>
@@ -202,18 +204,18 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
     );
   }
 
-  // Render Paywall / Auth Guards
+  // Paywall Auth 401
   if (errorStatus === 401) {
     return (
       <div className={styles.pageShell}>
         <div style={{ minHeight: "60vh", display: "grid", placeItems: "center" }}>
-          <div style={{ textAlign: "center", maxWidth: 460, padding: 32, background: "#fff", borderRadius: 24, border: "1.5px solid rgba(106,72,49,0.15)" }}>
+          <div style={{ textAlign: "center", maxWidth: 460, padding: 32, background: "#fff", borderRadius: 24, border: "1.5px solid rgba(106,72,49,0.15)", boxShadow: "0 8px 30px rgba(0,0,0,0.06)" }}>
             <Lock size={44} color="#d98236" style={{ margin: "0 auto 16px" }} />
             <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, color: "var(--ink)" }}>
               Vui lòng đăng nhập
             </h2>
             <p style={{ fontSize: 14, color: "var(--ink-soft)", marginBottom: 24, lineHeight: 1.6 }}>
-              Bài học này yêu cầu tài khoản để tiếp tục. Hãy đăng nhập để lưu trữ tiến trình học tập của bạn.
+              Bài học này yêu cầu đăng nhập tài khoản để lưu trữ tiến trình học tập của bạn.
             </p>
             <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
               <Link
@@ -237,11 +239,12 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
     );
   }
 
+  // Paywall Pro 403
   if (errorStatus === 403) {
     return (
       <div className={styles.pageShell}>
         <div style={{ minHeight: "60vh", display: "grid", placeItems: "center" }}>
-          <div style={{ textAlign: "center", maxWidth: 480, padding: 32, background: "#fff", borderRadius: 24, border: "1.5px solid rgba(217, 130, 54, 0.3)" }}>
+          <div style={{ textAlign: "center", maxWidth: 480, padding: 32, background: "#fff", borderRadius: 24, border: "1.5px solid rgba(217, 130, 54, 0.3)", boxShadow: "0 8px 30px rgba(0,0,0,0.06)" }}>
             <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(217, 130, 54, 0.12)", display: "grid", placeItems: "center", margin: "0 auto 16px" }}>
               <Lock size={32} color="#d98236" />
             </div>
@@ -274,7 +277,7 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
     );
   }
 
-  // Render 404 / Error
+  // Error / 404
   if (errorStatus || !lesson || !course) {
     return (
       <div className={styles.pageShell}>
@@ -302,56 +305,92 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
 
   return (
     <div className={styles.pageShell}>
-      {/* 1. Context Toolbar */}
+      {/* =========================================================
+          1. INLINE CONTEXT TOOLBAR (REPLACES FIXED TOP HEADER)
+         ========================================================= */}
       <div className={styles.contextBar}>
         <div className={styles.contextLeft}>
-          <Link href={`/courses/${slug}`} className={styles.backBtn} title="Quay lại chi tiết khóa học">
+          <Link
+            href={`/courses/${slug}`}
+            className={styles.backBtn}
+            title="Quay lại trang chi tiết khóa học"
+          >
             <ArrowLeft size={13} />
-            <span>Giáo trình</span>
+            <span>Về Lộ Trình: {course.title.split(" (")[0]}</span>
           </Link>
+
           <span className={styles.divider}>/</span>
-          {currentChapter && (
-            <span className={styles.chapterBadge}>{currentChapter.title}</span>
-          )}
+          <span className={styles.chapterBadge}>
+            {currentChapter?.title || "Chương"}
+          </span>
+
           <span className={styles.divider}>/</span>
           <span className={styles.lessonIndexBadge}>
-            Bài {currentIndex + 1}/{totalLessons}
+            Bài {currentIndex + 1} / {totalLessons}
           </span>
         </div>
 
         <div className={styles.contextRight}>
+          {/* Progress Pill */}
           <div className={styles.progressPill}>
-            <span>Tiến độ:</span>
             <span className={styles.progressMiniRing}>{progressPercent}%</span>
+            <span>Đã học {completedCount}/{totalLessons} bài</span>
           </div>
 
+          {/* Notes Button */}
           <button
             type="button"
             onClick={() => setShowNotesDrawer(true)}
             className={styles.toolBtn}
-            title="Ghi chú cá nhân"
+            title="Ghi chú cá nhân cho bài học này"
           >
-            <Edit3 size={13} />
+            <Edit3 size={13} color="#8b4513" />
             <span>Ghi chú {personalNote ? "(1)" : ""}</span>
           </button>
 
+          {/* Guide / Help Button */}
+          <button
+            type="button"
+            onClick={() => setShowHelpModal(true)}
+            className={styles.toolBtn}
+            title="Hướng dẫn phương pháp học"
+          >
+            <HelpCircle size={13} />
+            <span>Hướng dẫn</span>
+          </button>
+
+          {/* Mark Complete Button */}
           <button
             type="button"
             onClick={toggleCompleteCurrent}
             className={`${styles.completeBtn} ${isCurrentCompleted ? styles.completeBtnDone : ""}`}
+            title="Đánh dấu bài học này đã hoàn thành"
           >
-            <CheckCircle2 size={14} />
-            <span>{isCurrentCompleted ? "Đã hoàn thành" : "Đánh dấu hoàn thành"}</span>
+            <Check size={13} />
+            <span>{isCurrentCompleted ? "✓ Đã hoàn thành" : "Đánh dấu đã học"}</span>
+          </button>
+
+          {/* Toggle Sidebar Button */}
+          <button
+            type="button"
+            onClick={() => setShowTracks(!showTracks)}
+            className={styles.toolBtn}
+            title={showTracks ? "Thu gọn mục lục bài học" : "Mở mục lục bài học"}
+          >
+            <List size={13} />
+            <span>{showTracks ? "Ẩn mục lục" : "Hiện mục lục"}</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Main Two-Column Split Layout */}
+      {/* =========================================================
+          2. MAIN TWO-COLUMN SPLIT LAYOUT (CANVAS + SIDEBAR)
+         ========================================================= */}
       <div className={`${styles.splitLayout} ${showTracks ? styles.splitLayoutWithSidebar : ""}`}>
-        {/* Main Canvas */}
+        {/* Left / Center Canvas */}
         <div className={styles.mainCanvas}>
-          {/* Video Player (if video_url is available) */}
-          {lesson.video_url && (
+          {/* Video Player or Reading Hero */}
+          {lesson.video_url ? (
             <div className={styles.videoWrapper}>
               <div className={styles.videoStage}>
                 {lesson.video_url.includes("youtube.com") || lesson.video_url.includes("youtu.be") ? (
@@ -371,32 +410,32 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
                 )}
               </div>
             </div>
-          )}
-
-          {/* Reading Header (if no video) */}
-          {!lesson.video_url && (
+          ) : (
             <div className={styles.readingHeroHeader}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                 <span
                   style={{
                     fontSize: 11,
                     fontWeight: 800,
-                    textTransform: "uppercase",
-                    padding: "2px 8px",
-                    borderRadius: 4,
+                    padding: "3px 10px",
+                    borderRadius: 999,
                     background: "rgba(217, 130, 54, 0.12)",
                     color: "#8b4513",
+                    textTransform: "uppercase",
                   }}
                 >
-                  {lesson.type}
+                  {lesson.type === "star_practice" ? "Bài thực hành STAR" : lesson.type === "video" ? "Video bài giảng" : "Tài liệu chuyên sâu"}
                 </span>
-                <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>
-                  Thời lượng dự kiến ~{lesson.duration_minutes} phút
+                <span style={{ fontSize: 12, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 4 }}>
+                  <Clock size={12} /> {lesson.duration_minutes} phút học
                 </span>
               </div>
-              <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--ink)", margin: 0 }}>
+              <h1 style={{ fontSize: "clamp(22px, 3vw, 30px)", fontWeight: 800, color: "var(--ink)", margin: "0 0 8px", lineHeight: 1.3 }}>
                 {lesson.title}
               </h1>
+              <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)" }}>
+                {currentChapter?.title}
+              </p>
             </div>
           )}
 
@@ -404,244 +443,322 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
           <div className={styles.tabBar}>
             <button
               type="button"
-              onClick={() => setActiveTab("content")}
-              className={`${styles.tabBtn} ${activeTab === "content" ? styles.tabBtnActive : ""}`}
+              onClick={() => setActiveTab("guide")}
+              className={`${styles.tabBtn} ${activeTab === "guide" ? styles.tabBtnActive : ""}`}
             >
-              <FileText size={15} />
-              <span>Nội dung bài học</span>
+              <BookOpen size={14} />
+              <span>Nội Dung &amp; Phân Tích</span>
             </button>
 
-            {lesson.practice_question && (
-              <button
-                type="button"
-                onClick={() => setActiveTab("practice")}
-                className={`${styles.tabBtn} ${activeTab === "practice" ? styles.tabBtnActive : ""}`}
-              >
-                <Sparkles size={15} />
-                <span>Bài tập thực hành (STAR)</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setActiveTab("practice")}
+              className={`${styles.tabBtn} ${activeTab === "practice" ? styles.tabBtnActive : ""}`}
+            >
+              <Sparkles size={14} color="#d98236" />
+              <span>Thực Hành Cùng AI Coach</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("notes")}
+              className={`${styles.tabBtn} ${activeTab === "notes" ? styles.tabBtnActive : ""}`}
+            >
+              <Edit3 size={14} />
+              <span>Ghi Chú &amp; Hướng Dẫn</span>
+            </button>
           </div>
 
-          {/* TAB 1: CONTENT */}
-          {activeTab === "content" && (
+          {/* TAB 1: GUIDE */}
+          {activeTab === "guide" && (
             <div className={styles.contentCard}>
-              {lesson.video_url && (
-                <div style={{ marginBottom: 20 }}>
-                  <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--ink)", margin: "0 0 8px" }}>
-                    {lesson.title}
-                  </h2>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12.5, color: "var(--ink-soft)" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      <Clock size={13} /> ~{lesson.duration_minutes} phút học
-                    </span>
-                    {lesson.is_free && (
-                      <span style={{ color: "#166534", fontWeight: 700 }}>Học thử miễn phí</span>
-                    )}
-                  </div>
-                </div>
-              )}
+              <div style={{ marginBottom: 20 }}>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--ink)", margin: "0 0 6px" }}>
+                  {lesson.title}
+                </h2>
+                <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+                  Chương trình chuẩn hóa phỏng vấn quốc tế · Biên soạn bởi chuyên gia Big Tech
+                </span>
+              </div>
 
-              {/* HTML Content */}
+              {/* Core Content */}
               {lesson.content_html ? (
                 <div
-                  style={{ fontSize: 15, lineHeight: 1.8, color: "var(--ink)" }}
+                  style={{ fontSize: 14.5, lineHeight: 1.8, color: "var(--ink)" }}
                   dangerouslySetInnerHTML={{ __html: lesson.content_html }}
                 />
               ) : (
                 <div style={{ padding: "32px 0", textAlign: "center", color: "var(--ink-soft)" }}>
-                  <p>Nội dung bài học dạng văn bản đang được cập nhật.</p>
+                  <p>Nội dung bài học đang được cập nhật thêm tài liệu chi tiết.</p>
                 </div>
               )}
             </div>
           )}
 
-          {/* TAB 2: STAR PRACTICE */}
-          {activeTab === "practice" && lesson.practice_question && (
+          {/* TAB 2: PRACTICE */}
+          {activeTab === "practice" && (
             <div className={styles.contentCard}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                 <Sparkles size={20} color="#d98236" />
                 <div>
                   <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "var(--ink)" }}>
-                    Đề Bài Phỏng Vấn Thực Tế (Khung STAR)
+                    Bài Tập Tình Huống Thực Chiến Cùng AI Coach
                   </h3>
                   <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)" }}>
-                    Áp dụng kiến thức bài học vào cấu trúc phân tích tình huống thực chiến.
+                    Áp dụng ngay kiến thức vừa học vào trả lời câu hỏi phỏng vấn chuẩn hóa.
                   </p>
                 </div>
               </div>
 
-              <div style={{ padding: 22, borderRadius: 18, background: "rgba(245, 239, 230, 0.45)", border: "1.5px solid rgba(106, 72, 49, 0.16)", marginBottom: 20 }}>
-                <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 4, background: "rgba(217, 130, 54, 0.14)", color: "#8b4513", textTransform: "uppercase" }}>
-                  Tình huống mẫu
-                </span>
-                <h4 style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", margin: "8px 0" }}>
-                  {lesson.practice_question.title || lesson.practice_question.prompt || lesson.title}
-                </h4>
+              {lesson.practice_question ? (
+                <div style={{ padding: 22, borderRadius: 18, background: "rgba(245, 239, 230, 0.45)", border: "1.5px solid rgba(106, 72, 49, 0.16)", marginBottom: 20 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 4, background: "rgba(217, 130, 54, 0.14)", color: "#8b4513", textTransform: "uppercase" }}>
+                    Đề Bài Phỏng Vấn Thực Tế
+                  </span>
+                  <h4 style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", margin: "8px 0" }}>
+                    {lesson.practice_question.title || lesson.practice_question.prompt || lesson.title}
+                  </h4>
 
-                {lesson.practice_question.intent && (
-                  <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 16px", fontStyle: "italic" }}>
-                    <strong>Mục tiêu câu hỏi:</strong> {lesson.practice_question.intent}
-                  </p>
-                )}
+                  {lesson.practice_question.intent && (
+                    <p style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 16px", fontStyle: "italic" }}>
+                      <strong>Mục tiêu:</strong> {lesson.practice_question.intent}
+                    </p>
+                  )}
 
-                {/* STAR breakdown if present */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10, marginBottom: 16 }}>
-                  {lesson.practice_question.starSituation && (
-                    <div style={{ padding: 12, borderRadius: 10, background: "#ffffff", border: "1px solid rgba(106, 72, 49, 0.1)", fontSize: 12 }}>
-                      <strong style={{ color: "#d98236", display: "block", marginBottom: 3 }}>S - Situation:</strong>
-                      <span style={{ color: "var(--ink-soft)" }}>{lesson.practice_question.starSituation}</span>
-                    </div>
-                  )}
-                  {lesson.practice_question.starTask && (
-                    <div style={{ padding: 12, borderRadius: 10, background: "#ffffff", border: "1px solid rgba(106, 72, 49, 0.1)", fontSize: 12 }}>
-                      <strong style={{ color: "#d98236", display: "block", marginBottom: 3 }}>T - Task:</strong>
-                      <span style={{ color: "var(--ink-soft)" }}>{lesson.practice_question.starTask}</span>
-                    </div>
-                  )}
-                  {lesson.practice_question.starAction && (
-                    <div style={{ padding: 12, borderRadius: 10, background: "#ffffff", border: "1px solid rgba(106, 72, 49, 0.1)", fontSize: 12 }}>
-                      <strong style={{ color: "#d98236", display: "block", marginBottom: 3 }}>A - Action:</strong>
-                      <span style={{ color: "var(--ink-soft)" }}>{lesson.practice_question.starAction}</span>
-                    </div>
-                  )}
-                  {lesson.practice_question.starResult && (
-                    <div style={{ padding: 12, borderRadius: 10, background: "#ffffff", border: "1px solid rgba(106, 72, 49, 0.1)", fontSize: 12 }}>
-                      <strong style={{ color: "#d98236", display: "block", marginBottom: 3 }}>R - Result:</strong>
-                      <span style={{ color: "var(--ink-soft)" }}>{lesson.practice_question.starResult}</span>
-                    </div>
-                  )}
-                </div>
-
-                {lesson.practice_question.sampleAnswer && (
-                  <div style={{ padding: 14, borderRadius: 10, background: "#ffffff", border: "1px solid rgba(106, 72, 49, 0.1)", fontSize: 13, lineHeight: 1.6 }}>
-                    <strong style={{ color: "#166534", display: "block", marginBottom: 4 }}>Gợi ý câu trả lời mẫu:</strong>
-                    <p style={{ margin: 0, color: "var(--ink)" }}>{lesson.practice_question.sampleAnswer}</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10, marginBottom: 18 }}>
+                    {lesson.practice_question.starSituation && (
+                      <div style={{ padding: 12, borderRadius: 10, background: "#ffffff", border: "1px solid rgba(106, 72, 49, 0.1)", fontSize: 12 }}>
+                        <strong style={{ color: "#d98236", display: "block", marginBottom: 3 }}>S - Situation:</strong>
+                        <span style={{ color: "var(--ink-soft)" }}>{lesson.practice_question.starSituation}</span>
+                      </div>
+                    )}
+                    {lesson.practice_question.starTask && (
+                      <div style={{ padding: 12, borderRadius: 10, background: "#ffffff", border: "1px solid rgba(106, 72, 49, 0.1)", fontSize: 12 }}>
+                        <strong style={{ color: "#d98236", display: "block", marginBottom: 3 }}>T - Task:</strong>
+                        <span style={{ color: "var(--ink-soft)" }}>{lesson.practice_question.starTask}</span>
+                      </div>
+                    )}
+                    {lesson.practice_question.starAction && (
+                      <div style={{ padding: 12, borderRadius: 10, background: "#ffffff", border: "1px solid rgba(106, 72, 49, 0.1)", fontSize: 12 }}>
+                        <strong style={{ color: "#d98236", display: "block", marginBottom: 3 }}>A - Action:</strong>
+                        <span style={{ color: "var(--ink-soft)" }}>{lesson.practice_question.starAction}</span>
+                      </div>
+                    )}
+                    {lesson.practice_question.starResult && (
+                      <div style={{ padding: 12, borderRadius: 10, background: "#ffffff", border: "1px solid rgba(106, 72, 49, 0.1)", fontSize: 12 }}>
+                        <strong style={{ color: "#d98236", display: "block", marginBottom: 3 }}>R - Result:</strong>
+                        <span style={{ color: "var(--ink-soft)" }}>{lesson.practice_question.starResult}</span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div style={{ padding: 24, textAlign: "center", background: "rgba(245, 239, 230, 0.3)", borderRadius: 16, border: "1px dashed rgba(106, 72, 49, 0.2)" }}>
+                  <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)" }}>
+                    Bài tập tình huống và phân tích STAR cho bài học này đang được tổng hợp. Hãy chuyển sang bài kế tiếp để làm bài tập có câu hỏi thực chiến!
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Prev / Next Navigation Footer */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 12, paddingTop: 16, borderTop: "1px solid rgba(106,72,49,0.1)" }}>
-            {prevLesson ? (
-              <Link
-                href={`/courses/${slug}/${prevLesson.chapter_id}/${prevLesson.lesson_id}`}
-                className={styles.toolBtn}
-                style={{ padding: "8px 16px" }}
-              >
-                <ChevronLeft size={16} />
-                <span>Bài trước: {prevLesson.title}</span>
-              </Link>
-            ) : (
-              <div />
-            )}
+          {/* TAB 3: NOTES */}
+          {activeTab === "notes" && (
+            <div className={styles.contentCard}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Ghi Chú Cá Nhân</h3>
+                  <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)" }}>
+                    Lưu trữ trên thiết bị của bạn · Tự động ghi nhớ cho bài học này.
+                  </p>
+                </div>
+              </div>
 
-            {nextLesson ? (
-              <Link
-                href={`/courses/${slug}/${nextLesson.chapter_id}/${nextLesson.lesson_id}`}
-                className={styles.completeBtn}
-                style={{ background: "#8b4513", color: "#fff", padding: "8px 20px" }}
-              >
-                <span>Bài kế tiếp: {nextLesson.title}</span>
-                <ChevronRight size={16} />
-              </Link>
-            ) : (
-              <Link
-                href={`/courses/${slug}`}
-                className={styles.completeBtn}
-                style={{ background: "#10b981", color: "#fff", padding: "8px 20px" }}
-              >
-                <CheckCircle2 size={16} />
-                <span>Hoàn tất khóa học</span>
-              </Link>
-            )}
+              <textarea
+                rows={10}
+                value={personalNote}
+                onChange={(e) => handleSaveNote(e.target.value)}
+                placeholder="Nhập các điểm mấu chốt, công thức kỹ thuật hoặc câu trả lời tự đúc kết..."
+                style={{
+                  width: "100%",
+                  padding: 14,
+                  borderRadius: 12,
+                  border: "1px solid rgba(106, 72, 49, 0.2)",
+                  fontSize: 13.5,
+                  lineHeight: 1.6,
+                  outline: "none",
+                  resize: "vertical",
+                  background: "#fafaf9",
+                  fontFamily: "inherit",
+                }}
+              />
+              <span style={{ fontSize: 11, color: "#10b981", fontWeight: 600, display: "block", marginTop: 8 }}>
+                ✓ Đã tự động lưu trên trình duyệt này
+              </span>
+            </div>
+          )}
+
+          {/* Bottom In-Flow Navigation Bar */}
+          <div className={styles.bottomNavBar}>
+            <button
+              type="button"
+              disabled={!prevLesson}
+              onClick={() => prevLesson && router.push(`/courses/${slug}/${prevLesson.chapter_id}/${prevLesson.lesson_id}`)}
+              className={styles.navStepBtn}
+            >
+              <ChevronLeft size={16} />
+              <span>BÀI TRƯỚC</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleCompleteCurrent}
+              className={`${styles.completeBtn} ${isCurrentCompleted ? styles.completeBtnDone : ""}`}
+            >
+              <Check size={14} />
+              <span>{isCurrentCompleted ? "✓ Đã hoàn thành bài này" : "Đánh dấu hoàn thành"}</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={!nextLesson}
+              onClick={() => nextLesson && router.push(`/courses/${slug}/${nextLesson.chapter_id}/${nextLesson.lesson_id}`)}
+              className={`${styles.navStepBtn} ${styles.navStepBtnPrimary}`}
+            >
+              <span>BÀI TIẾP THEO</span>
+              <ChevronRight size={16} />
+            </button>
           </div>
         </div>
 
-        {/* Sidebar: Curriculum Track Navigation */}
+        {/* =========================================================
+            3. RIGHT TRACKS SIDEBAR (Course Playlist)
+           ========================================================= */}
         {showTracks && (
-          <aside className={styles.sidebar}>
-            <div className={styles.sidebarHeader}>
-              <div>
-                <h3 className={styles.sidebarTitle}>Nội dung khóa học</h3>
-                <span className={styles.sidebarSubtitle}>
-                  {completedCount}/{totalLessons} bài học hoàn thành
-                </span>
-              </div>
+          <aside className={styles.tracksSidebar}>
+            <div className={styles.tracksHeader}>
+              <h2 className={styles.tracksHeading}>Nội dung khóa học</h2>
+              <button
+                type="button"
+                onClick={() => setShowTracks(false)}
+                className={styles.closeTracksBtn}
+                title="Đóng thanh nội dung"
+              >
+                <X size={15} />
+              </button>
             </div>
 
-            <div className={styles.sidebarSearchWrap}>
-              <Search size={14} className={styles.sidebarSearchIcon} />
+            {/* Search inside tracks */}
+            <div className={styles.tracksSearchBox}>
+              <Search
+                size={13}
+                style={{
+                  position: "absolute",
+                  left: 24,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "var(--ink-muted)",
+                }}
+              />
               <input
                 type="text"
-                placeholder="Tìm bài học..."
+                placeholder="Tìm bài học trong khóa..."
                 value={tracksSearch}
                 onChange={(e) => setTracksSearch(e.target.value)}
-                className={styles.sidebarSearchInput}
+                className={styles.tracksSearchInput}
               />
             </div>
 
-            <div className={styles.curriculumScroll}>
-              {(course.chapters || []).map((sec, sIdx) => {
-                const isOpen = openChapterIds.has(sec.chapter_id);
-                const lessons = (sec.lessons || []).filter((l) =>
-                  !tracksSearch.trim() || l.title.toLowerCase().includes(tracksSearch.toLowerCase())
+            {/* Chapters & Lessons Accordion List */}
+            <div className={styles.tracksBody}>
+              {filteredSections.map((sec, secIdx) => {
+                const isOpen = openChapterId === sec.chapter_id || tracksSearch.trim().length > 0;
+                const chapterDone = (sec.lessons || []).filter((l) => completedIds.has(l.lesson_id)).length;
+                const chapterMinutes = (sec.lessons || []).reduce(
+                  (acc, l) => acc + (l.duration_minutes || 0),
+                  0
                 );
 
-                if (tracksSearch.trim() && lessons.length === 0) return null;
-
                 return (
-                  <div key={sec.chapter_id} className={styles.secGroup}>
+                  <div key={sec.chapter_id} className={styles.trackItemWrapper}>
                     <button
                       type="button"
-                      onClick={() => toggleChapterAccordion(sec.chapter_id)}
-                      className={styles.secGroupHeader}
+                      onClick={() => setOpenChapterId(isOpen ? null : sec.chapter_id)}
+                      className={`${styles.trackItemHeader} ${isOpen ? styles.trackItemHeaderOpen : ""}`}
                     >
-                      <div className={styles.secHeaderLeft}>
-                        <span className={styles.secIndex}>Chương {sIdx + 1}</span>
-                        <span className={styles.secTitle}>{sec.title}</span>
+                      <div style={{ flex: 1, paddingRight: 6 }}>
+                        <div className={styles.trackItemTitle}>{sec.title}</div>
+                        <div className={styles.trackItemStats}>
+                          {chapterDone}/{sec.lessons.length} bài | {chapterMinutes} phút
+                        </div>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span className={styles.secLessonCount}>{lessons.length} bài</span>
-                        {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      </div>
+                      {isOpen ? (
+                        <ChevronUp size={15} color="#8b4513" />
+                      ) : (
+                        <ChevronDown size={15} color="#8b4513" />
+                      )}
                     </button>
 
                     {isOpen && (
-                      <div className={styles.secLessonsList}>
-                        {lessons.map((ls, lIdx) => {
-                          const isCurrent = ls.lesson_id === lesson.lesson_id;
+                      <div className={styles.stepList}>
+                        {sec.lessons.map((ls, lIdx) => {
+                          const isActive = ls.lesson_id === lesson.lesson_id;
                           const isDone = completedIds.has(ls.lesson_id);
 
                           return (
                             <Link
                               key={ls.lesson_id}
                               href={`/courses/${slug}/${sec.chapter_id}/${ls.lesson_id}`}
-                              className={`${styles.navLessonItem} ${isCurrent ? styles.navLessonItemActive : ""}`}
+                              className={`${styles.stepItem} ${isActive ? styles.stepItemActive : ""}`}
                             >
-                              <div className={styles.navItemLeft}>
-                                <span
-                                  className={`${styles.navCheckRing} ${isDone ? styles.navCheckRingDone : ""}`}
-                                >
-                                  {isDone && <CheckCircle2 size={13} />}
+                              <div className={styles.stepItemLeft}>
+                                {isDone ? (
+                                  <span className={styles.stepCheckCircle}>✓</span>
+                                ) : isActive ? (
+                                  <span className={styles.stepActiveIcon}>▶</span>
+                                ) : (
+                                  <span className={styles.stepPendingIcon} />
+                                )}
+
+                                <span className={styles.stepTitle}>
+                                  {secIdx + 1}.{lIdx + 1} {ls.title}
                                 </span>
-                                <div className={styles.navItemTextWrap}>
-                                  <span className={styles.navItemTitle}>
-                                    {sIdx + 1}.{lIdx + 1} {ls.title}
+                              </div>
+
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                                {ls.is_free ? (
+                                  <span
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      color: "#166534",
+                                      background: "#dcfce7",
+                                      padding: "1px 5px",
+                                      borderRadius: 4,
+                                    }}
+                                  >
+                                    Học thử
                                   </span>
-                                  <div className={styles.navItemMeta}>
-                                    <span>{ls.duration_minutes} phút</span>
-                                    {ls.is_free ? (
-                                      <span style={{ color: "#166534", fontWeight: 700 }}>Học thử</span>
-                                    ) : (
-                                      <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
-                                        <Lock size={9} /> Pro
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
+                                ) : (
+                                  <span
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      color: "var(--ink-muted)",
+                                      background: "rgba(106,72,49,0.08)",
+                                      padding: "1px 5px",
+                                      borderRadius: 4,
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 2,
+                                    }}
+                                  >
+                                    <Lock size={9} /> Pro
+                                  </span>
+                                )}
+                                <span className={styles.stepDuration}>
+                                  {ls.duration_minutes}p
+                                </span>
                               </div>
                             </Link>
                           );
@@ -656,14 +773,14 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
         )}
       </div>
 
-      {/* Notes Drawer Modal */}
+      {/* Slide-over Notes Drawer */}
       {showNotesDrawer && (
         <div
           style={{
             position: "fixed",
             inset: 0,
             zIndex: 9999,
-            background: "rgba(0,0,0,0.5)",
+            background: "rgba(0, 0, 0, 0.45)",
             backdropFilter: "blur(4px)",
             display: "flex",
             justifyContent: "flex-end",
@@ -676,58 +793,124 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
               maxWidth: 440,
               height: "100%",
               background: "#ffffff",
-              padding: 24,
+              boxShadow: "-10px 0 30px rgba(0,0,0,0.15)",
               display: "flex",
               flexDirection: "column",
-              boxShadow: "-8px 0 30px rgba(0,0,0,0.15)",
+              padding: 24,
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "var(--ink)" }}>
-                  Ghi Chú Cá Nhân
-                </h3>
-                <span style={{ fontSize: 11, color: "var(--ink-soft)" }}>
-                  Lưu trên thiết bị này
-                </span>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingBottom: 16,
+                borderBottom: "1px solid rgba(106,72,49,0.12)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Edit3 size={18} color="#d98236" />
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Ghi Chú Bài Học</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowNotesDrawer(false)}
-                style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ink-soft)" }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-soft)" }}
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
+            <p style={{ fontSize: 12, color: "var(--ink-muted)", margin: "12px 0 16px" }}>
+              Ghi lại những điểm cần lưu ý khi phỏng vấn hoặc các câu trả lời bạn tự đúc kết. Dữ liệu được lưu trữ trực tiếp trên thiết bị của bạn.
+            </p>
+
             <textarea
+              rows={16}
               value={personalNote}
               onChange={(e) => handleSaveNote(e.target.value)}
-              placeholder="Ghi lại các ý tưởng, đánh đổi kiến trúc hoặc điểm cần nhớ cho bài học này..."
+              placeholder="Nhập ghi chú cá nhân của bạn cho bài học này..."
               style={{
-                flex: 1,
                 width: "100%",
-                padding: 16,
+                flex: 1,
+                padding: 14,
                 borderRadius: 12,
-                border: "1.5px solid rgba(106,72,49,0.2)",
-                fontSize: 14,
+                border: "1px solid rgba(106,72,49,0.2)",
+                fontSize: 13,
                 lineHeight: 1.6,
+                outline: "none",
                 resize: "none",
+                background: "#fafaf9",
                 fontFamily: "inherit",
               }}
             />
 
-            <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 14 }}>
+              <span style={{ fontSize: 11, color: "#10b981", fontWeight: 600 }}>✓ Đã tự động lưu</span>
               <button
                 type="button"
                 onClick={() => setShowNotesDrawer(false)}
-                className={styles.completeBtn}
-                style={{ background: "#8b4513", color: "#fff" }}
+                className={styles.toolBtn}
+                style={{ height: 32, fontSize: 11.5 }}
               >
-                <span>Đóng</span>
+                Đóng
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Help Modal */}
+      {showHelpModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            background: "rgba(0, 0, 0, 0.5)",
+            backdropFilter: "blur(4px)",
+            display: "grid",
+            placeItems: "center",
+            padding: 20,
+          }}
+          onClick={() => setShowHelpModal(false)}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 520,
+              background: "#ffffff",
+              borderRadius: 20,
+              padding: 28,
+              boxShadow: "0 20px 50px rgba(0,0,0,0.2)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Hướng Dẫn Học Tập &amp; Luyện Phỏng Vấn</h3>
+              <button
+                type="button"
+                onClick={() => setShowHelpModal(false)}
+                style={{ background: "none", border: "none", cursor: "pointer" }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <ul style={{ paddingLeft: 18, fontSize: 13, lineHeight: 1.7, color: "var(--ink-soft)", margin: "0 0 20px" }}>
+              <li><strong>Xem video / đọc bài:</strong> Nắm chắc khung tư duy và các câu hỏi phỏng vấn chuẩn hóa.</li>
+              <li><strong>Thực hành STAR:</strong> Tại mỗi bài tập tình huống, hãy phác thảo 4 yếu tố: Bối cảnh (S), Nhiệm vụ (T), Hành động (A), Kết quả (R).</li>
+              <li><strong>Ghi chú cá nhân:</strong> Sử dụng ngăn ghi chú để đúc kết kinh nghiệm thực tế của chính bạn.</li>
+              <li><strong>Đánh dấu hoàn thành:</strong> Bấm nút hoàn thành trên thanh công cụ để hệ thống ghi nhận tiến độ của bạn.</li>
+            </ul>
+            <button
+              type="button"
+              onClick={() => setShowHelpModal(false)}
+              className={styles.toolBtn}
+              style={{ width: "100%", justifyContent: "center", background: "#8b4513", color: "#ffffff", border: "none", height: 38 }}
+            >
+              Đã hiểu, tiếp tục học
+            </button>
           </div>
         </div>
       )}
