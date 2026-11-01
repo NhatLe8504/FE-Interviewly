@@ -29,9 +29,9 @@ export const historyApi = {
       .unwrap();
   },
 
-  async getSessionResult(sessionId: number | string): Promise<SessionResultData> {
+  async getSessionResult(sessionId: number | string, forceRefetch = false): Promise<SessionResultData> {
     return store
-      .dispatch(historyApiSlice.endpoints.getHistoricalSessionResult.initiate(sessionId))
+      .dispatch(historyApiSlice.endpoints.getHistoricalSessionResult.initiate(sessionId, { forceRefetch }))
       .unwrap();
   },
 

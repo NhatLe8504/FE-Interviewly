@@ -1,17 +1,17 @@
 export interface CandidateKpiStats {
   total_interviews: number;
   completed_interviews: number;
-  avg_score: number;
+  avg_score: number | null;
   total_practice_minutes: number;
   streak_days: number;
 }
 
 export interface SkillRadar {
-  clarity: number;
-  logic: number;
-  evidence: number;
-  delivery: number;
-  star_method: number;
+  clarity: number | null;
+  logic: number | null;
+  evidence: number | null;
+  delivery: number | null;
+  star_method: number | null;
 }
 
 export interface RecentSession {
@@ -42,21 +42,21 @@ export interface CandidateDashboardData {
 export interface ProgressTrendPoint {
   session_id: number;
   date: string;
-  overall_score: number;
-  clarity_score: number;
-  logic_score: number;
-  example_score: number;
+  overall_score: number | null;
+  clarity_score: number | null;
+  logic_score: number | null;
+  example_score: number | null;
   speaking_pace_wpm: number | null;
-  filler_words_count: number;
-  star_completion_rate: number;
+  filler_words_count: number | null;
+  star_completion_rate: number | null;
 }
 
 export interface ProgressTrendsData {
   candidate_id: number;
   trends: ProgressTrendPoint[];
-  avg_wpm: number;
-  avg_filler_count: number;
-  star_mastery_rate: number;
+  avg_wpm: number | null;
+  avg_filler_count: number | null;
+  star_mastery_rate: number | null;
 }
 
 export interface HistorySessionItem {
@@ -91,17 +91,20 @@ export interface TurnDetail {
   question_id: number | null;
   message_text: string | null;
   audio_url: string | null;
+  user_audio_url: string | null;
   transcribed_text: string | null;
   clarity_score: number | null;
   logic_score: number | null;
   example_score: number | null;
   overall_score: number | null;
   feedback_text: string | null;
+  question_type: string | null;
+  star_analysis: { situation: boolean; task: boolean; action: boolean; result: boolean } | null;
   speaking_pace: number | null;
   hesitation_count: number;
   filler_word_count: number;
   tips_text: string | null;
-  ideal_answer?: string | null;
+  ideal_answer: string | null;
   created_at: string;
 }
 
@@ -127,21 +130,24 @@ export interface SessionResultData {
   session_id: number;
   candidate_id: number;
   status: string;
-  total_score: number;
+  total_score: number | null;
   readiness_badge: string;
-  clarity_score: number;
-  structure_score: number;
-  evidence_score: number;
-  speaking_pace_wpm: number;
-  pace_rating: string;
-  filler_count: number;
+  clarity_score: number | null;
+  structure_score: number | null;
+  evidence_score: number | null;
+  speaking_pace_wpm: number | null;
+  pace_rating: string | null;
+  filler_count: number | null;
   filler_words: string[];
-  pause_duration: number;
+  pause_duration: number | null;
   star_analysis: {
     situation: boolean;
     task: boolean;
     action: boolean;
     result: boolean;
-  };
+  } | null;
+  evaluation_status: "ready" | "pending" | "partial" | "unavailable";
+  evaluated_turns: number;
+  eligible_turns: number;
   turns: TurnDetail[];
 }
