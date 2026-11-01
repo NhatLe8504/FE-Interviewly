@@ -4,11 +4,11 @@ import React from "react";
 import { Mic, Zap, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 interface SpeechQualityCardProps {
-  wpm: number;
-  paceRating?: string;
-  fillerCount: number;
+  wpm: number | null;
+  paceRating?: string | null;
+  fillerCount: number | null;
   fillerWords?: string[];
-  pauseDuration?: number;
+  pauseDuration?: number | null;
   className?: string;
 }
 
@@ -17,13 +17,15 @@ export function SpeechQualityCard({
   paceRating,
   fillerCount,
   fillerWords = [],
-  pauseDuration = 0,
+  pauseDuration,
   className,
 }: SpeechQualityCardProps) {
-  const isIdealPace = wpm >= 115 && wpm <= 160;
-  const isSlow = wpm < 115;
+  const isIdealPace = wpm !== null && wpm >= 115 && wpm <= 160;
+  const isSlow = wpm !== null && wpm < 115;
 
-  const paceColor = isIdealPace
+  const paceColor = wpm === null
+    ? "text-[#543a2a]/70 bg-white/70 border-[rgba(106,72,49,0.12)]"
+    : isIdealPace
     ? "text-[#2e6b34] bg-[rgba(46,107,52,0.1)] border-[rgba(46,107,52,0.25)]"
     : isSlow
     ? "text-[#d98236] bg-[rgba(217,130,54,0.1)] border-[rgba(217,130,54,0.25)]"
@@ -48,7 +50,7 @@ export function SpeechQualityCard({
         <span
           className={`px-3 py-1 rounded-full text-xs font-bold border ${paceColor}`}
         >
-          {paceRating || (isIdealPace ? "Lý tưởng (Ideal)" : isSlow ? "Hơi chậm" : "Hơi nhanh")}
+          {paceRating || "Chưa đo tốc độ"}
         </span>
       </div>
 
@@ -59,7 +61,7 @@ export function SpeechQualityCard({
             <span>Tốc độ phát âm</span>
           </div>
           <div className="text-xl font-extrabold text-[#211914]">
-            {wpm} <span className="text-xs font-normal text-[#543a2a]/60">từ/phút (WPM)</span>
+            {wpm ?? "Chưa đo"} {wpm !== null && <span className="text-xs font-normal text-[#543a2a]/60">từ/phút (WPM)</span>}
           </div>
           <p className="text-[11px] text-[#543a2a]/60 mt-1">Chuẩn phỏng vấn: 120 - 150 WPM</p>
         </div>
@@ -70,7 +72,7 @@ export function SpeechQualityCard({
             <span>Từ đệm mắc phải</span>
           </div>
           <div className="text-xl font-extrabold text-[#211914]">
-            {fillerCount} <span className="text-xs font-normal text-[#543a2a]/60">lần</span>
+            {fillerCount ?? "Chưa đo"} {fillerCount !== null && <span className="text-xs font-normal text-[#543a2a]/60">lần</span>}
           </div>
           <div className="flex flex-wrap gap-1 mt-1">
             {fillerWords.length > 0 ? (
@@ -82,6 +84,8 @@ export function SpeechQualityCard({
                   &quot;{word}&quot;
                 </span>
               ))
+            ) : fillerCount === null ? null : fillerCount > 0 ? (
+              <span className="text-[11px] text-[#543a2a]/60">Chưa lưu chi tiết từ đệm</span>
             ) : (
               <span className="text-[11px] font-semibold text-[#2e6b34] flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3 inline" /> Không phát hiện từ đệm
@@ -96,9 +100,9 @@ export function SpeechQualityCard({
             <span>Khoảng ngập ngừng</span>
           </div>
           <div className="text-xl font-extrabold text-[#211914]">
-            {pauseDuration} <span className="text-xs font-normal text-[#543a2a]/60">giây</span>
+            {pauseDuration ?? "Chưa đo"} {pauseDuration !== null && pauseDuration !== undefined && <span className="text-xs font-normal text-[#543a2a]/60">giây</span>}
           </div>
-          <p className="text-[11px] text-[#543a2a]/60 mt-1">Tổng thời gian im lặng khi suy nghĩ</p>
+          <p className="text-[11px] text-[#543a2a]/60 mt-1">Chỉ hiển thị khi có dữ liệu âm thanh đo được</p>
         </div>
       </div>
     </div>

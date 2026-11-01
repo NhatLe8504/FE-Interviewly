@@ -33,11 +33,11 @@ export function ScoreTrendLineChart({ data, className }: ScoreTrendLineChartProp
     );
   }
 
-  if (data.length === 0) {
+  if (!data.some((point) => point.overall_score !== null)) {
     return (
       <div className={`h-64 flex flex-col items-center justify-center text-sm text-slate-400 border border-dashed border-slate-700 rounded-xl ${className || ""}`}>
-        <p>Chưa có dữ liệu xu hướng phỏng vấn.</p>
-        <span className="text-xs text-slate-500 mt-1">Hoàn thành ít nhất 1 phiên để xem đồ thị tiến độ.</span>
+        <p>Chưa có phiên được chấm đầy đủ để vẽ xu hướng.</p>
+        <span className="text-xs text-slate-500 mt-1">Điểm sẽ xuất hiện sau khi các lượt chuyên môn được đánh giá.</span>
       </div>
     );
   }
