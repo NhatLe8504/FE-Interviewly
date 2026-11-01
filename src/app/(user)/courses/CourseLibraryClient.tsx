@@ -259,78 +259,80 @@ export default function CourseLibraryClient() {
             </button>
           </div>
         ) : (
-          <div className={styles.courseGrid}>
-            {paginatedCourses.map((c) => (
-              <Link key={c.id} href={`/courses/${c.slug}`} className={styles.courseCard}>
-                <div className={styles.cardMedia}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={c.image} alt={c.title} className={styles.cardImg} loading="lazy" />
-                  <div className={styles.cardMediaOverlay} />
-                  <div className={styles.mediaBadge}>
-                    {c.type === "Learning Path" ? <Compass size={12} color="#d98236" /> : <BookOpen size={12} color="#d98236" />}
-                    <span>{c.type === "Learning Path" ? "Lộ trình tuyển chọn" : "Khóa học chuyên sâu"}</span>
-                  </div>
-                </div>
-
-                <div className={styles.cardBody}>
-                  <div className={styles.cardTop}>
-                    <div className={styles.metaRow}>
-                      <span className={styles.metaItem}>
-                        <Layers size={13} color="#d98236" />
-                        <span>{c.meta}</span>
-                      </span>
-                      <span>•</span>
-                      <span className={styles.metaItem}>
-                        <Clock size={13} />
-                        <span>~{c.estimatedHours} giờ học</span>
-                      </span>
-                      <span>•</span>
-                      <span className={styles.levelTag}>{c.levelLabel}</span>
-                    </div>
-
-                    <h3 className={styles.cardTitle}>{c.title}</h3>
-                    <p className={styles.cardDesc}>{c.description}</p>
-
-                    {/* Target Companies */}
-                    <div className={styles.companyRow}>
-                      <span className={styles.companyLabel}>
-                        <Building2 size={11} /> Mục tiêu:
-                      </span>
-                      {c.targetCompanies.map((comp, idx) => (
-                        <span key={idx} className={styles.companyBadge}>{comp}</span>
-                      ))}
+          <>
+            <div className={styles.courseGrid}>
+              {paginatedCourses.map((c) => (
+                <Link key={c.id} href={`/courses/${c.slug}`} className={styles.courseCard}>
+                  <div className={styles.cardMedia}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={c.image} alt={c.title} className={styles.cardImg} loading="lazy" />
+                    <div className={styles.cardMediaOverlay} />
+                    <div className={styles.mediaBadge}>
+                      {c.type === "Learning Path" ? <Compass size={12} color="#d98236" /> : <BookOpen size={12} color="#d98236" />}
+                      <span>{c.type === "Learning Path" ? "Lộ trình tuyển chọn" : "Khóa học chuyên sâu"}</span>
                     </div>
                   </div>
 
-                  <div className={styles.cardFooter}>
-                    <div className={styles.ratingBox}>
-                      <Star size={13} className={styles.starIcon} fill="currentColor" />
-                      <span>{c.rating}</span>
-                      <span className={styles.enrollCount}>({c.enrolledCount} học viên)</span>
+                  <div className={styles.cardBody}>
+                    <div className={styles.cardTop}>
+                      <div className={styles.metaRow}>
+                        <span className={styles.metaItem}>
+                          <Layers size={13} color="#d98236" />
+                          <span>{c.meta}</span>
+                        </span>
+                        <span>•</span>
+                        <span className={styles.metaItem}>
+                          <Clock size={13} />
+                          <span>~{c.estimatedHours} giờ học</span>
+                        </span>
+                        <span>•</span>
+                        <span className={styles.levelTag}>{c.levelLabel}</span>
+                      </div>
+
+                      <h3 className={styles.cardTitle}>{c.title}</h3>
+                      <p className={styles.cardDesc}>{c.description}</p>
+
+                      {/* Target Companies */}
+                      <div className={styles.companyRow}>
+                        <span className={styles.companyLabel}>
+                          <Building2 size={11} /> Mục tiêu:
+                        </span>
+                        {c.targetCompanies.map((comp, idx) => (
+                          <span key={idx} className={styles.companyBadge}>{comp}</span>
+                        ))}
+                      </div>
                     </div>
 
-                    <span className={styles.btnAction}>
-                      <span>Khám phá</span>
-                      <ArrowRight size={13} />
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+                    <div className={styles.cardFooter}>
+                      <div className={styles.ratingBox}>
+                        <Star size={13} className={styles.starIcon} fill="currentColor" />
+                        <span>{c.rating}</span>
+                        <span className={styles.enrollCount}>({c.enrolledCount} học viên)</span>
+                      </div>
 
-          {totalPages > 1 && (
-            <div style={{ marginTop: "2rem", display: "flex", justifyContent: "center" }}>
-              <UserPagination
-                currentPage={page}
-                totalPages={totalPages}
-                totalItems={filteredCourses.length}
-                pageSize={pageSize}
-                onPageChange={setPage}
-                itemLabel="khóa học"
-              />
+                      <span className={styles.btnAction}>
+                        <span>Khám phá</span>
+                        <ArrowRight size={13} />
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
-          )}
+
+            {totalPages > 1 && (
+              <div style={{ marginTop: "2rem", display: "flex", justifyContent: "center" }}>
+                <UserPagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  totalItems={filteredCourses.length}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
+                  itemLabel="khóa học"
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
