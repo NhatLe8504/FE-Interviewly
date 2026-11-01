@@ -7,6 +7,7 @@ import styles from "./starGuidanceDrawer.module.css";
 
 interface StarGuidanceDrawerProps {
   starTip?: string;
+  framework?: "behavioral" | "technical" | "situational" | "generic";
   onInsertStarter?: (starterText: string) => void;
   isOpen?: boolean;
   onClose?: () => void;
@@ -15,6 +16,7 @@ interface StarGuidanceDrawerProps {
 
 export function StarGuidanceDrawer({
   starTip,
+  framework = "generic",
   onInsertStarter,
   isOpen: controlledIsOpen,
   onClose: controlledOnClose,
@@ -60,6 +62,21 @@ export function StarGuidanceDrawer({
     },
   ];
 
+  const guidance = framework === "behavioral" ? starFramework : framework === "technical" ? [
+    { letter: "1", title: "Cách tiếp cận", color: "#c26d25", desc: "Nêu giải pháp hoặc khái niệm phù hợp với yêu cầu.", starter: "Tôi sẽ tiếp cận vấn đề bằng cách..." },
+    { letter: "2", title: "Lập luận", color: "#8b4513", desc: "Giải thích vì sao phương án này đúng trong bối cảnh câu hỏi.", starter: "Lý do tôi chọn cách này là..." },
+    { letter: "3", title: "Đánh đổi", color: "#2d5a43", desc: "So sánh giới hạn và các phương án thay thế.", starter: "Đánh đổi quan trọng cần cân nhắc là..." },
+    { letter: "4", title: "Kiểm chứng", color: "#211914", desc: "Nêu cách kiểm thử hoặc đo lường hiệu quả.", starter: "Tôi sẽ kiểm chứng bằng..." },
+  ] : framework === "situational" ? [
+    { letter: "1", title: "Ràng buộc", color: "#c26d25", desc: "Xác định mục tiêu, người liên quan và dữ kiện còn thiếu.", starter: "Trước hết tôi cần làm rõ..." },
+    { letter: "2", title: "Phương án", color: "#8b4513", desc: "So sánh những cách giải quyết khả thi.", starter: "Tôi thấy có các phương án..." },
+    { letter: "3", title: "Quyết định", color: "#2d5a43", desc: "Chọn hành động ưu tiên và giải thích lý do.", starter: "Tôi sẽ ưu tiên..." },
+    { letter: "4", title: "Rủi ro", color: "#211914", desc: "Dự liệu hệ quả và cách theo dõi.", starter: "Rủi ro của lựa chọn này là..." },
+  ] : [
+    { letter: "1", title: "Làm rõ yêu cầu", color: "#c26d25", desc: "Xác định câu hỏi thực sự muốn đánh giá điều gì.", starter: "Tôi hiểu câu hỏi này là..." },
+    { letter: "2", title: "Lập luận", color: "#2d5a43", desc: "Nêu ý chính kèm ví dụ thích hợp.", starter: "Theo tôi, điểm quan trọng là..." },
+  ];
+
   const handleInsert = (letter: string, text: string) => {
     if (onInsertStarter) {
       onInsertStarter(text);
@@ -83,7 +100,7 @@ export function StarGuidanceDrawer({
             zIndex: 40,
             cursor: "pointer",
           }}
-          title="Mở gợi ý STAR"
+          title="Mở gợi ý trả lời"
         >
           <Sparkles size={18} />
         </button>
@@ -101,7 +118,7 @@ export function StarGuidanceDrawer({
               <Sparkles size={18} />
             </span>
             <div>
-              <h3 className={styles.drawerTitle}>Khung Trả Lời STAR</h3>
+              <h3 className={styles.drawerTitle}>Khung Trả Lời {framework === "behavioral" ? "STAR" : "Gợi Ý"}</h3>
               <p className={styles.drawerSubtitle}>Chuẩn hóa cấu trúc câu trả lời thuyết phục</p>
             </div>
           </div>
@@ -127,7 +144,7 @@ export function StarGuidanceDrawer({
 
           {/* 4 Pillars */}
           <div className={styles.starPillarsList}>
-            {starFramework.map((item) => {
+            {guidance.map((item) => {
               const isInserted = insertedLetter === item.letter;
               return (
                 <div key={item.letter} className={styles.starItemCard}>
