@@ -1,4 +1,6 @@
 import { request } from "@/services/apiClient";
+import { store } from "@/redux/store";
+import { billingApiSlice } from "@/redux/api/billingApi";
 
 export interface SubscriptionPlanAdmin {
   plan_id: number;
@@ -64,22 +66,43 @@ export interface UserSubscriptionUpdateIn {
 export const subscriptionAdminApi = {
   getPlans: () => request<SubscriptionPlanAdmin[]>("/api/v1/admin/plans"),
 
-  createPlan: (data: SubscriptionPlanCreateIn) =>
-    request<SubscriptionPlanAdmin>("/api/v1/admin/plans", {
+  createPlan: async (data: SubscriptionPlanCreateIn) => {
+    const res = await request<SubscriptionPlanAdmin>("/api/v1/admin/plans", {
       method: "POST",
       body: JSON.stringify(data),
-    }),
+    });
+    try {
+      store.dispatch(billingApiSlice.util.invalidateTags(["Subscription"]));
+    } catch {
+      // ignore
+    }
+    return res;
+  },
 
-  updatePlan: (planId: number, data: SubscriptionPlanUpdateIn) =>
-    request<SubscriptionPlanAdmin>(`/api/v1/admin/plans/${planId}`, {
+  updatePlan: async (planId: number, data: SubscriptionPlanUpdateIn) => {
+    const res = await request<SubscriptionPlanAdmin>(`/api/v1/admin/plans/${planId}`, {
       method: "PUT",
       body: JSON.stringify(data),
-    }),
+    });
+    try {
+      store.dispatch(billingApiSlice.util.invalidateTags(["Subscription"]));
+    } catch {
+      // ignore
+    }
+    return res;
+  },
 
-  deletePlan: (planId: number) =>
-    request<void>(`/api/v1/admin/plans/${planId}`, {
+  deletePlan: async (planId: number) => {
+    const res = await request<void>(`/api/v1/admin/plans/${planId}`, {
       method: "DELETE",
-    }),
+    });
+    try {
+      store.dispatch(billingApiSlice.util.invalidateTags(["Subscription"]));
+    } catch {
+      // ignore
+    }
+    return res;
+  },
 
   getUserSubscriptions: (params?: {
     status?: string;

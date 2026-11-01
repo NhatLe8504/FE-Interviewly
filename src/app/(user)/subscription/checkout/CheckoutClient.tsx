@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import styles from "./checkout.module.css";
 import { useAuth } from "@/context/AuthContext";
-import { useCreateCheckoutMutation, useVerifyPaymentMutation } from "@/redux/api/user/billingApi";
+import { useCreateCheckoutMutation, useVerifyPaymentMutation, useGetPlansQuery } from "@/redux/api/user/billingApi";
 import { DEFAULT_PLANS } from "@/services/billingApi";
 import { toast } from "@/components/user-component/toast";
 import type { SubscriptionPlan } from "@/types/billing";
@@ -144,12 +144,26 @@ export function CheckoutClient() {
     setSelectedPlanId(newId);
   };
 
-  // Find active plan details
+  const { data: remotePlans } = useGetPlansQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
+
+  const allPlans = useMemo(() => {
+    if (remotePlans && remotePlans.length > 0) {
+      return remotePlans.map((p) => ({
+        ...p,
+        price: Number(p.price) || 0,
+      }));
+    }
+    return DEFAULT_PLANS;
+  }, [remotePlans]);
+
+  // Find active plan details dynamically
   const activePlan: SubscriptionPlan = useMemo(() => {
-    const found = DEFAULT_PLANS.find((p) => p.plan_id === selectedPlanId);
+    const found = allPlans.find((p) => p.plan_id === selectedPlanId);
     if (found) return found;
     return DEFAULT_PLANS[2];
-  }, [selectedPlanId]);
+  }, [allPlans, selectedPlanId]);
 
   const isAddon = Boolean(activePlan.plan_type === "addon" || selectedPlanId >= 100);
 

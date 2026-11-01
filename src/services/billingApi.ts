@@ -159,13 +159,16 @@ export const DEFAULT_PLANS: SubscriptionPlan[] = [
 ];
 
 export const billingApi = {
-  async getPlans(): Promise<SubscriptionPlan[]> {
+  async getPlans(forceRefetch: boolean = false): Promise<SubscriptionPlan[]> {
     try {
       const plans = await store
-        .dispatch(billingApiSlice.endpoints.getPlans.initiate())
+        .dispatch(billingApiSlice.endpoints.getPlans.initiate(undefined, { forceRefetch }))
         .unwrap();
       if (Array.isArray(plans) && plans.length > 0) {
-        return plans;
+        return plans.map((p) => ({
+          ...p,
+          price: Number(p.price) || 0,
+        }));
       }
       return DEFAULT_PLANS;
     } catch {

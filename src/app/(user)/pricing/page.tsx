@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import styles from "./pricing.module.css";
 import { billingApi, DEFAULT_PLANS } from "@/services/billingApi";
+import { useGetPlansQuery } from "@/redux/api/billingApi";
 import { useI18n } from "@/context/I18nContext";
 import { PageMascot } from "@/components/user-component/common/PageMascot";
 import type { SubscriptionPlan } from "@/types/billing";
@@ -144,6 +145,64 @@ const COMPARISON_GROUPS: FeatureComparisonGroup[] = [
   },
 ];
 
+interface AddonConfig {
+  id: number;
+  tag: string;
+  defaultTitle: string;
+  defaultDesc: string;
+  defaultPrice: number;
+  icon: "mic" | "file";
+  btnLabel: string;
+}
+
+const ADDON_CONFIGS: AddonConfig[] = [
+  {
+    id: 101,
+    tag: "Phỏng vấn Voice AI",
+    defaultTitle: "+30 Phút Phỏng Vấn",
+    defaultDesc: "Thêm 30 phút luyện tập phỏng vấn giọng nói thời gian thực.",
+    defaultPrice: 29000,
+    icon: "mic",
+    btnLabel: "Nạp 30 phút ngay",
+  },
+  {
+    id: 102,
+    tag: "Phổ biến nhất",
+    defaultTitle: "+60 Phút Phỏng Vấn",
+    defaultDesc: "Thêm 60 phút (~2 buổi trọn vẹn) kèm phân tích phát hiện từ đệm.",
+    defaultPrice: 49000,
+    icon: "mic",
+    btnLabel: "Nạp 60 phút ngay",
+  },
+  {
+    id: 103,
+    tag: "Gói Chuyên Sâu",
+    defaultTitle: "+120 Phút Phỏng Vấn",
+    defaultDesc: "Thêm 120 phút luyện tập chuyên sâu cho mọi câu hỏi kỹ thuật & hành vi.",
+    defaultPrice: 89000,
+    icon: "mic",
+    btnLabel: "Nạp 120 phút ngay",
+  },
+  {
+    id: 104,
+    tag: "Tạo CV AI",
+    defaultTitle: "+3 Lượt Tạo CV",
+    defaultDesc: "Thêm 3 lượt sinh & tối ưu CV chuẩn ATS tự động từ mô tả công việc (JD).",
+    defaultPrice: 19000,
+    icon: "file",
+    btnLabel: "Nạp 3 lượt CV",
+  },
+  {
+    id: 105,
+    tag: "Gói Siêu Tiết Kiệm",
+    defaultTitle: "+10 Lượt Tạo CV",
+    defaultDesc: "Thêm 10 lượt tối ưu CV AI không giới hạn ngành nghề, chuẩn quốc tế.",
+    defaultPrice: 49000,
+    icon: "file",
+    btnLabel: "Nạp 10 lượt CV",
+  },
+];
+
 export default function PricingPage() {
   const { locale, t } = useI18n();
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
@@ -151,16 +210,31 @@ export default function PricingPage() {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [isTableExpanded, setIsTableExpanded] = useState<boolean>(false);
 
+  const { data: remotePlans } = useGetPlansQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
+
+  useEffect(() => {
+    if (remotePlans && remotePlans.length > 0) {
+      setPlans(
+        remotePlans.map((p) => ({
+          ...p,
+          price: Number(p.price) || 0,
+        }))
+      );
+    }
+  }, [remotePlans]);
+
   useEffect(() => {
     let isMounted = true;
     async function loadPlans() {
       try {
-        const remotePlans = await billingApi.getPlans();
-        if (isMounted && remotePlans && remotePlans.length > 0) {
-          setPlans(remotePlans);
+        const freshPlans = await billingApi.getPlans(true);
+        if (isMounted && freshPlans && freshPlans.length > 0) {
+          setPlans(freshPlans);
         }
       } catch {
-        // Keep default plans
+        // Keep fallback
       }
     }
     loadPlans();
@@ -169,17 +243,31 @@ export default function PricingPage() {
     };
   }, []);
 
+  const parsePrice = (p?: SubscriptionPlan | null, fallback = 0) => {
+    if (!p) return fallback;
+    const n = Number(p.price);
+    return isNaN(n) ? fallback : n;
+  };
+
   const isYearly = billingCycle === "yearly";
   const proMonthlyPlan =
-    plans.find((p) => p.plan_id === 2 || p.billing_cycle === "monthly") || DEFAULT_PLANS[2];
+    plans.find(
+      (p) =>
+        p.plan_id === 2 ||
+        (p.billing_cycle === "monthly" &&
+          (p.plan_type === "subscription" || !p.plan_type) &&
+          !p.plan_name.toLowerCase().includes("add-on"))
+    ) || DEFAULT_PLANS[2];
   const proYearlyPlan =
     plans.find((p) => p.plan_id === 3 || p.billing_cycle === "yearly") || DEFAULT_PLANS[3];
   const sprintPlan =
     plans.find((p) => p.plan_id === 4 || p.billing_cycle === "weekly") || DEFAULT_PLANS[1];
 
   const activeProPlan = isYearly ? proYearlyPlan : proMonthlyPlan;
-  const formattedPrice = new Intl.NumberFormat("vi-VN").format(activeProPlan.price) + " đ";
-  const sprintPrice = new Intl.NumberFormat("vi-VN").format(sprintPlan.price) + " đ";
+  const formattedPrice =
+    new Intl.NumberFormat("vi-VN").format(parsePrice(activeProPlan, 99000)) + " đ";
+  const sprintPrice =
+    new Intl.NumberFormat("vi-VN").format(parsePrice(sprintPlan, 49000)) + " đ";
   const checkoutPlanKey = isYearly ? "pro_yearly" : "pro_monthly";
 
   const toggleFaq = (index: number) => {
@@ -422,96 +510,34 @@ export default function PricingPage() {
           </div>
 
           <div className={styles.addonsGrid}>
-            {/* Addon 101 */}
-            <div className={styles.addonCard}>
-              <div className={styles.addonCardTop}>
-                <span className={styles.addonTag}>Phỏng vấn Voice AI</span>
-                <h3 className={styles.addonCardTitle}>+30 Phút Phỏng Vấn</h3>
-                <p className={styles.addonCardDesc}>
-                  Thêm 30 phút luyện tập phỏng vấn giọng nói thời gian thực.
-                </p>
-                <div className={styles.addonPriceRow}>
-                  <span className={styles.addonPrice}>29.000 đ</span>
-                </div>
-              </div>
-              <Link href="/subscription/checkout?plan_id=101" className={styles.addonBtn}>
-                <Mic size={14} /> Nạp 30 phút ngay
-              </Link>
-            </div>
+            {ADDON_CONFIGS.map((conf) => {
+              const plan = plans.find((p) => p.plan_id === conf.id);
+              const price = parsePrice(plan, conf.defaultPrice);
+              const formatted = new Intl.NumberFormat("vi-VN").format(price) + " đ";
+              const title = plan?.plan_name
+                ? plan.plan_name.startsWith("Add-on")
+                  ? conf.defaultTitle
+                  : plan.plan_name
+                : conf.defaultTitle;
+              const desc = plan?.description || conf.defaultDesc;
 
-            {/* Addon 102 */}
-            <div className={styles.addonCard} style={{ borderColor: "rgba(217, 130, 54, 0.4)" }}>
-              <div className={styles.addonCardTop}>
-                <span className={styles.addonTag} style={{ background: "#ffedd5", color: "#c2410c" }}>
-                  Phổ biến nhất
-                </span>
-                <h3 className={styles.addonCardTitle}>+60 Phút Phỏng Vấn</h3>
-                <p className={styles.addonCardDesc}>
-                  Thêm 60 phút (~2 buổi trọn vẹn) kèm phân tích phát hiện từ đệm.
-                </p>
-                <div className={styles.addonPriceRow}>
-                  <span className={styles.addonPrice}>49.000 đ</span>
+              return (
+                <div key={conf.id} className={styles.addonCard}>
+                  <div className={styles.addonCardTop}>
+                    <span className={styles.addonTag}>{conf.tag}</span>
+                    <h3 className={styles.addonCardTitle}>{title}</h3>
+                    <p className={styles.addonCardDesc}>{desc}</p>
+                    <div className={styles.addonPriceRow}>
+                      <span className={styles.addonPrice}>{formatted}</span>
+                    </div>
+                  </div>
+                  <Link href={`/subscription/checkout?plan_id=${conf.id}`} className={styles.addonBtn}>
+                    {conf.icon === "mic" ? <Mic size={14} /> : <FileText size={14} />}
+                    <span>{conf.btnLabel}</span>
+                  </Link>
                 </div>
-              </div>
-              <Link href="/subscription/checkout?plan_id=102" className={styles.addonBtn} style={{ background: "#c2410c" }}>
-                <Mic size={14} /> Nạp 60 phút ngay
-              </Link>
-            </div>
-
-            {/* Addon 103 */}
-            <div className={styles.addonCard}>
-              <div className={styles.addonCardTop}>
-                <span className={styles.addonTag}>Tiết kiệm 20%</span>
-                <h3 className={styles.addonCardTitle}>+120 Phút Phỏng Vấn</h3>
-                <p className={styles.addonCardDesc}>
-                  Thêm 120 phút luyện tập chuyên sâu cho mọi câu hỏi kỹ thuật & hành vi.
-                </p>
-                <div className={styles.addonPriceRow}>
-                  <span className={styles.addonPrice}>89.000 đ</span>
-                </div>
-              </div>
-              <Link href="/subscription/checkout?plan_id=103" className={styles.addonBtn}>
-                <Mic size={14} /> Nạp 120 phút ngay
-              </Link>
-            </div>
-
-            {/* Addon 104 */}
-            <div className={styles.addonCard}>
-              <div className={styles.addonCardTop}>
-                <span className={styles.addonTag} style={{ background: "#f3e8ff", color: "#7e22ce" }}>
-                  Tạo CV AI
-                </span>
-                <h3 className={styles.addonCardTitle}>+3 Lượt Tạo CV</h3>
-                <p className={styles.addonCardDesc}>
-                  Thêm 3 lượt sinh & tối ưu CV chuẩn ATS tự động từ mô tả công việc (JD).
-                </p>
-                <div className={styles.addonPriceRow}>
-                  <span className={styles.addonPrice}>19.000 đ</span>
-                </div>
-              </div>
-              <Link href="/subscription/checkout?plan_id=104" className={styles.addonBtn}>
-                <FileText size={14} /> Nạp 3 lượt CV
-              </Link>
-            </div>
-
-            {/* Addon 105 */}
-            <div className={styles.addonCard}>
-              <div className={styles.addonCardTop}>
-                <span className={styles.addonTag} style={{ background: "#f3e8ff", color: "#7e22ce" }}>
-                  Gói Siêu Hời
-                </span>
-                <h3 className={styles.addonCardTitle}>+10 Lượt Tạo CV</h3>
-                <p className={styles.addonCardDesc}>
-                  Thêm 10 lượt tối ưu CV AI không giới hạn ngành nghề, chuẩn quốc tế.
-                </p>
-                <div className={styles.addonPriceRow}>
-                  <span className={styles.addonPrice}>49.000 đ</span>
-                </div>
-              </div>
-              <Link href="/subscription/checkout?plan_id=105" className={styles.addonBtn}>
-                <FileText size={14} /> Nạp 10 lượt CV
-              </Link>
-            </div>
+              );
+            })}
           </div>
         </section>
 
