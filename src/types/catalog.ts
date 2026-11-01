@@ -46,8 +46,10 @@ export interface MultiModalQuestionAnswer {
 
 export interface AIEvaluationResult {
   score: number; // 0 - 100
+  score_provisional?: boolean;
   passed: boolean;
   general_feedback: string;
+  answer_framework?: "star" | "technical" | "situational" | "generic";
   star_breakdown?: {
     situation_score: number;
     situation_feedback: string;
@@ -57,7 +59,7 @@ export interface AIEvaluationResult {
     action_feedback: string;
     result_score: number;
     result_feedback: string;
-  };
+  } | null;
   rubric_scores?: {
     criterion_id: string;
     criterion_name: string;

@@ -134,6 +134,36 @@ export const DEFAULT_RUBRIC_CRITERIA: RubricCriterion[] = [
   },
 ];
 
+export function rubricForQuestion(questionType: string): RubricCriterion[] {
+  if (questionType === "behavioral") return DEFAULT_RUBRIC_CRITERIA;
+  const technical = questionType === "technical";
+  const topics = technical
+    ? [
+        ["Lập luận kỹ thuật", "Giải thích cách tiếp cận, độ đúng và nguyên lý liên quan."],
+        ["Chiều sâu và đánh đổi", "Cân nhắc giới hạn, phương án khác và các rủi ro kỹ thuật."],
+        ["Diễn đạt mạch lạc", "Trình bày các bước lập luận đúng trọng tâm."],
+        ["Kiểm chứng", "Nêu cách đo lường, thử nghiệm hoặc giám sát giải pháp."],
+      ]
+    : [
+        ["Nhận diện ràng buộc", "Làm rõ mục tiêu, dữ kiện và người liên quan."],
+        ["So sánh phương án", "Đưa ra lựa chọn khả thi và giải thích đánh đổi."],
+        ["Quyết định rõ ràng", "Chọn hành động ưu tiên đúng tình huống."],
+        ["Rủi ro và theo dõi", "Dự liệu tác động và cách điều chỉnh."],
+      ];
+  return DEFAULT_RUBRIC_CRITERIA.map((criterion, index) => ({
+    ...criterion,
+    criterion_id: ["reasoning", "alternatives", "clarity", "verification"][index],
+    title: topics[index][0],
+    description: topics[index][1],
+    descriptors: {
+      poor: { score_range: "1 - 3", label: "Chưa đạt", description: "Thiếu lập luận hoặc không trả lời đúng trọng tâm." },
+      average: { score_range: "4 - 6", label: "Cơ bản", description: "Có hướng trả lời nhưng chưa giải thích đủ cơ sở." },
+      good: { score_range: "7 - 8", label: "Tốt", description: "Lập luận rõ và xử lý được các điểm quan trọng." },
+      excellent: { score_range: "9 - 10", label: "Xuất sắc", description: "Lập luận sâu, cân nhắc đánh đổi và đưa ra kiểm chứng phù hợp." },
+    },
+  }));
+}
+
 export const FALLBACK_DOMAINS: DomainOut[] = [
   {
     domain_id: 1,
@@ -255,9 +285,9 @@ export const FALLBACK_QUESTIONS: QuestionDetailOut[] = [
     language: "vi",
     question_type: "technical",
     question_text: "Bạn tiếp cận và tối ưu hóa một câu lệnh truy vấn cơ sở dữ liệu bị chậm (slow query) đang làm nghẽn API như thế nào?",
-    star_template_id: 3,
+    star_template_id: null,
     is_active: true,
-    star_template: FALLBACK_STAR_TEMPLATES[3],
+    star_template: null,
     sample_answer: "Khi API lịch sử giao dịch tăng thời gian phản hồi lên 3.2 giây vào giờ cao điểm, tôi sử dụng lệnh EXPLAIN ANALYZE của PostgreSQL để kiểm tra kế hoạch thực thi. Tôi nhận thấy database đang thực hiện Sequential Scan trên bảng có hơn 12 triệu bản ghi vì thiếu composite index cho cặp cột (user_id, created_at). Tôi đã tạo một B-Tree composite index với cờ CONCURRENTLY để không lock bảng, đồng thời điều chỉnh lại truy vấn dùng keyset pagination thay thế cho OFFSET lớn. Kết quả là thời gian thực thi câu lệnh giảm từ 3200ms xuống còn 42ms, CPU database server giảm từ 85% xuống 25%.",
     follow_up_questions: [
       "Khi nào việc đánh thêm index lại gây hại nhiều hơn có lợi cho cơ sở dữ liệu?",
@@ -301,9 +331,9 @@ export const FALLBACK_QUESTIONS: QuestionDetailOut[] = [
     language: "vi",
     question_type: "technical",
     question_text: "Làm thế nào để bạn cải thiện điểm số Core Web Vitals (LCP, CLS, INP) cho một ứng dụng Single Page Application hoặc Next.js có kích thước lớn?",
-    star_template_id: 3,
+    star_template_id: null,
     is_active: true,
-    star_template: FALLBACK_STAR_TEMPLATES[3],
+    star_template: null,
     sample_answer: "Tại trang chủ của hệ thống thương mại điện tử, điểm LCP ban đầu là 4.6s và CLS là 0.28 do tải quá nhiều hình ảnh chưa nén và font chữ gây layout shift. Tôi tiến hành phân tích bằng Chrome Lighthouse và bundle-analyzer. Đầu tiên, tôi chuyển đổi các component nặng phía dưới màn hình đầu tiên sang dynamic import với React.lazy. Thứ hai, tôi cấu hình next/image tự động chuyển đổi sang WebP/AVIF và bổ sung thuộc tính fetchpriority='high' cho banner chính. Thứ ba, áp dụng font-display: optional để dứt điểm layout shift. Điểm LCP giảm xuống còn 1.8s, CLS về 0.02 và điểm hiệu năng tổng thể tăng từ 51 lên 94 điểm.",
     follow_up_questions: [
       "Chỉ số INP (Interaction to Next Paint) đo lường điều gì và cách tối ưu các tác vụ JavaScript dài?",
@@ -324,9 +354,9 @@ export const FALLBACK_QUESTIONS: QuestionDetailOut[] = [
     language: "vi",
     question_type: "situational",
     question_text: "Nếu một đường ống CI/CD bị nghẽn đúng vào thời điểm toàn công ty cần triển khai bản sửa lỗi khẩn cấp, bạn sẽ xử lý tình huống này theo thứ tự ưu tiên nào?",
-    star_template_id: 1,
+    star_template_id: null,
     is_active: true,
-    star_template: FALLBACK_STAR_TEMPLATES[1],
+    star_template: null,
     sample_answer: "Khi đường ống CI/CD GitLab runner bị treo do hết disk space trên cụm build nodes trong giờ cao điểm release, tôi chia việc xử lý làm 2 giai đoạn: Khẩn cấp và Triệt để. Ở giai đoạn khẩn cấp, tôi kích hoạt một runner dự phòng trên AWS EC2 với docker cache có sẵn để các đội nhóm có thể chạy pipeline hotfix trong vòng 10 phút. Song song đó, tôi dọn dẹp các dangling docker images và volume cũ trên cụm runner chính. Về lâu dài, tôi viết daemon script tự động prune định kỳ khi ổ cứng vượt ngưỡng 80%, đồng thời thiết lập cảnh báo Prometheus khi disk space runner đạt 75%.",
     follow_up_questions: [
       "Làm sao để đảm bảo an toàn bí mật (secrets/API keys) khi chạy pipeline trên các runner linh hoạt?",
@@ -368,9 +398,9 @@ export const FALLBACK_QUESTIONS: QuestionDetailOut[] = [
     language: "vi",
     question_type: "situational",
     question_text: "Khi chi phí trên mỗi lượt chuyển đổi (CPA) của một chiến dịch quảng cáo đột ngột tăng vọt 50% trong 48 giờ, bạn sẽ rà soát các yếu tố nào đầu tiên?",
-    star_template_id: 1,
+    star_template_id: null,
     is_active: true,
-    star_template: FALLBACK_STAR_TEMPLATES[1],
+    star_template: null,
     sample_answer: "Khi nhận thấy CPA chiến dịch Google Ads tăng từ 120.000đ lên 185.000đ trong hai ngày, tôi lập tức thực hiện quy trình rà soát 4 bước: 1. Kiểm tra website và landing page xem có bị lỗi tracking Pixel/GTM hoặc tốc độ tải trang chậm không. 2. Xem xét tần suất hiển thị (Frequency) và độ bão hòa mẫu quảng cáo (Ad fatigue). 3. Kiểm tra báo cáo Search Terms để xem có click tặc hoặc từ khóa rác kích hoạt quảng cáo không. 4. Đánh giá sự cạnh tranh từ thị trường. Tôi phát hiện đối thủ vừa tung chương trình giảm giá sốc cùng từ khóa; tôi đã điều chỉnh lại thông điệp USP nổi bật và loại bỏ các từ khóa tiêu cực, đưa CPA trở lại mức 115.000đ sau 3 ngày.",
     follow_up_questions: [
       "Làm sao để bạn phân bổ ngân sách tối ưu giữa các kênh Top of Funnel và Bottom of Funnel?",
@@ -578,7 +608,7 @@ export const catalogApi = {
       if (res && res.question_id) {
         return {
           ...res,
-          rubric_criteria: res.rubric_criteria || DEFAULT_RUBRIC_CRITERIA,
+          rubric_criteria: res.rubric_criteria || rubricForQuestion(res.question_type),
         };
       }
       return this.getFallbackQuestionDetail(Number(questionId));
@@ -600,7 +630,7 @@ export const catalogApi = {
       if (Array.isArray(res) && res.length > 0) {
         return res.map((q) => ({
           ...q,
-          rubric_criteria: q.rubric_criteria || DEFAULT_RUBRIC_CRITERIA,
+          rubric_criteria: q.rubric_criteria || rubricForQuestion(q.question_type),
         }));
       }
       return this.filterFallbackQuestionsByIds(idList);
@@ -679,7 +709,7 @@ export const catalogApi = {
       if (found) {
         result.push({
           ...found,
-          rubric_criteria: found.rubric_criteria || DEFAULT_RUBRIC_CRITERIA,
+          rubric_criteria: found.rubric_criteria || rubricForQuestion(found.question_type),
         });
       }
     }
@@ -717,91 +747,10 @@ export const catalogApi = {
           : res;
       }
     } catch (err) {
-      console.warn("Backend evaluation request failed, using intelligent algorithmic rubric:", err);
+      console.error("Backend evaluation request failed:", err);
+      throw err;
     }
-
-    // Heuristic rubric evaluation fallback
-    const text = (payload.answer_text || "").trim();
-    const len = text.length;
-
-    let baseScore = 75;
-    if (len > 300) baseScore += 12;
-    else if (len > 150) baseScore += 8;
-    else if (len < 50 && payload.type !== "quiz") baseScore -= 20;
-
-    const hasSituation = /tình huống|bối cảnh|khi|lúc|dự án|project|context/i.test(text);
-    const hasTask = /nhiệm vụ|mục tiêu|yêu cầu|trách nhiệm|task|goal/i.test(text);
-    const hasAction = /hành động|xử lý|thực hiện|giải pháp|tối ưu|action|code|debug/i.test(text);
-    const hasResult = /kết quả|đạt được|giảm|tăng|%|cải thiện|bài học|result/i.test(text);
-
-    let starBonus = 0;
-    if (hasSituation) starBonus += 3;
-    if (hasTask) starBonus += 3;
-    if (hasAction) starBonus += 4;
-    if (hasResult) starBonus += 4;
-
-    const finalScore = Math.min(96, Math.max(55, baseScore + starBonus));
-    const passed = finalScore >= 70;
-
-    return {
-      score: finalScore,
-      passed,
-      general_feedback: passed
-        ? "Câu trả lời của bạn có cấu trúc rõ ràng, làm nổi bật được cách tư duy giải quyết vấn đề và tinh thần trách nhiệm."
-        : "Câu trả lời còn hơi ngắn và thiếu dẫn chứng định lượng cụ thể. Hãy bổ sung thêm chi tiết về hành động của riêng bạn và kết quả đo lường được.",
-      star_breakdown: {
-        situation_score: hasSituation ? 9 : 6,
-        situation_feedback: hasSituation ? "Bối cảnh tình huống được mô tả mạch lạc." : "Nên làm rõ hơn thời điểm và quy mô thử thách ban đầu.",
-        task_score: hasTask ? 9 : 7,
-        task_feedback: hasTask ? "Nêu rõ ràng vai trò và mục tiêu cụ thể bạn phải đảm nhận." : "Cần nhấn mạnh trách nhiệm cá nhân bạn.",
-        action_score: hasAction ? 10 : 7,
-        action_feedback: hasAction ? "Hành động logic, nêu được công cụ và quy trình xử lý." : "Nên đi sâu vào giải pháp kỹ thuật cụ thể.",
-        result_score: hasResult ? 9 : 6,
-        result_feedback: hasResult ? "Đã có số liệu định lượng và bài học kinh nghiệm thiết thực." : "Cần bổ sung con số định lượng (% cải thiện, thời gian xử lý).",
-      },
-      rubric_scores: [
-        {
-          criterion_id: "star_structure",
-          criterion_name: "Cấu trúc STAR",
-          score: Math.min(10, Math.round(finalScore / 10)),
-          max_score: 10,
-          level_label: finalScore >= 85 ? "Xuất sắc" : finalScore >= 70 ? "Tốt" : "Đạt chuẩn",
-          feedback: "Các thành tố S-T-A-R được thể hiện đầy đủ và liên kết chặt chẽ.",
-        },
-        {
-          criterion_id: "technical_depth",
-          criterion_name: "Chiều sâu chuyên môn",
-          score: Math.min(10, Math.round((finalScore - 2) / 10)),
-          max_score: 10,
-          level_label: finalScore >= 80 ? "Tốt" : "Đạt chuẩn",
-          feedback: "Thể hiện được hiểu biết thực tế và tư duy giải quyết vấn đề phù hợp.",
-        },
-        {
-          criterion_id: "communication_clarity",
-          criterion_name: "Độ mạch lạc & Diễn đạt",
-          score: Math.min(10, Math.round((finalScore + 1) / 10)),
-          max_score: 10,
-          level_label: finalScore >= 75 ? "Tốt" : "Cần cải thiện",
-          feedback: "Ngôn từ tự tin, phân đoạn ý tứ rõ ràng, dễ tiếp thu.",
-        },
-        {
-          criterion_id: "impact_learning",
-          criterion_name: "Tác động & Bài học",
-          score: Math.min(10, Math.round((finalScore - 1) / 10)),
-          max_score: 10,
-          level_label: finalScore >= 80 ? "Tốt" : "Đạt chuẩn",
-          feedback: "Nêu được giá trị mang lại cho đội ngũ và bài học phát triển bản thân.",
-        },
-      ],
-      strengths: [
-        "Phong thái tự tin, câu trả lời đi thẳng vào trọng tâm vấn đề.",
-        "Nêu được phương pháp tiếp cận thực tế thay vì lý thuyết suông.",
-      ],
-      improvements: [
-        "Bổ sung thêm các số liệu định lượng cụ thể (% hiệu suất, số ngày rút ngắn) để câu trả lời thêm đắt giá.",
-        "Nêu rõ hơn các đánh đổi (trade-offs) trước khi lựa chọn giải pháp cuối cùng.",
-      ],
-    };
+    throw new Error("Máy chủ không trả về kết quả đánh giá hợp lệ.");
   },
 
   getFallbackQuestionDetail(id: number): QuestionDetailOut {
@@ -809,14 +758,14 @@ export const catalogApi = {
     if (found) {
       return {
         ...found,
-        rubric_criteria: DEFAULT_RUBRIC_CRITERIA,
+        rubric_criteria: rubricForQuestion(found.question_type),
       };
     }
     const first = FALLBACK_QUESTIONS[0];
     return {
       ...first,
       question_id: id,
-      rubric_criteria: DEFAULT_RUBRIC_CRITERIA,
+      rubric_criteria: rubricForQuestion(first.question_type),
     };
   },
 
