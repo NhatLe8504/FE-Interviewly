@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 export const metadata = {
   title: "Tạo CV với AI | AI CV Builder - Interviewly",
   description:
-    "Công cụ thiết kế CV chuyên nghiệp tích hợp AI: chỉnh sửa trực tiếp, tinh chỉnh văn phong STAR theo thời gian thực và đo lường độ khớp ATS với mô tả công việc.",
+    "Công cụ thiết kế CV chuyên nghiệp tích hợp AI: chỉnh sửa trực tiếp, cải thiện câu chữ bằng AI, điều chỉnh theo JD và đánh giá mức độ phù hợp ATS.",
 };
 
 export default function CvBuilderPage() {

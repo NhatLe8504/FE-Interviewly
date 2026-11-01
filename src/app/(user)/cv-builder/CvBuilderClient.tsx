@@ -7,6 +7,7 @@ import { cvApi } from "@/services/cvApi";
 import { CvTopBar } from "@/components/cv/CvTopBar";
 import { TemplateRenderer } from "@/components/cv/templates/TemplateRenderer";
 import { FloatingAiToolbar } from "@/components/cv/FloatingAiToolbar";
+import type { CvTextSelection } from "@/components/cv/EditableText";
 import { AtsScoreWidget } from "@/components/cv/AtsScoreWidget";
 import { AiDraftModal } from "@/components/cv/AiDraftModal";
 import { PageMascot } from "@/components/user-component/common/PageMascot";
@@ -69,11 +70,7 @@ export default function CvBuilderClient() {
   const { isSubscribed } = useUserSubscription();
   const isFirstLoadDone = useRef(false);
 
-  const [selection, setSelection] = useState<{
-    text: string;
-    rect: DOMRect | null;
-    sectionContext: string;
-  } | null>(null);
+  const [selection, setSelection] = useState<CvTextSelection | null>(null);
 
   const [atsScoreData, setAtsScoreData] = useState<CvAtsScoreResponse | null>(null);
   const [atsLoading, setAtsLoading] = useState(false);
@@ -401,42 +398,18 @@ export default function CvBuilderClient() {
     toast.info("Tính năng lưu và quản lý 5 bản CV dành cho tài khoản Pro!");
   };
 
-  const handleTextSelect = (sel: { text: string; rect: DOMRect; sectionContext: string }) => {
-    setSelection(sel);
+  const handleTextSelect = (selected: CvTextSelection) => {
+    setSelection(selected);
   };
 
-  const handleApplyReplacement = (newText: string) => {
-    if (!selection) return;
-    const oldText = selection.text;
-
-    if (cv.summary && cv.summary.includes(oldText)) {
-      handleUpdate({ summary: cv.summary.replace(oldText, newText) });
+  const handleApplyReplacement = (newText: string): boolean => {
+    if (!selection?.replaceSelectedText(newText)) {
+      toast.error("Đoạn văn đã thay đổi. Vui lòng chọn lại để chỉnh bằng AI.");
       setSelection(null);
-      return;
+      return false;
     }
-
-    const updatedExps = cv.work_experiences.map((exp) => {
-      const newHighlights = exp.highlights.map((hl) =>
-        hl.includes(oldText) ? hl.replace(oldText, newText) : hl
-      );
-      const newDesc = exp.description?.includes(oldText)
-        ? exp.description.replace(oldText, newText)
-        : exp.description;
-      return { ...exp, highlights: newHighlights, description: newDesc };
-    });
-    handleUpdate({ work_experiences: updatedExps });
-
-    const updatedProjs = cv.projects.map((proj) => {
-      const newHighlights = proj.highlights.map((hl) =>
-        hl.includes(oldText) ? hl.replace(oldText, newText) : hl
-      );
-      const newDesc = proj.description?.includes(oldText)
-        ? proj.description.replace(oldText, newText)
-        : proj.description;
-      return { ...proj, highlights: newHighlights, description: newDesc };
-    });
-    handleUpdate({ projects: updatedProjs });
     setSelection(null);
+    return true;
   };
 
   const handleRefreshAts = async () => {
@@ -518,6 +491,7 @@ export default function CvBuilderClient() {
         {/* FLOATING AI SELECTION TOOLBAR */}
         {selection && (
           <FloatingAiToolbar
+            key={`${selection.sectionContext}-${selection.text}-${selection.rect.top}-${selection.rect.left}`}
             selectedText={selection.text}
             anchorRect={selection.rect}
             sectionContext={selection.sectionContext}
