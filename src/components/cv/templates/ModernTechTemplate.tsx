@@ -3,7 +3,7 @@
 import React from "react";
 import { CvDocument } from "@/types/cv";
 import { CV_COLOR_THEMES, CV_FONT_FAMILIES } from "../cvThemes";
-import { EditableText } from "../EditableText";
+import { EditableText, type CvTextSelection } from "../EditableText";
 import { CvAvatar } from "../CvAvatar";
 import {
   Mail,
@@ -25,7 +25,7 @@ export interface TemplateProps {
   cv: CvDocument;
   onUpdate: (updated: Partial<CvDocument>) => void;
   isEditable?: boolean;
-  onTextSelect?: (selection: { text: string; rect: DOMRect; sectionContext: string }) => void;
+  onTextSelect?: (selection: CvTextSelection) => void;
 }
 
 export const ModernTechTemplate: React.FC<TemplateProps> = ({
@@ -83,7 +83,7 @@ export const ModernTechTemplate: React.FC<TemplateProps> = ({
 
   const addHighlight = (expIdx: number) => {
     const list = [...cv.work_experiences];
-    const hls = [...list[expIdx].highlights, "Thành tích hoặc cải tiến mới (nhấn bôi đen để AI chuyển thành STAR)."];
+    const hls = [...list[expIdx].highlights, "Thành tích hoặc cải tiến mới (bôi đen để AI hỗ trợ diễn đạt)."];
     list[expIdx] = { ...list[expIdx], highlights: hls };
     onUpdate({ work_experiences: list });
   };

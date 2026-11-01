@@ -3,6 +3,13 @@
 import React, { useRef, useEffect } from "react";
 import s from "@/app/(user)/cv-builder/cvBuilder.module.css";
 
+export interface CvTextSelection {
+  text: string;
+  rect: DOMRect;
+  sectionContext: string;
+  replaceSelectedText: (replacementText: string) => boolean;
+}
+
 interface EditableTextProps {
   value: string;
   onChange?: (val: string) => void;
@@ -12,7 +19,7 @@ interface EditableTextProps {
   tag?: "h1" | "h2" | "h3" | "h4" | "p" | "span" | "div";
   isEditable?: boolean;
   sectionContext?: string;
-  onTextSelect?: (selection: { text: string; rect: DOMRect; sectionContext: string }) => void;
+  onTextSelect?: (selection: CvTextSelection) => void;
 }
 
 export const EditableText: React.FC<EditableTextProps> = ({
@@ -27,6 +34,10 @@ export const EditableText: React.FC<EditableTextProps> = ({
   onTextSelect,
 }) => {
   const ref = useRef<HTMLElement>(null);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   // Sync value when external state changes, preserving cursor if not currently focused
   useEffect(() => {
@@ -51,15 +62,25 @@ export const EditableText: React.FC<EditableTextProps> = ({
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed) return;
 
-    const text = sel.toString().trim();
-    if (text.length > 2 && ref.current && ref.current.contains(sel.anchorNode)) {
+    const rawText = sel.toString();
+    const text = rawText.trim();
+    if (text.length > 2 && ref.current && ref.current.contains(sel.anchorNode) && ref.current.contains(sel.focusNode)) {
       const range = sel.getRangeAt(0);
       const rect = range.getBoundingClientRect();
-      onTextSelect({
-        text,
-        rect,
-        sectionContext,
-      });
+      const prefixRange = range.cloneRange();
+      prefixRange.selectNodeContents(ref.current);
+      prefixRange.setEnd(range.startContainer, range.startOffset);
+      const start = prefixRange.toString().length + (rawText.length - rawText.trimStart().length);
+      const replaceSelectedText = (replacement: string) => {
+        const currentText = ref.current?.innerText;
+        if (!currentText || !onChangeRef.current || currentText.slice(start, start + text.length) !== text) return false;
+        const nextText = currentText.slice(0, start) + replacement + currentText.slice(start + text.length);
+        ref.current!.innerText = nextText;
+        onChangeRef.current(nextText);
+        return true;
+      };
+      const selection = { text, rect, sectionContext, replaceSelectedText };
+      onTextSelect(selection);
     }
   };
 

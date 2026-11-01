@@ -14,6 +14,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import s from "@/app/(user)/cv-builder/cvBuilder.module.css";
+import { toast } from "@/components/user-component/toast";
 
 interface AiDraftModalProps {
   isOpen: boolean;
@@ -28,7 +29,7 @@ export const AiDraftModal: React.FC<AiDraftModalProps> = ({
   onApplyDraft,
   currentCv,
 }) => {
-  const [roleTitle, setRoleTitle] = useState(currentCv.personal_info.title || "Senior Software Engineer");
+  const [roleTitle, setRoleTitle] = useState(currentCv.personal_info.title || "");
   const [experienceLevel, setExperienceLevel] = useState("mid");
   const [useSystemSkills, setUseSystemSkills] = useState(true);
   const [customSkills, setCustomSkills] = useState("");
@@ -70,13 +71,22 @@ export const AiDraftModal: React.FC<AiDraftModalProps> = ({
         experience_level: experienceLevel,
         user_provided_skills: additionalSkills,
         use_system_skills: useSystemSkills,
+        current_cv_data: {
+          personal_info: { ...currentCv.personal_info, avatar_url: "" },
+          summary: currentCv.summary,
+          work_experiences: currentCv.work_experiences,
+          projects: currentCv.projects,
+          skills: currentCv.skills,
+          educations: currentCv.educations,
+          certifications: currentCv.certifications,
+        },
       });
 
       onApplyDraft(draft);
       onClose();
     } catch (err) {
       console.error("Generate draft failed:", err);
-      alert("Đã xảy ra lỗi khi tạo bản thảo AI. Vui lòng thử lại!");
+      toast.error(err instanceof Error ? err.message : "Không thể tạo bản thảo AI. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
