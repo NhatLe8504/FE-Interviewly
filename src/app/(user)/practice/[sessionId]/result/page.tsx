@@ -33,22 +33,25 @@ export default function InterviewResultPage({
 
   const [data, setData] = useState<SessionResultData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [expandedTurns, setExpandedTurns] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     async function loadResult() {
       setLoading(true);
+      setLoadError(false);
       try {
         const res = await historyApi.getSessionResult(sessionId);
         setData(res);
         // Expand first candidate turn by default or first turn
-        if (res.turns.length > 0) {
+        if (res?.turns?.length > 0) {
           const firstCandidate = res.turns.find((t) => t.speaker === "candidate");
           setExpandedTurns({ [firstCandidate ? firstCandidate.turn_id : res.turns[0].turn_id]: true });
         }
-      } catch (err: any) {
-      setData(null);
-    } finally {
+      } catch {
+        setData(null);
+        setLoadError(true);
+      } finally {
         setLoading(false);
       }
     }
@@ -72,7 +75,16 @@ export default function InterviewResultPage({
     );
   }
 
-  const result = data!;
+  if (!data || loadError) {
+    return (
+      <div className={styles.loadingShell}>
+        <p className={styles.loadingText}>Chưa tải được kết quả phỏng vấn. Vui lòng thử lại sau.</p>
+        <Link href={`/practice/${sessionId}`} className={styles.ghostBtn}>Quay lại phiên phỏng vấn</Link>
+      </div>
+    );
+  }
+
+  const result = data;
   const pdfUrl = historyApi.getPdfDownloadUrl(sessionId);
 
   return (

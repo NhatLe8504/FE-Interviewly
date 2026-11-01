@@ -38,6 +38,7 @@ import { getStoredToken } from "@/services/apiClient";
 import { toast } from "@/components/user-component/toast/UserToast";
 import { useI18n } from "@/context/I18nContext";
 import { INTERVIEW_LANGUAGES, getInterviewLanguage, type InterviewLanguage } from "@/lib/interviewLanguages";
+import { clampInterviewPlaybackSpeed, DEFAULT_INTERVIEW_PLAYBACK_SPEED, INTERVIEW_PLAYBACK_SPEED_STORAGE_KEY } from "@/lib/interviewAudio";
 import styles from "./interviewRoom.module.css";
 
 const STAGE_LABELS: Record<string, string> = {
@@ -60,6 +61,7 @@ interface SessionMetaStored {
   stage_configs?: StageConfigIn[];
   totalQuestions?: number;
   voice?: string;
+  preloadedVoiceOptions?: VoiceOptionsResponse | null;
   totalDurationMinutes?: number;
   mockMode?: "strict" | "guided";
   selected_question_ids?: string[];
@@ -109,13 +111,17 @@ export default function InterviewRoomPage({
 
   // Voice & STT Tiering states
   const [voiceOptions, setVoiceOptions] = useState<VoiceOptionsResponse | null>(null);
+  const [voiceConfigReady, setVoiceConfigReady] = useState(false);
+  const [hasPlayedOpeningAudio, setHasPlayedOpeningAudio] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<string>("vi-VN-HoaiMyNeural");
   const [selectedPitch, setSelectedPitch] = useState<number>(0);
+  const [selectedPlaybackSpeed, setSelectedPlaybackSpeed] = useState(DEFAULT_INTERVIEW_PLAYBACK_SPEED);
   const [selectedSttEngine, setSelectedSttEngine] = useState<string>("browser-speech-api");
 
   // Audio replay
   const [playingAudioKey, setPlayingAudioKey] = useState<string | null>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const activeAiReplayRef = useRef(false);
   const activeBlobUrlRef = useRef<string | null>(null);
 
   // Auto-scroll ref (mot thanh cuon chung cho ca khung chat)
@@ -172,6 +178,10 @@ export default function InterviewRoomPage({
           const p = parseInt(savedPitch, 10);
           if (!isNaN(p)) setSelectedPitch(Math.max(-10, Math.min(10, p)));
         }
+      } catch {}
+      try {
+        const savedSpeed = localStorage.getItem(INTERVIEW_PLAYBACK_SPEED_STORAGE_KEY);
+        if (savedSpeed !== null) setSelectedPlaybackSpeed(clampInterviewPlaybackSpeed(Number(savedSpeed)));
       } catch {}
     } catch {
       setLanguage(getInterviewLanguage(initialLanguage).code);
@@ -234,18 +244,28 @@ export default function InterviewRoomPage({
     aiState,
     isCompleted,
     isStoppingSession,
+    error: connectionError,
     sessionDurationSeconds,
     currentStage,
+    stagesList,
     turnId,
     turnInStage,
     targetTurnsInStage,
     currentQuestion,
+    showTextDuringTtsFallback,
+    ttsFallbackConsent,
+    isConfirmingTtsFallback,
+    chooseTtsFallback,
+    spokenText,
+    currentIntent,
     currentSubtitle,
     turns,
     isAudioPlaying,
+    bargeInEnabled,
     isAudioMuted,
     audioBlockedByAutoplay,
     toggleAudioMute,
+    toggleBargeIn,
     resumeAudio,
     sendTextMessage,
     interruptAi,
@@ -257,6 +277,8 @@ export default function InterviewRoomPage({
     updateTurnAudioUrl,
     // Adaptive 3-Stage Transition & Hint State
     pendingTransition,
+    interviewProgress,
+    isConfirmingTransition,
     confirmStageTransition,
     deferStageTransition,
     currentHint,
@@ -274,12 +296,14 @@ export default function InterviewRoomPage({
     setSelectedBrowserVoice,
   } = useRealtimeVoiceInterview({
     sessionId,
-    enabled: isClientMounted,
+    enabled: isClientMounted && voiceConfigReady,
     roleName,
     level,
     language,
+    responseMode: "voice",
     voice: selectedVoice,
     pitch: selectedPitch >= 0 ? `+${selectedPitch}Hz` : `${selectedPitch}Hz`,
+    playbackSpeed: selectedPlaybackSpeed,
     selectedStages,
     stageConfigs: meta.stage_configs,
     selectedQuestionIds: meta.selected_question_ids,
@@ -292,21 +316,28 @@ export default function InterviewRoomPage({
 
   // Fetch Voice & STT Options (tự động lọc theo ngôn ngữ & khôi phục giọng ưu tiên đã cache)
   useEffect(() => {
+    if (!isClientMounted) return;
     let isSubscribed = true;
-    voiceApi
-      .getVoiceOptions(language)
+    voiceApi.getVoiceOptions(language, AbortSignal.timeout(5000))
+      .catch((error) => {
+        if (meta.preloadedVoiceOptions) return meta.preloadedVoiceOptions;
+        throw error;
+      })
       .then((res) => {
         if (!isSubscribed) return;
         setVoiceOptions(res);
 
         // 1. Khôi phục TTS engine ưu tiên của ngôn ngữ này
-        let preferredEngine: "edge" | "elevenlabs" | "browser" = "edge";
+        let preferredEngine: "edge" | "elevenlabs" | "vieneu" | "browser" = "edge";
         try {
           const savedEngine = localStorage.getItem(getLangPreferredTtsEngineKey(language));
-          if (savedEngine === "browser" || savedEngine === "elevenlabs" || savedEngine === "edge") {
-            preferredEngine = savedEngine as "edge" | "elevenlabs" | "browser";
+          if (savedEngine === "browser" || savedEngine === "elevenlabs" || savedEngine === "edge" || savedEngine === "vieneu") {
+            preferredEngine = savedEngine;
           }
         } catch {}
+        if (preferredEngine === "vieneu" && !res.voices.some((v) => v.provider === "vieneu")) {
+          preferredEngine = "edge";
+        }
         setTtsEngine(preferredEngine);
 
         // 2. Khôi phục Browser voice ưu tiên nếu có
@@ -327,14 +358,18 @@ export default function InterviewRoomPage({
         } catch {}
 
         const candidateId = meta.voice || preferred;
-        const matchingVoice = res.voices.find((v) => v.id === candidateId && !v.is_locked);
+        const matchingVoice = res.voices.find((v) =>
+          v.id === candidateId && !v.is_locked &&
+          (preferredEngine === "browser" || v.provider === preferredEngine)
+        );
 
         if (matchingVoice) {
           setSelectedVoice(matchingVoice.id);
           changeVoice(matchingVoice.id);
         } else {
           // Fallback to default unlocked voice matching provider or default
-          const candidateProvider = preferredEngine === "elevenlabs" && res.is_premium_user ? "elevenlabs" : "edge";
+          const candidateProvider = preferredEngine === "vieneu" ||
+            (preferredEngine === "elevenlabs" && res.is_premium_user) ? preferredEngine : "edge";
           const def =
             res.voices.find((v) => v.provider === candidateProvider && v.is_default && !v.is_locked) ||
             res.voices.find((v) => v.provider === candidateProvider && !v.is_locked) ||
@@ -349,13 +384,22 @@ export default function InterviewRoomPage({
       })
       .catch((err) => {
         console.warn("Failed to load voice options:", err);
+      })
+      .finally(() => {
+        if (isSubscribed) setVoiceConfigReady(true);
       });
     return () => {
       isSubscribed = false;
     };
-  }, [language, meta.voice, changeVoice, setTtsEngine, setSelectedBrowserVoice]);
+  }, [isClientMounted, language, meta.voice, meta.preloadedVoiceOptions, changeVoice, setTtsEngine, setSelectedBrowserVoice]);
+
+  useEffect(() => {
+    if (isAudioPlaying) setHasPlayedOpeningAudio(true);
+  }, [isAudioPlaying]);
 
   const canAnswer = isConnected && aiState === "listening" && !isAudioPlaying && !isCompleted;
+  const canInterrupt = bargeInEnabled && isConnected && !isCompleted &&
+    (isAudioPlaying || aiState === "speaking");
 
   // Candidate Voice Answer Submission with Audio Cache upload
   const handleVoiceSubmit = useCallback(
@@ -364,7 +408,10 @@ export default function InterviewRoomPage({
       const curTurn = turnId;
 
       const sent = sendTextMessage(text, durationSeconds, localAudioUrl);
-      if (!sent) return false;
+      if (!sent) {
+        if (localAudioUrl) URL.revokeObjectURL(localAudioUrl);
+        return false;
+      }
 
       if (audioBlob) {
         voiceApi
@@ -385,11 +432,18 @@ export default function InterviewRoomPage({
   );
 
   const voiceDraft = useVoiceAnswerDraft({
-    enabled: isClientMounted && isVoiceMode && !isCompleted,
+    enabled: isClientMounted && isConnected && isVoiceMode && !isCompleted,
     canRecord: canAnswer,
+    autoListen: bargeInEnabled,
+    canInterrupt,
+    aiSpeechText: `${currentQuestion} ${currentSubtitle} ${spokenText}`,
+    onSpeechStart: interruptAi,
     language,
     onSubmit: handleVoiceSubmit,
   });
+  const voiceDraftHasSpeech = Boolean(voiceDraft.transcript.trim() || voiceDraft.interimTranscript.trim());
+  const isVoiceDraftBusy = ["processing", "review"].includes(voiceDraft.state) ||
+    (voiceDraft.state === "recording" && voiceDraftHasSpeech);
 
   const canSendText = canAnswer && !["requesting", "recording", "processing"].includes(voiceDraft.state);
 
@@ -412,7 +466,7 @@ export default function InterviewRoomPage({
     try {
       localStorage.setItem(PREFERRED_VOICE_STORAGE_KEY, newVoiceId);
       localStorage.setItem(getLangPreferredVoiceKey(language), newVoiceId);
-      if (target?.provider === "elevenlabs" || target?.provider === "edge") {
+      if (target?.provider === "elevenlabs" || target?.provider === "edge" || target?.provider === "vieneu") {
         localStorage.setItem(getLangPreferredTtsEngineKey(language), target.provider);
       }
     } catch {}
@@ -424,13 +478,17 @@ export default function InterviewRoomPage({
     } catch {}
   };
 
-  const handleTtsEngineChange = (engine: "edge" | "elevenlabs" | "browser") => {
+  const handleTtsEngineChange = (engine: "edge" | "elevenlabs" | "vieneu" | "browser") => {
     if (engine === "elevenlabs" && !voiceOptions?.is_premium_user) {
       toast({
         title: "Tính năng dành riêng cho gói Pro",
         description: "Giọng đọc ElevenLabs AI chuẩn studio yêu cầu tài khoản Pro để mở khóa.",
         variant: "warning",
       });
+    }
+    if (engine === "vieneu" && !voiceOptions?.voices.some((v) => v.provider === "vieneu")) {
+      toast.error("VieNeu chưa được cấu hình trên máy chủ.");
+      return;
     }
 
     setTtsEngine(engine);
@@ -452,11 +510,16 @@ export default function InterviewRoomPage({
           handleVoiceChange(elevenVoice.id);
         }
       }
+    } else if (engine === "vieneu") {
+      const vieneuVoice = voiceOptions?.voices.find((v) => v.provider === "vieneu" && !v.is_locked);
+      if (vieneuVoice && !selectedVoice.startsWith("vieneu:")) {
+        handleVoiceChange(vieneuVoice.id);
+      }
     } else if (engine === "edge") {
       const edgeVoice = voiceOptions?.voices.find(
         (v) => v.provider === "edge" && (v.language === language || v.language === "multi")
       );
-      if (edgeVoice && selectedVoice.startsWith("elevenlabs")) {
+      if (edgeVoice && (selectedVoice.startsWith("elevenlabs") || selectedVoice.startsWith("vieneu:"))) {
         handleVoiceChange(edgeVoice.id);
       }
     }
@@ -480,10 +543,18 @@ export default function InterviewRoomPage({
     } catch {}
   };
 
+  const handlePlaybackSpeedChange = (speed: number) => {
+    const nextSpeed = clampInterviewPlaybackSpeed(speed);
+    setSelectedPlaybackSpeed(nextSpeed);
+    try {
+      localStorage.setItem(INTERVIEW_PLAYBACK_SPEED_STORAGE_KEY, String(nextSpeed));
+    } catch {}
+  };
+
   const handlePreviewVoice = () => {
     const formattedPitch = selectedPitch >= 0 ? `+${selectedPitch}Hz` : `${selectedPitch}Hz`;
     const previewUrl = voiceApi.getVoicePreviewUrl(selectedVoice, formattedPitch);
-    togglePlayAudio("voice-pitch-preview", previewUrl);
+    togglePlayAudio("voice-pitch-preview", previewUrl, true);
   };
 
   const handleSttEngineChange = (newEngineId: string) => {
@@ -566,7 +637,7 @@ function changeInterviewLanguage(code: string) {
   };
 
 // Audio Replay Player Toggle (chuẩn hóa URL blob, relative và origin để phát lại mượt mà)
-  const togglePlayAudio = async (key: string, rawUrl: string) => {
+  const togglePlayAudio = async (key: string, rawUrl: string, aiVoice = false) => {
     if (!rawUrl) return;
     if (playingAudioKey === key) {
       if (audioPlayerRef.current) {
@@ -621,10 +692,13 @@ function changeInterviewLanguage(code: string) {
       }
 
       const audio = new Audio(playbackUrl);
+      activeAiReplayRef.current = aiVoice;
+      if (aiVoice) audio.playbackRate = selectedPlaybackSpeed;
       audioPlayerRef.current = audio;
       setPlayingAudioKey(key);
 
       const cleanupCurrentAudio = () => {
+        activeAiReplayRef.current = false;
         setPlayingAudioKey(null);
         audioPlayerRef.current = null;
         if (activeBlobUrlRef.current) {
@@ -651,6 +725,12 @@ function changeInterviewLanguage(code: string) {
       }
     }
   };
+
+  useEffect(() => {
+    if (activeAiReplayRef.current && audioPlayerRef.current) {
+      audioPlayerRef.current.playbackRate = selectedPlaybackSpeed;
+    }
+  }, [selectedPlaybackSpeed]);
 
   useEffect(() => {
     return () => {
@@ -680,31 +760,30 @@ function changeInterviewLanguage(code: string) {
     return res;
   }, [turns]);
 
-  // Index of target AI turn for pending transition to avoid rendering button on multiple turns
-  const targetAiTurnIdx = useMemo(() => {
-    if (!pendingTransition) return -1;
-    if (pendingTransition.turnId) {
-      const idx = displayTurns.findIndex((t) => t.speaker === "ai" && t.turnNumber === pendingTransition.turnId);
-      if (idx !== -1) return idx;
-    }
-    return displayTurns.map((t) => t.speaker).lastIndexOf("ai");
-  }, [displayTurns, pendingTransition]);
+  const openingAiTurn = displayTurns.find((turn) => turn.speaker === "ai");
+  const hasCurrentAiTurn = displayTurns.some((turn) => turn.speaker === "ai" && turn.turnNumber === turnId);
+  const streamingAiText = showTextDuringTtsFallback
+    ? currentQuestion || spokenText
+    : isAudioPlaying ? spokenText : currentQuestion;
 
   useEffect(() => {
     const el = chatScrollRef.current;
     if (el) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [displayTurns.length, aiState, currentQuestion]);
+  }, [displayTurns.length, aiState, currentQuestion, spokenText]);
 
-  // Determine current stage index (0 = warmup, 1 = technical, 2 = closing)
-  const currentStageIdx = useMemo(() => {
-    const sid = (currentStage.id || "").toLowerCase();
-    if (sid.includes("warm") || sid.includes("khởi")) return 0;
-    if (sid.includes("tech") || sid.includes("chuyên")) return 1;
-    if (sid.includes("clos") || sid.includes("kết")) return 2;
-    return Math.min(Math.max((currentStage.index || 1) - 1, 0), 2);
-  }, [currentStage]);
+  const visibleStages = THREE_STAGES.filter((stage) =>
+    (stagesList.length ? stagesList.map((item) => item.id) : selectedStages).includes(stage.id)
+  );
+  const currentStageIdx = Math.max(0, visibleStages.findIndex((stage) => stage.id === currentStage.id));
+  const mayRequestTransition = Boolean(interviewProgress &&
+    (interviewProgress.ready || stageElapsedSeconds >= interviewProgress.targetSeconds));
+  const progressPercent = interviewProgress
+    ? Math.min(100, Math.round(interviewProgress.discussed / Math.max(1, interviewProgress.total) * 100))
+    : 0;
+  const progressNeedsClarification = Boolean(interviewProgress && !interviewProgress.ready &&
+    interviewProgress.discussed > interviewProgress.completed);
 
   // Spacebar to interrupt AI
   useEffect(() => {
@@ -795,7 +874,7 @@ function changeInterviewLanguage(code: string) {
                 title={
                   mockMode === "strict"
                     ? "Chế độ thực chiến: AI phản biện sâu theo level, không có gợi ý"
-                    : "Chế độ huấn luyện: Có hỗ trợ gợi ý STAR khi cần"
+                    : "Chế độ huấn luyện: Có hỗ trợ gợi ý khi cần"
                 }
               >
                 {mockMode === "strict" ? "Thực chiến" : "Huấn luyện"}
@@ -804,7 +883,7 @@ function changeInterviewLanguage(code: string) {
 
             {/* TOP CENTER: 3 CHẶNG TRÒN (O)-(O)-(O) */}
             <div className={styles.stageCenterStepper}>
-              {THREE_STAGES.map((stage, idx) => {
+              {visibleStages.map((stage, idx) => {
                 const isFinished = idx < currentStageIdx;
                 const isCurrent = idx === currentStageIdx;
                 return (
@@ -828,13 +907,13 @@ function changeInterviewLanguage(code: string) {
                         )}
                       </span>
                       <span>{stage.label}</span>
-                      {isCurrent && (
+                      {isCurrent && !interviewProgress && (
                         <span className={styles.stepTurnBadge}>
                           {turnInStage}/{targetTurnsInStage}
                         </span>
                       )}
                     </div>
-                    {idx < THREE_STAGES.length - 1 && (
+                    {idx < visibleStages.length - 1 && (
                       <div
                         className={`${styles.stepConnector} ${
                           idx < currentStageIdx ? styles.stepConnectorFilled : ""
@@ -883,13 +962,56 @@ function changeInterviewLanguage(code: string) {
             </div>
           </div>
 
+          <div className={styles.flowStrip} aria-live="polite">
+            <div className={styles.flowStripDetails}>
+              <span className={styles.flowStageName}>{currentStage.name}</span>
+              <span>{interviewProgress
+                ? `${interviewProgress.discussed}/${interviewProgress.total} nội dung đã trao đổi${progressNeedsClarification ? " · đang làm rõ" : ""}`
+                : `Câu ${turnInStage}/${targetTurnsInStage}`}</span>
+              <span className={styles.flowTime}>
+                <Clock size={13} /> {formatTimer(stageElapsedSeconds)} / {formatTimer(stageMaxSeconds)}
+              </span>
+            </div>
+            <div className={styles.flowTrack} role="progressbar" aria-label="Tiến độ nội dung chặng"
+              aria-valuenow={interviewProgress?.discussed || 0} aria-valuemin={0}
+              aria-valuemax={interviewProgress?.total || 1}>
+              <span style={{ width: `${progressPercent}%` }} />
+            </div>
+            {(!isConnected || connectionError) && <span className={styles.flowNotice} role={connectionError ? "alert" : "status"}>
+              {connectionError || "Đang kết nối lại — đồng hồ tạm dừng, tiến độ được lưu."}
+            </span>}
+          </div>
+
+          {!hasPlayedOpeningAudio && !isCompleted &&
+            !displayTurns.some((turn) => turn.speaker === "user") && (
+            <div className={styles.readyPanel} role={audioBlockedByAutoplay || connectionError ? "alert" : "status"}>
+              <span>{connectionError || (audioBlockedByAutoplay
+                ? "Trình duyệt đang chặn âm thanh. Bật tiếng để nghe câu hỏi mở đầu."
+                : aiState === "listening" && openingAiTurn
+                  ? "Câu mở đầu chưa phát được giọng. Bạn có thể nghe lại bản ghi."
+                  : "Đang chuẩn bị giọng người phỏng vấn...")}</span>
+              {audioBlockedByAutoplay ? (
+                <button type="button" onClick={() => void resumeAudio()}>
+                  <Volume2 size={15} /> Bật tiếng AI
+                </button>
+              ) : aiState === "listening" && openingAiTurn?.audioUrl ? (
+                <button type="button" onClick={() => {
+                  setHasPlayedOpeningAudio(true);
+                  void togglePlayAudio(openingAiTurn.id, openingAiTurn.audioUrl!, true);
+                }}>
+                  <Play size={15} /> Nghe câu mở đầu
+                </button>
+              ) : null}
+            </div>
+          )}
+
           {/* =========================================================
               MIDDLE STAGE: MOT KHUNG CHAT DUY NHAT (ZIGZAG) + VIDEO AI CO DINH O GIUA
           ========================================================= */}
           <div className={styles.middleStageBody}>
             {/* MOT THANH CUON CHUNG CHO TOAN BO HOI THOAI */}
             <div className={styles.chatScrollArea} ref={chatScrollRef}>
-              {displayTurns.length === 0 && aiState !== "speaking" && (
+              {displayTurns.length === 0 && !isAudioPlaying && !spokenText && !currentQuestion && aiState !== "speaking" && (
                 <div className={styles.chatEmptyHint}>AI đang chuẩn bị câu hỏi mở đầu...</div>
               )}
 
@@ -902,12 +1024,12 @@ function changeInterviewLanguage(code: string) {
                         <span>•</span>
                         <span>{turn.timestamp}</span>
                       </div>
-                      <div>{turn.text}</div>
+                      <div>{!showTextDuringTtsFallback && isAudioPlaying && spokenText && turn.turnNumber === turnId ? spokenText : turn.text}</div>
                       {turn.audioUrl && (
                         <button
                           type="button"
                           className={styles.audioReplayBtn}
-                          onClick={() => togglePlayAudio(turn.id || `ai-${idx}`, turn.audioUrl!)}
+                          onClick={() => togglePlayAudio(turn.id || `ai-${idx}`, turn.audioUrl!, true)}
                         >
                           {playingAudioKey === (turn.id || `ai-${idx}`) ? (
                             <>
@@ -923,38 +1045,6 @@ function changeInterviewLanguage(code: string) {
                         </button>
                       )}
 
-                      {/* Nut mau xanh dong y qua chang tiep theo inline ngay tren cau tro chuyen nay cua AI */}
-                      {pendingTransition && idx === targetAiTurnIdx && (
-                        <div className={styles.inlineStageTransitionCard}>
-                          <div className={styles.inlineStageHeader}>
-                            <Sparkles size={13} />
-                            <span>Đề xuất: Sẵn sàng qua {STAGE_LABELS[pendingTransition.nextStage] || "Chặng tiếp theo"}</span>
-                          </div>
-                          <p className={styles.inlineStageNotice}>
-                            Bấm nút màu xanh bên dưới hoặc nói/chat &quot;Đồng ý&quot; để tiếp tục, hoặc bạn có thể trả lời tiếp câu hỏi ở trên.
-                          </p>
-                          <div className={styles.inlineStageActions}>
-                            <button
-                              type="button"
-                              className={styles.btnGreenStageConfirm}
-                              onClick={confirmStageTransition}
-                              title="Đồng ý chuyển sang chặng tiếp theo"
-                            >
-                              <CheckCircle2 size={15} />
-                              <span>Đồng ý qua {STAGE_LABELS[pendingTransition.nextStage] || "Chặng tiếp theo"} →</span>
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.btnSecondaryStageDefer}
-                              onClick={() => deferStageTransition()}
-                              title="Tiếp tục trao đổi thêm ở chặng hiện tại"
-                            >
-                              <MessageSquare size={13} />
-                              <span>Nói tiếp ở chặng này</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 ) : (
@@ -997,7 +1087,8 @@ function changeInterviewLanguage(code: string) {
               )}
 
 {/* Bong bong xem truoc giong noi truc tiep tren khung chat (Ziczac ben phai) */}
-              {isVoiceMode && (voiceDraft.state === "recording" || voiceDraft.state === "review") && (
+              {isVoiceMode && (voiceDraft.state === "review" ||
+                (voiceDraft.state === "recording" && voiceDraftHasSpeech)) && (
                 <div className={styles.turnRowUser}>
                   <div className={styles.userLivePreviewBubble}>
                     <div className={styles.userBubbleMeta}>
@@ -1050,7 +1141,7 @@ function changeInterviewLanguage(code: string) {
                           onClick={() => void voiceDraft.stopRecording()}
                         >
                           <Square size={11} fill="currentColor" />
-                          <span>Dừng nói</span>
+                          <span>Dừng và gửi</span>
                         </button>
                       ) : (
                         <>
@@ -1110,15 +1201,15 @@ function changeInterviewLanguage(code: string) {
               )}
 
               {/* Bong bong dang go chu khi AI noi (chong trung lap voi turn da add vao turns) */}
-              {aiState === "speaking" && currentQuestion && !displayTurns.some((t) => t.speaker === "ai" && (t.text.trim() === currentQuestion.trim() || (turnId && t.turnNumber === turnId))) && (
+              {streamingAiText && !hasCurrentAiTurn && (
                 <div className={styles.turnRowAi}>
                   <div className={styles.aiStreamingBubble}>
                     <div className={styles.bubbleMeta}>
                       <span className={styles.statePulseDot} />
-                      <span>AI đang nói...</span>
+                      <span>{isAudioPlaying ? "AI đang nói..." : "AI đang trả lời..."}</span>
                     </div>
                     <div>
-                      {currentQuestion}
+                      {streamingAiText}
                       <span className={styles.typewriterCursor} />
                     </div>
                   </div>
@@ -1129,14 +1220,14 @@ function changeInterviewLanguage(code: string) {
             {/* VIDEO AI O CHINH GIUA - CO DINH, KHONG CUON THEO KHUNG CHAT */}
             <div className={styles.centerAiBox}>
               <div className={styles.interviewerMediaStage}>
-                {(isAudioPlaying || aiState === "speaking") && (
+                {isAudioPlaying && (
                   <span className={styles.speakingHaloRing} />
                 )}
                 <div className={styles.mediaBackdropStudio} />
 
                 <ChromaVideoCanvas
                   videoSrc={persona.videoUrl}
-                  isPlaying={isAudioPlaying || aiState === "speaking"}
+                  isPlaying={isAudioPlaying}
                   fallbackImageUrl={persona.avatarUrl}
                   characterName={persona.name}
                   width={220}
@@ -1149,13 +1240,13 @@ function changeInterviewLanguage(code: string) {
             </div>
           </div>
 
-          {/* Floating STAR coaching hint card */}
+          {/* Coaching hint for the current question */}
           {currentHint && (
             <div className={styles.hintFloatingCard}>
               <div className={styles.hintCardHeader}>
                 <div className={styles.hintTitleBox}>
                   <Sparkles size={14} />
-                  <span>Gợi ý STAR từ Huấn luyện viên AI</span>
+                  <span>Gợi ý từ Huấn luyện viên AI</span>
                 </div>
                 <button
                   type="button"
@@ -1170,6 +1261,69 @@ function changeInterviewLanguage(code: string) {
             </div>
           )}
 
+          {ttsFallbackConsent && !isCompleted && (
+            <section className={`${styles.transitionPanel} ${styles.ttsConsentPanel}`} role="alert" aria-label="Xác nhận giọng đọc dự phòng">
+              <div className={styles.transitionCopy}>
+                <span className={styles.transitionEyebrow}><Volume2 size={14} /> Giọng đọc gặp sự cố</span>
+                <strong>Hai lượt liên tiếp phải dùng giọng dự phòng</strong>
+                <p>Trong mỗi lượt, các câu tiếp theo đã giữ cùng nguồn phát để tránh chờ lại. Bạn có đồng ý dùng {ttsFallbackConsent.phase === "backup" ? "Edge TTS" : "giọng trình duyệt"} cho phần còn lại của buổi phỏng vấn không? Nếu không, lượt tiếp theo sẽ thử lại giọng hiện tại.</p>
+              </div>
+              <div className={styles.transitionActions}>
+                <button type="button" className={styles.btnSecondaryStageDefer}
+                  disabled={!isConnected || isConfirmingTtsFallback}
+                  onClick={() => chooseTtsFallback(false)}>Thử lại giọng hiện tại</button>
+                <button type="button" className={styles.btnGreenStageConfirm}
+                  disabled={!isConnected || isConfirmingTtsFallback}
+                  onClick={() => chooseTtsFallback(true)}>
+                  <Check size={15} /> {isConfirmingTtsFallback ? "Đang lưu..." : `Dùng ${ttsFallbackConsent.phase === "backup" ? "Edge TTS" : "giọng trình duyệt"} đến cuối buổi`}
+                </button>
+              </div>
+            </section>
+          )}
+
+          {pendingTransition ? (
+            <section className={styles.transitionPanel} aria-live="polite" aria-label="Xác nhận tiến trình phỏng vấn">
+              <div className={styles.transitionCopy}>
+                <span className={styles.transitionEyebrow}>
+                  <Sparkles size={14} /> {pendingTransition.reason === "overtime" ? "Cần quyết định của bạn" : "Sẵn sàng khi bạn muốn"}
+                </span>
+                <strong>{pendingTransition.kind === "end"
+                  ? "Khép lại buổi phỏng vấn?"
+                  : `Chuyển sang ${STAGE_LABELS[pendingTransition.nextStage] || "chặng tiếp theo"}?`}</strong>
+                <p>{pendingTransition.reason === "overtime"
+                  ? `Còn ${pendingTransition.remainingRequired} nội dung chưa trao đổi. Bạn có thể tiếp tục hoặc xác nhận bỏ qua chúng.`
+                  : pendingTransition.kind === "end"
+                    ? "Nếu còn thắc mắc, cứ tiếp tục trò chuyện. Buổi phỏng vấn chỉ kết thúc khi bạn xác nhận."
+                    : "Bạn có thể nói thêm ở chặng này. Chặng tiếp theo chỉ bắt đầu sau khi bạn xác nhận."}</p>
+              </div>
+              <div className={styles.transitionActions}>
+                <button type="button" className={styles.btnSecondaryStageDefer}
+                   disabled={!canAnswer || isConfirmingTransition || isVoiceDraftBusy}
+                   onClick={() => { if (["requesting", "recording"].includes(voiceDraft.state)) voiceDraft.cancelRecording(); deferStageTransition(); }}>
+                  <MessageSquare size={14} /> {pendingTransition.reason === "overtime" ? "Tiếp tục đào sâu" : "Nói thêm"}
+                </button>
+                <button type="button" className={styles.btnGreenStageConfirm}
+                   disabled={!canAnswer || isConfirmingTransition || isVoiceDraftBusy}
+                   onClick={() => { if (["requesting", "recording"].includes(voiceDraft.state)) voiceDraft.cancelRecording(); confirmStageTransition(); }}>
+                  <CheckCircle2 size={16} /> {isConfirmingTransition ? "Đang xác nhận..."
+                    : pendingTransition.reason === "overtime" ? "Bỏ qua và tiếp tục"
+                      : pendingTransition.kind === "end" ? "Xác nhận kết thúc" : "Sẵn sàng chuyển"}
+                </button>
+              </div>
+            </section>
+          ) : mayRequestTransition && !isCompleted ? (
+            <div className={styles.readyPanel}>
+              <span>{interviewProgress?.ready
+                ? "Đã trao đổi đủ nội dung của chặng. Bạn có thể nói thêm hoặc đề nghị chuyển."
+                : `Đã đến mốc thời gian; còn ${interviewProgress?.remainingRequired} nội dung cần trao đổi.`}</span>
+              <button type="button" disabled={!canAnswer || isVoiceDraftBusy}
+                onClick={() => { if (["requesting", "recording"].includes(voiceDraft.state)) voiceDraft.cancelRecording(); skipToNextStage(); }}>
+                {currentStage.is_last ? "Đề nghị kết thúc" : "Đề nghị chuyển chặng"}
+                <FastForward size={14} />
+              </button>
+            </div>
+          ) : null}
+
           {/* =========================================================
               BOTTOM ROW: THANH ĐIỀU KHIỂN BO TRÒN THEO PHÁC THẢO [  INPUT  ] [O] [O] [O]
           ========================================================= */}
@@ -1177,20 +1331,31 @@ function changeInterviewLanguage(code: string) {
 {/* Input Zone on Left */}
             <div className={styles.capsuleInputZone}>
               {isVoiceMode ? (
-                voiceDraft.state === "recording" ? (
+                voiceDraft.error ? (
+                  <p className={styles.capsuleStatusText} role="alert">{voiceDraft.error}</p>
+                ) : voiceDraft.state === "recording" ? (
                   <p className={styles.capsuleStatusText}>
-                    <span className={styles.statusDotRecording}>● Đang thu âm...</span> Lời nói hiển thị trực tiếp trên khung chat. Nói xong bấm Dừng nói.
+                    <span className={styles.statusDotRecording}>
+                      {bargeInEnabled && !voiceDraftHasSpeech ? "● Mic đang nghe" : "● Đang thu âm"}
+                    </span>{" "}
+                    {bargeInEnabled && !voiceDraftHasSpeech
+                      ? "Bạn có thể nói để ngắt lời AI; mic sẽ tự gửi khi bạn ngừng nói."
+                      : bargeInEnabled
+                        ? `Tự gửi sau khi bạn dừng nói${voiceDraft.silenceRemaining !== null ? ` (${voiceDraft.silenceRemaining}s)` : ""}.`
+                        : "Bấm Dừng và gửi khi bạn nói xong."}
                   </p>
                 ) : voiceDraft.state === "review" ? (
                   <p className={styles.capsuleStatusText}>
-                    <span className={styles.statusDotReview}>✓ Đã có bản thu:</span> Xem lại trên khung chat và bấm &quot;Xác nhận gửi&quot;.
+                    <span className={styles.statusDotReview}>Bản thu chưa gửi:</span> Kiểm tra nhận diện rồi bấm Gửi lại.
                   </p>
                 ) : (
                   <p className={styles.capsuleStatusText}>
-                    {isAudioPlaying || aiState === "speaking"
+                    {bargeInEnabled
+                      ? "Mic tự động sẽ nghe cả khi AI đang nói. Bạn có thể nói để ngắt lời."
+                      : isAudioPlaying || aiState === "speaking"
                       ? "Lắng nghe câu hỏi từ AI trước khi trả lời..."
                       : canAnswer
-                      ? "Đến lượt bạn trả lời. Nhấn nút micro tròn bên phải để bắt đầu."
+                      ? "Bấm micro để nói, bấm lần nữa để dừng và gửi."
                       : "Đang chờ kết nối máy chủ..."}
                   </p>
                 )
@@ -1213,11 +1378,16 @@ function changeInterviewLanguage(code: string) {
                 voiceDraft.state === "recording" ? (
                   <button
                     type="button"
-                    className={`${styles.roundActionBtn} ${styles.btnRecordingStop}`}
-                    onClick={() => void voiceDraft.stopRecording()}
-                    title="Dừng thu âm"
+                    className={`${styles.roundActionBtn} ${bargeInEnabled && !voiceDraftHasSpeech ? styles.btnAutoMic : styles.btnRecordingStop}`}
+                    onClick={() => {
+                      if (bargeInEnabled && !voiceDraftHasSpeech) {
+                        voiceDraft.cancelRecording();
+                        toggleBargeIn();
+                      } else void voiceDraft.stopRecording();
+                    }}
+                    title={bargeInEnabled && !voiceDraftHasSpeech ? "Tắt micro tự động" : "Dừng và gửi câu trả lời"}
                   >
-                    <Square size={16} fill="currentColor" />
+                    {bargeInEnabled && !voiceDraftHasSpeech ? <Mic size={18} /> : <Square size={16} fill="currentColor" />}
                   </button>
                 ) : voiceDraft.state === "review" ? (
                   <button
@@ -1243,14 +1413,14 @@ function changeInterviewLanguage(code: string) {
                     className={`${styles.roundActionBtn} ${styles.btnPrimaryMic}`}
                     onClick={() => void voiceDraft.startRecording()}
                     disabled={!canAnswer || !voiceDraft.sttSupported}
-                    title="Bắt đầu thu âm"
+                    title={bargeInEnabled ? "Bật lại micro" : "Bắt đầu thu âm"}
                   >
                     <Mic size={18} />
                   </button>
                 )
               ) : null}
 
-              {/* Nút 2: Gửi câu trả lời */}
+              {/* Chỉ hiện nút gửi lại nếu nhận diện thất bại hoặc cần sửa bản thu */}
               {isVoiceMode ? (
                 voiceDraft.state === "review" ? (
                   <button
@@ -1258,7 +1428,7 @@ function changeInterviewLanguage(code: string) {
                     className={`${styles.roundActionBtn} ${styles.btnSubmitSend}`}
                     onClick={voiceDraft.submit}
                     disabled={!canAnswer || !voiceDraft.transcript.trim()}
-                    title="Gửi câu trả lời"
+                    title="Gửi lại bản thu"
                   >
                     <Send size={16} />
                   </button>
@@ -1302,7 +1472,7 @@ function changeInterviewLanguage(code: string) {
                   className={`${styles.roundActionBtn} ${styles.btnStarHint}`}
                   onClick={requestHint}
                   disabled={!canAnswer || isRequestingHint}
-                  title={isRequestingHint ? "Đang phân tích câu hỏi để tạo gợi ý STAR..." : "Xin gợi ý cấu trúc STAR từ Huấn luyện viên AI"}
+                  title={isRequestingHint ? "Đang phân tích câu hỏi để tạo gợi ý..." : "Xin gợi ý từ Huấn luyện viên AI"}
                 >
                   <Sparkles size={16} />
                 </button>
@@ -1378,6 +1548,15 @@ function changeInterviewLanguage(code: string) {
                   >
                     ElevenLabs AI (Studio Pro ⭐)
                   </button>
+                  {voiceOptions?.voices.some((voice) => voice.provider === "vieneu") && (
+                    <button
+                      type="button"
+                      className={`${styles.pitchQuickBtn} ${ttsEngine === "vieneu" ? styles.pitchQuickBtnActive : ""}`}
+                      onClick={() => handleTtsEngineChange("vieneu")}
+                    >
+                      VieNeu Cloud (Tiếng Việt)
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={`${styles.pitchQuickBtn} ${ttsEngine === "browser" ? styles.pitchQuickBtnActive : ""}`}
@@ -1389,6 +1568,8 @@ function changeInterviewLanguage(code: string) {
                 <p className={styles.settingsHelper}>
                   {ttsEngine === "browser"
                     ? "Web Speech API: Phát âm trực tiếp trên trình duyệt máy bạn, độ trễ thấp nhất (0ms network delay)."
+                    : ttsEngine === "vieneu"
+                    ? "VieNeu Cloud v4: Phát âm tiếng Việt qua máy chủ. Nếu dịch vụ gián đoạn, hệ thống thử lại bằng Edge TTS."
                     : ttsEngine === "elevenlabs"
                     ? "ElevenLabs AI: Giọng đọc phòng thu đỉnh cao thế giới với biểu cảm tự nhiên vượt trội (Dành cho gói Pro)."
                     : "Edge TTS: Giọng đọc Microsoft Cloud AI tự nhiên và truyền cảm (Miễn phí cho mọi tài khoản)."}
@@ -1396,7 +1577,31 @@ function changeInterviewLanguage(code: string) {
               </div>
 
               {/* Giọng đọc tương ứng theo TTS Engine */}
-              {ttsEngine === "edge" ? (
+              {ttsEngine === "vieneu" ? (
+                <div className={styles.settingsSection}>
+                  <div className={styles.settingsSectionLabel}>
+                    <span>Giọng đọc VieNeu</span>
+                  </div>
+                  <SimpleUserSelect
+                    id="settings-voice-select-vieneu"
+                    value={selectedVoice}
+                    disabled={!canSendText}
+                    onChange={handleVoiceChange}
+                    options={filteredVoices
+                      .filter((voice) => voice.provider === "vieneu")
+                      .map((voice) => ({ value: voice.id, label: voice.name }))}
+                    aria-label="VieNeu Voice"
+                  />
+                  <button
+                    type="button"
+                    className={styles.pitchPreviewBtn}
+                    onClick={handlePreviewVoice}
+                  >
+                    {playingAudioKey === "voice-pitch-preview" ? "Dừng nghe thử" : "Nghe thử giọng VieNeu"}
+                  </button>
+                  <p className={styles.settingsHelper}>VieNeu chưa hỗ trợ chỉnh cao độ (pitch). Tùy chọn này dùng API key trên máy chủ, không gửi key tới trình duyệt.</p>
+                </div>
+              ) : ttsEngine === "edge" ? (
                 <div className={styles.settingsSection}>
                   <div className={styles.settingsSectionLabel}>
                     <span>Giọng đọc Edge TTS</span>
@@ -1487,8 +1692,34 @@ function changeInterviewLanguage(code: string) {
                 </div>
               )}
 
-              {/* Độ cao / thấp giọng đọc (Pitch Control) */}
               <div className={styles.settingsSection}>
+                <label className={styles.settingsSectionLabel} htmlFor="interview-playback-speed">
+                  <span>Tốc độ nói của người phỏng vấn</span>
+                  <span className={styles.pitchValueBadge}>{selectedPlaybackSpeed.toFixed(2)}×</span>
+                </label>
+                <div className={styles.pitchSliderWrapper}>
+                  <span className={styles.pitchBoundaryLabel}>Chậm</span>
+                  <input
+                    id="interview-playback-speed"
+                    type="range"
+                    min={0.85}
+                    max={1.5}
+                    step={0.05}
+                    value={selectedPlaybackSpeed}
+                    onChange={(event) => handlePlaybackSpeedChange(Number(event.target.value))}
+                    className={styles.pitchSlider}
+                    aria-valuetext={`${selectedPlaybackSpeed.toFixed(2)} lần tốc độ bình thường`}
+                  />
+                  <span className={styles.pitchBoundaryLabel}>Nhanh</span>
+                </div>
+                <p className={styles.settingsHelper}>
+                  Mặc định {DEFAULT_INTERVIEW_PLAYBACK_SPEED.toFixed(2)}×. Lưu trên thiết bị này;
+                  áp dụng từ đoạn giọng tiếp theo, không thay đổi bản thu của bạn.
+                </p>
+              </div>
+
+              {/* Độ cao / thấp giọng đọc (Pitch Control) */}
+              {ttsEngine !== "vieneu" && <div className={styles.settingsSection}>
                 <div className={styles.settingsSectionLabel}>
                   <span>Độ cao / thấp giọng đọc (Pitch)</span>
                   <span className={styles.pitchValueBadge}>
@@ -1558,7 +1789,29 @@ function changeInterviewLanguage(code: string) {
                 <p className={styles.settingsHelper}>
                   Điều chỉnh cao độ âm sắc để giọng nói AI trở nên trầm ấm hoặc thanh mảnh theo sở thích của bạn.
                 </p>
+              </div>}
+
+              <div className={styles.settingsSection}>
+                <span className={styles.settingsSectionLabel}>Micro hội thoại</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={bargeInEnabled}
+                  className={`${styles.pitchQuickBtn} ${bargeInEnabled ? styles.pitchQuickBtnActive : ""}`}
+                  onClick={() => {
+                    if (voiceDraft.state === "recording" && !voiceDraftHasSpeech) voiceDraft.cancelRecording();
+                    toggleBargeIn();
+                  }}
+                >
+                  {bargeInEnabled ? "Đang bật: nghe liên tục và tự gửi" : "Đang tắt: bấm mic để nói"}
+                </button>
+                <p className={styles.settingsHelper}>
+                  Khi bật, micro tự nghe và có thể ngắt lời AI khi nhận diện tiếng nói của bạn.
+                  Nên dùng tai nghe để tránh loa AI lọt vào micro. Trình duyệt cần cấp quyền micro và hỗ trợ nhận diện giọng nói.
+                </p>
               </div>
+
+              <div className={styles.settingsDivider} />
 
               {/* Bộ nhận diện giọng nói (STT) */}
               <div className={styles.settingsSection}>
@@ -1605,7 +1858,7 @@ function changeInterviewLanguage(code: string) {
                 <p className={styles.settingsHelper}>
                   {mockMode === "strict"
                     ? "Thực chiến: Áp lực cao, không có gợi ý, AI phản biện sâu bám sát CV & JD."
-                    : "Huấn luyện: Hỗ trợ nút xin gợi ý STAR khi bạn cần hướng dẫn trả lời."}
+                    : "Huấn luyện: Hỗ trợ nút xin gợi ý khi bạn cần hướng dẫn trả lời."}
                 </p>
               </div>
 
@@ -1634,10 +1887,10 @@ function changeInterviewLanguage(code: string) {
                       skipToNextStage();
                       setIsSettingsOpen(false);
                     }}
-                    disabled={!canAnswer || voiceDraft.state !== "idle" || currentStage.is_last}
+                    disabled={!canAnswer || voiceDraft.state !== "idle" || !mayRequestTransition || Boolean(pendingTransition)}
                   >
                     <FastForward size={13} />
-                    <span>Bỏ qua sang chặng tiếp theo</span>
+                    <span>{currentStage.is_last ? "Đề nghị kết thúc" : "Đề nghị chuyển chặng"}</span>
                   </button>
                   <button
                     type="button"
@@ -1648,7 +1901,7 @@ function changeInterviewLanguage(code: string) {
                     }}
                   >
                     <Sparkles size={13} />
-                    <span>Mở gợi ý cấu trúc STAR</span>
+                    <span>Mở gợi ý cấu trúc trả lời</span>
                   </button>
                 </div>
 
@@ -1676,7 +1929,7 @@ function changeInterviewLanguage(code: string) {
         isOpen={isStarOpen}
         onClose={() => setIsStarOpen(false)}
         showTrigger={false}
-        starTip="Tập trung trả lời theo cấu trúc STAR: Situation → Task → Action → Result."
+        framework={currentIntent?.question_type || "generic"}
         onInsertStarter={(starter) => {
           setCurrentMode("text");
           setTypedText((prev) => (prev ? `${prev}\n\n${starter}` : starter));
