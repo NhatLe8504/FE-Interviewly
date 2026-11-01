@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import CourseDetailClient from "./CourseDetailClient";
-import { COURSES_DATA } from "@/data/coursesData";
 
 export async function generateMetadata({
   params,
@@ -9,12 +8,9 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const course = COURSES_DATA.find((c) => c.slug === slug);
   return {
-    title: course
-      ? `${course.title} | Lộ Trình Ôn Luyện Phỏng Vấn | Interviewly`
-      : "Chi Tiết Khóa Học Phỏng Vấn | Interviewly",
-    description: course?.description || "Lộ trình ôn luyện phỏng vấn chuẩn hóa quốc tế.",
+    title: `Khóa học ${slug} | Lộ Trình Ôn Luyện Phỏng Vấn | Interviewly`,
+    description: "Lộ trình ôn luyện phỏng vấn chuẩn hóa thực chiến cùng AI Coach.",
   };
 }
 

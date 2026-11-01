@@ -1,30 +1,29 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   Search,
   BookOpen,
   Sparkles,
   Clock,
-  Award,
   Layers,
   Star,
-  Users,
   Building2,
-  ChevronRight,
   GraduationCap,
-  Compass,
   ArrowRight,
   RotateCcw,
 } from "lucide-react";
-import { COURSES_DATA, COURSE_CATEGORIES } from "@/data/coursesData";
-import type { CourseItem } from "@/types/course";
+import { COURSE_CATEGORIES } from "@/data/coursesData";
+import { courseApi } from "@/services/courseApi";
+import type { CourseOut } from "@/types/course";
 import { useI18n } from "@/context/I18nContext";
 import { SimpleUserSelect } from "@/components/user-component/common";
 import { PageMascot } from "@/components/user-component/common/PageMascot";
 import { UserPagination } from "@/components/user-component/common/Pagination";
 import styles from "./courses.module.css";
+
+const PAGE_SIZE = 6;
 
 export default function CourseLibraryClient() {
   const { locale } = useI18n();
@@ -33,55 +32,62 @@ export default function CourseLibraryClient() {
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
 
-  const filteredCourses = useMemo(() => {
-    return COURSES_DATA.filter((c) => {
-      // 1. Search Query
-      if (search.trim()) {
-        const kw = search.trim().toLowerCase();
-        const inTitle = c.title.toLowerCase().includes(kw);
-        const inRole = c.role.toLowerCase().includes(kw);
-        const inDesc = c.description.toLowerCase().includes(kw);
-        const inSkills = c.skills.some((s) => s.toLowerCase().includes(kw));
-        const inCompanies = c.targetCompanies.some((comp) => comp.toLowerCase().includes(kw));
-        if (!inTitle && !inRole && !inDesc && !inSkills && !inCompanies) {
-          return false;
+  const [courses, setCourses] = useState<CourseOut[]>([]);
+  const [total, setTotal] = useState<number>(0);
+  const [page, setPage] = useState<number>(1);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const requestSeq = useRef<number>(0);
+
+  const loadCourses = useCallback(
+    async (targetPage = 1) => {
+      const seq = ++requestSeq.current;
+      setLoading(true);
+      setError(null);
+      try {
+        const offset = (targetPage - 1) * PAGE_SIZE;
+        const res = await courseApi.listCourses({
+          search: search.trim() || undefined,
+          category: selectedCategory !== "all" ? selectedCategory : undefined,
+          type: selectedType !== "all" ? selectedType : undefined,
+          level: selectedLevel !== "all" ? selectedLevel : undefined,
+          limit: PAGE_SIZE,
+          offset,
+        });
+
+        if (seq !== requestSeq.current) return;
+        setCourses(res.items || []);
+        setTotal(res.total || 0);
+        setPage(targetPage);
+      } catch (err: any) {
+        if (seq !== requestSeq.current) return;
+        setError(err?.message || "Không thể tải danh sách khóa học. Vui lòng thử lại.");
+        setCourses([]);
+        setTotal(0);
+      } finally {
+        if (seq === requestSeq.current) {
+          setLoading(false);
         }
       }
+    },
+    [search, selectedCategory, selectedType, selectedLevel]
+  );
 
-      // 2. Category
-      if (selectedCategory !== "all" && c.category !== selectedCategory) {
-        return false;
-      }
-
-      // 3. Type
-      if (selectedType !== "all" && c.type !== selectedType) {
-        return false;
-      }
-
-      // 4. Level
-      if (selectedLevel !== "all") {
-        if (selectedLevel === "fresher" && !["fresher", "junior", "all"].includes(c.level)) return false;
-        if (selectedLevel === "mid" && !["mid", "all"].includes(c.level)) return false;
-        if (selectedLevel === "senior" && !["senior", "lead", "all"].includes(c.level)) return false;
-      }
-
-      return true;
-    });
-  }, [search, selectedCategory, selectedType, selectedLevel]);
-
-  // Pagination
-  const [page, setPage] = useState(1);
-  const pageSize = 6;
-
+  // Debounced search & filter reset to page 1
   useEffect(() => {
-    setPage(1);
-  }, [search, selectedCategory, selectedType, selectedLevel]);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      loadCourses(1);
+    }, 280);
 
-  const totalPages = Math.max(1, Math.ceil(filteredCourses.length / pageSize));
-  const paginatedCourses = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredCourses.slice(start, start + pageSize);
-  }, [filteredCourses, page, pageSize]);
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [loadCourses]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const handleResetFilters = () => {
     setSearch("");
@@ -113,7 +119,7 @@ export default function CourseLibraryClient() {
             )}
           </h1>
           <p className={styles.subtitle}>
-            Các lộ trình ôn luyện có cấu trúc được thiết kế bởi các chuyên gia kỹ thuật và phỏng vấn viên cấp cao tại Google, Meta, OpenAI và Goldman Sachs. Học từ lý thuyết, phân tích ca thực tế, cấu trúc STAR và giả lập phỏng vấn 1-1 với AI Coach.
+            Các lộ trình ôn luyện có cấu trúc được xây dựng bài bản. Học từ lý thuyết, phân tích ca thực tế, cấu trúc STAR và giả lập phỏng vấn cùng AI Coach.
           </p>
         </div>
 
@@ -124,8 +130,8 @@ export default function CourseLibraryClient() {
               <GraduationCap size={22} />
             </div>
             <div className={styles.statContent}>
-              <span className={styles.statVal}>12+ Lộ trình chuyên sâu</span>
-              <span className={styles.statLabel}>System Design, SWE, AI, PM &amp; Data</span>
+              <span className={styles.statVal}>Lộ trình chuyên sâu</span>
+              <span className={styles.statLabel}>System Design, SWE &amp; Kỹ thuật</span>
             </div>
           </div>
 
@@ -134,8 +140,8 @@ export default function CourseLibraryClient() {
               <Building2 size={22} />
             </div>
             <div className={styles.statContent}>
-              <span className={styles.statVal}>Chuẩn Big Tech &amp; FAANG</span>
-              <span className={styles.statLabel}>Google, Meta, OpenAI, TikTok &amp; AWS</span>
+              <span className={styles.statVal}>Kiến trúc thực tế</span>
+              <span className={styles.statLabel}>Phân tích đánh đổi &amp; Trade-offs</span>
             </div>
           </div>
 
@@ -144,8 +150,8 @@ export default function CourseLibraryClient() {
               <Sparkles size={22} />
             </div>
             <div className={styles.statContent}>
-              <span className={styles.statVal}>Mock Interview AI 1-1</span>
-              <span className={styles.statLabel}>Giả lập phỏng vấn giọng nói phản xạ</span>
+              <span className={styles.statVal}>Mock Interview AI</span>
+              <span className={styles.statLabel}>Luyện tập phản xạ có cấu trúc</span>
             </div>
           </div>
 
@@ -162,7 +168,6 @@ export default function CourseLibraryClient() {
 
         {/* Filter & Search Bar */}
         <div className={styles.filterBar}>
-          {/* Mascot con mèo/con bot đứng phía trên bên phải của thanh tìm kiếm */}
           <div className={styles.mascotBadgeWrap}>
             <PageMascot size={68} />
           </div>
@@ -172,7 +177,7 @@ export default function CourseLibraryClient() {
               <Search size={16} className={styles.searchIcon} />
               <input
                 type="text"
-                placeholder="Tìm kiếm theo tên khóa học, vị trí, công nghệ (RAG, System Design, Java...)..."
+                placeholder="Tìm kiếm theo tên khóa học, vị trí, công nghệ (System Design, SWE, Java...)..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className={styles.searchInput}
@@ -185,8 +190,8 @@ export default function CourseLibraryClient() {
                 onChange={setSelectedType}
                 options={[
                   { value: "all", label: "Tất cả hình thức" },
-                  { value: "Learning Path", label: "Lộ trình toàn diện (Learning Path)" },
-                  { value: "Course", label: "Khóa học chuyên sâu (Course)" },
+                  { value: "course", label: "Khóa học chuyên sâu (Course)" },
+                  { value: "workshop", label: "Workshop thực hành" },
                 ]}
                 aria-label="Hình thức khóa học"
                 className="min-w-[190px]"
@@ -237,12 +242,46 @@ export default function CourseLibraryClient() {
         {/* Results Count Bar */}
         <div className={styles.resultsCountRow}>
           <div>
-            Hiển thị <strong>{filteredCourses.length}</strong> khóa học &amp; lộ trình tuyển chọn
+            Hiển thị <strong>{courses.length}</strong> / <strong>{total}</strong> khóa học đang được phát hành
           </div>
         </div>
 
-        {/* Courses Grid */}
-        {filteredCourses.length === 0 ? (
+        {/* Error State */}
+        {error ? (
+          <div className={styles.emptyCard} role="alert">
+            <GraduationCap size={44} className={styles.emptyIcon} style={{ color: "#c2410c" }} />
+            <h3 className={styles.emptyTitle}>Chưa thể tải dữ liệu khóa học</h3>
+            <p className={styles.emptyDesc}>{error}</p>
+            <button
+              type="button"
+              onClick={() => loadCourses(page)}
+              className={styles.btnAction}
+            >
+              <RotateCcw size={14} />
+              <span>Thử lại</span>
+            </button>
+          </div>
+        ) : loading ? (
+          /* Loading State */
+          <div className={styles.courseGrid}>
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <div
+                key={idx}
+                className={styles.courseCard}
+                style={{ opacity: 0.6, pointerEvents: "none", minHeight: 320 }}
+              >
+                <div className={styles.cardMedia} style={{ background: "#e5e7eb" }} />
+                <div className={styles.cardBody}>
+                  <div style={{ height: 16, background: "#e5e7eb", borderRadius: 4, width: "60%", marginBottom: 12 }} />
+                  <div style={{ height: 20, background: "#e5e7eb", borderRadius: 4, width: "85%", marginBottom: 10 }} />
+                  <div style={{ height: 14, background: "#e5e7eb", borderRadius: 4, width: "100%", marginBottom: 6 }} />
+                  <div style={{ height: 14, background: "#e5e7eb", borderRadius: 4, width: "75%" }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : courses.length === 0 ? (
+          /* Empty State */
           <div className={styles.emptyCard}>
             <GraduationCap size={44} className={styles.emptyIcon} />
             <h3 className={styles.emptyTitle}>Không tìm thấy khóa học phù hợp</h3>
@@ -259,17 +298,33 @@ export default function CourseLibraryClient() {
             </button>
           </div>
         ) : (
+          /* Real Courses Grid */
           <>
             <div className={styles.courseGrid}>
-              {paginatedCourses.map((c) => (
-                <Link key={c.id} href={`/courses/${c.slug}`} className={styles.courseCard}>
+              {courses.map((c) => (
+                <Link key={c.course_id} href={`/courses/${c.slug}`} className={styles.courseCard}>
                   <div className={styles.cardMedia}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={c.image} alt={c.title} className={styles.cardImg} loading="lazy" />
+                    {c.image ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={c.image} alt={c.title} className={styles.cardImg} loading="lazy" />
+                    ) : (
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          background: "linear-gradient(135deg, #1e293b, #334155)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <GraduationCap size={48} color="#94a3b8" />
+                      </div>
+                    )}
                     <div className={styles.cardMediaOverlay} />
                     <div className={styles.mediaBadge}>
-                      {c.type === "Learning Path" ? <Compass size={12} color="#d98236" /> : <BookOpen size={12} color="#d98236" />}
-                      <span>{c.type === "Learning Path" ? "Lộ trình tuyển chọn" : "Khóa học chuyên sâu"}</span>
+                      <BookOpen size={12} color="#d98236" />
+                      <span>{c.type === "course" ? "Khóa học chuyên sâu" : c.type}</span>
                     </div>
                   </div>
 
@@ -278,36 +333,38 @@ export default function CourseLibraryClient() {
                       <div className={styles.metaRow}>
                         <span className={styles.metaItem}>
                           <Layers size={13} color="#d98236" />
-                          <span>{c.meta}</span>
+                          <span>{c.chapter_count} chương</span>
                         </span>
                         <span>•</span>
                         <span className={styles.metaItem}>
                           <Clock size={13} />
-                          <span>~{c.estimatedHours} giờ học</span>
+                          <span>~{c.estimated_hours} giờ học</span>
                         </span>
                         <span>•</span>
-                        <span className={styles.levelTag}>{c.levelLabel}</span>
+                        <span className={styles.levelTag}>{c.level_label || c.level}</span>
                       </div>
 
                       <h3 className={styles.cardTitle}>{c.title}</h3>
                       <p className={styles.cardDesc}>{c.description}</p>
 
-                      {/* Target Companies */}
-                      <div className={styles.companyRow}>
-                        <span className={styles.companyLabel}>
-                          <Building2 size={11} /> Mục tiêu:
-                        </span>
-                        {c.targetCompanies.map((comp, idx) => (
-                          <span key={idx} className={styles.companyBadge}>{comp}</span>
-                        ))}
-                      </div>
+                      {/* Target Companies (if any) */}
+                      {c.target_companies && c.target_companies.length > 0 && (
+                        <div className={styles.companyRow}>
+                          <span className={styles.companyLabel}>
+                            <Building2 size={11} /> Mục tiêu:
+                          </span>
+                          {c.target_companies.map((comp, idx) => (
+                            <span key={idx} className={styles.companyBadge}>{comp}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className={styles.cardFooter}>
                       <div className={styles.ratingBox}>
-                        <Star size={13} className={styles.starIcon} fill="currentColor" />
-                        <span>{c.rating}</span>
-                        <span className={styles.enrollCount}>({c.enrolledCount} học viên)</span>
+                        <BookOpen size={13} className={styles.starIcon} />
+                        <span>{c.chapter_count} chương</span>
+                        <span className={styles.enrollCount}>({c.lesson_count} bài học)</span>
                       </div>
 
                       <span className={styles.btnAction}>
@@ -325,9 +382,9 @@ export default function CourseLibraryClient() {
                 <UserPagination
                   currentPage={page}
                   totalPages={totalPages}
-                  totalItems={filteredCourses.length}
-                  pageSize={pageSize}
-                  onPageChange={setPage}
+                  totalItems={total}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={(p) => loadCourses(p)}
                   itemLabel="khóa học"
                 />
               </div>
