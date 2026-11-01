@@ -25,10 +25,10 @@ interface VoiceRecognition {
 interface VoiceDraftOptions {
   enabled: boolean;
   canRecord: boolean;
-  autoListen: boolean;
-  canInterrupt: boolean;
-  aiSpeechText: string;
-  onSpeechStart: () => void;
+  autoListen?: boolean;
+  canInterrupt?: boolean;
+  aiSpeechText?: string;
+  onSpeechStart?: () => void;
   language: string;
   onSubmit: (text: string, durationSeconds: number, audioBlob?: Blob | null) => boolean;
 }
@@ -47,9 +47,9 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
   const [silenceRemaining, setSilenceRemaining] = useState<number | null>(null);
   const optionsRef = useRef(options);
   optionsRef.current = options;
-  const [autoSubmit, setAutoSubmit] = useState(options.autoListen);
+  const [autoSubmit, setAutoSubmit] = useState(options.autoListen ?? false);
   useEffect(() => {
-    setAutoSubmit(options.autoListen);
+    setAutoSubmit(options.autoListen ?? false);
   }, [options.autoListen]);
   const autoSubmitRef = useRef(autoSubmit);
   autoSubmitRef.current = autoSubmit;
@@ -63,7 +63,7 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
   const pendingSubmissionRef = useRef(false);
   const durationRef = useRef(0);
   const recentAiSpeechRef = useRef("");
-  if (options.aiSpeechText.trim()) recentAiSpeechRef.current = options.aiSpeechText;
+  if (options.aiSpeechText?.trim()) recentAiSpeechRef.current = options.aiSpeechText;
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recognitionRef = useRef<VoiceRecognition | null>(null);
@@ -227,7 +227,7 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
           if (optionsRef.current.canInterrupt) {
             if (candidate.length < 4) return;
             interruptedRef.current = true;
-            optionsRef.current.onSpeechStart();
+            optionsRef.current.onSpeechStart?.();
           }
         }
         transcriptRef.current = [transcriptRef.current, finalText.trim()].filter(Boolean).join(" ");
