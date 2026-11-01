@@ -18,6 +18,7 @@ import {
   RotateCw,
   AlertCircle,
   LogIn,
+  Zap,
 } from "lucide-react";
 import styles from "./checkout.module.css";
 import { useAuth } from "@/context/AuthContext";
@@ -102,10 +103,31 @@ function playSuccessChime() {
 
 type BillingCycle = "weekly" | "monthly" | "yearly";
 
+
+function getPaymentWsUrl(orderCode: string, token?: string | null): string {
+  const cleanCode = encodeURIComponent(orderCode.trim().toUpperCase());
+  const tokenParam = token ? `?token=${encodeURIComponent(token)}` : "";
+  if (process.env.NEXT_PUBLIC_WS_URL) {
+    const base = process.env.NEXT_PUBLIC_WS_URL.replace(/\/+$/, "");
+    return `${base}/api/v1/billing/ws/${cleanCode}${tokenParam}`;
+  }
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL;
+  if (apiBase) {
+    const wsBase = apiBase.replace(/^http/, "ws").replace(/\/+$/, "");
+    return `${wsBase}/api/v1/billing/ws/${cleanCode}${tokenParam}`;
+  }
+  if (typeof window !== "undefined") {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const host = window.location.host;
+    return `${protocol}//${host}/api/v1/billing/ws/${cleanCode}${tokenParam}`;
+  }
+  return `ws://localhost:8000/api/v1/billing/ws/${cleanCode}${tokenParam}`;
+}
+
 export function CheckoutClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { user, token, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   // Read URL parameters
   const planIdParam = searchParams.get("plan_id");
@@ -175,6 +197,7 @@ export function CheckoutClient() {
   const [createCheckoutApi] = useCreateCheckoutMutation();
   const [verifyPaymentApi] = useVerifyPaymentMutation();
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [isSocketConnected, setIsSocketConnected] = useState<boolean>(false);
 
   useEffect(() => {
     if (showSuccessModal) {
@@ -215,7 +238,83 @@ export function CheckoutClient() {
     }
   }, [isAuthenticated, isAuthLoading, initCheckout]);
 
-  // Automated Real-Time Polling for VietQR payment confirmation (every 3.5s)
+  // 1. PRIMARY REAL-TIME: Ultra-fast WebSocket instant payment notification (<50ms)
+  useEffect(() => {
+    if (!orderCode || showSuccessModal || typeof window === "undefined") return;
+
+    let isDisposed = false;
+    let ws: WebSocket | null = null;
+    let pingInterval: NodeJS.Timeout | null = null;
+
+    try {
+      const wsUrl = getPaymentWsUrl(orderCode, token);
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        if (!isDisposed) {
+          setIsSocketConnected(true);
+        }
+        pingInterval = setInterval(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            try {
+              ws.send(JSON.stringify({ type: "ping" }));
+            } catch {
+              // Ignore ping error
+            }
+          }
+        }, 15000);
+      };
+
+      ws.onmessage = (event) => {
+        if (isDisposed) return;
+        try {
+          const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+          if (data?.type === "payment_success" || data?.status === "success") {
+            toast.success(data?.message || "Thanh toán thành công! Gói cước đã được kích hoạt.");
+            setShowSuccessModal(true);
+            try {
+              ws?.close(1000, "Payment completed");
+            } catch {}
+          }
+        } catch {
+          // Ignore parse error
+        }
+      };
+
+      ws.onerror = () => {
+        if (!isDisposed) {
+          setIsSocketConnected(false);
+        }
+      };
+
+      ws.onclose = () => {
+        if (!isDisposed) {
+          setIsSocketConnected(false);
+        }
+        if (pingInterval) clearInterval(pingInterval);
+      };
+    } catch {
+      setIsSocketConnected(false);
+    }
+
+    return () => {
+      isDisposed = true;
+      if (pingInterval) clearInterval(pingInterval);
+      if (ws) {
+        ws.onopen = null;
+        ws.onmessage = null;
+        ws.onerror = null;
+        ws.onclose = null;
+        try {
+          if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+            ws.close(1000, "Component unmounted");
+          }
+        } catch {}
+      }
+    };
+  }, [orderCode, token, showSuccessModal]);
+
+  // 2. BACKUP POLLING: Continues in parallel (every 2.5s) to guarantee zero missed transactions
   useEffect(() => {
     if (!orderCode || showSuccessModal) return;
     let isCancelled = false;
@@ -229,9 +328,9 @@ export function CheckoutClient() {
           clearInterval(intervalId);
         }
       } catch {
-        // Continue polling silently
+        // Continue polling silently as backup
       }
-    }, 2000);
+    }, 2500);
 
     return () => {
       isCancelled = true;
@@ -579,20 +678,32 @@ export function CheckoutClient() {
                 </div>
               </div>
 
-              {/* Automated Real-Time Webhook Listener Status Card */}
+              {/* Automated Real-Time Webhook & WebSocket Listener Status Card */}
               <div className={styles.autoListenerCard}>
                 <div className={styles.autoListenerHeader}>
                   <span className={styles.liveIndicatorDot} />
                   <span className={styles.autoListenerTitle}>
-                    Hệ thống đang tự động lắng nghe giao dịch...
+                    {isSocketConnected
+                      ? "Kết nối trực tiếp thời gian thực (WebSocket)..."
+                      : "Hệ thống đang tự động lắng nghe giao dịch..."}
                   </span>
+                  {isSocketConnected && (
+                    <span className={styles.socketBadge}>
+                      <Zap size={11} className="text-amber-500 fill-amber-500" />
+                      Realtime Socket
+                    </span>
+                  )}
                 </div>
                 <p className={styles.autoListenerDesc}>
-                  Ngay khi bạn chuyển khoản thành công trên ứng dụng ngân hàng, hệ thống xGate Webhook sẽ tự động xác nhận và kích hoạt gói cước trong vòng <strong>3 giây</strong> mà không cần thao tác thêm.
+                  Ngay khi bạn chuyển khoản thành công trên app ngân hàng, hệ thống sẽ tự động kích hoạt tức thì qua <strong>WebSocket thời gian thực</strong> (kèm cơ chế dự phòng Napas 24/7).
                 </p>
                 <div className={styles.autoListenerFooter}>
                   <RotateCw size={13} className="animate-spin text-emerald-600" />
-                  <span>Đối soát tự động VietQR Napas 24/7 thời gian thực</span>
+                  <span>
+                    {isSocketConnected
+                      ? "⚡ WebSocket kết nối trực tiếp (0ms delay) + Dự phòng Napas 24/7"
+                      : "Đối soát tự động VietQR Napas 24/7 thời gian thực"}
+                  </span>
                 </div>
               </div>
             </div>

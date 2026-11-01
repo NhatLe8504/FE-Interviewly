@@ -831,6 +831,21 @@
   gap: 10px;
 }
 
+.socketBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  margin-left: auto;
+  letter-spacing: 0.02em;
+}
+
 .liveIndicatorDot {
   position: relative;
   width: 10px;
