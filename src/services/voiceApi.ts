@@ -3,7 +3,7 @@ import { request } from "./apiClient";
 export interface VoiceOptionItem {
   id: string;
   name: string;
-  provider: "edge" | "elevenlabs" | "browser";
+  provider: "edge" | "elevenlabs" | "vieneu" | "browser";
   language: string;
   gender: string;
   description: string;
@@ -31,10 +31,12 @@ export interface VoiceOptionsResponse {
 }
 
 export const voiceApi = {
-  getVoiceOptions: async (language?: string): Promise<VoiceOptionsResponse> => {
+  getVoiceOptions: async (language?: string, signal?: AbortSignal): Promise<VoiceOptionsResponse> => {
     const query = language ? `?language=${encodeURIComponent(language)}` : "";
     return request<VoiceOptionsResponse>(`/api/v1/voice/options${query}`, {
       method: "GET",
+      signal,
+      cache: "no-store",
     });
   },
 
@@ -52,7 +54,14 @@ export const voiceApi = {
     audioBlob: Blob
   ): Promise<{ status: string; audio_url: string }> => {
     const formData = new FormData();
-    const filename = `turn_${turnId}_user.webm`;
+    const ext = audioBlob.type.includes("mp4")
+      ? "mp4"
+      : audioBlob.type.includes("ogg")
+      ? "ogg"
+      : audioBlob.type.includes("wav")
+      ? "wav"
+      : "webm";
+    const filename = `turn_${turnId}_user.${ext}`;
     formData.append("file", audioBlob, filename);
 
     return request<{ status: string; audio_url: string }>(
