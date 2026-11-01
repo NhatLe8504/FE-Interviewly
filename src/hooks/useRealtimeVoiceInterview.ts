@@ -3,6 +3,7 @@ import type { QuestionIntentContext, StageConfigIn } from "@/types/interview";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getStoredToken } from "@/services/apiClient";
+import { clampInterviewPlaybackSpeed, DEFAULT_INTERVIEW_PLAYBACK_SPEED, takePrimedInterviewAudioContext } from "@/lib/interviewAudio";
 
 export type AiVoiceState = "idle" | "listening" | "thinking" | "speaking" | "completed";
 
@@ -28,6 +29,11 @@ export interface ConversationTurn {
 }
 
 export interface StageTransitionProposal {
+  kind: "stage" | "end";
+  proposalId: string;
+  stageVersion: number;
+  reason: "ready" | "overtime";
+  remainingRequired: number;
   currentStage: string;
   nextStage: string;
   stageIndex: number;
@@ -39,14 +45,33 @@ export interface StageTransitionProposal {
   summaryMessage: string;
 }
 
+export interface InterviewProgress {
+  stage: string;
+  completed: number;
+  discussed: number;
+  total: number;
+  ready: boolean;
+  remainingRequired: number;
+  elapsedSeconds: number;
+  targetSeconds: number;
+  stageVersion: number;
+}
+
+export interface TtsFallbackConsent {
+  generationId: string;
+  phase: "backup" | "browser";
+}
+
 export interface UseRealtimeVoiceInterviewOptions {
   sessionId: string;
   enabled?: boolean;
   roleName?: string;
   level?: string;
   language?: string;
+  responseMode?: "voice" | "text";
   voice?: string;
   pitch?: string;
+  playbackSpeed?: number;
   selectedStages?: string[];
   stageConfigs?: StageConfigIn[];
   selectedQuestionIds?: (number | string)[];
@@ -69,6 +94,7 @@ class StreamingAudioPlayer {
   private scheduledEndTime = 0;
   private activeSources: AudioBufferSourceNode[] = [];
   private isMuted = false;
+  private playbackSpeed = DEFAULT_INTERVIEW_PLAYBACK_SPEED;
   private isExpectingMoreAudio = false;
   private decodeQueue: Promise<void> = Promise.resolve();
   private pendingDecodes = 0;
@@ -89,10 +115,7 @@ class StreamingAudioPlayer {
   public getAudioContext(): AudioContext {
     if (!this.ctx || this.ctx.state === "closed") {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      this.ctx = new AudioCtx();
-    }
-    if (this.ctx.state === "suspended") {
-      this.ctx.resume().catch(() => {});
+      this.ctx = takePrimedInterviewAudioContext() || new AudioCtx();
     }
     if (!this.gainNode) {
       this.gainNode = this.ctx.createGain();
@@ -123,6 +146,10 @@ class StreamingAudioPlayer {
     }
   }
 
+  public setPlaybackSpeed(speed: number) {
+    this.playbackSpeed = clampInterviewPlaybackSpeed(speed);
+  }
+
   public isPlaying(): boolean {
     if (!this.ctx) return false;
     return this.ctx.currentTime < this.scheduledEndTime || this.activeSources.length > 0 || this.isExpectingMoreAudio || this.pendingDecodes > 0;
@@ -133,7 +160,7 @@ class StreamingAudioPlayer {
     this.startEndCheck();
   }
 
-  public enqueueBase64(base64Data: string, onStart: () => void): Promise<void> {
+  public enqueueBase64(base64Data: string, onStart: (duration: number) => void): Promise<void> {
     this.isExpectingMoreAudio = true;
     const version = this.playbackVersion;
     this.pendingDecodes += 1;
@@ -147,7 +174,7 @@ class StreamingAudioPlayer {
     return this.decodeQueue;
   }
 
-  private async decodeAndSchedule(base64Data: string, onStart: () => void, version: number): Promise<void> {
+  private async decodeAndSchedule(base64Data: string, onStart: (duration: number) => void, version: number): Promise<void> {
     try {
       const ctx = this.getAudioContext();
       const binaryString = atob(base64Data);
@@ -163,14 +190,16 @@ class StreamingAudioPlayer {
 
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
+      const playbackSpeed = this.playbackSpeed;
+      source.playbackRate.value = playbackSpeed;
       source.connect(this.gainNode!);
 
       const currentTime = ctx.currentTime;
       const startTime = Math.max(this.scheduledEndTime, currentTime);
       source.start(startTime);
-      this.scheduledEndTime = startTime + audioBuffer.duration;
+      this.scheduledEndTime = startTime + audioBuffer.duration / playbackSpeed;
       this.activeSources.push(source);
-      this.scheduledSubtitles.push({ startsAt: startTime, onStart });
+      this.scheduledSubtitles.push({ startsAt: startTime, onStart: () => onStart(audioBuffer.duration / playbackSpeed) });
 
       if (this.onPlayStateChange) {
         this.onPlayStateChange(true);
@@ -263,8 +292,10 @@ export function useRealtimeVoiceInterview({
   roleName = "Software Engineer",
   level = "Senior",
   language = "vi",
+  responseMode = "voice",
   voice,
   pitch = "+0Hz",
+  playbackSpeed = DEFAULT_INTERVIEW_PLAYBACK_SPEED,
   selectedStages = ["warmup", "technical", "closing"],
   stageConfigs,
   selectedQuestionIds,
@@ -281,6 +312,8 @@ export function useRealtimeVoiceInterview({
   const [aiState, setAiState] = useState<AiVoiceState>("idle");
   const [activeVoice, setActiveVoice] = useState<string>(voice || "vi-VN-HoaiMyNeural");
   const [activePitch, setActivePitch] = useState<string>(pitch || "+0Hz");
+  const playbackSpeedRef = useRef(clampInterviewPlaybackSpeed(playbackSpeed));
+  playbackSpeedRef.current = clampInterviewPlaybackSpeed(playbackSpeed);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isStoppingSession, setIsStoppingSession] = useState(false);
   const isStoppingSessionRef = useRef(false);
@@ -306,6 +339,8 @@ export function useRealtimeVoiceInterview({
 
   // New Adaptive 3-Stage & Mock Mode states
   const [pendingTransition, setPendingTransition] = useState<StageTransitionProposal | null>(null);
+  const [interviewProgress, setInterviewProgress] = useState<InterviewProgress | null>(null);
+  const [isConfirmingTransition, setIsConfirmingTransition] = useState(false);
   const [currentHint, setCurrentHint] = useState<string | null>(null);
   const [isRequestingHint, setIsRequestingHint] = useState(false);
   const [mockMode, setMockModeState] = useState<"strict" | "guided">(initialMockMode);
@@ -314,26 +349,54 @@ export function useRealtimeVoiceInterview({
 
   // Realtime Subtitles & Tokens
   const [currentQuestion, setCurrentQuestion] = useState("");
+  const [showTextDuringTtsFallback, setShowTextDuringTtsFallback] = useState(false);
+  const showTextDuringTtsFallbackRef = useRef(false);
+  const browserFallbackRef = useRef(false);
+  const [ttsFallbackConsent, setTtsFallbackConsent] = useState<TtsFallbackConsent | null>(null);
+  const ttsFallbackConsentRef = useRef<TtsFallbackConsent | null>(null);
+  const [isConfirmingTtsFallback, setIsConfirmingTtsFallback] = useState(false);
+  const ttsFallbackStorageKey = `interview_tts_fallback_${sessionId}`;
   const [currentSubtitle, setCurrentSubtitle] = useState("");
+  const [spokenText, setSpokenText] = useState("");
+  const spokenTextTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const responseModeRef = useRef(responseMode);
+  responseModeRef.current = responseMode;
+  const revealSentence = useCallback((sentence: string, durationSeconds: number) => {
+    if (spokenTextTimerRef.current) clearInterval(spokenTextTimerRef.current);
+    const words = sentence.trim().split(/\s+/);
+    if (!words[0]) return;
+    let visible = 1;
+    setSpokenText((previous) => previous + (previous ? " " : "") + words[0]);
+    if (words.length === 1) return;
+    const interval = Math.max(45, Math.min(220, durationSeconds * 1000 / words.length));
+    spokenTextTimerRef.current = setInterval(() => {
+      visible += 1;
+      setSpokenText((previous) => previous + (previous ? " " : "") + words[visible - 1]);
+      if (visible >= words.length && spokenTextTimerRef.current) clearInterval(spokenTextTimerRef.current);
+    }, interval);
+  }, []);
   const [turns, setTurns] = useState<ConversationTurn[]>([]);
 
   // Audio, Mic & Barge-in Controls
   const [bargeInEnabled, setBargeInEnabled] = useState(bargeInInitial);
+  useEffect(() => {
+    setBargeInEnabled(bargeInInitial);
+  }, [bargeInInitial]);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [audioBlockedByAutoplay, setAudioBlockedByAutoplay] = useState(false);
 
-  // TTS Engine: 'edge' (Cloud AI), 'elevenlabs' (Studio Pro AI), or 'browser' (Web Speech API - 0ms latency)
-  const [ttsEngine, setTtsEngineState] = useState<"edge" | "elevenlabs" | "browser">(() => {
+  // TTS Engine: cloud providers or local Web Speech API
+  const [ttsEngine, setTtsEngineState] = useState<"edge" | "elevenlabs" | "vieneu" | "browser">(() => {
     if (typeof window !== "undefined") {
       try {
         const saved = localStorage.getItem("preferred_tts_engine");
-        if (saved === "browser" || saved === "edge" || saved === "elevenlabs") return saved as "edge" | "elevenlabs" | "browser";
+        if (saved === "browser" || saved === "edge" || saved === "elevenlabs" || saved === "vieneu") return saved;
       } catch {}
     }
     return "edge";
   });
-  const ttsEngineRef = useRef<"edge" | "elevenlabs" | "browser">(ttsEngine);
+  const ttsEngineRef = useRef<"edge" | "elevenlabs" | "vieneu" | "browser">(ttsEngine);
   ttsEngineRef.current = ttsEngine;
 
   const [selectedBrowserVoice, setSelectedBrowserVoiceState] = useState<string | null>(() => {
@@ -347,7 +410,13 @@ export function useRealtimeVoiceInterview({
   const browserVoiceRef = useRef<string | null>(selectedBrowserVoice);
   browserVoiceRef.current = selectedBrowserVoice;
 
-  const setTtsEngine = useCallback((engine: "edge" | "elevenlabs" | "browser") => {
+  const setTtsEngine = useCallback((engine: "edge" | "elevenlabs" | "vieneu" | "browser") => {
+    if (engine !== ttsEngineRef.current) {
+      try { sessionStorage.removeItem(ttsFallbackStorageKey); } catch {}
+      ttsFallbackConsentRef.current = null;
+      setTtsFallbackConsent(null);
+      setIsConfirmingTtsFallback(false);
+    }
     setTtsEngineState(engine);
     ttsEngineRef.current = engine;
     if (typeof window !== "undefined") {
@@ -358,7 +427,7 @@ export function useRealtimeVoiceInterview({
         window.speechSynthesis.cancel();
       }
     }
-  }, []);
+  }, [ttsFallbackStorageKey]);
 
   const setSelectedBrowserVoice = useCallback((voiceName: string | null) => {
     setSelectedBrowserVoiceState(voiceName);
@@ -371,6 +440,9 @@ export function useRealtimeVoiceInterview({
   }, []);
 
   const browserTtsPendingCountRef = useRef(0);
+  const playbackAckRef = useRef<() => void>(() => {});
+  const missingAudioSentencesRef = useRef<string[]>([]);
+  const startMissingAudioRef = useRef<() => boolean>(() => false);
   const isAudioMutedRef = useRef(false);
   isAudioMutedRef.current = isAudioMuted;
 
@@ -401,12 +473,13 @@ export function useRealtimeVoiceInterview({
 
       const pitchHz = parseInt(activePitch, 10) || 0;
       utterance.pitch = Math.max(0.6, Math.min(1.4, 1.0 + (pitchHz * 0.03)));
-      utterance.rate = 1.0;
+      utterance.rate = playbackSpeedRef.current;
       utterance.volume = isAudioMutedRef.current ? 0 : 1;
 
       browserTtsPendingCountRef.current += 1;
 
       utterance.onstart = () => {
+        revealSentence(clean, Math.max(1, clean.length / (12 * playbackSpeedRef.current)));
         setIsAudioPlaying(true);
         setAiState("speaking");
         setCurrentSubtitle(clean);
@@ -415,18 +488,33 @@ export function useRealtimeVoiceInterview({
       utterance.onend = () => {
         browserTtsPendingCountRef.current = Math.max(0, browserTtsPendingCountRef.current - 1);
         if (browserTtsPendingCountRef.current === 0) {
+          playbackAckRef.current();
           setIsAudioPlaying(false);
-          if (serverHasFinishedTurnRef.current && !submissionPendingRef.current) {
+          setSpokenText("");
+          if (spokenTextTimerRef.current) clearInterval(spokenTextTimerRef.current);
+          if (pendingCompletionRef.current) {
+            setIsCompleted(true);
+            setAiState("completed");
+          } else if (serverHasFinishedTurnRef.current && !submissionPendingRef.current) {
             setAiState("listening");
           }
         }
       };
 
-      utterance.onerror = () => {
+      utterance.onerror = (event) => {
+        if (event.error !== "canceled" && event.error !== "interrupted") {
+          setError("Giọng đọc dự phòng không phát được. Phần còn lại vẫn hiển thị bằng chữ.");
+        }
         browserTtsPendingCountRef.current = Math.max(0, browserTtsPendingCountRef.current - 1);
         if (browserTtsPendingCountRef.current === 0) {
+          playbackAckRef.current();
           setIsAudioPlaying(false);
-          if (serverHasFinishedTurnRef.current && !submissionPendingRef.current) {
+          setSpokenText("");
+          if (spokenTextTimerRef.current) clearInterval(spokenTextTimerRef.current);
+          if (pendingCompletionRef.current) {
+            setIsCompleted(true);
+            setAiState("completed");
+          } else if (serverHasFinishedTurnRef.current && !submissionPendingRef.current) {
             setAiState("listening");
           }
         }
@@ -435,8 +523,22 @@ export function useRealtimeVoiceInterview({
       window.speechSynthesis.speak(utterance);
     } catch (err) {
       console.warn("Browser SpeechSynthesis error:", err);
+      browserTtsPendingCountRef.current = Math.max(0, browserTtsPendingCountRef.current - 1);
+      setError("Giọng đọc dự phòng không phát được. Phần còn lại vẫn hiển thị bằng chữ.");
     }
-  }, [activePitch]);
+  }, [activePitch, revealSentence]);
+
+  startMissingAudioRef.current = () => {
+    const missing = missingAudioSentencesRef.current;
+    if (!missing.length) return false;
+    missingAudioSentencesRef.current = [];
+    if (typeof window === "undefined" || !window.speechSynthesis) {
+      setError("Không thể phát hết giọng AI. Phần còn lại vẫn hiển thị bằng chữ.");
+      return false;
+    }
+    missing.forEach((sentence) => speakWithBrowserTTS(sentence));
+    return browserTtsPendingCountRef.current > 0;
+  };
 
   // State References for safe async callbacks
   const aiStateRef = useRef<AiVoiceState>("idle");
@@ -463,6 +565,7 @@ export function useRealtimeVoiceInterview({
   const submissionPendingRef = useRef(false);
   const activeGenerationRef = useRef<string | null>(null);
   const ignoredGenerationsRef = useRef(new Set<string>());
+  const acknowledgedGenerationRef = useRef<string | null>(null);
   const subtitlesRef = useRef(new Map<number, string>());
 
   const fullAiTextAccumulatorRef = useRef<string>("");
@@ -480,6 +583,7 @@ export function useRealtimeVoiceInterview({
     roleName,
     level,
     language,
+    responseMode,
     voice,
     pitch,
     bargeInEnabled,
@@ -497,6 +601,7 @@ export function useRealtimeVoiceInterview({
       roleName,
       level,
       language,
+      responseMode,
       voice,
       pitch,
       bargeInEnabled,
@@ -512,6 +617,7 @@ export function useRealtimeVoiceInterview({
     roleName,
     level,
     language,
+    responseMode,
     voice,
     pitch,
     bargeInEnabled,
@@ -530,13 +636,16 @@ export function useRealtimeVoiceInterview({
       if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
       return;
     }
-    sessionTimerRef.current = setInterval(() => {
-      setSessionDurationSeconds((prev) => prev + 1);
-    }, 1000);
+    if (isConnected) {
+      sessionTimerRef.current = setInterval(() => {
+        setSessionDurationSeconds((prev) => prev + 1);
+        setStageElapsedSeconds((prev) => prev + 1);
+      }, 1000);
+    }
     return () => {
       if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
     };
-  }, [isCompleted]);
+  }, [isCompleted, isConnected]);
 
   // Send message helper
   const sendMessage = useCallback((payload: any) => {
@@ -548,8 +657,28 @@ export function useRealtimeVoiceInterview({
   }, []);
 
   useEffect(() => {
-    if (enabled && isConnected) sendMessage({ type: "config", language });
-  }, [enabled, isConnected, language, sendMessage]);
+    if (isConnected) {
+      sendMessage({ type: "config", browser_tts_fallback: ttsEngine === "browser" });
+    }
+  }, [isConnected, sendMessage, ttsEngine]);
+
+  useEffect(() => {
+    if (isConnected) sendMessage({ type: "config", barge_in_enabled: bargeInEnabled });
+  }, [bargeInEnabled, isConnected, sendMessage]);
+
+  playbackAckRef.current = () => {
+    const generationId = activeGenerationRef.current;
+    if (!generationId || !serverHasFinishedTurnRef.current ||
+        acknowledgedGenerationRef.current === generationId ||
+        playerRef.current?.isPlaying() || browserTtsPendingCountRef.current > 0) return;
+    if (sendMessage({ type: "playback_completed", generation_id: generationId })) {
+      acknowledgedGenerationRef.current = generationId;
+    }
+  };
+
+  useEffect(() => {
+    if (enabled && isConnected) sendMessage({ type: "config", language, response_mode: responseMode });
+  }, [enabled, isConnected, language, responseMode, sendMessage]);
 
   // Initialize StreamingAudioPlayer
   useEffect(() => {
@@ -557,6 +686,14 @@ export function useRealtimeVoiceInterview({
 
     playerRef.current = new StreamingAudioPlayer(
       () => {
+        const hadMissingAudio = missingAudioSentencesRef.current.length > 0;
+        if (startMissingAudioRef.current() || browserTtsPendingCountRef.current > 0) return;
+        if (hadMissingAudio) {
+          setIsAudioPlaying(false);
+          setSpokenText("");
+          if (spokenTextTimerRef.current) clearInterval(spokenTextTimerRef.current);
+        }
+        playbackAckRef.current();
         if (pendingCompletionRef.current) {
           setIsCompleted(true);
           setAiState("completed");
@@ -564,32 +701,42 @@ export function useRealtimeVoiceInterview({
         }
         if (serverHasFinishedTurnRef.current && !isCompletedRef.current) {
           playbackReadyTimerRef.current = setTimeout(() => {
-            if (serverHasFinishedTurnRef.current && !isCompletedRef.current && !playerRef.current?.isPlaying()) {
+            if (serverHasFinishedTurnRef.current && !isCompletedRef.current &&
+                !playerRef.current?.isPlaying() && browserTtsPendingCountRef.current === 0) {
               setAiState("listening");
             }
           }, 400);
         }
       },
       (playing) => {
-        setIsAudioPlaying(playing);
-        if (playing) {
-          setAiState("speaking");
+        if (!playing && !missingAudioSentencesRef.current.length && browserTtsPendingCountRef.current === 0) {
+          setIsAudioPlaying(false);
+          if (!serverHasFinishedTurnRef.current) setAiState("thinking");
+          setSpokenText("");
+          if (spokenTextTimerRef.current) clearInterval(spokenTextTimerRef.current);
         }
       }
     );
+    playerRef.current.setPlaybackSpeed(playbackSpeedRef.current);
 
     return () => {
       if (playbackReadyTimerRef.current) clearTimeout(playbackReadyTimerRef.current);
       playerRef.current?.destroy();
+      if (spokenTextTimerRef.current) clearInterval(spokenTextTimerRef.current);
       playerRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    playerRef.current?.setPlaybackSpeed(playbackSpeed);
+  }, [playbackSpeed]);
 
   // Resume audio playback if blocked by browser autoplay policy
   const resumeAudio = useCallback(async () => {
     try {
       const context = playerRef.current?.getAudioContext();
       await context?.resume();
+      window.speechSynthesis?.resume();
       setAudioBlockedByAutoplay(context?.state === "suspended");
     } catch {
       setAudioBlockedByAutoplay(true);
@@ -650,37 +797,26 @@ export function useRealtimeVoiceInterview({
 
   // Manual Stage Advance
   const skipToNextStage = useCallback(() => {
-    if (!sendMessage({ type: "next_stage" })) return;
-    if (playerRef.current) playerRef.current.stop();
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-      browserTtsPendingCountRef.current = 0;
-    }
-    serverHasFinishedTurnRef.current = false;
-    submissionPendingRef.current = true;
-    setAiState("thinking");
+    sendMessage({ type: "request_stage_transition" });
   }, [sendMessage]);
 
   // Stage Transition confirmation
   const confirmStageTransition = useCallback(() => {
-    if (!sendMessage({ type: "stage_transition_confirm" })) return;
-    setPendingTransition(null);
-    if (playerRef.current) playerRef.current.stop();
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-      browserTtsPendingCountRef.current = 0;
-    }
+    if (!pendingTransition || aiStateRef.current !== "listening" ||
+        !sendMessage({ type: "stage_transition_confirm", proposal_id: pendingTransition.proposalId,
+          stage_version: pendingTransition.stageVersion })) return;
+    setIsConfirmingTransition(true);
     serverHasFinishedTurnRef.current = false;
     submissionPendingRef.current = true;
     setAiState("thinking");
-  }, [sendMessage]);
+  }, [sendMessage, pendingTransition]);
 
   // Stage Transition deferral (user wants to say more)
   const deferStageTransition = useCallback((continueMessage?: string) => {
-    sendMessage({ type: "stage_transition_defer", continue_message: continueMessage });
-    setPendingTransition(null);
-    setAiState("listening");
-  }, [sendMessage]);
+    if (!pendingTransition || aiStateRef.current !== "listening") return;
+    sendMessage({ type: "stage_transition_defer", continue_message: continueMessage,
+      proposal_id: pendingTransition.proposalId, stage_version: pendingTransition.stageVersion });
+  }, [sendMessage, pendingTransition]);
 
   // Request Hint in Guided Mode
   const requestHint = useCallback(() => {
@@ -731,7 +867,8 @@ export function useRealtimeVoiceInterview({
     (text: string, durationSeconds = 0, audioUrl?: string | null) => {
       const clean = text.trim();
       if (!clean || isCompletedRef.current || aiStateRef.current !== "listening" || wsRef.current?.readyState !== WebSocket.OPEN) return false;
-      if (!sendMessage({ type: "final_transcript", text: clean, duration_seconds: durationSeconds })) return false;
+      if (!sendMessage({ type: "final_transcript", text: clean, turn_id: turnIdRef.current,
+        duration_seconds: durationSeconds })) return false;
       submissionPendingRef.current = true;
 
       if (playerRef.current) playerRef.current.stop();
@@ -775,12 +912,26 @@ export function useRealtimeVoiceInterview({
   // Change active TTS voice dynamically
   const changeVoice = useCallback(
     (newVoice: string) => {
+      if (newVoice !== optionsRef.current.voice) {
+        try { sessionStorage.removeItem(ttsFallbackStorageKey); } catch {}
+        ttsFallbackConsentRef.current = null;
+        setTtsFallbackConsent(null);
+        setIsConfirmingTtsFallback(false);
+      }
       setActiveVoice(newVoice);
       optionsRef.current.voice = newVoice;
       sendMessage({ type: "config", voice: newVoice });
     },
-    [sendMessage]
+    [sendMessage, ttsFallbackStorageKey]
   );
+
+  const chooseTtsFallback = useCallback((accepted: boolean) => {
+    const offer = ttsFallbackConsentRef.current;
+    if (!offer) return;
+    if (sendMessage({ type: "tts_fallback_consent", generation_id: offer.generationId, accepted })) {
+      setIsConfirmingTtsFallback(true);
+    }
+  }, [sendMessage]);
 
   // Change voice pitch dynamically (+/-Hz)
   const changePitch = useCallback(
@@ -821,12 +972,8 @@ export function useRealtimeVoiceInterview({
 
   // Toggle Barge-in
   const toggleBargeIn = useCallback(() => {
-    setBargeInEnabled((prev) => {
-      const next = !prev;
-      sendMessage({ type: "config", barge_in_enabled: next });
-      return next;
-    });
-  }, [sendMessage]);
+    setBargeInEnabled((prev) => !prev);
+  }, []);
 
   const getWsUrl = useCallback(() => {
     const token = getStoredToken();
@@ -890,11 +1037,17 @@ export function useRealtimeVoiceInterview({
         if (wsRef.current !== ws) return;
         ignoredGenerationsRef.current.clear();
         activeGenerationRef.current = null;
+        acknowledgedGenerationRef.current = null;
         submissionPendingRef.current = false;
         pendingCompletionRef.current = false;
         serverHasFinishedTurnRef.current = false;
         fullAiTextAccumulatorRef.current = "";
         subtitlesRef.current.clear();
+        missingAudioSentencesRef.current = [];
+        browserFallbackRef.current = false;
+        ttsFallbackConsentRef.current = null;
+        setTtsFallbackConsent(null);
+        setIsConfirmingTtsFallback(false);
         setAiState("idle");
         setIsConnected(true);
         setIsReconnecting(false);
@@ -902,12 +1055,22 @@ export function useRealtimeVoiceInterview({
         setError(null);
 
         const currentOpts = optionsRef.current;
+        let ttsFallbackLock: "backup" | "browser" | null = null;
+        try {
+          const saved = JSON.parse(sessionStorage.getItem(ttsFallbackStorageKey) || "null");
+          if (saved?.voice === currentOpts.voice && (saved?.phase === "backup" || saved?.phase === "browser")) {
+            ttsFallbackLock = saved.phase;
+          }
+        } catch {}
         ws.send(
           JSON.stringify({
             type: "client_ready",
             role_name: currentOpts.roleName,
             level: currentOpts.level,
             language: currentOpts.language,
+            response_mode: currentOpts.responseMode,
+            browser_tts_fallback: ttsEngineRef.current === "browser",
+            tts_fallback_lock: ttsFallbackLock,
             voice: currentOpts.voice,
             pitch: currentOpts.pitch || activePitch,
             barge_in_enabled: currentOpts.bargeInEnabled,
@@ -935,32 +1098,35 @@ export function useRealtimeVoiceInterview({
           const data = JSON.parse(event.data);
           const type = data.type;
           const generation = data.generation_id as string | undefined;
-          if (generation && ignoredGenerationsRef.current.has(generation) && type !== "interrupted" && !(type === "state" && data.state === "LISTEN")) return;
-          if (generation && type !== "interrupted") activeGenerationRef.current = generation;
+          if (generation && ignoredGenerationsRef.current.has(generation) && type !== "interrupted" && type !== "tts_fallback_consent_result" && !(type === "state" && data.state === "LISTEN")) return;
+          if (generation && type !== "interrupted" && type !== "tts_fallback_consent_result" && generation !== activeGenerationRef.current) {
+            activeGenerationRef.current = generation;
+            browserFallbackRef.current = false;
+            showTextDuringTtsFallbackRef.current = false;
+            setShowTextDuringTtsFallback(false);
+          }
 
           if (type === "state") {
             const rawState = data.state;
             if (rawState === "LISTEN") {
               serverHasFinishedTurnRef.current = true;
-              if (!submissionPendingRef.current && !playerRef.current?.isPlaying()) {
+              if (!submissionPendingRef.current && !playerRef.current?.isPlaying() && browserTtsPendingCountRef.current === 0) {
                 setAiState("listening");
               }
             } else if (rawState === "THINK") {
               serverHasFinishedTurnRef.current = false;
+              missingAudioSentencesRef.current = [];
               subtitlesRef.current.clear();
-              playerRef.current?.setExpectingMoreAudio(true);
+              setSpokenText("");
+              if (spokenTextTimerRef.current) clearInterval(spokenTextTimerRef.current);
+              playerRef.current?.setExpectingMoreAudio(responseModeRef.current === "voice");
               setAiState("thinking");
             } else if (rawState === "SPEAK") {
               submissionPendingRef.current = false;
-              setAiState("speaking");
             } else if (rawState === "COMPLETED") {
               pendingCompletionRef.current = true;
               isStoppingSessionRef.current = false;
               setIsStoppingSession(false);
-              if (!playerRef.current?.isPlaying()) {
-                setAiState("completed");
-                setIsCompleted(true);
-              }
             }
 
             if (data.turn_id) setTurnId(data.turn_id);
@@ -1002,8 +1168,10 @@ export function useRealtimeVoiceInterview({
               });
             }
           } else if (type === "question_context" || type === "question_rerolled") {
+            setCurrentHint(null);
             setCurrentIntent({
               question_id: data.question_id,
+              question_type: data.question_type || "generic",
               intent: data.topic_label || data.intent || "",
               stage_key: data.stage_key || "",
               difficulty: data.difficulty || 3,
@@ -1015,6 +1183,8 @@ export function useRealtimeVoiceInterview({
             if (data.pitch) setActivePitch(data.pitch);
           } else if (type === "stage_info" || type === "stage_change") {
             setPendingTransition(null);
+            setIsConfirmingTransition(false);
+            if (type === "stage_change") setCurrentHint(null);
             if (data.current_stage) setCurrentStage(data.current_stage);
             if (data.stages) setStagesList(data.stages);
             if (data.turn_in_stage) setTurnInStage(data.turn_in_stage);
@@ -1022,8 +1192,25 @@ export function useRealtimeVoiceInterview({
             if (data.stage_max_seconds) setStageMaxSeconds(data.stage_max_seconds);
             if (data.stage_elapsed_seconds !== undefined) setStageElapsedSeconds(data.stage_elapsed_seconds);
             if (data.mock_mode) setMockModeState(data.mock_mode);
-          } else if (type === "stage_transition_proposed") {
+          } else if (type === "interview_progress") {
+            setInterviewProgress({
+              stage: data.stage, completed: data.completed,
+              discussed: typeof data.discussed === "number" ? data.discussed : data.completed,
+              total: data.total,
+              ready: Boolean(data.ready), remainingRequired: data.remaining_required || 0,
+              elapsedSeconds: data.elapsed_seconds || 0, targetSeconds: data.target_seconds || 600,
+              stageVersion: data.stage_version,
+            });
+            setStageElapsedSeconds(data.elapsed_seconds || 0);
+            setStageMaxSeconds(data.target_seconds || 600);
+            if (typeof data.total_elapsed_seconds === "number") setSessionDurationSeconds(data.total_elapsed_seconds);
+          } else if (type === "stage_transition_proposed" || type === "session_end_proposed") {
             setPendingTransition({
+              kind: type === "session_end_proposed" ? "end" : "stage",
+              proposalId: data.proposal_id,
+              stageVersion: data.stage_version,
+              reason: data.reason === "overtime" ? "overtime" : "ready",
+              remainingRequired: data.remaining_required || 0,
               currentStage: data.current_stage || "",
               nextStage: data.next_stage || "",
               stageIndex: data.stage_index || 1,
@@ -1034,33 +1221,91 @@ export function useRealtimeVoiceInterview({
               stageMaxSeconds: data.stage_max_seconds || 600,
               summaryMessage: data.summary_message || "",
             });
+            setIsConfirmingTransition(false);
           } else if (type === "stage_transition_deferred") {
             setPendingTransition(null);
+            setIsConfirmingTransition(false);
           } else if (type === "hint_response") {
-            setCurrentHint(data.hint_text || "");
+            if (!data.turn_id || data.turn_id === turnIdRef.current) {
+              setCurrentHint(data.hint_text || "");
+            }
             setIsRequestingHint(false);
           } else if (type === "ai_token") {
             fullAiTextAccumulatorRef.current += data.token;
-            setCurrentQuestion(fullAiTextAccumulatorRef.current);
+            if (responseModeRef.current === "text" || showTextDuringTtsFallbackRef.current) {
+              setCurrentQuestion(fullAiTextAccumulatorRef.current);
+            }
+          } else if (type === "tts_fallback") {
+            showTextDuringTtsFallbackRef.current = true;
+            setShowTextDuringTtsFallback(true);
+            setCurrentQuestion(fullAiTextAccumulatorRef.current || data.sentence || "");
+            if (data.phase === "browser") {
+              browserFallbackRef.current = true;
+              playerRef.current?.setExpectingMoreAudio(false);
+              const sentence = subtitlesRef.current.get(data.sentence_index) || data.sentence;
+              if (sentence && ttsEngineRef.current !== "browser") {
+                missingAudioSentencesRef.current.push(sentence);
+                if (!playerRef.current?.isPlaying()) startMissingAudioRef.current();
+              }
+              subtitlesRef.current.delete(data.sentence_index);
+            }
+          } else if (type === "tts_fallback_consent") {
+            if (typeof data.generation_id === "string" && (data.phase === "backup" || data.phase === "browser")) {
+              const offer: TtsFallbackConsent = { generationId: data.generation_id, phase: data.phase };
+              ttsFallbackConsentRef.current = offer;
+              setTtsFallbackConsent(offer);
+              setIsConfirmingTtsFallback(false);
+            }
+          } else if (type === "tts_fallback_consent_result") {
+            if (ttsFallbackConsentRef.current?.generationId === data.generation_id) {
+              ttsFallbackConsentRef.current = null;
+              setTtsFallbackConsent(null);
+              setIsConfirmingTtsFallback(false);
+              if (data.accepted && (data.phase === "backup" || data.phase === "browser")) {
+                try {
+                  sessionStorage.setItem(ttsFallbackStorageKey, JSON.stringify({
+                    voice: optionsRef.current.voice,
+                    phase: data.phase,
+                  }));
+                } catch {}
+              }
+            }
           } else if (type === "subtitle") {
             subtitlesRef.current.set(data.sentence_index, data.sentence || "");
             if (ttsEngineRef.current === "browser" && data.sentence) {
               speakWithBrowserTTS(data.sentence);
+            } else if (browserFallbackRef.current && data.sentence && responseModeRef.current === "voice") {
+              missingAudioSentencesRef.current.push(data.sentence);
+              subtitlesRef.current.delete(data.sentence_index);
+              if (!playerRef.current?.isPlaying()) startMissingAudioRef.current();
             }
           } else if (type === "audio") {
             if (ttsEngineRef.current === "browser") {
               // Bo qua am thanh tu backend khi nguoi dung chon Browser Web Speech API
               return;
             }
-            setAiState("speaking");
             if (data.audio_data && playerRef.current) {
-              setAudioBlockedByAutoplay(playerRef.current.getAudioContext().state === "suspended");
+              const context = playerRef.current.getAudioContext();
+              if (context.state === "suspended") {
+                setAudioBlockedByAutoplay(true);
+                void context.resume()
+                  .then(() => setAudioBlockedByAutoplay(context.state === "suspended"))
+                  .catch(() => setAudioBlockedByAutoplay(true));
+              } else {
+                setAudioBlockedByAutoplay(false);
+              }
               const subtitle = subtitlesRef.current.get(data.sentence_index) || "";
-              void playerRef.current.enqueueBase64(data.audio_data, () => setCurrentSubtitle(subtitle));
+              void playerRef.current.enqueueBase64(data.audio_data, (duration) => {
+                setIsAudioPlaying(true);
+                setAiState("speaking");
+                setCurrentSubtitle(subtitle);
+                if (subtitle) revealSentence(subtitle, duration);
+              });
               subtitlesRef.current.delete(data.sentence_index);
             }
           } else if (type === "interrupted") {
             if (generation) ignoredGenerationsRef.current.add(generation);
+            missingAudioSentencesRef.current = [];
             if (playerRef.current) playerRef.current.stop();
             if (typeof window !== "undefined" && window.speechSynthesis) {
               window.speechSynthesis.cancel();
@@ -1070,10 +1315,22 @@ export function useRealtimeVoiceInterview({
             if (!submissionPendingRef.current) setAiState("listening");
             fullAiTextAccumulatorRef.current = "";
             setCurrentQuestion("");
+            setSpokenText("");
+            if (spokenTextTimerRef.current) clearInterval(spokenTextTimerRef.current);
           } else if (type === "done") {
             submissionPendingRef.current = false;
             serverHasFinishedTurnRef.current = true;
+            const missingSentences = Array.isArray(data.missing_audio_sentences)
+              ? data.missing_audio_sentences
+              : [...subtitlesRef.current.entries()].sort(([first], [second]) => first - second).map(([, sentence]) => sentence);
+            if (!browserFallbackRef.current) {
+              missingAudioSentencesRef.current = ttsEngineRef.current === "browser" || responseModeRef.current !== "voice"
+                ? [] : missingSentences.filter((sentence: unknown): sentence is string => typeof sentence === "string" && Boolean(sentence.trim()));
+            }
+            subtitlesRef.current.clear();
             playerRef.current?.setExpectingMoreAudio(false);
+            if (!playerRef.current?.isPlaying()) startMissingAudioRef.current();
+            playbackAckRef.current();
             if (ttsEngineRef.current === "browser" && browserTtsPendingCountRef.current === 0) {
               setIsAudioPlaying(false);
               setAiState("listening");
@@ -1081,7 +1338,7 @@ export function useRealtimeVoiceInterview({
             const aiResponse = (data.full_text || fullAiTextAccumulatorRef.current || "").trim();
             if (aiResponse) {
               const targetTurnNum = data.turn_id || turnIdRef.current;
-              const aiAudioUrl = data.audio_url || `/api/v1/voice/audio/${sessionId}/turn_${targetTurnNum}_ai.mp3`;
+              const aiAudioUrl = data.audio_url || null;
               setTurns((prev) => {
                 const existingIdx = prev.findIndex(
                   (t) => t.speaker === "ai" && (
@@ -1116,21 +1373,26 @@ export function useRealtimeVoiceInterview({
             setCurrentQuestion("");
 
             if (data.is_completed) {
+              try { sessionStorage.removeItem(ttsFallbackStorageKey); } catch {}
+              ttsFallbackConsentRef.current = null;
+              setTtsFallbackConsent(null);
               pendingCompletionRef.current = true;
               isStoppingSessionRef.current = false;
               setIsStoppingSession(false);
-              if (!playerRef.current?.isPlaying()) {
+              if (!playerRef.current?.isPlaying() && browserTtsPendingCountRef.current === 0) {
                 setIsCompleted(true);
                 setAiState("completed");
               }
-            } else if (!playerRef.current?.isPlaying()) {
+            } else if (!playerRef.current?.isPlaying() && browserTtsPendingCountRef.current === 0) {
               playbackReadyTimerRef.current = setTimeout(() => {
-                if (serverHasFinishedTurnRef.current && !isCompletedRef.current && !playerRef.current?.isPlaying()) {
+                if (serverHasFinishedTurnRef.current && !isCompletedRef.current &&
+                    !playerRef.current?.isPlaying() && browserTtsPendingCountRef.current === 0) {
                   setAiState("listening");
                 }
               }, 400);
             }
           } else if (type === "error") {
+            setIsConfirmingTransition(false);
             if (isStoppingSessionRef.current) {
               isStoppingSessionRef.current = false;
               setIsStoppingSession(false);
@@ -1139,7 +1401,7 @@ export function useRealtimeVoiceInterview({
             submissionPendingRef.current = false;
             playerRef.current?.setExpectingMoreAudio(false);
             serverHasFinishedTurnRef.current = true;
-            if (!playerRef.current?.isPlaying()) setAiState("listening");
+            if (!playerRef.current?.isPlaying() && browserTtsPendingCountRef.current === 0) setAiState("listening");
             setError(data.message || "Đã xảy ra lỗi trong phiên phỏng vấn.");
           }
         } catch (e) {
@@ -1155,13 +1417,23 @@ export function useRealtimeVoiceInterview({
       ws.onclose = (event) => {
         if (wsRef.current !== ws) return;
         setIsConnected(false);
+        ttsFallbackConsentRef.current = null;
+        setTtsFallbackConsent(null);
+        setIsConfirmingTtsFallback(false);
         if (isStoppingSessionRef.current && !isCompletedRef.current) {
           isStoppingSessionRef.current = false;
           setIsStoppingSession(false);
           setError("Mất kết nối máy chủ khi đang kết thúc phiên. Vui lòng tải lại trang.");
         }
         submissionPendingRef.current = false;
+        setPendingTransition(null);
+        setIsConfirmingTransition(false);
         playerRef.current?.stop();
+        if (typeof window !== "undefined" && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          browserTtsPendingCountRef.current = 0;
+        }
+        missingAudioSentencesRef.current = [];
         setIsAudioPlaying(false);
         if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
 
@@ -1217,7 +1489,12 @@ export function useRealtimeVoiceInterview({
     turnInStage,
     targetTurnsInStage,
     currentQuestion,
+    showTextDuringTtsFallback,
+    ttsFallbackConsent,
+    isConfirmingTtsFallback,
+    chooseTtsFallback,
     currentSubtitle,
+    spokenText,
     turns,
     isAudioPlaying,
     isAudioMuted,
@@ -1239,6 +1516,8 @@ export function useRealtimeVoiceInterview({
     updateTurnAudioUrl,
     // 3-Stage Transition & Adaptive Controls
     pendingTransition,
+    interviewProgress,
+    isConfirmingTransition,
     confirmStageTransition,
     deferStageTransition,
     currentHint,
