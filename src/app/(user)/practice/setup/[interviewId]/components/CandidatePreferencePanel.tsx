@@ -116,9 +116,9 @@ export function CandidatePreferencePanel({
             onChange={(event) => onBargeInChange(event.target.checked)}
           />
           <span>
-            <strong>Cho phép ngắt lời AI</strong>
+            <strong>Hội thoại rảnh tay và ngắt lời AI</strong>
             <small>
-              Khi dùng giọng nói, bạn có thể bắt đầu nói để dừng phản hồi hiện tại.
+              Micro tự nghe khi AI nói, ngắt lời khi nhận diện giọng bạn và tự gửi sau khoảng lặng. Nên dùng tai nghe.
             </small>
           </span>
         </label>

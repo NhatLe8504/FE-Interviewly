@@ -8,6 +8,7 @@ import { PRE_MADE_INTERVIEWS, type PreMadeInterview } from "@/data/mockInterview
 import { ApiError } from "@/services/apiClient";
 import { interviewApi } from "@/services/interviewApi";
 import { jdInterviewApi } from "@/services/jdInterviewApi";
+import { voiceApi } from "@/services/voiceApi";
 import { useEffect } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 import { CandidatePreferencePanel } from "./components/CandidatePreferencePanel";
@@ -19,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { PageMascot } from "@/components/user-component/common/PageMascot";
 import { useI18n } from "@/context/I18nContext";
 import { getInterviewLanguage, type InterviewLanguage } from "@/lib/interviewLanguages";
+import { primeInterviewAudio, releasePrimedInterviewAudio } from "@/lib/interviewAudio";
 import {
   buildStageConfigs,
   DEFAULT_STAGE_QUESTION_SELECTIONS,
@@ -232,6 +234,12 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
       return;
     }
 
+    primeInterviewAudio();
+    const voiceOptionsController = new AbortController();
+    const voiceOptionsTimeout = window.setTimeout(() => voiceOptionsController.abort(), 5000);
+    const voiceOptionsPromise = voiceApi.getVoiceOptions(language, voiceOptionsController.signal)
+      .catch(() => null)
+      .finally(() => window.clearTimeout(voiceOptionsTimeout));
     setIsLaunching(true);
     try {
       const selectedQuestionIds = getPlanQuestionIds(stageConfigs);
@@ -261,6 +269,7 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
       if (sessionId === undefined || sessionId === null || String(sessionId).trim() === "") {
         throw new Error("Backend không trả về mã phiên phỏng vấn hợp lệ.");
       }
+      const preloadedVoiceOptions = await voiceOptionsPromise;
 
       let cachedVoice: string | undefined = undefined;
       try {
@@ -285,6 +294,7 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
             languageLabel: getInterviewLanguage(language).label,
             mode,
             voice: cachedVoice,
+            preloadedVoiceOptions,
             bargeInEnabled,
             totalDurationMinutes,
             mockMode,
@@ -302,6 +312,8 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
 
       router.push(`/practice/${sessionId}?language=${language}`);
     } catch (cause) {
+      voiceOptionsController.abort();
+      releasePrimedInterviewAudio();
       setSetupError(getStartErrorMessage(cause));
       setIsLaunching(false);
     }
