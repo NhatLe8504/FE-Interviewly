@@ -809,3 +809,84 @@
   0% { left: -60%; }
   35%, 100% { left: 140%; }
 }
+
+/* Live Automated Webhook Listener Status Card */
+.autoListenerCard {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 20px;
+  background: rgba(16, 185, 129, 0.05);
+  border-radius: 16px;
+  border: 1.5px solid rgba(16, 185, 129, 0.25);
+  text-align: left;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.06);
+}
+
+.autoListenerHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.liveIndicatorDot {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #10b981;
+  flex-shrink: 0;
+}
+
+.liveIndicatorDot::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.4);
+  animation: pulseBeacon 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulseBeacon {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.autoListenerTitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #065f46;
+}
+
+.autoListenerDesc {
+  margin: 0;
+  font-size: 12.5px;
+  color: rgba(45, 31, 23, 0.8);
+  line-height: 1.55;
+}
+
+.autoListenerDesc strong {
+  color: #047857;
+}
+
+.autoListenerFooter {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(106, 72, 49, 0.85);
+  padding-top: 8px;
+  border-top: 1px dashed rgba(16, 185, 129, 0.2);
+}

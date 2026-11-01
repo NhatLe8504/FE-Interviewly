@@ -173,7 +173,7 @@ export function CheckoutClient() {
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const [createCheckoutApi] = useCreateCheckoutMutation();
-  const [verifyPaymentApi, { isLoading: isVerifying }] = useVerifyPaymentMutation();
+  const [verifyPaymentApi] = useVerifyPaymentMutation();
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
 
   useEffect(() => {
@@ -231,7 +231,7 @@ export function CheckoutClient() {
       } catch {
         // Continue polling silently
       }
-    }, 3500);
+    }, 2000);
 
     return () => {
       isCancelled = true;
@@ -278,22 +278,6 @@ export function CheckoutClient() {
     }
   };
 
-  const handleConfirmPaid = async () => {
-    if (!orderCode) return;
-    try {
-      const res = await verifyPaymentApi({ transaction_ref: orderCode }).unwrap();
-      if (res.status === "success") {
-        toast.success("Xác nhận thanh toán thành công! Gói cước đã được kích hoạt.");
-        setShowSuccessModal(true);
-      } else {
-        toast.info(
-          "Hệ thống đang kiểm tra giao dịch từ ngân hàng VietQR. Vui lòng đợi trong giây lát, trang sẽ tự động kích hoạt ngay khi nhận tiền."
-        );
-      }
-    } catch {
-      toast.info("Đang kiểm tra đối soát với ngân hàng qua xGate. Vui lòng đợi trong ít giây...");
-    }
-  };
 
   const planDisplayName = activePlan.plan_name;
   const redirectTarget = `/subscription/checkout?plan_id=${selectedPlanId}`;
@@ -595,36 +579,21 @@ export function CheckoutClient() {
                 </div>
               </div>
 
-              {/* Confirm Paid Action Button */}
-              <div className={styles.buttonGroup}>
-                <button
-                  type="button"
-                  className={styles.primaryButton}
-                  onClick={handleConfirmPaid}
-                  disabled={isVerifying}
-                >
-                  {isVerifying ? (
-                    <>
-                      <span
-                        style={{
-                          width: "16px",
-                          height: "16px",
-                          border: "2px solid #ffffff",
-                          borderTopColor: "transparent",
-                          borderRadius: "50%",
-                          animation: "spin 1s linear infinite",
-                          display: "inline-block",
-                        }}
-                      />
-                      <span>Đang xác thực giao dịch qua xGate...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 size={18} />
-                      <span>Tôi đã chuyển khoản thành công</span>
-                    </>
-                  )}
-                </button>
+              {/* Automated Real-Time Webhook Listener Status Card */}
+              <div className={styles.autoListenerCard}>
+                <div className={styles.autoListenerHeader}>
+                  <span className={styles.liveIndicatorDot} />
+                  <span className={styles.autoListenerTitle}>
+                    Hệ thống đang tự động lắng nghe giao dịch...
+                  </span>
+                </div>
+                <p className={styles.autoListenerDesc}>
+                  Ngay khi bạn chuyển khoản thành công trên ứng dụng ngân hàng, hệ thống xGate Webhook sẽ tự động xác nhận và kích hoạt gói cước trong vòng <strong>3 giây</strong> mà không cần thao tác thêm.
+                </p>
+                <div className={styles.autoListenerFooter}>
+                  <RotateCw size={13} className="animate-spin text-emerald-600" />
+                  <span>Đối soát tự động VietQR Napas 24/7 thời gian thực</span>
+                </div>
               </div>
             </div>
           </div>
