@@ -17,6 +17,7 @@ import {
   FileText,
   RotateCw,
   AlertCircle,
+  LogIn,
 } from "lucide-react";
 import styles from "./checkout.module.css";
 import { useAuth } from "@/context/AuthContext";
@@ -104,7 +105,7 @@ type BillingCycle = "weekly" | "monthly" | "yearly";
 export function CheckoutClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   // Read URL parameters
   const planIdParam = searchParams.get("plan_id");
@@ -147,7 +148,6 @@ export function CheckoutClient() {
   const activePlan: SubscriptionPlan = useMemo(() => {
     const found = DEFAULT_PLANS.find((p) => p.plan_id === selectedPlanId);
     if (found) return found;
-    // Default fallback to Pro Monthly
     return DEFAULT_PLANS[2];
   }, [selectedPlanId]);
 
@@ -170,6 +170,7 @@ export function CheckoutClient() {
 
   // Initialize checkout with backend to obtain real transaction reference
   const initCheckout = useCallback(async () => {
+    if (!isAuthenticated) return;
     setIsCreatingCheckout(true);
     setCheckoutError(null);
     try {
@@ -180,15 +181,25 @@ export function CheckoutClient() {
         setCheckoutError("Không nhận được mã giao dịch từ hệ thống. Vui lòng thử lại.");
       }
     } catch (err: any) {
-      setCheckoutError(err?.data?.detail || "Không thể khởi tạo phiên thanh toán. Vui lòng bấm thử lại.");
+      if (err?.status === 401 || err?.data?.detail === "missing bearer token") {
+        setCheckoutError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để tiếp tục thanh toán.");
+      } else if (err?.status === "FETCH_ERROR") {
+        setCheckoutError("Không thể kết nối đến máy chủ thanh toán (Backend). Vui lòng thử lại sau giây lát.");
+      } else {
+        setCheckoutError(err?.data?.detail || "Không thể khởi tạo phiên thanh toán. Vui lòng bấm thử lại.");
+      }
     } finally {
       setIsCreatingCheckout(false);
     }
-  }, [selectedPlanId, createCheckoutApi]);
+  }, [selectedPlanId, isAuthenticated, createCheckoutApi]);
 
   useEffect(() => {
-    initCheckout();
-  }, [initCheckout]);
+    if (isAuthenticated) {
+      initCheckout();
+    } else if (!isAuthLoading) {
+      setIsCreatingCheckout(false);
+    }
+  }, [isAuthenticated, isAuthLoading, initCheckout]);
 
   // Automated Real-Time Polling for VietQR payment confirmation (every 3.5s)
   useEffect(() => {
@@ -271,7 +282,100 @@ export function CheckoutClient() {
   };
 
   const planDisplayName = activePlan.plan_name;
+  const redirectTarget = `/subscription/checkout?plan_id=${selectedPlanId}`;
 
+  // Case 1: Still checking auth state
+  if (isAuthLoading) {
+    return (
+      <main className={styles.container}>
+        <div style={{ textAlign: "center", padding: "80px 20px" }}>
+          <RotateCw size={36} className="animate-spin text-amber-600 mx-auto mb-3" />
+          <p style={{ fontSize: 16, fontWeight: 700, color: "var(--ink, #211914)" }}>
+            Đang kiểm tra thông tin tài khoản...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  // Case 2: Not authenticated - Display clear Sign In prompt
+  if (!isAuthenticated) {
+    return (
+      <main className={styles.container}>
+        <section className={styles.header}>
+          <div className={styles.badge}>
+            <ShieldCheck size={14} />
+            <span>Thanh toán an toàn & Đối soát tự động VietQR Napas 247</span>
+          </div>
+          <h1 className={styles.title}>
+            Thanh toán & Kích hoạt <em>{isAddon ? "Gói Nạp Thêm" : "Interviewly PRO"}</em>
+          </h1>
+          <p className={styles.subtitle}>
+            Quét mã VietQR chuyển khoản nhanh qua ứng dụng ngân hàng bất kỳ. Hệ thống đối soát xGate tự động xác nhận và kích hoạt trong vòng 3 giây.
+          </p>
+        </section>
+
+        <div
+          style={{
+            maxWidth: 480,
+            margin: "24px auto 60px",
+            background: "#ffffff",
+            borderRadius: 24,
+            padding: "36px 28px",
+            textAlign: "center",
+            border: "1.5px solid rgba(217, 130, 54, 0.25)",
+            boxShadow: "0 8px 30px rgba(0, 0, 0, 0.05)",
+          }}
+        >
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: "50%",
+              background: "rgba(217, 130, 54, 0.12)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 18px",
+            }}
+          >
+            <Lock size={32} color="#d98236" />
+          </div>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--ink, #211914)", marginBottom: 8 }}>
+            Vui lòng đăng nhập để tiếp tục
+          </h2>
+          <p style={{ fontSize: 14, color: "rgba(45, 31, 23, 0.75)", lineHeight: 1.6, marginBottom: 24 }}>
+            Gói cước cần được liên kết với tài khoản của bạn để hệ thống tự động cộng số phút phỏng vấn và kích hoạt quyền lợi ngay sau khi nhận được chuyển khoản.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <Link
+              href={`/login?redirect=${encodeURIComponent(redirectTarget)}`}
+              className={styles.primaryButton}
+              style={{ justifyContent: "center", padding: "12px 24px", textDecoration: "none" }}
+            >
+              <LogIn size={16} />
+              <span>Đăng nhập để thanh toán</span>
+              <ArrowRight size={16} />
+            </Link>
+            <Link
+              href="/pricing"
+              style={{
+                fontSize: 13,
+                color: "rgba(45, 31, 23, 0.65)",
+                textDecoration: "underline",
+                fontWeight: 600,
+                padding: 8,
+              }}
+            >
+              Quay lại xem bảng giá
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Case 3: Authenticated
   return (
     <main className={styles.container}>
       {/* Header Section */}
@@ -297,20 +401,61 @@ export function CheckoutClient() {
           </p>
         </div>
       ) : checkoutError ? (
-        <div style={{ maxWidth: 500, margin: "40px auto", textAlign: "center", padding: 24, background: "#fff", borderRadius: 16, border: "1.5px solid #ef4444" }}>
-          <AlertCircle size={40} className="text-red-500 mx-auto mb-2" />
+        <div
+          style={{
+            maxWidth: 500,
+            margin: "40px auto",
+            textAlign: "center",
+            padding: 28,
+            background: "#fff",
+            borderRadius: 20,
+            border: "1.5px solid #ef4444",
+            boxShadow: "0 8px 30px rgba(239, 68, 68, 0.08)",
+          }}
+        >
+          <AlertCircle size={40} className="text-red-500 mx-auto mb-3" />
           <h3 style={{ fontSize: 18, fontWeight: 700, color: "#991b1b", marginBottom: 8 }}>
             Khởi tạo thanh toán không thành công
           </h3>
-          <p style={{ fontSize: 14, color: "#666", marginBottom: 16 }}>{checkoutError}</p>
-          <button
-            type="button"
-            className={styles.primaryButton}
-            onClick={initCheckout}
-            style={{ margin: "0 auto", padding: "10px 24px" }}
-          >
-            <RotateCw size={14} /> Thử lại
-          </button>
+          <p style={{ fontSize: 14, color: "#4b5563", marginBottom: 20, lineHeight: 1.5 }}>
+            {checkoutError}
+          </p>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+            {checkoutError.includes("đăng nhập") ? (
+              <Link
+                href={`/login?redirect=${encodeURIComponent(redirectTarget)}`}
+                className={styles.primaryButton}
+                style={{ padding: "10px 24px", textDecoration: "none" }}
+              >
+                <LogIn size={15} /> Đăng nhập lại
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={initCheckout}
+                style={{ padding: "10px 24px" }}
+              >
+                <RotateCw size={14} /> Thử lại
+              </button>
+            )}
+            <Link
+              href="/pricing"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "10px 18px",
+                borderRadius: 12,
+                border: "1px solid rgba(106, 72, 49, 0.2)",
+                color: "#211914",
+                textDecoration: "none",
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              Về trang giá
+            </Link>
+          </div>
         </div>
       ) : (
         <div className={styles.layout}>

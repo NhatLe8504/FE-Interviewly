@@ -175,6 +175,12 @@ export default function AuthPanel({
       return;
     }
 
+    const searchParams = new URLSearchParams(window.location.search);
+    const redirectUrl = searchParams.get("redirect");
+    if (redirectUrl && redirectUrl.startsWith("/")) {
+      window.location.href = redirectUrl;
+      return;
+    }
     window.location.href = "/";
   };
 
