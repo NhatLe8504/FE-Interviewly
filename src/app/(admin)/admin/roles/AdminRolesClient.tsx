@@ -46,19 +46,7 @@ const getRoleInitials = (name: string) => {
   return (words[0][0] + words[1][0]).toUpperCase();
 };
 
-const getRoleColor = (name: string) => {
-  const colors = [
-    "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
-    "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/30",
-    "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
-    "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
-    "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30",
-    "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30",
-  ];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return colors[Math.abs(hash) % colors.length];
-};
+const getRoleColor = (_name: string) => "bg-muted text-foreground border-border";
 
 export function AdminRolesClient() {
   const [roles, setRoles] = useState<RoleAdminSummary[]>([]);
@@ -234,7 +222,7 @@ export function AdminRolesClient() {
           title="Tổng Số Vị Trí Tuyển Dụng"
           value={roles.length}
           description={`${activeRolesCount} vị trí đang hoạt động`}
-          icon={<BriefcaseBusiness className="size-5 text-indigo-500" />}
+          icon={<BriefcaseBusiness className="size-5 text-primary" />}
         />
         <AdminStatCard
           title="Số Ngành Nghề Bao Phủ"
@@ -424,7 +412,7 @@ export function AdminRolesClient() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 px-2 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                            className="h-8 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={() => handleDelete(role)}
                           >
                             <Trash2 className="size-3.5" />
@@ -580,8 +568,8 @@ export function AdminRolesClient() {
                 </div>
 
                 {/* Quick actions box */}
-                <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-950 dark:text-indigo-200 text-[11px] space-y-1">
-                  <div className="font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+                <div className="p-3 rounded-lg bg-muted/50 border border-border text-foreground text-[11px] space-y-1">
+                  <div className="font-semibold text-primary flex items-center gap-1.5">
                     <Layers3 className="size-3.5" />
                     Ngân Hàng Câu Hỏi & Đề Phỏng Vấn
                   </div>

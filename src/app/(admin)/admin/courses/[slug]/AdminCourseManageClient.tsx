@@ -254,7 +254,7 @@ export default function AdminCourseManageClient({ slug }: AdminCourseManageClien
       case "star_practice":
         return <Award className="size-4 text-amber-500" />;
       case "quiz":
-        return <HelpCircle className="size-4 text-purple-500" />;
+        return <HelpCircle className="size-4 text-primary" />;
       case "mock_simulation":
         return <Compass className="size-4 text-rose-500" />;
       default:

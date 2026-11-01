@@ -350,7 +350,7 @@ export function AdminModerationClient() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 px-2 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                                className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
                                 onClick={() =>
                                   handleQuickAction(
                                     log.target_type,

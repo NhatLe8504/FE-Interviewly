@@ -136,25 +136,25 @@ export function AdminInterviewDetailClient() {
           title="Điểm Tổng Thể"
           value={detail.total_score !== null ? `${detail.total_score} / 100` : "Chưa chấm"}
           description="Đánh giá năng lực bởi AI"
-          icon={<Award className="size-5 text-amber-500" />}
+          icon={<Award className="size-5 text-primary" />}
         />
         <AdminStatCard
           title="Số Lượt Hỏi Đáp"
           value={`${detail.turns.length} câu`}
           description={`Trình độ: ${detail.experience_level || "Chưa rõ"}`}
-          icon={<MessageSquare className="size-5 text-indigo-500" />}
+          icon={<MessageSquare className="size-5 text-primary" />}
         />
         <AdminStatCard
           title="Chế Độ & Ngôn Ngữ"
           value={`${detail.mode.toUpperCase()} (${detail.language.toUpperCase()})`}
           description="Hình thức tương tác"
-          icon={<Activity className="size-5 text-purple-500" />}
+          icon={<Activity className="size-5 text-primary" />}
         />
         <AdminStatCard
           title="Thời Điểm Bắt Đầu"
           value={new Date(detail.started_at).toLocaleTimeString("vi-VN")}
           description={new Date(detail.started_at).toLocaleDateString("vi-VN")}
-          icon={<Clock className="size-5 text-emerald-500" />}
+          icon={<Clock className="size-5 text-primary" />}
         />
       </div>
 
@@ -196,8 +196,8 @@ export function AdminInterviewDetailClient() {
                         turn.evaluation_score >= 80
                           ? "bg-emerald-500/15 text-emerald-600 border-none font-bold"
                           : turn.evaluation_score >= 50
-                          ? "bg-amber-500/15 text-amber-600 border-none font-bold"
-                          : "bg-rose-500/15 text-rose-600 border-none font-bold"
+                          ? "bg-muted text-foreground border-none font-bold"
+                          : "bg-destructive/15 text-destructive border-none font-bold"
                       }
                     >
                       Điểm: {turn.evaluation_score}/100
@@ -219,12 +219,12 @@ export function AdminInterviewDetailClient() {
                 </div>
 
                 {/* Candidate Answer */}
-                <div className="flex items-start gap-3 bg-indigo-500/5 p-3.5 rounded-lg border border-indigo-500/15">
-                  <div className="size-8 rounded-full bg-indigo-500/20 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="flex items-start gap-3 bg-muted/30 p-3.5 rounded-lg border border-border/60">
+                  <div className="size-8 rounded-full bg-muted text-foreground flex items-center justify-center shrink-0 mt-0.5">
                     <User className="size-4" />
                   </div>
                   <div className="space-y-1.5 flex-1">
-                    <div className="text-xs font-semibold text-indigo-600 flex items-center justify-between">
+                    <div className="text-xs font-semibold text-foreground flex items-center justify-between">
                       <span>Ứng Viên Trả Lời:</span>
                       {turn.wpm && (
                         <span className="text-[11px] font-normal text-muted-foreground">

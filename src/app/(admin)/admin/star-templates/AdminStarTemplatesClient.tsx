@@ -164,6 +164,16 @@ export function AdminStarTemplatesClient() {
     }
   };
 
+  const handleArchive = async (template: StarTemplateAdmin) => {
+    try {
+      await starTemplateAdminApi.updateStarTemplate(template.star_template_id, { is_active: template.is_active === false });
+      toast.success(template.is_active === false ? "Đã khôi phục mẫu STAR" : "Đã lưu trữ mẫu STAR");
+      await fetchData();
+    } catch (err: any) {
+      toast.error(err?.message || "Không thể cập nhật trạng thái mẫu");
+    }
+  };
+
   const handleDelete = async (t: StarTemplateAdmin) => {
     if (!confirm(`Bạn có chắc chắn muốn xóa mẫu STAR "${t.title}"?`)) return;
     try {
@@ -228,7 +238,7 @@ export function AdminStarTemplatesClient() {
           title="Tổng Số Mẫu STAR"
           value={templates.length}
           description="Khung hướng dẫn phản hồi"
-          icon={<Compass className="size-5 text-indigo-500" />}
+          icon={<Compass className="size-5 text-primary" />}
         />
         <AdminStatCard
           title="Mẫu Tiếng Việt"
@@ -311,8 +321,9 @@ export function AdminStarTemplatesClient() {
                             {tmpl.language === "vi" ? "Tiếng Việt" : "English"}
                           </Badge>
                           <span className="text-xs text-muted-foreground font-mono">
-                            ID #{tmpl.star_template_id}
+                            ID #{tmpl.star_template_id} · {tmpl.usage_count ?? 0} câu hỏi sử dụng
                           </span>
+                          {tmpl.is_active === false && <Badge variant="secondary">Đã lưu trữ</Badge>}
                         </div>
                         <CardTitle className="text-base font-bold mt-1 text-foreground">
                           {tmpl.title}
@@ -330,8 +341,19 @@ export function AdminStarTemplatesClient() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                          className="h-8 px-2"
+                          onClick={() => handleArchive(tmpl)}
+                          title={tmpl.is_active === false ? "Khôi phục mẫu" : "Lưu trữ mẫu"}
+                        >
+                          {tmpl.is_active === false ? "Khôi phục" : "Lưu trữ"}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                           onClick={() => handleDelete(tmpl)}
+                          disabled={Boolean(tmpl.usage_count)}
+                          title={tmpl.usage_count ? "Mẫu đang được câu hỏi sử dụng" : "Xóa mẫu"}
                         >
                           <Trash2 className="size-3.5" />
                         </Button>
@@ -352,9 +374,9 @@ export function AdminStarTemplatesClient() {
                       </p>
                     </div>
 
-                    <div className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                      <div className="font-bold text-purple-600 dark:text-purple-400 mb-1 flex items-center gap-1.5">
-                        <span className="size-4 rounded-full bg-purple-500 text-white flex items-center justify-center text-[10px]">
+                    <div className="p-2.5 rounded-lg bg-muted/40 border border-border">
+                      <div className="font-bold text-primary mb-1 flex items-center gap-1.5">
+                        <span className="size-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px]">
                           T
                         </span>
                         Task (Nhiệm vụ & Mục tiêu cần đạt)
@@ -466,7 +488,7 @@ export function AdminStarTemplatesClient() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="t_guide" className="text-purple-600 dark:text-purple-400 font-semibold">
+              <Label htmlFor="t_guide" className="text-foreground font-semibold">
                 T - Task Guide (Nhiệm vụ của ứng viên)
               </Label>
               <textarea

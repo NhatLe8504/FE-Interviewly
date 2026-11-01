@@ -167,13 +167,13 @@ export function AdminSettingsClient() {
           title="Dung Lượng Audio Tạm"
           value={`${health?.audio_storage_size_mb ?? 0} MB`}
           description={`Tự động xóa sau ${form.audio_retention_hours}h`}
-          icon={<HardDrive className="size-5 text-indigo-500" />}
+          icon={<HardDrive className="size-5 text-primary" />}
         />
         <AdminStatCard
           title="Phiên Bản Hệ Thống"
           value={health?.version ?? "v2.5.0"}
           description={form.maintenance_mode ? "Đang bảo trì" : "Sẵn sàng phục vụ"}
-          icon={<Cpu className="size-5 text-purple-500" />}
+          icon={<Cpu className="size-5 text-primary" />}
         />
       </div>
 
@@ -292,7 +292,7 @@ export function AdminSettingsClient() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <Volume2 className="size-5 text-indigo-500" />
+                    <Volume2 className="size-5 text-primary" />
                     Cấu Hình Nhận Diện & Tổng Hợp Giọng Nói (TTS & STT)
                   </CardTitle>
                   <CardDescription>
@@ -496,7 +496,7 @@ export function AdminSettingsClient() {
                     <div className="p-4 border rounded-xl space-y-2 bg-muted/20">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-sm flex items-center gap-2">
-                          <Cpu className="size-4 text-indigo-500" />
+                          <Cpu className="size-4 text-primary" />
                           Redis Cache Service
                         </span>
                         <Badge
@@ -527,7 +527,7 @@ export function AdminSettingsClient() {
                     <div className="p-4 border rounded-xl space-y-2 bg-muted/20">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-sm flex items-center gap-2">
-                          <Activity className="size-4 text-purple-500" />
+                          <Activity className="size-4 text-primary" />
                           Thời Gian Máy Chủ (UTC)
                         </span>
                         <span className="text-xs font-mono text-muted-foreground">

@@ -632,7 +632,7 @@ export function AdminSubscriptionsClient() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 px-2 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                                  className="h-8 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
                                   onClick={() => handleCancelSub(sub)}
                                 >
                                   Hủy
@@ -955,7 +955,7 @@ export function AdminSubscriptionsClient() {
                         setSelectedSubDetail(null);
                         handleCancelSub(sub);
                       }}
-                      className="text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                      className="text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
                     >
                       Hủy gói
                     </Button>
