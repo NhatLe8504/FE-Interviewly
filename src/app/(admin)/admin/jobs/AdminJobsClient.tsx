@@ -48,20 +48,8 @@ const getCompanyInitials = (name?: string | null) => {
   return (words[0][0] + words[1][0]).toUpperCase();
 };
 
-const getCompanyColor = (name?: string | null) => {
-  const colors = [
-    "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30",
-    "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
-    "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30",
-    "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
-    "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
-    "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30",
-    "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/30",
-  ];
-  if (!name) return colors[0];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return colors[Math.abs(hash) % colors.length];
+const getCompanyColor = (_name?: string | null) => {
+  return "bg-muted text-foreground border-border";
 };
 
 const renderSourceBadge = (sourceId?: string, sourceName?: string | null) => {
@@ -214,7 +202,7 @@ export function AdminJobsClient() {
             size="sm"
             onClick={() => handleTriggerCrawl()}
             disabled={triggering}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            
           >
             <Play className={`size-4 mr-2 ${triggering ? "animate-spin" : ""}`} />
             {triggering ? "Đang quét..." : "Quét việc làm ngay"}
@@ -228,19 +216,19 @@ export function AdminJobsClient() {
           title="Tổng Tin Tuyển Dụng Thu Thập"
           value={totalJobs}
           description="Được chuẩn hóa dùng cho phỏng vấn JD"
-          icon={<Briefcase className="size-5 text-indigo-500" />}
+          icon={<Briefcase className="size-5" />}
         />
         <AdminStatCard
           title="Nguồn Cào Đang Kích Hoạt"
           value={`${activeSourcesCount} / ${sources.length}`}
           description="Cổng tuyển dụng được tích hợp"
-          icon={<Bot className="size-5 text-emerald-500" />}
+          icon={<Bot className="size-5" />}
         />
         <AdminStatCard
           title="Tần Suất Quét Tự Động"
           value="Mỗi 2 giờ"
           description="Được quản lý bởi scheduler backend"
-          icon={<Clock className="size-5 text-amber-500" />}
+          icon={<Clock className="size-5" />}
         />
       </div>
 
@@ -480,7 +468,7 @@ export function AdminJobsClient() {
                           {src.base_url}
                         </CardDescription>
                       </div>
-                      <Bot className="size-6 text-indigo-500 shrink-0" />
+                      <Bot className="size-6 text-foreground shrink-0" />
                     </div>
                   </CardHeader>
 
@@ -630,12 +618,12 @@ export function AdminJobsClient() {
                 </div>
 
                 {/* Usage notice in system */}
-                <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-900 dark:text-blue-200 space-y-1">
-                  <div className="font-semibold flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
-                    <Briefcase className="size-3.5" />
+                <div className="p-3 rounded-lg bg-muted/60 border border-border text-xs text-foreground space-y-1">
+                  <div className="font-semibold flex items-center gap-1.5">
+                    <Briefcase className="size-3.5 text-primary" />
                     Ứng dụng trong Hệ Thống Phỏng Vấn AI
                   </div>
-                  <p className="leading-relaxed text-[11px]">
+                  <p className="leading-relaxed text-[11px] text-muted-foreground">
                     Tin tuyển dụng này được AI sử dụng để tự động phân tích Job Description (JD), trích xuất bộ từ khóa kỹ năng, và mô phỏng buổi phỏng vấn sát với yêu cầu thực tế của doanh nghiệp.
                   </p>
                 </div>

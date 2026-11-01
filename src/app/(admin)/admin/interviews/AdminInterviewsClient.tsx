@@ -44,15 +44,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/admin/ui/skeleton";
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  completed: { label: "Hoàn thành", className: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none" },
-  in_progress: { label: "Đang diễn ra", className: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-none" },
-  abandoned: { label: "Bỏ dở", className: "bg-muted text-muted-foreground border-none" },
+  completed: { label: "Hoàn thành", className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20" },
+  in_progress: { label: "Đang diễn ra", className: "bg-muted text-foreground border border-border" },
+  abandoned: { label: "Bỏ dở", className: "bg-muted text-muted-foreground border border-border" },
 };
 
 const MODE_ICONS: Record<string, React.ReactNode> = {
-  voice: <Mic className="size-3.5 text-indigo-500" />,
-  video: <Video className="size-3.5 text-purple-500" />,
-  text: <MessageSquare className="size-3.5 text-blue-500" />,
+  voice: <Mic className="size-3.5 text-foreground" />,
+  video: <Video className="size-3.5 text-foreground" />,
+  text: <MessageSquare className="size-3.5 text-foreground" />,
 };
 
 const getInitials = (name?: string | null) => {
@@ -62,19 +62,8 @@ const getInitials = (name?: string | null) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-const getAvatarColor = (name?: string | null) => {
-  const colors = [
-    "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
-    "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
-    "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30",
-    "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-    "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
-    "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30",
-  ];
-  if (!name) return colors[0];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return colors[Math.abs(hash) % colors.length];
+const getAvatarColor = (_name?: string | null) => {
+  return "bg-muted text-foreground border-border";
 };
 
 export function AdminInterviewsClient() {
@@ -155,19 +144,19 @@ export function AdminInterviewsClient() {
           title="Tổng Số Phiên Phỏng Vấn"
           value={total}
           description="Đã khởi tạo trên hệ thống"
-          icon={<Sparkles className="size-5 text-indigo-500" />}
+          icon={<Sparkles className="size-5" />}
         />
         <AdminStatCard
           title="Phiên Đã Hoàn Thành"
           value={completedSessions.length}
           description="Ứng viên hoàn tất đầy đủ các câu"
-          icon={<CheckCircle2 className="size-5 text-emerald-500" />}
+          icon={<CheckCircle2 className="size-5" />}
         />
         <AdminStatCard
           title="Điểm Trung Bình"
           value={`${avgScore} / 100`}
           description="Điểm AI đánh giá trung bình"
-          icon={<Award className="size-5 text-amber-500" />}
+          icon={<Award className="size-5" />}
         />
       </div>
 
@@ -292,12 +281,10 @@ export function AdminInterviewsClient() {
                         <td className="py-3 px-3 text-center">
                           {session.total_score !== null && session.total_score !== undefined ? (
                             <span
-                              className={`font-bold text-xs px-2 py-0.5 rounded-full ${
-                                session.total_score >= 80
-                              ? "bg-emerald-500/15 text-emerald-600"
-                              : session.total_score >= 50
-                              ? "bg-amber-500/15 text-amber-600"
-                              : "bg-rose-500/15 text-rose-600"
+                              className={`font-semibold text-xs px-2 py-0.5 rounded-full border ${
+                                session.total_score >= 70
+                                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                                  : "bg-muted text-muted-foreground border-border"
                               }`}
                             >
                               {session.total_score}đ

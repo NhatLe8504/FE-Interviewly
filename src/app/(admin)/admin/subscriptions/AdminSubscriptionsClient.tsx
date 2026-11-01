@@ -56,42 +56,23 @@ const getInitials = (name?: string | null) => {
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 };
 
-const getAvatarColor = (name?: string | null) => {
-  const colors = [
-    "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
-    "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
-    "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30",
-    "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-    "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
-    "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30",
-  ];
-  if (!name) return colors[0];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return colors[Math.abs(hash) % colors.length];
+const getAvatarColor = (_name?: string | null) => {
+  return "bg-muted text-foreground border-border";
 };
 
 const renderPlanBadge = (planName?: string | null) => {
   const name = (planName || "").toLowerCase();
   if (name.includes("free") || name.includes("miễn phí")) {
     return (
-      <Badge variant="outline" className="text-xs font-semibold gap-1">
-        <Sparkles className="size-3 text-muted-foreground" />
+      <Badge variant="outline" className="text-xs font-medium gap-1 text-muted-foreground">
+        <Sparkles className="size-3" />
         {planName || "Gói Free"}
       </Badge>
     );
   }
-  if (name.includes("vip") || name.includes("enterprise") || name.includes("doanh nghiệp")) {
-    return (
-      <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-semibold gap-1">
-        <Crown className="size-3 text-amber-500" />
-        {planName || "Gói VIP"}
-      </Badge>
-    );
-  }
   return (
-    <Badge className="bg-primary/10 text-primary border border-primary/20 text-xs font-semibold gap-1">
-      <Zap className="size-3 text-primary" />
+    <Badge variant="secondary" className="text-xs font-medium gap-1">
+      <Zap className="size-3 text-foreground" />
       {planName || "Gói Pro"}
     </Badge>
   );
@@ -353,13 +334,13 @@ export function AdminSubscriptionsClient() {
           title="Tổng Gói Cước Hoạt Động"
           value={activePlansCount}
           description={`Trên tổng số ${plans.length} gói đã tạo`}
-          icon={<Sparkles className="size-5 text-indigo-500" />}
+          icon={<Sparkles className="size-5" />}
         />
         <AdminStatCard
           title="Thuê Bao Đang Hoạt Động"
           value={totalSubscribers}
           description="Người dùng có quyền lợi VIP/Pro"
-          icon={<Users className="size-5 text-emerald-500" />}
+          icon={<Users className="size-5" />}
         />
         <AdminStatCard
           title="Gói Phổ Biến Nhất"
@@ -369,7 +350,7 @@ export function AdminSubscriptionsClient() {
               : "Chưa có"
           }
           description="Nhiều lượt đăng ký nhất"
-          icon={<TrendingUp className="size-5 text-amber-500" />}
+          icon={<TrendingUp className="size-5" />}
         />
       </div>
 
@@ -439,20 +420,20 @@ export function AdminSubscriptionsClient() {
                     </div>
                     <ul className="text-sm space-y-2 text-foreground/90">
                       <li className="flex items-center gap-2">
-                        <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                        <CheckCircle2 className="size-4 text-primary shrink-0" />
                         <span>
                           <strong>{p.feature_limits?.interview_turns ?? 5}</strong> lượt hỏi đáp phỏng vấn
                         </span>
                       </li>
                       <li className="flex items-center gap-2">
-                        <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                        <CheckCircle2 className="size-4 text-primary shrink-0" />
                         <span>
                           Lưu trữ tối đa <strong>{p.feature_limits?.max_cv_saved ?? 1}</strong> hồ sơ CV
                         </span>
                       </li>
                       <li className="flex items-center gap-2">
                         {p.feature_limits?.pdf_reports ? (
-                          <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                          <CheckCircle2 className="size-4 text-primary shrink-0" />
                         ) : (
                           <XCircle className="size-4 text-muted-foreground shrink-0" />
                         )}
@@ -460,7 +441,7 @@ export function AdminSubscriptionsClient() {
                       </li>
                       <li className="flex items-center gap-2">
                         {p.feature_limits?.speech_analysis ? (
-                          <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                          <CheckCircle2 className="size-4 text-primary shrink-0" />
                         ) : (
                           <XCircle className="size-4 text-muted-foreground shrink-0" />
                         )}
@@ -604,7 +585,7 @@ export function AdminSubscriptionsClient() {
                           </td>
                           <td className="py-3 px-3">
                             {sub.auto_renew ? (
-                              <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-600">
+                              <Badge variant="secondary" className="text-xs bg-muted text-foreground">
                                 Có
                               </Badge>
                             ) : (
@@ -613,15 +594,15 @@ export function AdminSubscriptionsClient() {
                           </td>
                           <td className="py-3 px-3">
                             {sub.status === "active" ? (
-                              <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none">
+                              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 text-xs">
                                 Đang hoạt động
                               </Badge>
                             ) : sub.status === "expired" ? (
-                              <Badge variant="secondary" className="text-muted-foreground">
+                              <Badge variant="secondary" className="text-muted-foreground text-xs">
                                 Hết hạn
                               </Badge>
                             ) : (
-                              <Badge variant="destructive" className="bg-rose-500/15 text-rose-600 border-none">
+                              <Badge variant="destructive" className="text-xs">
                                 Đã hủy
                               </Badge>
                             )}
@@ -872,7 +853,7 @@ export function AdminSubscriptionsClient() {
                   </div>
                   <div>
                     {selectedSubDetail.status === "active" ? (
-                      <Badge className="bg-emerald-500/15 text-emerald-600 border-none text-xs">
+                      <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 text-xs">
                         Đang hoạt động
                       </Badge>
                     ) : selectedSubDetail.status === "expired" ? (
@@ -880,7 +861,7 @@ export function AdminSubscriptionsClient() {
                         Hết hạn
                       </Badge>
                     ) : (
-                      <Badge variant="destructive" className="bg-rose-500/15 text-rose-600 border-none text-xs">
+                      <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">
                         Đã hủy
                       </Badge>
                     )}
@@ -937,12 +918,12 @@ export function AdminSubscriptionsClient() {
                 </div>
 
                 {/* Benefits notice */}
-                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200 space-y-1.5">
-                  <div className="font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
-                    <CheckCircle2 className="size-3.5" />
+                <div className="p-3 rounded-lg bg-muted/60 border border-border text-foreground space-y-1.5">
+                  <div className="font-semibold flex items-center gap-1.5">
+                    <CheckCircle2 className="size-3.5 text-primary" />
                     Quyền Lợi & Hạn Mức Kích Hoạt
                   </div>
-                  <ul className="space-y-1 text-[11px] list-disc list-inside text-emerald-900/80 dark:text-emerald-200/80">
+                  <ul className="space-y-1 text-[11px] list-disc list-inside text-muted-foreground">
                     <li>Hỏi đáp luyện tập phỏng vấn AI không giới hạn theo cấu hình gói.</li>
                     <li>Lưu trữ hồ sơ CV, phân tích từ khóa ATS theo thời gian thực.</li>
                     <li>Xuất báo cáo phân tích chi tiết định dạng PDF và chấm điểm WPM.</li>

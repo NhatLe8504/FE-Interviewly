@@ -42,11 +42,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/admin/ui/skeleton";
 
 const TARGET_TYPE_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  question: { label: "Câu hỏi", color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30", icon: FileQuestion },
-  answer: { label: "Câu trả lời", color: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30", icon: MessageSquare },
-  user: { label: "Tài khoản", color: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30", icon: UserX },
-  session: { label: "Phiên phỏng vấn", color: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30", icon: Mic },
-  comment: { label: "Bình luận", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30", icon: MessageSquare },
+  question: { label: "Câu hỏi", color: "bg-muted text-foreground border-border", icon: FileQuestion },
+  answer: { label: "Câu trả lời", color: "bg-muted text-foreground border-border", icon: MessageSquare },
+  user: { label: "Tài khoản", color: "bg-muted text-foreground border-border", icon: UserX },
+  session: { label: "Phiên phỏng vấn", color: "bg-muted text-foreground border-border", icon: Mic },
+  comment: { label: "Bình luận", color: "bg-muted text-foreground border-border", icon: MessageSquare },
 };
 
 const TARGET_TYPE_LABELS: Record<string, string> = {
@@ -58,11 +58,11 @@ const TARGET_TYPE_LABELS: Record<string, string> = {
 };
 
 const ACTION_BADGES: Record<string, { label: string; className: string }> = {
-  approve: { label: "Phê duyệt", className: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none" },
-  reject: { label: "Từ chối", className: "bg-rose-500/15 text-rose-600 border-none" },
-  remove: { label: "Gỡ bỏ", className: "bg-rose-500/15 text-rose-600 border-none" },
-  warn: { label: "Cảnh báo", className: "bg-amber-500/15 text-amber-600 border-none" },
-  flag: { label: "Gắn cờ", className: "bg-orange-500/15 text-orange-600 border-none" },
+  approve: { label: "Phê duyệt", className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20" },
+  reject: { label: "Từ chối", className: "bg-destructive/10 text-destructive border border-destructive/20" },
+  remove: { label: "Gỡ bỏ", className: "bg-destructive/10 text-destructive border border-destructive/20" },
+  warn: { label: "Cảnh báo", className: "bg-muted text-muted-foreground border border-border" },
+  flag: { label: "Gắn cờ", className: "bg-muted text-muted-foreground border border-border" },
 };
 
 export function AdminModerationClient() {
@@ -189,7 +189,7 @@ export function AdminModerationClient() {
           title="Tổng Số Lệnh Xử Lý"
           value={total}
           description="Nhật ký các hành động kiểm duyệt"
-          icon={<ShieldAlert className="size-5 text-indigo-500" />}
+          icon={<ShieldAlert className="size-5" />}
         />
         <AdminStatCard
           title="Nội Dung Được Phê Duyệt"
@@ -201,7 +201,7 @@ export function AdminModerationClient() {
           title="Cảnh Báo & Gỡ Bỏ"
           value={violationCount}
           description="Vi phạm tiêu chuẩn hoặc bị khóa"
-          icon={<AlertTriangle className="size-5 text-rose-500" />}
+          icon={<AlertTriangle className="size-5" />}
         />
       </div>
 
@@ -547,12 +547,12 @@ export function AdminModerationClient() {
                 </div>
 
                 {/* Action shortcut instructions */}
-                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-950 dark:text-amber-200 text-[11px] space-y-1">
-                  <div className="font-semibold flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
-                    <AlertTriangle className="size-3.5" />
+                <div className="p-3 rounded-lg bg-muted/60 border border-border text-[11px] text-foreground space-y-1">
+                  <div className="font-semibold flex items-center gap-1.5">
+                    <AlertTriangle className="size-3.5 text-primary" />
                     Chính Sách Kiểm Duyệt Nội Dung
                   </div>
-                  <p className="leading-relaxed">
+                  <p className="leading-relaxed text-muted-foreground">
                     Hành động phê duyệt hoặc gỡ bỏ sẽ tác động trực tiếp tới khả năng hiển thị của nội dung đối với toàn bộ ứng viên trên hệ thống.
                   </p>
                 </div>

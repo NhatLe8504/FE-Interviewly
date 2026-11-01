@@ -54,21 +54,11 @@ const statusLabels: Record<CatalogStatusFilter, string> = {
 };
 
 const DOMAIN_ICON_BG = [
-  "bg-blue-500/15 text-blue-600 dark:text-blue-400",
-  "bg-rose-500/15 text-rose-600 dark:text-rose-400",
-  "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
-  "bg-amber-500/15 text-amber-600 dark:text-amber-400",
-  "bg-violet-500/15 text-violet-600 dark:text-violet-400",
-  "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400",
+  "bg-muted text-foreground",
 ];
 
 const DOMAIN_ACCENT = [
-  "border-l-blue-500",
-  "border-l-rose-500",
-  "border-l-emerald-500",
-  "border-l-amber-500",
-  "border-l-violet-500",
-  "border-l-cyan-500",
+  "border-l-primary",
 ];
 
 const formatDate = (value?: string | null) => {
@@ -386,7 +376,7 @@ export default function AdminDomainsClient() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <div className="flex items-start gap-3">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
                 <TriangleAlert className="size-5" aria-hidden="true" />
               </div>
               <div className="space-y-1">

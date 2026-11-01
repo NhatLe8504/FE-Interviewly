@@ -463,7 +463,7 @@ export default function AdminCoursesClient() {
           </div>
 
           <div className="p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5">
-            <div className="size-10 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+            <div className="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <Users className="size-5" />
             </div>
             <div>
@@ -473,8 +473,8 @@ export default function AdminCoursesClient() {
           </div>
 
           <div className="p-4 rounded-xl border bg-card shadow-2xs flex items-center gap-3.5">
-            <div className="size-10 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-              <Star className="size-5 fill-amber-500" />
+            <div className="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <Star className="size-5 fill-primary text-primary" />
             </div>
             <div>
               <div className="text-xs text-muted-foreground font-medium">Đánh Giá Trung Bình</div>
@@ -1005,19 +1005,19 @@ export default function AdminCoursesClient() {
                                   >
                                     <div className="flex items-center gap-2 flex-1 min-w-0">
                                       {lesson.type === "video" ? (
-                                        <PlayCircle className="size-3.5 text-blue-500 shrink-0" />
+                                        <PlayCircle className="size-3.5 text-muted-foreground shrink-0" />
                                       ) : lesson.type === "star_practice" ? (
-                                        <Star className="size-3.5 text-amber-500 shrink-0" />
+                                        <Star className="size-3.5 text-muted-foreground shrink-0" />
                                       ) : lesson.type === "mock_simulation" ? (
-                                        <Mic className="size-3.5 text-purple-500 shrink-0" />
+                                        <Mic className="size-3.5 text-muted-foreground shrink-0" />
                                       ) : (
-                                        <FileText className="size-3.5 text-emerald-500 shrink-0" />
+                                        <FileText className="size-3.5 text-muted-foreground shrink-0" />
                                       )}
                                       <span className="font-medium text-foreground truncate">
                                         {secIdx + 1}.{lIdx + 1} {lesson.title}
                                       </span>
                                       {lesson.isFree && (
-                                        <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 shrink-0">
+                                        <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-muted text-muted-foreground border border-border shrink-0">
                                           Miễn phí
                                         </span>
                                       )}

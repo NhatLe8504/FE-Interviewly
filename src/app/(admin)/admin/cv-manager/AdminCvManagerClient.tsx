@@ -43,11 +43,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/admin/ui/skeleton";
 
 const TEMPLATE_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  modern_tech: { label: "Modern Tech", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30", icon: Sparkles },
-  executive: { label: "Executive Leader", color: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/30", icon: Award },
-  creative: { label: "Creative Designer", color: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30", icon: Layers },
-  minimalist: { label: "Minimal Clean", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30", icon: FileText },
-  academic: { label: "Academic Scholar", color: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30", icon: GraduationCap },
+  modern_tech: { label: "Modern Tech", color: "bg-muted text-foreground border-border", icon: Sparkles },
+  executive: { label: "Executive Leader", color: "bg-muted text-foreground border-border", icon: Award },
+  creative: { label: "Creative Designer", color: "bg-muted text-foreground border-border", icon: Layers },
+  minimalist: { label: "Minimal Clean", color: "bg-muted text-foreground border-border", icon: FileText },
+  academic: { label: "Academic Scholar", color: "bg-muted text-foreground border-border", icon: GraduationCap },
 };
 
 const TEMPLATE_NAMES: Record<string, string> = {
@@ -65,19 +65,8 @@ const getInitials = (name?: string | null) => {
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 };
 
-const getAvatarColor = (name?: string | null) => {
-  const colors = [
-    "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
-    "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
-    "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30",
-    "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-    "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
-    "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30",
-  ];
-  if (!name) return colors[0];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return colors[Math.abs(hash) % colors.length];
+const getAvatarColor = (_name?: string | null) => {
+  return "bg-muted text-foreground border-border";
 };
 
 export function AdminCvManagerClient() {
@@ -192,19 +181,19 @@ export function AdminCvManagerClient() {
           title="Tổng Số Hồ Sơ Đã Tạo"
           value={total}
           description="Hồ sơ CV lưu trữ trên hệ thống"
-          icon={<FileText className="size-5 text-indigo-500" />}
+          icon={<FileText className="size-5" />}
         />
         <AdminStatCard
           title="Điểm ATS Trung Bình"
           value={`${avgAts} / 100`}
           description="Độ tương thích từ khóa tuyển dụng"
-          icon={<Award className="size-5 text-emerald-500" />}
+          icon={<Award className="size-5" />}
         />
         <AdminStatCard
           title="Hồ Sơ Đạt Chuẩn ATS (≥70)"
           value={highAtsCount}
           description={`${((highAtsCount / (cvs.length || 1)) * 100).toFixed(0)}% tỷ lệ vượt qua vòng lọc CV`}
-          icon={<TrendingUp className="size-5 text-amber-500" />}
+          icon={<TrendingUp className="size-5" />}
         />
       </div>
 
@@ -326,12 +315,10 @@ export function AdminCvManagerClient() {
                       <td className="py-3 px-3 text-center">
                         {cv.ats_score !== null && cv.ats_score !== undefined ? (
                           <span
-                            className={`font-bold text-xs px-2.5 py-0.5 rounded-full ${
-                              cv.ats_score >= 80
-                                ? "bg-emerald-500/15 text-emerald-600"
-                                : cv.ats_score >= 50
-                                ? "bg-amber-500/15 text-amber-600"
-                                : "bg-rose-500/15 text-rose-600"
+                            className={`font-semibold text-xs px-2.5 py-0.5 rounded-full border ${
+                              cv.ats_score >= 70
+                                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                                : "bg-muted text-muted-foreground border-border"
                             }`}
                           >
                             {cv.ats_score}đ
