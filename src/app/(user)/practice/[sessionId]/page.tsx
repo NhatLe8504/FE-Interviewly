@@ -116,7 +116,15 @@ export default function InterviewRoomPage({
   const [selectedVoice, setSelectedVoice] = useState<string>("vi-VN-HoaiMyNeural");
   const [selectedPitch, setSelectedPitch] = useState<number>(0);
   const [selectedPlaybackSpeed, setSelectedPlaybackSpeed] = useState(DEFAULT_INTERVIEW_PLAYBACK_SPEED);
-  const [selectedSttEngine, setSelectedSttEngine] = useState<string>("browser-speech-api");
+  const [selectedSttEngine, setSelectedSttEngine] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("preferred_stt_engine");
+        if (saved) return saved;
+      } catch {}
+    }
+    return "whisper_pro";
+  });
 
   // Audio replay
   const [playingAudioKey, setPlayingAudioKey] = useState<string | null>(null);
@@ -338,7 +346,7 @@ export default function InterviewRoomPage({
         setVoiceOptions(res);
 
         // 1. Khôi phục TTS engine ưu tiên của ngôn ngữ này
-        let preferredEngine: "edge" | "elevenlabs" | "vieneu" | "browser" = "edge";
+        let preferredEngine: "edge" | "elevenlabs" | "vieneu" | "browser" = "browser";
         try {
           const savedEngine = localStorage.getItem(getLangPreferredTtsEngineKey(language));
           if (savedEngine === "browser" || savedEngine === "elevenlabs" || savedEngine === "edge" || savedEngine === "vieneu") {
@@ -578,6 +586,9 @@ export default function InterviewRoomPage({
       return;
     }
     setSelectedSttEngine(newEngineId);
+    try {
+      localStorage.setItem("preferred_stt_engine", newEngineId);
+    } catch {}
   };
 
 function changeInterviewLanguage(code: string) {

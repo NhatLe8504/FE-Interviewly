@@ -303,7 +303,7 @@ export function useRealtimeVoiceInterview({
   companyName,
   mockMode: initialMockMode = "guided",
   totalDurationMinutes = 45,
-  bargeInInitial = true,
+  bargeInInitial = false,
 }: UseRealtimeVoiceInterviewOptions) {
   // Connection & Lifecycle State
   const [isConnected, setIsConnected] = useState(false);
@@ -394,7 +394,7 @@ export function useRealtimeVoiceInterview({
         if (saved === "browser" || saved === "edge" || saved === "elevenlabs" || saved === "vieneu") return saved;
       } catch {}
     }
-    return "edge";
+    return "browser";
   });
   const ttsEngineRef = useRef<"edge" | "elevenlabs" | "vieneu" | "browser">(ttsEngine);
   ttsEngineRef.current = ttsEngine;
