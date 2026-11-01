@@ -15,7 +15,6 @@ import {
 import { analyticsApi } from "@/services/analyticsApi";
 import { ProgressTrendsData } from "@/types/analytics";
 import { ScoreTrendLineChart } from "@/components/analytics/ScoreTrendLineChart";
-import { StarBreakdownCard } from "@/components/analytics/StarBreakdownCard";
 
 export default function ProgressPage() {
   const [data, setData] = useState<ProgressTrendsData | null>(null);
@@ -46,7 +45,14 @@ export default function ProgressPage() {
     );
   }
 
-  const trends = data!;
+  if (!data) {
+    return <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4 text-slate-300">
+      <p>Chưa tải được tiến độ. Vui lòng thử lại sau.</p>
+      <Link href="/dashboard" className="text-sky-400">Quay lại bảng điều khiển</Link>
+    </div>;
+  }
+
+  const trends = data;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -58,7 +64,7 @@ export default function ProgressPage() {
             <span>Phân Tích Tiến Độ Chuyên Sâu</span>
           </h1>
           <p className="text-slate-400 text-sm mt-1">
-            Biểu đồ xu hướng cải thiện WPM, giảm thiểu từ đệm và tỷ lệ thành thạo phương pháp STAR qua từng tuần.
+            Theo dõi điểm Rubric và các chỉ số thực sự đã được ghi nhận qua từng phiên.
           </p>
         </div>
 
@@ -79,10 +85,10 @@ export default function ProgressPage() {
             <span>Tốc Độ Nói Trung Bình</span>
           </div>
           <div className="text-3xl font-extrabold text-slate-100">
-            {trends.avg_wpm} <span className="text-sm font-normal text-slate-400">WPM</span>
+            {trends.avg_wpm ?? "Chưa đo"} {trends.avg_wpm !== null && <span className="text-sm font-normal text-slate-400">WPM</span>}
           </div>
           <p className="text-xs text-emerald-400 mt-2 font-medium">
-            ✓ Nằm trong vùng lý tưởng (120 - 150 WPM)
+            {trends.avg_wpm === null ? "Chưa có phân tích âm thanh" : trends.avg_wpm >= 120 && trends.avg_wpm <= 150 ? "Trong khoảng 120–150 WPM" : "Ngoài khoảng tham khảo 120–150 WPM"}
           </p>
         </div>
 
@@ -92,23 +98,23 @@ export default function ProgressPage() {
             <span>Tần Suất Từ Đệm Trung Bình</span>
           </div>
           <div className="text-3xl font-extrabold text-slate-100">
-            {trends.avg_filler_count} <span className="text-sm font-normal text-slate-400">từ/phiên</span>
+            {trends.avg_filler_count ?? "Chưa đo"} {trends.avg_filler_count !== null && <span className="text-sm font-normal text-slate-400">từ/lượt đã phân tích</span>}
           </div>
           <p className="text-xs text-emerald-400 mt-2 font-medium">
-            ✓ Giảm 60% so với 3 phiên đầu tiên
+            Chỉ tính trên những lượt có phân tích từ đệm
           </p>
         </div>
 
         <div className="p-5 rounded-3xl bg-slate-900/70 border border-slate-800 backdrop-blur-sm">
           <div className="flex items-center gap-2 text-xs text-slate-400 mb-2 font-medium">
             <Sparkles className="w-4 h-4 text-indigo-400" />
-            <span>Tỷ Lệ Làm Chủ STAR</span>
+            <span>Yếu Tố STAR Đã Thể Hiện</span>
           </div>
           <div className="text-3xl font-extrabold text-slate-100">
-            {trends.star_mastery_rate}%
+            {trends.star_mastery_rate === null ? "Chưa chấm" : `${trends.star_mastery_rate}%`}
           </div>
           <p className="text-xs text-indigo-300 mt-2 font-medium">
-            ✓ Nắm vững cấu trúc Situation & Result
+            Tổng hợp từ các câu hỏi hành vi đã được đánh giá
           </p>
         </div>
       </div>
@@ -122,22 +128,6 @@ export default function ProgressPage() {
         <ScoreTrendLineChart data={trends.trends} />
       </div>
 
-      {/* STAR Mastery Breakdown Section */}
-      <div className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800 backdrop-blur-sm space-y-4">
-        <div>
-          <h2 className="text-lg font-bold text-slate-100">Đánh Giá Mức Độ Thành Thạo Khung STAR</h2>
-          <p className="text-xs text-slate-400">Phương pháp trả lời câu hỏi hành vi theo chuẩn quốc tế</p>
-        </div>
-
-        <StarBreakdownCard
-          analysis={{
-            situation: true,
-            task: true,
-            action: true,
-            result: trends.star_mastery_rate >= 75,
-          }}
-        />
-      </div>
     </div>
   );
 }

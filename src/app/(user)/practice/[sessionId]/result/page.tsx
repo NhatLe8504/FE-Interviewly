@@ -37,27 +37,44 @@ export default function InterviewResultPage({
   const [expandedTurns, setExpandedTurns] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
-    async function loadResult() {
-      setLoading(true);
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    async function loadResult(attempt = 0) {
+      if (attempt === 0) setLoading(true);
       setLoadError(false);
       try {
-        const res = await historyApi.getSessionResult(sessionId);
+        const res = await historyApi.getSessionResult(sessionId, true);
+        if (!active) return;
         setData(res);
-        // Expand first candidate turn by default or first turn
-        if (res?.turns?.length > 0) {
-          const firstCandidate = res.turns.find((t) => t.speaker === "candidate");
-          setExpandedTurns({ [firstCandidate ? firstCandidate.turn_id : res.turns[0].turn_id]: true });
+        if (attempt === 0 && res?.turns?.length > 0) {
+          const firstAnswer = res.turns.find((turn) => turn.speaker === "candidate" || turn.transcribed_text);
+          setExpandedTurns({ [firstAnswer ? firstAnswer.turn_id : res.turns[0].turn_id]: true });
+        }
+        if (res.evaluation_status === "pending" || res.evaluation_status === "partial") {
+          if (attempt < 8) timer = setTimeout(() => loadResult(attempt + 1), 3000);
         }
       } catch {
-        setData(null);
-        setLoadError(true);
+        if (active) setLoadError(true);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
 
     loadResult();
+    return () => { active = false; if (timer) clearTimeout(timer); };
   }, [sessionId]);
+
+  const refreshResult = async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      setData(await historyApi.getSessionResult(sessionId, true));
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleTurn = (turnId: number) => {
     setExpandedTurns((prev) => ({
@@ -75,10 +92,11 @@ export default function InterviewResultPage({
     );
   }
 
-  if (!data || loadError) {
+  if (!data) {
     return (
       <div className={styles.loadingShell}>
-        <p className={styles.loadingText}>Chưa tải được kết quả phỏng vấn. Vui lòng thử lại sau.</p>
+        <p className={styles.loadingText}>Chưa tải được kết quả phỏng vấn. Vui lòng thử lại.</p>
+        <button type="button" onClick={refreshResult} className={styles.primaryBtn}>Tải lại</button>
         <Link href={`/practice/${sessionId}`} className={styles.ghostBtn}>Quay lại phiên phỏng vấn</Link>
       </div>
     );
@@ -100,11 +118,19 @@ export default function InterviewResultPage({
           </h1>
           <p className={styles.meta}>
             <Clock className="w-3.5 h-3.5 text-[#d98236]" />
-            <span>Trạng thái: Hoàn tất đánh giá đa tiêu chí Rubric</span>
+            <span>{result.evaluation_status === "ready" ? "Đã chấm đủ các lượt chuyên môn" :
+              result.evaluation_status === "unavailable" ? "Chưa có câu trả lời chuyên môn để chấm" :
+              `Đã chấm ${result.evaluated_turns}/${result.eligible_turns} lượt chuyên môn`}</span>
           </p>
         </div>
 
         <div className={styles.actions}>
+          {(result.evaluation_status !== "ready" || loadError) && (
+            <button type="button" onClick={refreshResult} disabled={loading} className={styles.ghostBtn}>
+              <RefreshCw className={`w-4 h-4 ${loading ? styles.loadingSpinner : ""}`} />
+              <span>{loading ? "Đang cập nhật" : "Kiểm tra lại điểm"}</span>
+            </button>
+          )}
           <a
             href={pdfUrl}
             target="_blank"
@@ -139,13 +165,21 @@ export default function InterviewResultPage({
         <div className={styles.scoreCard}>
           <span className={styles.scoreLabel}>Điểm Tổng Quát (Overall Score)</span>
           <div className={styles.scoreNumber}>
-            {result.total_score}
-            <span className={styles.scoreMax}>/ 100</span>
+            {result.total_score ?? "—"}
+            {result.total_score !== null && <span className={styles.scoreMax}>/ 100</span>}
           </div>
           <div className={styles.readinessBadge}>
             <Award className="w-4 h-4 text-[#d98236]" />
             <span>{result.readiness_badge}</span>
           </div>
+          {result.evaluation_status === "ready" && (
+            <p className={styles.meta}>Với kịch bản JD, các lượt đào sâu cùng nội dung được gộp trước khi tính điểm tổng.</p>
+          )}
+          {result.evaluation_status !== "ready" && (
+            <p className={styles.meta}>{result.evaluation_status === "partial"
+              ? "Một số lượt chưa được chấm. Điểm tổng chỉ xuất hiện khi hệ thống hoàn tất đánh giá; tải lại trang không chấm lại các lượt bị lỗi."
+              : "Không tự suy diễn điểm khi chưa có đủ đánh giá thực tế."}</p>
+          )}
         </div>
 
         {/* 3-Criteria Rubric Breakdown */}
@@ -157,12 +191,12 @@ export default function InterviewResultPage({
           <div className={styles.rubricRow}>
             <div className={styles.rubricHead}>
               <span className={styles.rubricName}>Độ Rõ Ràng & Mạch Lạc (Clarity)</span>
-              <span className={styles.rubricScore}>{result.clarity_score} / 100</span>
+              <span className={styles.rubricScore}>{result.clarity_score === null ? "Chưa chấm" : `${result.clarity_score} / 100`}</span>
             </div>
             <div className={styles.progressBar}>
               <div
                 className={styles.progressFill}
-                style={{ width: `${result.clarity_score}%` }}
+                style={{ width: `${result.clarity_score ?? 0}%` }}
               />
             </div>
           </div>
@@ -170,12 +204,12 @@ export default function InterviewResultPage({
           <div className={styles.rubricRow}>
             <div className={styles.rubricHead}>
               <span className={styles.rubricName}>Cấu Trúc Logic (Logical Structure)</span>
-              <span className={styles.rubricScore}>{result.structure_score} / 100</span>
+              <span className={styles.rubricScore}>{result.structure_score === null ? "Chưa chấm" : `${result.structure_score} / 100`}</span>
             </div>
             <div className={styles.progressBar}>
               <div
                 className={styles.progressFill}
-                style={{ width: `${result.structure_score}%` }}
+                style={{ width: `${result.structure_score ?? 0}%` }}
               />
             </div>
           </div>
@@ -183,12 +217,12 @@ export default function InterviewResultPage({
           <div className={styles.rubricRow}>
             <div className={styles.rubricHead}>
               <span className={styles.rubricName}>Dẫn Chứng Thực Tế (Concrete Evidence)</span>
-              <span className={styles.rubricScore}>{result.evidence_score} / 100</span>
+              <span className={styles.rubricScore}>{result.evidence_score === null ? "Chưa chấm" : `${result.evidence_score} / 100`}</span>
             </div>
             <div className={styles.progressBar}>
               <div
                 className={styles.progressFill}
-                style={{ width: `${result.evidence_score}%` }}
+                style={{ width: `${result.evidence_score ?? 0}%` }}
               />
             </div>
           </div>
@@ -197,15 +231,15 @@ export default function InterviewResultPage({
 
       {/* Speech Quality & STAR Breakdown */}
       <div className={styles.analyticsGrid}>
-        <SpeechQualityCard
+        {(result.speaking_pace_wpm !== null || result.filler_count !== null) && <SpeechQualityCard
           wpm={result.speaking_pace_wpm}
           paceRating={result.pace_rating}
           fillerCount={result.filler_count}
           fillerWords={result.filler_words}
           pauseDuration={result.pause_duration}
-        />
+        />}
 
-        <StarBreakdownCard analysis={result.star_analysis} />
+        {result.star_analysis && <StarBreakdownCard analysis={result.star_analysis} />}
       </div>
 
       {/* Detailed Turn-by-Turn Accordion Review */}
@@ -222,6 +256,7 @@ export default function InterviewResultPage({
           {result.turns.map((turn) => {
             const isExpanded = !!expandedTurns[turn.turn_id];
             const isCandidate = turn.speaker === "candidate";
+            const hasAnswer = isCandidate || Boolean(turn.transcribed_text);
 
             return (
               <div key={turn.turn_id} className={styles.turnItem}>
@@ -241,7 +276,7 @@ export default function InterviewResultPage({
                     <div className="min-w-0">
                       <div className={styles.turnMeta}>
                         <span className={styles.turnSpeakerName}>
-                          Lượt #{turn.turn_number} · {isCandidate ? "Ứng viên trả lời" : "AI Người phỏng vấn"}
+                          Lượt #{turn.turn_number} · {hasAnswer && !isCandidate ? "AI · Ứng viên" : isCandidate ? "Ứng viên trả lời" : "AI Người phỏng vấn"}
                         </span>
                         {turn.overall_score !== null && (
                           <span className={styles.turnScoreBadge}>
@@ -250,7 +285,7 @@ export default function InterviewResultPage({
                         )}
                       </div>
                       <p className={styles.turnPreview}>
-                        {turn.message_text || "Không có nội dung văn bản"}
+                        {turn.message_text || turn.transcribed_text || "Không có nội dung văn bản"}
                       </p>
                     </div>
                   </div>
@@ -266,19 +301,22 @@ export default function InterviewResultPage({
                   <div className={styles.turnBody}>
                     {/* Message / Transcript text */}
                     <div className={styles.transcriptBubble}>
-                      {turn.message_text}
+                      {turn.message_text || (isCandidate ? turn.transcribed_text : null)}
                     </div>
+                    {!isCandidate && turn.transcribed_text && (
+                      <div className={styles.transcriptBubble}><strong>Ứng viên:</strong> {turn.transcribed_text}</div>
+                    )}
 
                     {/* Audio Player if audio available */}
-                    {isCandidate && (
+                    {hasAnswer && (
                       <AudioPlayerTurn
-                        audioUrl={turn.audio_url}
+                        audioUrl={isCandidate ? turn.audio_url : turn.user_audio_url}
                         turnNumber={turn.turn_number}
                       />
                     )}
 
                     {/* Feedback and Rubric Scores if candidate turn */}
-                    {isCandidate && turn.feedback_text && (
+                    {hasAnswer && turn.feedback_text && (
                       <div className={styles.feedbackBox}>
                         <div className={styles.feedbackHeader}>
                           <Sparkles className="w-4 h-4 text-[#d98236]" />
@@ -313,15 +351,13 @@ export default function InterviewResultPage({
                     )}
 
                     {/* AI Ideal Answer */}
-                    {isCandidate && (turn.ideal_answer || turn.tips_text) && (
+                    {hasAnswer && turn.ideal_answer && (
                       <div className={styles.idealBox}>
                         <div className={styles.idealHeader}>
                           <CheckCircle2 className="w-4 h-4 text-[#2e6b34]" />
                           <span>Câu Trả Lời Mẫu Xuất Sắc (AI Ideal Answer)</span>
                         </div>
-                        <p className={styles.idealText}>
-                          {turn.ideal_answer || turn.tips_text}
-                        </p>
+                        <p className={styles.idealText}>{turn.ideal_answer}</p>
                       </div>
                     )}
                   </div>

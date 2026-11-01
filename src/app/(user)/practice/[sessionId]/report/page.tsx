@@ -43,8 +43,15 @@ export default function PracticeReportPage({
     );
   }
 
+  if (!result) {
+    return <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4">
+      <p>Chưa tải được báo cáo. Vui lòng thử lại sau.</p>
+      <Link href={`/practice/${sessionId}/result`}>Quay lại trang kết quả</Link>
+    </div>;
+  }
+
   const pdfUrl = historyApi.getPdfDownloadUrl(sessionId);
-  const data = result!;
+  const data = result;
 
   return (
     <div className={shared.shell}>
@@ -87,23 +94,23 @@ export default function PracticeReportPage({
           <tbody>
             <tr>
               <td>Điểm tổng quát (Overall Score)</td>
-              <td><strong>{data.total_score} / 100</strong></td>
-              <td>Tổng hợp từ 3 tiêu chí Rubric chuẩn hóa và chất lượng giọng nói.</td>
+              <td><strong>{data.total_score === null ? "Chưa đủ dữ liệu" : `${data.total_score} / 100`}</strong></td>
+              <td>Trung bình các lượt đã chấm; với kịch bản JD, câu hỏi đào sâu được gộp theo nội dung.</td>
             </tr>
             <tr>
               <td>Độ rõ ràng & Mạch lạc (Clarity)</td>
-              <td>{data.clarity_score} / 100</td>
+              <td>{data.clarity_score === null ? "Chưa chấm" : `${data.clarity_score} / 100`}</td>
               <td>Trả lời trọng tâm, ngôn từ chính xác, hạn chế giải thích lan man.</td>
             </tr>
             <tr>
               <td>Cấu trúc logic (Logical Structure)</td>
-              <td>{data.structure_score} / 100</td>
+              <td>{data.structure_score === null ? "Chưa chấm" : `${data.structure_score} / 100`}</td>
               <td>Các luận điểm có tính liên kết chặt chẽ, dễ theo dõi.</td>
             </tr>
             <tr>
               <td>Dẫn chứng thực tế (Concrete Evidence)</td>
-              <td>{data.evidence_score} / 100</td>
-              <td>Có số liệu định lượng, kết quả dự án thực tế cụ thể.</td>
+              <td>{data.evidence_score === null ? "Chưa chấm" : `${data.evidence_score} / 100`}</td>
+              <td>Có ví dụ hoặc cách kiểm chứng cụ thể; số liệu chỉ khi có thật.</td>
             </tr>
           </tbody>
         </table>
@@ -117,16 +124,16 @@ export default function PracticeReportPage({
             <tr>
               <td>Tốc độ nói hiệu dụng</td>
               <td>
-                {data.speaking_pace_wpm} WPM · <strong>{data.pace_rating}</strong>
+                {data.speaking_pace_wpm === null ? "Chưa đo" : `${data.speaking_pace_wpm} WPM`} {data.pace_rating && <strong>· {data.pace_rating}</strong>}
               </td>
             </tr>
             <tr>
               <td>Số lần phát hiện từ đệm</td>
-              <td>{data.filler_count} lần {data.filler_words.length > 0 && `("${data.filler_words.join('", "')}")`}</td>
+              <td>{data.filler_count === null ? "Chưa đo" : `${data.filler_count} lần`}</td>
             </tr>
             <tr>
               <td>Tổng khoảng lặng ngập ngừng</td>
-              <td>{data.pause_duration} giây</td>
+              <td>{data.pause_duration === null ? "Chưa đo" : `${data.pause_duration} giây`}</td>
             </tr>
           </tbody>
         </table>
@@ -143,7 +150,8 @@ export default function PracticeReportPage({
                 className={`${shared.turn} ${turn.speaker === "ai" ? shared.turnAi : shared.turnUser}`}
               >
                 <span className={shared.who}>{turn.speaker === "ai" ? "AI Coach" : "Ứng viên"}</span>
-                <div className={shared.bubble}>{turn.message_text}</div>
+                <div className={shared.bubble}>{turn.message_text || turn.transcribed_text}</div>
+                {turn.speaker !== "candidate" && turn.transcribed_text && <div className={shared.bubble}>Ứng viên: {turn.transcribed_text}</div>}
               </div>
             ))}
           </div>
