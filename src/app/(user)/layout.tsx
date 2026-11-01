@@ -2,6 +2,8 @@ import "@/styles/user-globals.css";
 import Header from "@/components/user-component/layout/Header";
 import Footer from "@/components/user-component/layout/Footer";
 import { UserToaster } from "@/components/user-component/toast";
+import { JDCompletionNotifications } from "@/components/user-component/practice/JDCompletionNotifications";
+import { CvGenerationNotifications } from "@/components/cv/CvGenerationNotifications";
 
 import { UserOnboardingGuard } from "@/components/auth/UserOnboardingGuard";
 import { MascotProvider } from "@/context/MascotContext";
@@ -18,6 +20,8 @@ export default function UserLayout({
     <MascotProvider>
     <div className="user-root min-h-screen flex flex-col justify-between">
       <UserToaster />
+      <JDCompletionNotifications />
+      <CvGenerationNotifications />
       <Header />
       <main className="flex-1">
         <UserOnboardingGuard>{children}</UserOnboardingGuard>

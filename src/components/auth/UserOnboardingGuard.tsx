@@ -26,6 +26,7 @@ export function isCandidateProtectedRoute(pathname: string): boolean {
   if (pathname === "/practice/new" || pathname.startsWith("/practice/setup/")) return true;
   if (pathname.startsWith("/practice/") && pathname !== "/practice") return true;
   if (pathname === "/questions/practice") return true;
+  if (pathname.includes("/questions/") && pathname.endsWith("/result")) return true;
 
   return false;
 }

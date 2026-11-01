@@ -268,3 +268,20 @@ html body[data-scroll-locked] [data-radix-popper-content-wrapper] {
 html body[data-scroll-locked] header {
   margin-right: 0px !important;
 }
+
+@media print {
+  body:has(#cv-print-root) .user-root {
+    display: block !important;
+    min-height: 0 !important;
+    background: #fff !important;
+  }
+
+  body:has(#cv-print-root) .user-root > :not(main) {
+    display: none !important;
+  }
+
+  body:has(#cv-print-root) .user-root > main {
+    display: block !important;
+    min-height: 0 !important;
+  }
+}
