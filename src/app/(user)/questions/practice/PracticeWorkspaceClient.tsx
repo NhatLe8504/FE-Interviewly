@@ -177,13 +177,13 @@ export default function PracticeWorkspaceClient() {
   // Check incomplete items of current question
   const checkCurrentIncomplete = (): string[] => {
     const issues: string[] = [];
-    if (!selectedOption) {
+    if (session.currentQuestion?.quiz_data?.options?.length && !selectedOption) {
       issues.push("Chưa chọn đáp án Trắc nghiệm tình huống (chiếm 15% tổng điểm câu hỏi).");
     }
     if (wordCount === 0) {
-      issues.push("Chưa soạn thảo bài Tự luận theo khung STAR (chiếm 35% tổng điểm câu hỏi).");
+      issues.push("Chưa soạn thảo bài tự luận (chiếm 35% tổng điểm câu hỏi).");
     } else if (wordCount < 20) {
-      issues.push(`Bài tự luận hiện chỉ có ${wordCount} từ (dưới mức tối thiểu 20 từ để AI phân tích cấu trúc STAR).`);
+      issues.push(`Bài tự luận hiện chỉ có ${wordCount} từ (dưới mức tối thiểu 20 từ để AI đánh giá nội dung).`);
     }
     if (!recordedAudioUrl && recordingSeconds < 5) {
       issues.push("Chưa hoàn thành ghi âm câu trả lời trực tiếp đủ 5 giây (chiếm 50% tổng điểm câu hỏi).");
@@ -647,13 +647,14 @@ export default function PracticeWorkspaceClient() {
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Lightbulb size={16} color="#d98236" />
-              <span>Gợi ý phương pháp STAR & Tiêu chuẩn Rubric cho câu này</span>
+              <span>Gợi ý cấu trúc trả lời phù hợp với câu hỏi</span>
             </div>
             {showGuidance ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
 
           {showGuidance && (
             <div className={styles.guidanceBody}>
+              {q.question_type === "behavioral" ? <>
               <div className={styles.guideItem}>
                 <strong>S - Tình huống:</strong> {q.star_template?.situation_guide || "Mô tả bối cảnh dự án, thời điểm và quy mô thử thách ban đầu."}
               </div>
@@ -666,6 +667,15 @@ export default function PracticeWorkspaceClient() {
               <div className={styles.guideItem}>
                 <strong>R - Kết quả:</strong> {q.star_template?.result_guide || "Số liệu định lượng đo lường được và bài học rút ra."}
               </div>
+              </> : q.question_type === "technical" ? <>
+                <div className={styles.guideItem}><strong>Cách tiếp cận:</strong> Nêu giải pháp đúng với yêu cầu.</div>
+                <div className={styles.guideItem}><strong>Đánh đổi:</strong> So sánh phương án và giới hạn.</div>
+                <div className={styles.guideItem}><strong>Kiểm chứng:</strong> Nêu cách thử nghiệm hoặc đo lường.</div>
+              </> : <>
+                <div className={styles.guideItem}><strong>Ràng buộc:</strong> Làm rõ mục tiêu và dữ kiện.</div>
+                <div className={styles.guideItem}><strong>Quyết định:</strong> So sánh phương án và chọn hành động.</div>
+                <div className={styles.guideItem}><strong>Rủi ro:</strong> Nêu cách theo dõi và xử lý.</div>
+              </>}
             </div>
           )}
         </div>
@@ -677,7 +687,7 @@ export default function PracticeWorkspaceClient() {
             Bài làm đa thức tổng hợp (100% điểm câu hỏi)
           </h3>
           <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0 }}>
-            Điểm số câu này được đánh giá dựa trên 3 phần: Trắc nghiệm (15%), Tự luận STAR (35%) và Ghi âm giọng nói (50%).
+            Điểm số câu này được đánh giá dựa trên 3 phần: Trắc nghiệm (15%), {q.question_type === "behavioral" ? "Tự luận STAR (35%)" : "Nội dung trả lời (35%)"} và Ghi âm giọng nói (50%).
           </p>
         </div>
 
@@ -700,12 +710,7 @@ export default function PracticeWorkspaceClient() {
 
           <div className={styles.quizList}>
             {(
-              q.quiz_data?.options || [
-                { id: "A", text: "Tập trung giải thích nhanh phần kết quả và bỏ qua bối cảnh ban đầu.", is_correct: false, explanation: "Bỏ qua bối cảnh khiến người nghe không đánh giá được quy mô và độ khó." },
-                { id: "B", text: "Áp dụng cấu trúc STAR: Bối cảnh (S), Vai trò (T), Hành động (A) và Dẫn chứng số liệu định lượng (R).", is_correct: true, explanation: "Cách tiếp cận chuẩn mực giúp câu trả lời logic và nổi bật năng lực cá nhân." },
-                { id: "C", text: "Đổ lỗi cho hoàn cảnh hoặc đồng nghiệp để chứng minh bản thân luôn làm đúng.", is_correct: false, explanation: "Thái độ đổ lỗi là điểm trừ rất lớn trong phỏng vấn hành vi." },
-                { id: "D", text: "Chỉ trả lời một câu ngắn gọn và chờ người phỏng vấn tự hỏi tiếp.", is_correct: false, explanation: "Quá thụ động, không thể hiện được chiều sâu tư duy và kỹ năng giao tiếp." },
-              ]
+              q.quiz_data?.options || []
             ).map((opt) => {
               const isSelected = selectedOption === opt.id;
               let cardClass = styles.quizOption;
@@ -750,7 +755,7 @@ export default function PracticeWorkspaceClient() {
           {isQuizChecked && (
             <div className={styles.explanationBox} style={{ marginTop: 12 }}>
               <strong>Giải thích chuyên môn: </strong>
-              {q.quiz_data?.explanation || "Áp dụng khung STAR giúp bạn luôn giữ được sự mạch lạc, tập trung vào dẫn chứng định lượng và làm nổi bật giá trị đóng góp cho dự án."}
+              {q.quiz_data?.explanation || "Hãy đối chiếu đáp án với yêu cầu và lập luận của câu hỏi."}
             </div>
           )}
         </div>
@@ -760,7 +765,7 @@ export default function PracticeWorkspaceClient() {
           <div className={styles.sectionBlockHeader}>
             <h4 className={styles.sectionBlockTitle}>
               <FileText size={17} color="#d98236" />
-              <span>Phần 2: Tự luận theo khung STAR</span>
+              <span>Phần 2: {q.question_type === "behavioral" ? "Tự luận theo STAR" : "Trả lời tự luận"}</span>
             </h4>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span className={styles.weightBadge}>Trọng số: 35% (35đ)</span>
@@ -772,7 +777,7 @@ export default function PracticeWorkspaceClient() {
             </div>
           </div>
 
-          <div className={styles.promptChips}>
+          {q.question_type === "behavioral" && <div className={styles.promptChips}>
             <span style={{ fontSize: 11, fontWeight: 800, color: "var(--ink-muted)", alignSelf: "center", marginRight: 4 }}>
               Chèn nhanh mẫu:
             </span>
@@ -804,14 +809,14 @@ export default function PracticeWorkspaceClient() {
             >
               + Kết quả (R)
             </button>
-          </div>
+          </div>}
 
           <textarea
             className={styles.textarea}
             value={writtenText}
             readOnly={isCurrentLocked}
             onChange={(e) => !isCurrentLocked && setWrittenText(e.target.value)}
-            placeholder={isCurrentLocked ? "Câu hỏi đã bị khóa một chiều. Bạn không thể chỉnh sửa nội dung này." : "Soạn thảo câu trả lời của bạn tại đây theo phương pháp STAR (Tối thiểu 20 từ)..."}
+            placeholder={isCurrentLocked ? "Câu hỏi đã bị khóa một chiều. Bạn không thể chỉnh sửa nội dung này." : q.question_type === "behavioral" ? "Kể trải nghiệm thực tế theo STAR (tối thiểu 20 từ)..." : "Trình bày lập luận và ví dụ phù hợp (tối thiểu 20 từ)..."}
           />
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
@@ -918,7 +923,7 @@ export default function PracticeWorkspaceClient() {
           <div style={{ textAlign: "center", padding: "40px 20px" }}>
             <Sparkles size={38} className="animate-spin" style={{ color: "var(--accent-warm)", margin: "0 auto 12px" }} />
             <div style={{ fontSize: 17, fontWeight: 800 }}>AI Coach đang chấm điểm đa thức (Trắc nghiệm 15%, Tự luận 35%, Nói 50%)...</div>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6 }}>Đối chiếu câu trả lời với khung STAR và thang điểm Rubric chuẩn hóa quốc tế</p>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 6 }}>Đối chiếu câu trả lời với yêu cầu của câu hỏi và rubric phù hợp</p>
           </div>
         )}
 
@@ -931,7 +936,7 @@ export default function PracticeWorkspaceClient() {
                   Báo cáo chấm điểm tổng hợp câu #{session.currentIndex + 1}
                 </h4>
                 <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)" }}>
-                  Điểm số tổng hợp từ Trắc nghiệm (15%), Tự luận STAR (35%) và Giọng nói (50%)
+                  Điểm số tổng hợp từ Trắc nghiệm (15%), Tự luận (35%) và Giọng nói (50%)
                 </p>
               </div>
 
@@ -975,11 +980,11 @@ export default function PracticeWorkspaceClient() {
                   <span className={styles.scoreItem3Val}>{mb.quiz_score}<small style={{ fontSize: 13, fontWeight: 700 }}>/15đ</small></span>
                 </div>
                 <div className={styles.scoreItem3}>
-                  <span className={styles.scoreItem3Title}>Tự luận STAR (35%)</span>
+                  <span className={styles.scoreItem3Title}>{evaluation.answer_framework === "star" ? "Tự luận STAR (35%)" : "Nội dung trả lời (35%)"}</span>
                   <span className={styles.scoreItem3Val}>{mb.text_score}<small style={{ fontSize: 13, fontWeight: 700 }}>/35đ</small></span>
                 </div>
                 <div className={styles.scoreItem3}>
-                  <span className={styles.scoreItem3Title}>Ghi âm nói (50%)</span>
+                  <span className={styles.scoreItem3Title}>Giọng nói chưa chấm</span>
                   <span className={styles.scoreItem3Val}>{mb.voice_score}<small style={{ fontSize: 13, fontWeight: 700 }}>/50đ</small></span>
                 </div>
               </div>
@@ -1080,7 +1085,7 @@ export default function PracticeWorkspaceClient() {
                     Đặc quyền gói Pro: Mở khóa toàn bộ nhận xét & hướng dẫn từ AI Coach
                   </h5>
                   <p style={{ fontSize: 12.5, color: "var(--ink-soft)", maxWidth: 460, margin: "0 0 14px", lineHeight: 1.5 }}>
-                    Tài khoản Free xem được tổng điểm và phân bổ 3 thành phần. Nâng cấp <strong>Pro Member</strong> để xem phân tích chuyên sâu 4 thành tố STAR, thang điểm Rubric và hướng dẫn cải thiện chi tiết.
+                    Tài khoản Free xem được tổng điểm và phân bổ 3 thành phần. Nâng cấp <strong>Pro Member</strong> để xem phân tích chuyên sâu theo loại câu hỏi, thang điểm Rubric và hướng dẫn cải thiện chi tiết.
                   </p>
                   <Link
                     href="/subscription"

@@ -38,6 +38,7 @@ import {
 } from "@/components/admin/ui/select";
 import { toast } from "sonner";
 import { questionAdminApi } from "@/services/admin/questionAdminApi";
+import { starTemplateAdminApi, type StarTemplateAdmin } from "@/services/admin/starTemplateAdminApi";
 import type { QuestionDetailOut, DomainOut, RoleOut, SkillOptionOut } from "@/types/catalog";
 
 interface SingleQuestionFormProps {
@@ -82,19 +83,16 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
   const [questionText, setQuestionText] = useState<string>(initialQuestion?.question_text || "");
   const [intent, setIntent] = useState<string>((initialQuestion as any)?.intent || "");
 
-  // STAR Guide
-  const [situationGuide, setSituationGuide] = useState<string>(
-    initialQuestion?.star_template?.situation_guide || ""
-  );
-  const [taskGuide, setTaskGuide] = useState<string>(
-    initialQuestion?.star_template?.task_guide || ""
-  );
-  const [actionGuide, setActionGuide] = useState<string>(
-    initialQuestion?.star_template?.action_guide || ""
-  );
-  const [resultGuide, setResultGuide] = useState<string>(
-    initialQuestion?.star_template?.result_guide || ""
-  );
+  const [starTemplateId, setStarTemplateId] = useState<number | null>(initialQuestion?.star_template_id ?? null);
+  const [starTemplates, setStarTemplates] = useState<StarTemplateAdmin[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    starTemplateAdminApi.getStarTemplates(language)
+      .then((templates) => { if (active) setStarTemplates(templates.filter((template) => template.is_active !== false)); })
+      .catch(() => { if (active) setStarTemplates([]); });
+    return () => { active = false; };
+  }, [language]);
 
   // Benchmark Answer & Tips
   const [sampleAnswer, setSampleAnswer] = useState<string>(initialQuestion?.sample_answer || "");
@@ -258,6 +256,7 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
           experience_level: experienceLevel,
           question_type: questionType,
           language,
+          star_template_id: questionType === "behavioral" ? starTemplateId : null,
           question_text: questionText.trim(),
           sample_answer: sampleAnswer.trim() || null,
           follow_up_questions: followUps.length > 0 ? followUps : null,
@@ -274,6 +273,7 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
           experience_level: experienceLevel,
           question_type: questionType,
           language,
+          star_template_id: questionType === "behavioral" ? starTemplateId : null,
           question_text: questionText.trim(),
           sample_answer: sampleAnswer.trim() || null,
           follow_up_questions: followUps.length > 0 ? followUps : null,
@@ -577,84 +577,27 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
         </CardContent>
       </Card>
 
-      {/* 3. STAR Framework Guidance */}
-      <Card className="shadow-xs border-muted/80 bg-card">
-        <CardHeader className="pb-3">
-          <div className="space-y-0.5">
-            <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-foreground">
-              <Star className="size-4 text-primary" />
-              3. Hướng Dẫn Cấu Trúc STAR Gợi Ý Cho Ứng Viên
+      {questionType === "behavioral" && (
+        <Card className="shadow-xs border-muted/80 bg-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2">
+              <Star className="size-4 text-primary" /> Mẫu hướng dẫn STAR
             </CardTitle>
-            <CardDescription className="text-xs">
-              Các gợi ý chi tiết hiển thị trong phần thi tự luận để ứng viên triển khai câu trả lời theo đúng 4 bước.
-            </CardDescription>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            {/* Situation */}
-            <div className="space-y-1.5 p-3 rounded-xl border bg-muted/20">
-              <Label className="text-xs font-semibold text-primary flex items-center gap-1.5">
-                <span className="size-5 rounded-full bg-primary/10 text-primary text-[10px] font-extrabold grid place-items-center">S</span>
-                <span>Tình huống (Situation)</span>
-              </Label>
-              <textarea
-                rows={2}
-                value={situationGuide}
-                onChange={(e) => setSituationGuide(e.target.value)}
-                placeholder="Gợi ý bối cảnh: Sự cố xảy ra lúc nào, hệ thống gì, ảnh hưởng ra sao..."
-                className="w-full rounded-md border border-input bg-background p-2 text-xs leading-relaxed focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-            </div>
-
-            {/* Task */}
-            <div className="space-y-1.5 p-3 rounded-xl border bg-muted/20">
-              <Label className="text-xs font-semibold text-primary flex items-center gap-1.5">
-                <span className="size-5 rounded-full bg-primary/10 text-primary text-[10px] font-extrabold grid place-items-center">T</span>
-                <span>Nhiệm vụ (Task)</span>
-              </Label>
-              <textarea
-                rows={2}
-                value={taskGuide}
-                onChange={(e) => setTaskGuide(e.target.value)}
-                placeholder="Gợi ý nhiệm vụ: Mục tiêu cần đạt được, vai trò cụ thể của bạn..."
-                className="w-full rounded-md border border-input bg-background p-2 text-xs leading-relaxed focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-            </div>
-
-            {/* Action */}
-            <div className="space-y-1.5 p-3 rounded-xl border bg-muted/20">
-              <Label className="text-xs font-semibold text-primary flex items-center gap-1.5">
-                <span className="size-5 rounded-full bg-primary/10 text-primary text-[10px] font-extrabold grid place-items-center">A</span>
-                <span>Hành động (Action)</span>
-              </Label>
-              <textarea
-                rows={2}
-                value={actionGuide}
-                onChange={(e) => setActionGuide(e.target.value)}
-                placeholder="Gợi ý hành động: Các bước kỹ thuật, công cụ debug, giải pháp tạm thời và triệt để..."
-                className="w-full rounded-md border border-input bg-background p-2 text-xs leading-relaxed focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-            </div>
-
-            {/* Result */}
-            <div className="space-y-1.5 p-3 rounded-xl border bg-muted/20">
-              <Label className="text-xs font-semibold text-primary flex items-center gap-1.5">
-                <span className="size-5 rounded-full bg-primary/10 text-primary text-[10px] font-extrabold grid place-items-center">R</span>
-                <span>Kết quả (Result)</span>
-              </Label>
-              <textarea
-                rows={2}
-                value={resultGuide}
-                onChange={(e) => setResultGuide(e.target.value)}
-                placeholder="Gợi ý kết quả: Hệ thống phục hồi sau bao lâu, số liệu định lượng, bài học rút ra..."
-                className="w-full rounded-md border border-input bg-background p-2 text-xs leading-relaxed focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            <CardDescription>Chọn mẫu cùng ngôn ngữ; chỉnh sửa nội dung mẫu ở trang quản lý mẫu STAR.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select value={starTemplateId ? String(starTemplateId) : "none"} onValueChange={(value) => setStarTemplateId(value === "none" ? null : Number(value))}>
+              <SelectTrigger><SelectValue placeholder="Không gắn mẫu STAR" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Không gắn mẫu STAR</SelectItem>
+                {starTemplates.map((template) => (
+                  <SelectItem key={template.star_template_id} value={String(template.star_template_id)}>{template.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 4. Benchmark Sample Answer & Tips */}
       <Card className="shadow-xs border-muted/80 bg-card">
@@ -662,7 +605,7 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
           <div className="space-y-0.5">
             <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-foreground">
               <Lightbulb className="size-4 text-primary" />
-              4. Đáp Án Mẫu Chuẩn (Benchmark STAR) &amp; Mẹo Phỏng Vấn
+              4. Đáp Án Mẫu &amp; Mẹo Phỏng Vấn
             </CardTitle>
             <CardDescription className="text-xs">
               Mô hình AI sẽ đối chiếu câu trả lời của ứng viên với đáp án mẫu này để chấm điểm độ chuẩn xác và chiều sâu kỹ thuật.

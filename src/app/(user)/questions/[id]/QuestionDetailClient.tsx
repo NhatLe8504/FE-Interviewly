@@ -42,6 +42,8 @@ import { MOCK_QUESTION_SETS } from "@/mock/questionSetsMock";
 import { getDomainTheme } from "@/constants/domainThemes";
 import styles from "./detail.module.css";
 import { toast } from "@/components/user-component/toast";
+import { useAuth } from "@/context/AuthContext";
+import { getStoredToken } from "@/services/apiClient";
 
 interface Props {
   questionId?: string;
@@ -70,6 +72,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
   const router = useRouter();
   const searchParams = useSearchParams();
   const { locale, t } = useI18n();
+  const { isAuthenticated } = useAuth();
 
   const pathname = usePathname();
   const qParam = searchParams.get("q");
@@ -145,11 +148,11 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
       const voiceSec = ansRecord?.recordingSeconds || 0;
       const hasAudio = Boolean(ansRecord?.recordedAudioUrl && voiceSec >= 3);
 
-      const qQuiz = isCorrectQuiz ? 15.0 : 0.0;
-      const rawText = mb ? mb.text_score : (rawResult.score ? rawResult.score * 0.35 : 0);
+      const qQuiz = mb?.quiz_score || 0.0;
+      const rawText = mb?.text_score || 0.0;
       const qText = actualWords === 0 ? 0.0 : Math.round(Math.max(0, Math.min(35.0, rawText)));
 
-      const rawVoice = mb ? mb.voice_score : (rawResult.score ? rawResult.score * 0.50 : 0);
+      const rawVoice = mb?.voice_score || 0.0;
       const qVoice = !hasAudio ? 0.0 : Math.round(Math.max(0, Math.min(50.0, rawVoice)));
 
       const qTotal = Math.min(100.0, Math.round(qQuiz + qText + qVoice));
@@ -160,12 +163,12 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
       }
 
       const textFb = actualWords === 0
-        ? "Bạn chưa nhập nội dung câu trả lời cho phần tự luận (chỉ có các tiêu đề mẫu gợi ý). Hãy diễn giải chi tiết tình huống thực tế của bạn theo khung STAR để được chấm điểm."
-        : rawResult.text_feedback || rawResult.feedback || "Bài tự luận đã được phân tích theo khung STAR.";
+        ? "Bạn chưa nhập nội dung câu trả lời cho phần tự luận (chỉ có các tiêu đề mẫu gợi ý). Hãy trình bày câu trả lời phù hợp với yêu cầu câu hỏi để được chấm điểm."
+        : rawResult.text_feedback || rawResult.feedback || "Bài tự luận đã được phân tích theo yêu cầu câu hỏi.";
 
       const voiceFb = !hasAudio
         ? "Chưa thực hiện ghi âm câu trả lời cho câu này (chiếm 50% số điểm câu hỏi). Hãy sử dụng micro để luyện tập phát biểu trực tiếp."
-        : rawResult.voice_feedback || rawResult.feedback || `Bản ghi âm giọng nói (${voiceSec}s) đã được phân tích nhịp điệu và ngữ nghĩa.`;
+        : rawResult.voice_feedback || rawResult.feedback || "Chưa có kết quả đánh giá giọng nói từ máy chủ.";
 
       return {
         ...rawResult,
@@ -548,6 +551,11 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
   // Final Submission: Immediately opens Live Scorecard (0ms delay)
   // and enqueues final question in the background via Pull MQ
   const handleFinalSubmit = async () => {
+    if (!getStoredToken() || !isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để nộp bài và nhận đánh giá từ AI Coach!");
+      router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+      return;
+    }
     if (currentQId) {
       setLockedQuestionIds((prev) => new Set(prev).add(currentQId));
 
@@ -663,13 +671,13 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
   // Check incomplete parts for current question before transitioning
   const checkCurrentIncomplete = (): string[] => {
     const issues: string[] = [];
-    if (!currentAns.selectedOption) {
+    if (currentQuestion?.quiz_data?.options?.length && !currentAns.selectedOption) {
       issues.push(`Chưa chọn đáp án Trắc nghiệm tình huống (chiếm 15% điểm = tối đa ${scoreMultipliers.quizMax}đ).`);
     }
     if (currentWordCount === 0) {
-      issues.push(`Chưa soạn thảo bài Tự luận theo khung STAR (chiếm 35% điểm = tối đa ${scoreMultipliers.textMax}đ).`);
+      issues.push(`Chưa soạn thảo bài Trả lời tự luận (chiếm 35% điểm = tối đa ${scoreMultipliers.textMax}đ).`);
     } else if (currentWordCount < 20) {
-      issues.push(`Bài tự luận hiện có ${currentWordCount} từ (dưới mức tối thiểu 20 từ để AI đánh giá cấu trúc STAR).`);
+      issues.push(`Bài tự luận hiện có ${currentWordCount} từ (dưới mức tối thiểu 20 từ để AI đánh giá nội dung).`);
     }
     if (!currentAns.recordedAudioUrl && currentAns.recordingSeconds < 5) {
       issues.push(`Chưa hoàn thành ghi âm câu trả lời trực tiếp đủ 5 giây (chiếm 50% điểm = tối đa ${scoreMultipliers.voiceMax}đ).`);
@@ -679,6 +687,11 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
 
   const proceedToTargetQuestion = async (targetIndex: number) => {
     if (targetIndex > currentIdx && currentQId) {
+      if (!getStoredToken() || !isAuthenticated) {
+        toast.error("Vui lòng đăng nhập để nộp bài và chuyển câu hỏi!");
+        router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+        return;
+      }
       // 1. Enforce Forward-Only Progression Lock
       setLockedQuestionIds((prev) => new Set(prev).add(currentQId));
 
@@ -900,7 +913,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
               <span className={styles.scoreItem3Val}>{totalSessionStats.sumQuiz}<small style={{ fontSize: 12, fontWeight: 700 }}>/15đ</small></span>
             </div>
             <div className={styles.scoreItem3}>
-              <span className={styles.scoreItem3Title}>Tự luận STAR (35%)</span>
+              <span className={styles.scoreItem3Title}>Nội dung trả lời (35%)</span>
               <span className={styles.scoreItem3Val}>{totalSessionStats.sumText}<small style={{ fontSize: 12, fontWeight: 700 }}>/35đ</small></span>
             </div>
             <div className={styles.scoreItem3}>
@@ -999,12 +1012,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
             const ev = evaluationsMap[item.question_id];
             const ans = answersMap[item.question_id];
             const mb = ev?.modal_breakdown;
-            const quizOptions = item.quiz_data?.options || [
-              { id: "A", text: "Vội vàng sửa code trực tiếp trên production server để dập lỗi nhanh nhất có thể.", is_correct: false, explanation: "Sửa trực tiếp trên production vi phạm quy trình release an toàn." },
-              { id: "B", text: "Áp dụng cấu trúc STAR: Nêu bối cảnh (S), làm rõ vai trò (T), hành động cụ thể (A) và dẫn chứng số liệu định lượng (R).", is_correct: true, explanation: "Cách tiếp cận chuẩn mực giúp câu trả lời logic và có tính thuyết phục cao." },
-              { id: "C", text: "Đổ lỗi cho hoàn cảnh hoặc đồng nghiệp để chứng minh bản thân luôn làm đúng.", is_correct: false, explanation: "Thái độ đổ lỗi là điểm trừ rất lớn trong phỏng vấn hành vi." },
-              { id: "D", text: "Chỉ trả lời một câu ngắn gọn và chờ người phỏng vấn tự hỏi tiếp.", is_correct: false, explanation: "Quá thụ động, không thể hiện được chiều sâu tư duy." },
-            ];
+            const quizOptions = item.quiz_data?.options || [];
             const chosenOpt = quizOptions.find((o) => o.id === ans?.selectedOption);
             const correctOpt = quizOptions.find((o) => o.is_correct);
             const isQuizCorrect = Boolean(chosenOpt && chosenOpt.is_correct);
@@ -1046,7 +1054,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                       Đang phân tích và chấm điểm câu hỏi này...
                     </div>
                     <p style={{ margin: "4px 0 0", fontSize: 12, color: "#78716c" }}>
-                      Tiến trình ngầm đang đánh giá nội dung STAR và các chỉ số phát âm qua hàng đợi.
+                      Tiến trình ngầm đang đánh giá nội dung câu trả lời và các chỉ số phát âm qua hàng đợi.
                     </p>
                   </div>
                 ) : (
@@ -1100,7 +1108,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                 {/* 2. Text Review & AI Feedback with Improvements or Praise */}
                 {(() => {
                   const textFeedback = ev?.text_feedback || (cleanWords === 0
-                    ? "Bạn chưa nhập nội dung câu trả lời cho phần tự luận (chỉ có các tiêu đề mẫu gợi ý). Hãy diễn giải chi tiết tình huống thực tế của bạn theo khung STAR."
+                    ? "Bạn chưa nhập nội dung câu trả lời cho phần tự luận (chỉ có các tiêu đề mẫu gợi ý). Hãy trả lời đúng trọng tâm với lập luận và ví dụ phù hợp."
                     : ev?.general_feedback && !/thở|từ đệm|phát âm|giọng nói|wpm|ậm ừ/i.test(ev.general_feedback)
                     ? ev.general_feedback
                     : "Bài tự luận đã được ghi nhận.");
@@ -1117,7 +1125,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13.5 }}>
                           <FileText size={16} color="#d98236" />
-                          <span>Bài Tự luận STAR ({cleanWords} từ thực tế):</span>
+                          <span>Bài tự luận ({cleanWords} từ thực tế):</span>
                           <span style={{ color: "#d98236", fontSize: 13 }}>{mb?.text_score || 0}/{scoreMultipliers.textMax}đ</span>
                         </div>
                       </div>
@@ -1148,7 +1156,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                             Điểm nổi bật
                           </div>
                           <p style={{ margin: 0, fontSize: 12.5, color: "#166534", lineHeight: 1.6 }}>
-                            {textStrs.length > 0 ? textStrs.join(". ") : "Bài làm cấu trúc STAR mạch lạc, tư duy kỹ thuật rõ ràng và có tính thuyết phục cao."}
+                            {textStrs.length > 0 ? textStrs.join(". ") : "Bài làm có lập luận rõ ràng và phù hợp với câu hỏi."}
                           </p>
                         </div>
                       ) : null}
@@ -1285,7 +1293,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
               AI đang chấm điểm &amp; phân tích bài làm
             </h3>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0 }}>
-              Đang phân tích trắc nghiệm, cấu trúc STAR và phát âm giọng nói. Đợi trong giây lát...
+              Đang phân tích nội dung và câu trả lời nói. Đợi trong giây lát...
             </p>
           </div>
         </div>
@@ -1386,7 +1394,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
           className={`${styles.tabBtn} ${activeTab === "star" ? styles.tabBtnActive : ""}`}
         >
           <Sparkles size={15} />
-          <span>{t.questions.detail.starTab}</span>
+          <span>{currentQuestion.question_type === "behavioral" ? t.questions.detail.starTab : "Khung trả lời"}</span>
         </button>
 
         <button
@@ -1451,6 +1459,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
       {/* TAB 1: KHUNG TRẢ LỜI STAR */}
       {activeTab === "star" && (
         <div className={styles.contentCard}>
+          {currentQuestion.question_type === "behavioral" ? <>
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>
               <Sparkles size={20} style={{ color: "var(--accent-warm)" }} />
@@ -1524,6 +1533,30 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
               </p>
             </div>
           )}
+          </> : <>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}><Sparkles size={20} />Khung trả lời phù hợp</h2>
+              <p className={styles.sectionSubtitle}>Không bắt buộc áp dụng STAR cho câu hỏi này.</p>
+            </div>
+            <div className={styles.starGrid}>
+              {(currentQuestion.question_type === "technical" ? [
+                ["Cách tiếp cận", "Nêu giải pháp hoặc khái niệm đúng trọng tâm."],
+                ["Lập luận", "Giải thích lý do lựa chọn và các giả định."],
+                ["Đánh đổi", "So sánh giới hạn, rủi ro và phương án khác."],
+                ["Kiểm chứng", "Nêu cách đo lường hoặc thử nghiệm."],
+              ] : [
+                ["Ràng buộc", "Làm rõ mục tiêu và dữ kiện cần biết."],
+                ["Phương án", "So sánh các cách xử lý khả thi."],
+                ["Quyết định", "Chọn hành động ưu tiên và giải thích."],
+                ["Rủi ro", "Nêu cách theo dõi và điều chỉnh."],
+              ]).map(([title, description]) => (
+                <div key={title} className={styles.starStepCard}>
+                  <strong>{title}</strong><p className={styles.starStepDesc}>{description}</p>
+                </div>
+              ))}
+            </div>
+            {currentQuestion.sample_answer && <div className={styles.sampleAnswerBox}>{currentQuestion.sample_answer}</div>}
+          </>}
         </div>
       )}
 
@@ -1617,10 +1650,48 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
             </h2>
             <p className={styles.sectionSubtitle}>
               {locale === "vi"
-                ? "Thực hành ngay với 3 hình thức: Trắc nghiệm (15%), Tự luận STAR (35%) và Ghi âm trực tiếp (50%). Làm xong toàn bộ bài thi mới nộp chấm điểm."
-                : "Practice via 3 modes: Situational Quiz (15%), STAR Essay (35%), and Voice Recording (50%). Final evaluation occurs upon submitting the complete test."}
+                ? "Thực hành ngay với 3 hình thức: Trắc nghiệm (15%), Tự luận (35%) và Ghi âm trực tiếp (50%). Làm xong toàn bộ bài thi mới nộp chấm điểm."
+                : "Practice via 3 modes: Situational Quiz (15%), Written Answer (35%), and Voice Recording (50%). Final evaluation occurs upon submitting the complete test."}
             </p>
           </div>
+
+          {!isAuthenticated && (
+            <div
+              style={{
+                background: "rgba(217, 130, 54, 0.08)",
+                border: "1px solid rgba(217, 130, 54, 0.25)",
+                borderRadius: 14,
+                padding: "12px 16px",
+                marginBottom: 16,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 10,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Lock size={18} style={{ color: "var(--accent-warm)", flexShrink: 0 }} />
+                <span style={{ fontSize: 13, color: "var(--ink-main)", fontWeight: 600 }}>
+                  Bạn đang luyện tập ở chế độ Khách. Vui lòng đăng nhập để nộp bài và nhận đánh giá từ AI Coach.
+                </span>
+              </div>
+              <Link
+                href={`/login?redirect=${encodeURIComponent(pathname)}`}
+                style={{
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  color: "#fff",
+                  background: "var(--accent-warm)",
+                  padding: "6px 14px",
+                  borderRadius: 8,
+                  textDecoration: "none",
+                }}
+              >
+                Đăng nhập ngay
+              </Link>
+            </div>
+          )}
 
           {/* =====================================================
               ROW MATCHING IMAGE #1 EXACTLY:
@@ -1731,12 +1802,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
               {/* Quiz Options - Candidate simply clicks to choose answer (NO immediate checking or explanation during test) */}
               <div className={styles.quizOptionsList}>
                 {(
-                  currentQuestion.quiz_data?.options || [
-                    { id: "A", text: "Tập trung giải thích nhanh phần kết quả và bỏ qua bối cảnh ban đầu.", is_correct: false, explanation: "Bỏ qua bối cảnh khiến người nghe không đánh giá được quy mô và độ khó của vấn đề." },
-                    { id: "B", text: "Áp dụng cấu trúc STAR: Nêu bối cảnh (S), làm rõ vai trò (T), hành động cụ thể (A) và dẫn chứng số liệu định lượng (R).", is_correct: true, explanation: "Đây là cách tiếp cận chuẩn mực giúp câu trả lời logic, thuyết phục và làm nổi bật năng lực cá nhân." },
-                    { id: "C", text: "Đổ lỗi cho hoàn cảnh hoặc đồng nghiệp để chứng minh bản thân luôn làm đúng.", is_correct: false, explanation: "Thái độ đổ lỗi là điểm trừ rất lớn trong phỏng vấn hành vi." },
-                    { id: "D", text: "Chỉ trả lời một câu ngắn gọn và chờ người phỏng vấn tự hỏi tiếp.", is_correct: false, explanation: "Quá thụ động, không thể hiện được chiều sâu tư duy và kỹ năng giao tiếp." },
-                  ]
+                  currentQuestion.quiz_data?.options || []
                 ).map((opt) => {
                   const isSelected = currentAns.selectedOption === opt.id;
                   return (
@@ -1789,7 +1855,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
               </div>
 
               {/* STAR Prompt Helper Chips */}
-              <div className={styles.starPromptHints}>
+              {currentQuestion.question_type === "behavioral" && <div className={styles.starPromptHints}>
                 <span style={{ fontSize: 11, fontWeight: 800, color: "var(--ink-muted)", alignSelf: "center", marginRight: 4 }}>
                   Chèn mẫu gợi ý:
                 </span>
@@ -1829,7 +1895,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                 >
                   + Kết quả (R)
                 </button>
-              </div>
+              </div>}
 
               <div className={styles.answerTextareaWrapper}>
                 <textarea
@@ -1837,7 +1903,7 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
                   value={currentAns.writtenText}
                   readOnly={isCurrentLocked}
                   onChange={(e) => !isCurrentLocked && updateCurrentAnswer({ writtenText: e.target.value })}
-                  placeholder={isCurrentLocked ? "Câu hỏi này đã hoàn thành và khóa một chiều. Bạn chỉ có thể xem lại, không thể chỉnh sửa." : t.questions.detail.textPlaceholder}
+                  placeholder={isCurrentLocked ? "Câu hỏi này đã hoàn thành và khóa một chiều. Bạn chỉ có thể xem lại, không thể chỉnh sửa." : currentQuestion.question_type === "behavioral" ? t.questions.detail.textPlaceholder : "Trình bày lập luận và ví dụ phù hợp với câu hỏi..."}
                   style={isCurrentLocked ? { background: "rgba(0, 0, 0, 0.03)", cursor: "not-allowed" } : {}}
                 />
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--ink-muted)", padding: "0 4px" }}>
