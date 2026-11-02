@@ -211,10 +211,16 @@ function PracticeJobs({ scope, isLoggedIn }: PracticeJobsProps) {
   const [levelFilter, setLevelFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    let mounted = true;
+  const [prevFetchKey, setPrevFetchKey] = useState(`${scope}-${pageIndex}-${reloadKey}`);
+  const currentFetchKey = `${scope}-${pageIndex}-${reloadKey}`;
+  if (prevFetchKey !== currentFetchKey) {
+    setPrevFetchKey(currentFetchKey);
     setIsLoading(true);
     setLoadError(null);
+  }
+
+  useEffect(() => {
+    let mounted = true;
 
     const fetchPromise = scope === "community"
       ? jdInterviewApi.getCommunityJobs(PAGE_SIZE, pageIndex * PAGE_SIZE)
@@ -422,11 +428,13 @@ export default function PracticeOverviewPage() {
   const [scope, setScope] = useState<PracticeScope>("my");
 
   // Nếu chưa login khi load xong thì mặc định sang tab cộng đồng để người dùng có thể xem được nội dung
-  useEffect(() => {
-    if (!isLoading && !user) {
+  const [prevUser, setPrevUser] = useState(user);
+  if (prevUser !== user) {
+    setPrevUser(user);
+    if (!user) {
       setScope("community");
     }
-  }, [isLoading, user]);
+  }
 
   return (
     <main className={styles.pageWrapper}>

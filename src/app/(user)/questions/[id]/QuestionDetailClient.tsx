@@ -95,11 +95,13 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
   // Active tab: star | rubric | followup | practice
   const [activeTab, setActiveTab] = useState<"star" | "rubric" | "followup" | "practice">(initialTab);
 
-  useEffect(() => {
-    if (isPracticeView && activeTab !== "practice") {
+  const [prevPracticeView, setPrevPracticeView] = useState(isPracticeView);
+  if (prevPracticeView !== isPracticeView) {
+    setPrevPracticeView(isPracticeView);
+    if (isPracticeView) {
       setActiveTab("practice");
     }
-  }, [isPracticeView, activeTab]);
+  }
 
   // List of questions for this session
   const [questionsList, setQuestionsList] = useState<QuestionDetailOut[]>([]);
@@ -504,9 +506,14 @@ export default function QuestionDetailClient({ questionId: propQuestionId }: Pro
     language: currentQuestion?.language === "en" ? "en-US" : "vi-VN",
   });
 
-  // Automatically reset to Quiz mode (Part 1) and reset voice recorder on question change
-  useEffect(() => {
+  // Automatically reset to Quiz mode (Part 1) and reset voice recorder on question change (render-phase sync)
+  const [prevIdx, setPrevIdx] = useState(currentIdx);
+  if (prevIdx !== currentIdx) {
+    setPrevIdx(currentIdx);
     setPracticeType("quiz");
+  }
+
+  useEffect(() => {
     voiceRecorder.reset();
   }, [currentIdx, voiceRecorder]);
 

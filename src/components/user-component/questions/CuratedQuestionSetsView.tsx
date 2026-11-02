@@ -71,32 +71,45 @@ export function CuratedQuestionSetsView({
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [domainsList, setDomainsList] = useState<DomainOut[]>([]);
   const [questionSets, setQuestionSets] = useState<QuestionSetItem[]>([]);
-  const [isLoadingSets, setIsLoadingSets] = useState<boolean>(false);
+  const [isLoadingSets, setIsLoadingSets] = useState<boolean>(true);
   const [detailSet, setDetailSet] = useState<QuestionSetItem | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState<boolean>(false);
 
   React.useEffect(() => {
-    setIsLoadingSets(true);
-    // 1. Fetch real domains from DB
+    let isSubscribed = true;
     catalogApi.getDomains().then((doms) => {
-      if (Array.isArray(doms) && doms.length > 0) {
+      if (isSubscribed && Array.isArray(doms) && doms.length > 0) {
         setDomainsList(doms);
       }
     });
 
-    // 2. Fetch real question sets from DB
-    catalogApi.getQuestionSets().then((res) => {
-      if (res && res.items && res.items.length > 0) {
-        setQuestionSets(res.items);
-      } else {
-        setQuestionSets(MOCK_QUESTION_SETS);
-      }
-      setIsLoadingSets(false);
-    });
+    catalogApi.getQuestionSets()
+      .then((res) => {
+        if (!isSubscribed) return;
+        if (res && res.items && res.items.length > 0) {
+          setQuestionSets(res.items);
+        } else {
+          setQuestionSets(MOCK_QUESTION_SETS);
+        }
+      })
+      .catch(() => {
+        if (isSubscribed) setQuestionSets(MOCK_QUESTION_SETS);
+      })
+      .finally(() => {
+        if (isSubscribed) setIsLoadingSets(false);
+      });
+    return () => {
+      isSubscribed = false;
+    };
   }, []);
 
+  const handleSwitchModalTab = (tab: "questions" | "leaderboard" | "reviews") => {
+    setModalTab(tab);
+    if (tab !== "questions") setIsLoadingTab(true);
+  };
+
   const handleOpenDetailSet = async (s: QuestionSetItem, initialTab: "questions" | "leaderboard" | "reviews" = "questions") => {
-    setModalTab(initialTab);
+    handleSwitchModalTab(initialTab);
     setDetailSet(s);
     setIsLoadingDetail(true);
 
@@ -125,19 +138,28 @@ export function CuratedQuestionSetsView({
 
   React.useEffect(() => {
     if (!detailSet) return;
+    let isSubscribed = true;
+    const currentSetId = detailSet.set_id;
     if (modalTab === "leaderboard") {
-      setIsLoadingTab(true);
-      catalogApi.getQuestionSetLeaderboard(detailSet.set_id).then((res) => {
-        setLeaderboard(res);
-        setIsLoadingTab(false);
-      });
+      catalogApi.getQuestionSetLeaderboard(currentSetId)
+        .then((res) => {
+          if (isSubscribed) setLeaderboard(res);
+        })
+        .finally(() => {
+          if (isSubscribed) setIsLoadingTab(false);
+        });
     } else if (modalTab === "reviews") {
-      setIsLoadingTab(true);
-      catalogApi.getQuestionSetReviews(detailSet.set_id).then((res) => {
-        setReviewsData(res);
-        setIsLoadingTab(false);
-      });
+      catalogApi.getQuestionSetReviews(currentSetId)
+        .then((res) => {
+          if (isSubscribed) setReviewsData(res);
+        })
+        .finally(() => {
+          if (isSubscribed) setIsLoadingTab(false);
+        });
     }
+    return () => {
+      isSubscribed = false;
+    };
   }, [modalTab, detailSet]);
 
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -564,7 +586,7 @@ export function CuratedQuestionSetsView({
             <div className="flex items-center gap-2 px-5 pt-2 border-b border-[var(--border-subtle)] bg-white/40">
               <button
                 type="button"
-                onClick={() => setModalTab("questions")}
+                onClick={() => handleSwitchModalTab("questions")}
                 className={`px-3 py-2 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-all cursor-pointer ${
                   modalTab === "questions"
                     ? "border-[var(--accent-deep)] text-[var(--accent-deep)]"
@@ -577,7 +599,7 @@ export function CuratedQuestionSetsView({
 
               <button
                 type="button"
-                onClick={() => setModalTab("leaderboard")}
+                onClick={() => handleSwitchModalTab("leaderboard")}
                 className={`px-3 py-2 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-all cursor-pointer ${
                   modalTab === "leaderboard"
                     ? "border-[var(--accent-deep)] text-[var(--accent-deep)]"
@@ -590,7 +612,7 @@ export function CuratedQuestionSetsView({
 
               <button
                 type="button"
-                onClick={() => setModalTab("reviews")}
+                onClick={() => handleSwitchModalTab("reviews")}
                 className={`px-3 py-2 text-xs font-bold border-b-2 flex items-center gap-1.5 transition-all cursor-pointer ${
                   modalTab === "reviews"
                     ? "border-[var(--accent-deep)] text-[var(--accent-deep)]"

@@ -231,12 +231,18 @@ export function CheckoutClient() {
   }, [selectedPlanId, isAuthenticated, createCheckoutApi]);
 
   useEffect(() => {
+    let ignore = false;
     if (isAuthenticated) {
-      initCheckout();
-    } else if (!isAuthLoading) {
-      setIsCreatingCheckout(false);
+      void (async () => {
+        if (!ignore) {
+          await initCheckout();
+        }
+      })();
     }
-  }, [isAuthenticated, isAuthLoading, initCheckout]);
+    return () => {
+      ignore = true;
+    };
+  }, [isAuthenticated, initCheckout]);
 
   // 1. PRIMARY REAL-TIME: Ultra-fast WebSocket instant payment notification (<50ms)
   useEffect(() => {
@@ -294,7 +300,7 @@ export function CheckoutClient() {
         if (pingInterval) clearInterval(pingInterval);
       };
     } catch {
-      setIsSocketConnected(false);
+      setTimeout(() => setIsSocketConnected(false), 0);
     }
 
     return () => {

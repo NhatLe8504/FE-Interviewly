@@ -432,6 +432,7 @@ export default function CoachShowcaseSection() {
               data-rot={c.rot}
               data-depth={c.depth}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={c.img} alt={c.name} loading="lazy" />
             </div>
           ))}
@@ -472,6 +473,7 @@ export default function CoachShowcaseSection() {
         <div className={styles.teamGrid} id="teamGrid">
           {coaches.map((c) => (
             <div key={c.id} className={styles.tCard}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={c.img} alt={c.name} loading="lazy" />
               <div className={styles.tMeta}>
                 <div className={styles.nm}>{c.name}</div>

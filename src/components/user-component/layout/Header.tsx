@@ -68,20 +68,20 @@ export default function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Theme state
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  // Language state
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("interviewly_theme") as "light" | "dark") || "light";
+    }
+    return "light";
+  });
 
   useEffect(() => {
-    // Load stored theme & language
-    const storedTheme = (localStorage.getItem("interviewly_theme") as "light" | "dark") || "light";
-    setTheme(storedTheme);
-
-    if (storedTheme === "dark") {
+    if (theme === "dark") {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
-  }, []);
+  }, [theme]);
 
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
@@ -126,10 +126,12 @@ export default function Header() {
     };
   }, [menuOpen, handleCloseMenu]);
 
-  // Close menu on navigation
-  useEffect(() => {
+  // Close menu on navigation (render-phase sync)
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
     setMenuOpen(false);
-  }, [pathname]);
+  }
 
   useLayoutEffect(() => {
     const measure = () => {
@@ -162,7 +164,7 @@ export default function Header() {
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [pathname]);
+  }, [pathname, navItems]);
 
   const initials = user?.full_name
     ? user.full_name
