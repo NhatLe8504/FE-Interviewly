@@ -104,13 +104,19 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
   const [jdInterview, setJdInterview] = useState<PreMadeInterview | null>(null);
   const [isLoadingJd, setIsLoadingJd] = useState<boolean>(!preMadeInterview);
   const [jdError, setJdError] = useState<string | null>(null);
+  const [prevInterviewId, setPrevInterviewId] = useState(interviewId);
+  if (prevInterviewId !== interviewId) {
+    setPrevInterviewId(interviewId);
+    if (!preMadeInterview) {
+      setIsLoadingJd(true);
+      setJdError(null);
+    }
+  }
 
   useEffect(() => {
     if (preMadeInterview) return;
 
     let mounted = true;
-    setIsLoadingJd(true);
-    setJdError(null);
 
     jdInterviewApi
       .getJobStatus(interviewId)

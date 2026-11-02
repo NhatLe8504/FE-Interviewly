@@ -157,17 +157,26 @@ export default function ProfileClient() {
       : "general"
   );
   const [practiceHistory, setPracticeHistory] = useState<PracticeHistoryItem[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(initialTab === "history");
+  const handleSwitchTab = (tab: "general" | "career" | "security" | "readiness" | "history") => {
+    setActiveTab(tab);
+    if (tab === "history") setIsLoadingHistory(true);
+  };
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<PracticeHistoryItem | null>(null);
 
   useEffect(() => {
-    if (activeTab === "history") {
-      setIsLoadingHistory(true);
-      catalogApi.getPracticeHistory().then((data) => {
-        setPracticeHistory(data);
-        setIsLoadingHistory(false);
+    if (activeTab !== "history") return;
+    let isSubscribed = true;
+    catalogApi.getPracticeHistory()
+      .then((data) => {
+        if (isSubscribed) setPracticeHistory(data);
+      })
+      .finally(() => {
+        if (isSubscribed) setIsLoadingHistory(false);
       });
-    }
+    return () => {
+      isSubscribed = false;
+    };
   }, [activeTab]);
 
   // General tab form state
@@ -836,7 +845,7 @@ export default function ProfileClient() {
           type="button"
           role="tab"
           aria-selected={activeTab === "general"}
-          onClick={() => setActiveTab("general")}
+          onClick={() => handleSwitchTab("general")}
           className={`${styles.tabBtn} ${activeTab === "general" ? styles.tabBtnActive : ""}`}
         >
           <User size={15} />
@@ -847,7 +856,7 @@ export default function ProfileClient() {
           type="button"
           role="tab"
           aria-selected={activeTab === "career"}
-          onClick={() => setActiveTab("career")}
+          onClick={() => handleSwitchTab("career")}
           className={`${styles.tabBtn} ${activeTab === "career" ? styles.tabBtnActive : ""}`}
         >
           <Briefcase size={15} />
@@ -858,7 +867,7 @@ export default function ProfileClient() {
           type="button"
           role="tab"
           aria-selected={activeTab === "security"}
-          onClick={() => setActiveTab("security")}
+          onClick={() => handleSwitchTab("security")}
           className={`${styles.tabBtn} ${activeTab === "security" ? styles.tabBtnActive : ""}`}
         >
           <Lock size={15} />
@@ -869,7 +878,7 @@ export default function ProfileClient() {
           type="button"
           role="tab"
           aria-selected={activeTab === "readiness"}
-          onClick={() => setActiveTab("readiness")}
+          onClick={() => handleSwitchTab("readiness")}
           className={`${styles.tabBtn} ${activeTab === "readiness" ? styles.tabBtnActive : ""}`}
         >
           <Mic size={15} />
@@ -880,7 +889,7 @@ export default function ProfileClient() {
             type="button"
             role="tab"
             aria-selected={activeTab === "history"}
-            onClick={() => setActiveTab("history")}
+            onClick={() => handleSwitchTab("history")}
             className={`${styles.tabBtn} ${activeTab === "history" ? styles.tabBtnActive : ""}`}
           >
             <Award size={15} />

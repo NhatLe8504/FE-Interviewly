@@ -80,8 +80,32 @@ export function QuestionBankDrawer({
   );
 
   useEffect(() => {
-    void loadQuestions(0, false);
-  }, [loadQuestions]);
+    let isSubscribed = true;
+    catalogApi.getQuestionsForSelection({
+      language,
+      type: questionType,
+      search: submittedSearch,
+      limit: PAGE_SIZE,
+      offset: 0,
+    }).then((page) => {
+      if (!isSubscribed) return;
+      setQuestions(page.items);
+      setTotal(page.total);
+      setOffset(0);
+    }).catch((cause) => {
+      if (!isSubscribed) return;
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Không thể tải Question Bank. Vui lòng thử lại."
+      );
+    }).finally(() => {
+      if (isSubscribed) setIsLoading(false);
+    });
+    return () => {
+      isSubscribed = false;
+    };
+  }, [language, questionType, submittedSearch]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

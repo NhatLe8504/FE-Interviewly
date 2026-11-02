@@ -213,8 +213,9 @@ export default function PricingPage() {
   const { data: remotePlans } = useGetPlansQuery(undefined, {
     refetchOnMountOrArgChange: true,
   });
-
-  useEffect(() => {
+  const [prevRemotePlans, setPrevRemotePlans] = useState(remotePlans);
+  if (prevRemotePlans !== remotePlans) {
+    setPrevRemotePlans(remotePlans);
     if (remotePlans && remotePlans.length > 0) {
       setPlans(
         remotePlans.map((p) => ({
@@ -223,7 +224,8 @@ export default function PricingPage() {
         }))
       );
     }
-  }, [remotePlans]);
+  }
+
 
   useEffect(() => {
     let isMounted = true;
