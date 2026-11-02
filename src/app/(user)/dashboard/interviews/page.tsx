@@ -26,8 +26,8 @@ export default function InterviewHistoryPage() {
   const [modeFilter, setModeFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
 
-  const fetchHistory = useCallback(async () => {
-    setLoading(true);
+  const fetchHistory = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
       const res = await historyApi.getInterviewHistory({
         page,
@@ -44,8 +44,23 @@ export default function InterviewHistoryPage() {
   }, [page, pageSize, modeFilter, statusFilter]);
 
   useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
+    let isSubscribed = true;
+    historyApi.getInterviewHistory({
+      page,
+      pageSize,
+      mode: modeFilter || undefined,
+      status: statusFilter || undefined,
+    }).then((res) => {
+      if (isSubscribed) setData(res);
+    }).catch(() => {
+      if (isSubscribed) setData({ items: [], total: 0, page: 1, page_size: 10, total_pages: 0 });
+    }).finally(() => {
+      if (isSubscribed) setLoading(false);
+    });
+    return () => {
+      isSubscribed = false;
+    };
+  }, [page, pageSize, modeFilter, statusFilter]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">

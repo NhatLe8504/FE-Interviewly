@@ -27,8 +27,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
       const [dashRes, trendsRes] = await Promise.all([
         analyticsApi.getDashboardStats(),
@@ -46,7 +46,25 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    fetchData();
+    let isSubscribed = true;
+    Promise.all([
+      analyticsApi.getDashboardStats(),
+      analyticsApi.getProgressTrends(10),
+    ]).then(([dashRes, trendsRes]) => {
+      if (!isSubscribed) return;
+      setData(dashRes);
+      setTrends(trendsRes);
+    }).catch((err: any) => {
+      if (!isSubscribed) return;
+      setData(null);
+      setTrends(null);
+      setError(err?.message || "Không thể tải dữ liệu bảng điều khiển.");
+    }).finally(() => {
+      if (isSubscribed) setLoading(false);
+    });
+    return () => {
+      isSubscribed = false;
+    };
   }, []);
 
   if (error && !data) {
