@@ -51,12 +51,14 @@ export function RevenueAreaChart({
 }) {
   const isMobile = useIsMobile();
   const [timeRange, setTimeRange] = React.useState<"90d" | "30d" | "7d">("30d");
+  const [prevIsMobile, setPrevIsMobile] = React.useState(isMobile);
 
-  React.useEffect(() => {
+  if (prevIsMobile !== isMobile) {
+    setPrevIsMobile(isMobile);
     if (isMobile) {
       setTimeRange("7d");
     }
-  }, [isMobile]);
+  }
 
   const filteredData = React.useMemo(() => {
     if (!data || data.length === 0) return [];

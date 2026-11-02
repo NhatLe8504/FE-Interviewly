@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useSyncExternalStore } from "react";
 import {
   LineChart,
   Line,
@@ -13,17 +13,18 @@ import {
 } from "recharts";
 import { ProgressTrendPoint } from "@/types/analytics";
 
+const emptySubscribe = () => () => {};
+function useIsClient() {
+  return useSyncExternalStore(emptySubscribe, () => true, () => false);
+}
+
 interface ScoreTrendLineChartProps {
   data: ProgressTrendPoint[];
   className?: string;
 }
 
 export function ScoreTrendLineChart({ data, className }: ScoreTrendLineChartProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useIsClient();
 
   if (!mounted) {
     return (

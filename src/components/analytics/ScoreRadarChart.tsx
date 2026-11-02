@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useSyncExternalStore } from "react";
 import {
   Radar,
   RadarChart,
@@ -12,17 +12,18 @@ import {
 } from "recharts";
 import { SkillRadar } from "@/types/analytics";
 
+const emptySubscribe = () => () => {};
+function useIsClient() {
+  return useSyncExternalStore(emptySubscribe, () => true, () => false);
+}
+
 interface ScoreRadarChartProps {
   data: SkillRadar;
   className?: string;
 }
 
 export function ScoreRadarChart({ data, className }: ScoreRadarChartProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useIsClient();
 
   const chartData = [
     { subject: "Độ rõ ràng", score: data.clarity, fullMark: 100 },

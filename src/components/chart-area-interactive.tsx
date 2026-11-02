@@ -65,11 +65,15 @@ function formatDateLabel(value: string) {
 export function ChartAreaInteractive() {
   const isMobile = useIsMobile()
   const [timeRange, setTimeRange] = React.useState("90d")
+  const [prevIsMobile, setPrevIsMobile] = React.useState(isMobile)
   const { data: paymentsData, isLoading, isError } = useGetPaymentsQuery({ limit: 100 })
 
-  React.useEffect(() => {
-    if (isMobile) setTimeRange("7d")
-  }, [isMobile])
+  if (prevIsMobile !== isMobile) {
+    setPrevIsMobile(isMobile)
+    if (isMobile) {
+      setTimeRange("7d")
+    }
+  }
 
   const filteredData = React.useMemo<RevenuePoint[]>(() => {
     const daysToInclude = timeRange === "30d" ? 30 : timeRange === "7d" ? 7 : 90

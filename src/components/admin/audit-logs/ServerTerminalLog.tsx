@@ -74,12 +74,14 @@ export function ServerTerminalLog({
     return () => clearInterval(interval);
   }, [isPaused, onRefresh]);
 
-  // Reset cleared state when new lines arrive
-  useEffect(() => {
+  // Reset cleared state when new lines arrive (render-phase sync)
+  const [prevLinesLength, setPrevLinesLength] = useState(lines.length);
+  if (prevLinesLength !== lines.length) {
+    setPrevLinesLength(lines.length);
     if (lines.length > 0) {
       setCleared(false);
     }
-  }, [lines.length]);
+  }
 
   // Auto-scroll to bottom
   useEffect(() => {

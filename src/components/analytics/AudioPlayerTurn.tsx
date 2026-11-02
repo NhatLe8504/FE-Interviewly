@@ -21,20 +21,21 @@ export function AudioPlayerTurn({ audioUrl, turnNumber, className }: AudioPlayer
   const [isExpiredOrUnavailable, setIsExpiredOrUnavailable] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [prevAudioUrl, setPrevAudioUrl] = useState(audioUrl);
+  if (prevAudioUrl !== audioUrl) {
+    setPrevAudioUrl(audioUrl);
+    setResolvedSrc(null);
+    setIsExpiredOrUnavailable(false);
+    setIsLoading(Boolean(audioUrl));
+  }
+
   useEffect(() => {
-    if (!audioUrl) {
-      setResolvedSrc(null);
-      setIsExpiredOrUnavailable(false);
-      setIsLoading(false);
-      return;
-    }
+    if (!audioUrl) return;
 
     let objectUrl: string | null = null;
     let isCancelled = false;
 
-    const loadAuthorizedAudio = async () => {
-      setIsLoading(true);
-      setIsExpiredOrUnavailable(false);
+    void (async () => {
       try {
         const token = getStoredToken();
         const headers: Record<string, string> = {};
@@ -71,9 +72,7 @@ export function AudioPlayerTurn({ audioUrl, turnNumber, className }: AudioPlayer
           setIsLoading(false);
         }
       }
-    };
-
-    loadAuthorizedAudio();
+    })();
 
     return () => {
       isCancelled = true;

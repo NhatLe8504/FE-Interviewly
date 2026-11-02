@@ -75,12 +75,14 @@ const chartConfig = {
 export function AuditLogActivityChart() {
   const isMobile = useIsMobile();
   const [timeRange, setTimeRange] = React.useState("30d");
+  const [prevIsMobile, setPrevIsMobile] = React.useState(isMobile);
 
-  React.useEffect(() => {
+  if (prevIsMobile !== isMobile) {
+    setPrevIsMobile(isMobile);
     if (isMobile) {
       setTimeRange("7d");
     }
-  }, [isMobile]);
+  }
 
   const filteredData = React.useMemo(() => {
     const referenceDate = new Date("2026-09-19T00:00:00Z");
