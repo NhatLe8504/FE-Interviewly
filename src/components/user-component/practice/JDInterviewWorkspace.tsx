@@ -46,17 +46,19 @@ export function JDInterviewWorkspace() {
   const [isPublic, setIsPublic] = useState(true);
 
   // Workflow state
-  const [jobId, setJobId] = useState<string | null>(null);
+  const [jobId, setJobId] = useState<string | null>(queryJobId || null);
+  const [prevQueryJobId, setPrevQueryJobId] = useState(queryJobId);
+  if (prevQueryJobId !== queryJobId) {
+    setPrevQueryJobId(queryJobId);
+    if (queryJobId && !jobId) {
+      setJobId(queryJobId);
+    }
+  }
   const [jobState, setJobState] = useState<JDJobStatusResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isStartingSession, setIsStartingSession] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (queryJobId && !jobId) {
-      setJobId(queryJobId);
-    }
-  }, [queryJobId, jobId]);
   const [expandedQuestionIdx, setExpandedQuestionIdx] = useState<number | null>(0);
 
   // Status Polling Effect
@@ -107,7 +109,7 @@ export function JDInterviewWorkspace() {
       isStopped = true;
       clearInterval(interval);
     };
-  }, [jobId, jobState?.status]);
+  }, [jobId, jobState?.status, router]);
 
   const handleStartGeneration = async () => {
     setErrorMessage(null);

@@ -202,48 +202,7 @@ export default function InterviewRoomPage({
 
   // Browser Speech Synthesis voices cache
   const [browserVoices, setBrowserVoices] = useState<SpeechSynthesisVoice[]>([]);
-  useEffect(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    const updateVoices = () => {
-      const all = window.speechSynthesis.getVoices();
-      if (!all || all.length === 0) return;
-      const langPrefix = (language || "vi").toLowerCase();
-      const filtered = all.filter((v) => {
-        const l = (v.lang || "").toLowerCase().replace(/_/g, "-");
-        const n = (v.name || "").toLowerCase();
-        if (langPrefix === "vi") {
-          return (
-            l.startsWith("vi") ||
-            n.includes("vietnam") ||
-            n.includes("tiếng việt") ||
-            n.includes("vietnamese")
-          );
-        }
-        return l.startsWith(langPrefix);
-      });
-      const candidateList = filtered.length > 0 ? filtered : all.slice(0, 20);
-      const sortedVoices = [...candidateList].sort((a, b) => {
-        const aName = a.name.toLowerCase();
-        const bName = b.name.toLowerCase();
-        const aIsHoaiMy = aName.includes("hoài my") || aName.includes("hoai my") || aName.includes("hoaimy");
-        const bIsHoaiMy = bName.includes("hoài my") || bName.includes("hoai my") || bName.includes("hoaimy");
-        if (aIsHoaiMy && !bIsHoaiMy) return -1;
-        if (!aIsHoaiMy && bIsHoaiMy) return 1;
-        return 0;
-      });
-      setBrowserVoices(sortedVoices);
-      if (!selectedBrowserVoice && sortedVoices.length > 0) {
-        setSelectedBrowserVoice(sortedVoices[0].name);
-      }
-    };
-    updateVoices();
-    window.speechSynthesis.onvoiceschanged = updateVoices;
-    return () => {
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.onvoiceschanged = null;
-      }
-    };
-  }, [language]);
+
 
   const roleName = meta.roleLabel || "Software Engineer";
   const level = meta.levelLabel || "Senior";
@@ -347,6 +306,49 @@ export default function InterviewRoomPage({
     totalDurationMinutes: meta.totalDurationMinutes || 45,
     bargeInInitial: meta.bargeInEnabled ?? false,
   });
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const updateVoices = () => {
+      const all = window.speechSynthesis.getVoices();
+      if (!all || all.length === 0) return;
+      const langPrefix = (language || "vi").toLowerCase();
+      const filtered = all.filter((v) => {
+        const l = (v.lang || "").toLowerCase().replace(/_/g, "-");
+        const n = (v.name || "").toLowerCase();
+        if (langPrefix === "vi") {
+          return (
+            l.startsWith("vi") ||
+            n.includes("vietnam") ||
+            n.includes("tiếng việt") ||
+            n.includes("vietnamese")
+          );
+        }
+        return l.startsWith(langPrefix);
+      });
+      const candidateList = filtered.length > 0 ? filtered : all.slice(0, 20);
+      const sortedVoices = [...candidateList].sort((a, b) => {
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+        const aIsHoaiMy = aName.includes("hoài my") || aName.includes("hoai my") || aName.includes("hoaimy");
+        const bIsHoaiMy = bName.includes("hoài my") || bName.includes("hoai my") || bName.includes("hoaimy");
+        if (aIsHoaiMy && !bIsHoaiMy) return -1;
+        if (!aIsHoaiMy && bIsHoaiMy) return 1;
+        return 0;
+      });
+      setBrowserVoices(sortedVoices);
+      if (!selectedBrowserVoice && sortedVoices.length > 0) {
+        setSelectedBrowserVoice(sortedVoices[0].name);
+      }
+    };
+    updateVoices();
+    window.speechSynthesis.onvoiceschanged = updateVoices;
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.onvoiceschanged = null;
+      }
+    };
+  }, [language, selectedBrowserVoice, setSelectedBrowserVoice]);
 
   // Fetch Voice & STT Options (tự động lọc theo ngôn ngữ & khôi phục giọng ưu tiên đã cache)
   useEffect(() => {
@@ -1862,8 +1864,8 @@ function changeInterviewLanguage(code: string) {
                   disabled={!canSendText}
                   onChange={handleSttEngineChange}
                   options={(voiceOptions?.stt_engines || [
-                    { id: "browser-speech-api", name: "Web Speech API (Trình duyệt) [Mặc định]", is_locked: false },
-                    { id: "whisper-pro", name: "Whisper Pro (AI Cloud)", is_locked: true },
+                    { id: "browser_speech", name: "Web Speech API (Trình duyệt)", is_locked: false },
+                    { id: "whisper_pro", name: "Whisper Cloud AI (Đa âm sắc)", is_locked: false },
                   ]).map((eng) => ({
                     value: eng.id,
                     label: eng.name,
