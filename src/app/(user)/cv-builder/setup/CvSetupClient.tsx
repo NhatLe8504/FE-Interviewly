@@ -36,13 +36,18 @@ export default function CvSetupClient() {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("unsupported");
 
   useEffect(() => {
-    if ("Notification" in window) setNotificationPermission(Notification.permission);
+    const timer = setTimeout(() => {
+      if ("Notification" in window) setNotificationPermission(Notification.permission);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
     if (!taskId && !targetJobId) {
-      setError("Hãy chọn một tin tuyển dụng trước khi tạo CV.");
-      return;
+      const timer = setTimeout(() => {
+        setError("Hãy chọn một tin tuyển dụng trước khi tạo CV.");
+      }, 0);
+      return () => clearTimeout(timer);
     }
     let active = true;
     const key = taskId || targetJobId!;
@@ -77,7 +82,9 @@ export default function CvSetupClient() {
   useEffect(() => {
     if (!job || job.status !== "QUESTIONS_READY" || hydratedJobId !== job.job_id) return;
     try { localStorage.setItem(`cv-answers-${job.job_id}`, JSON.stringify({ answers, templateId, colorTheme })); }
-    catch { setError("Không thể lưu nháp trên thiết bị này. Vui lòng hoàn thành trước khi rời trang."); }
+    catch {
+      setTimeout(() => setError("Không thể lưu nháp trên thiết bị này. Vui lòng hoàn thành trước khi rời trang."), 0);
+    }
   }, [answers, job, hydratedJobId, templateId, colorTheme]);
 
   const refresh = useCallback(async (jobId: string) => {
@@ -96,7 +103,7 @@ export default function CvSetupClient() {
       finally { busy = false; }
     }, 3000);
     return () => window.clearInterval(timer);
-  }, [job?.job_id, job?.status, refresh]);
+  }, [job, refresh]);
 
   useEffect(() => {
     if (!job || job.status !== "COMPLETED" || !job.cv_id || completionHandledFor.current === job.job_id) return;

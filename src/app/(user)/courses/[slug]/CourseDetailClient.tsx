@@ -50,8 +50,6 @@ export default function CourseDetailClient({ slug }: CourseDetailClientProps) {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError(null);
 
     courseApi
       .getCourseDetail(slug)

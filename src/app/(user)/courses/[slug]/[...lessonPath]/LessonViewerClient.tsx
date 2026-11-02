@@ -63,17 +63,9 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
   const [personalNote, setPersonalNote] = useState<string>("");
 
   useEffect(() => {
-    if (isInvalidUrl) {
-      setLoading(false);
-      setErrorStatus(404);
-      setErrorMessage("Đường dẫn bài học không đúng định dạng.");
-      return;
-    }
+    if (isInvalidUrl) return;
 
     let active = true;
-    setLoading(true);
-    setErrorStatus(null);
-    setErrorMessage(null);
 
     Promise.all([
       courseApi.getCourseDetail(slug),
@@ -102,17 +94,20 @@ export default function LessonViewerClient({ slug, lessonPath }: LessonViewerCli
 
   // Load completed state & note from localStorage
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) setCompletedIds(new Set(JSON.parse(saved)));
+    const timer = setTimeout(() => {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) setCompletedIds(new Set(JSON.parse(saved)));
 
-      if (!isNaN(lessonId)) {
-        const savedNote = localStorage.getItem(`lesson_note_${slug}_${lessonId}`);
-        setPersonalNote(savedNote || "");
+        if (!isNaN(lessonId)) {
+          const savedNote = localStorage.getItem(`lesson_note_${slug}_${lessonId}`);
+          setPersonalNote(savedNote || "");
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [slug, lessonId, storageKey]);
 
   const toggleCompleteCurrent = () => {

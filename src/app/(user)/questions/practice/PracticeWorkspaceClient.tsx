@@ -79,12 +79,12 @@ export default function PracticeWorkspaceClient() {
   const [incompleteIssues, setIncompleteIssues] = useState<string[]>([]);
   const [pendingTargetIndex, setPendingTargetIndex] = useState<number | null>(null);
 
-  // Sync state when current question changes
-  useEffect(() => {
-    if (!session.currentQuestion) return;
-    const qid = session.currentQuestion.question_id;
-    const savedAns = session.answers[qid];
-
+  // Sync state when current question changes (render-phase sync)
+  const [prevQId, setPrevQId] = useState<number | null>(session.currentQuestion?.question_id ?? null);
+  const activeQuestionId = session.currentQuestion?.question_id ?? null;
+  if (prevQId !== activeQuestionId) {
+    setPrevQId(activeQuestionId);
+    const savedAns = activeQuestionId ? session.answers[activeQuestionId] : null;
     if (savedAns) {
       setSelectedOption(savedAns.selected_option_id || null);
       setIsQuizChecked(Boolean(savedAns.selected_option_id));
@@ -98,7 +98,7 @@ export default function PracticeWorkspaceClient() {
       setRecordedAudioUrl(null);
       setRecordingSeconds(0);
     }
-  }, [session.currentIndex, session.currentQuestion]);
+  }
 
   const wordCount = useMemo(() => {
     const trimmed = writtenText.trim();

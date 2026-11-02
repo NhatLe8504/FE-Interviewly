@@ -43,11 +43,12 @@ export default function QuestionResultClient({ questionId }: QuestionResultClien
   const [copiedSample, setCopiedSample] = useState(false);
 
   useEffect(() => {
-    let parsed: any = null;
-    try {
-      const saved =
-        sessionStorage.getItem(`question_eval_${questionId}`) ||
-        sessionStorage.getItem("question_eval_latest");
+    const timer = setTimeout(() => {
+      let parsed: any = null;
+      try {
+        const saved =
+          sessionStorage.getItem(`question_eval_${questionId}`) ||
+          sessionStorage.getItem("question_eval_latest");
       if (saved) parsed = JSON.parse(saved);
     } catch (e) {
       console.warn("Failed to load result from sessionStorage:", e);
@@ -182,7 +183,9 @@ export default function QuestionResultClient({ questionId }: QuestionResultClien
         setLoading(false);
       }
     }
-    loadFallback();
+      loadFallback();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [questionId]);
 
   const formatTimerStr = (totalSec: number) => {
