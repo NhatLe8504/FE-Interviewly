@@ -134,7 +134,6 @@ export function AdminSubscriptionsClient() {
 
   // Fetch Plans
   const fetchPlans = useCallback(async () => {
-    setLoadingPlans(true);
     try {
       const data = await subscriptionAdminApi.getPlans();
       setPlans(data);
@@ -147,7 +146,6 @@ export function AdminSubscriptionsClient() {
 
   // Fetch User Subscriptions
   const fetchSubscriptions = useCallback(async () => {
-    setLoadingSubs(true);
     try {
       const data = await subscriptionAdminApi.getUserSubscriptions({
         status: subStatusFilter,
@@ -165,13 +163,29 @@ export function AdminSubscriptionsClient() {
   }, [subStatusFilter, searchQuery, subPage, subPageSize]);
 
   useEffect(() => {
-    fetchPlans();
+    let ignore = false;
+    void (async () => {
+      if (!ignore) {
+        await fetchPlans();
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
   }, [fetchPlans]);
 
   useEffect(() => {
+    let ignore = false;
     if (activeTab === "subscribers") {
-      fetchSubscriptions();
+      void (async () => {
+        if (!ignore) {
+          await fetchSubscriptions();
+        }
+      })();
     }
+    return () => {
+      ignore = true;
+    };
   }, [activeTab, fetchSubscriptions]);
 
   // Open Create Dialog

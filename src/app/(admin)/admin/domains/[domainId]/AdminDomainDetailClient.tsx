@@ -60,7 +60,6 @@ export default function AdminDomainDetailClient({ domainId }: { domainId: number
 
   const loadData = useCallback(async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
-    else setLoading(true);
     try {
       const nextDetail = await domainAdminApi.getDomainDetail(domainId, statusFilter);
       setDetail(nextDetail);
@@ -73,7 +72,15 @@ export default function AdminDomainDetailClient({ domainId }: { domainId: number
   }, [domainId, statusFilter]);
 
   useEffect(() => {
-    void loadData();
+    let ignore = false;
+    void (async () => {
+      if (!ignore) {
+        await loadData();
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
   }, [loadData]);
 
   const domain = detail?.domain;

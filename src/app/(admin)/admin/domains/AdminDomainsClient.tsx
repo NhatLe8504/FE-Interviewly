@@ -82,7 +82,6 @@ export default function AdminDomainsClient() {
 
   const loadData = useCallback(async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
-    else setLoading(true);
     try {
       const data = await domainAdminApi.getDomains(statusFilter);
       setDomains(data.items);
@@ -101,7 +100,15 @@ export default function AdminDomainsClient() {
   }, [statusFilter]);
 
   useEffect(() => {
-    void loadData();
+    let ignore = false;
+    void (async () => {
+      if (!ignore) {
+        await loadData();
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
   }, [loadData]);
 
   const filteredDomains = useMemo(() => {
