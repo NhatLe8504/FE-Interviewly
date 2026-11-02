@@ -78,7 +78,6 @@ export default function AdminCourseManageClient({ slug }: AdminCourseManageClien
   const [openChapterIds, setOpenChapterIds] = useState<Set<string>>(new Set());
 
   const loadData = useCallback(async () => {
-    setLoading(true);
     try {
       const [c, s] = await Promise.all([
         courseAdminApi.getCourse(slug),
@@ -95,7 +94,15 @@ export default function AdminCourseManageClient({ slug }: AdminCourseManageClien
   }, [slug]);
 
   useEffect(() => {
-    loadData();
+    let ignore = false;
+    void (async () => {
+      if (!ignore) {
+        await loadData();
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
   }, [loadData]);
 
   const toggleChapter = (chapterId: string) => {

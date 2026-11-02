@@ -86,7 +86,6 @@ export default function AdminLessonEditClient({
   const [starSample, setStarSample] = useState("");
 
   const loadData = useCallback(async () => {
-    setLoading(true);
     try {
       const [c, s, lessonRes] = await Promise.all([
         courseAdminApi.getCourse(slug),
@@ -134,7 +133,15 @@ export default function AdminLessonEditClient({
   }, [slug, lessonId]);
 
   useEffect(() => {
-    loadData();
+    let ignore = false;
+    void (async () => {
+      if (!ignore) {
+        await loadData();
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
   }, [loadData]);
 
   // Handle Video File Upload

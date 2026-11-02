@@ -86,7 +86,6 @@ export default function AdminLessonCreateClient({
   const [newChapterTitle, setNewChapterTitle] = useState("");
 
   const loadData = useCallback(async () => {
-    setLoading(true);
     try {
       const [c, s] = await Promise.all([
         courseAdminApi.getCourse(slug),
@@ -109,7 +108,15 @@ export default function AdminLessonCreateClient({
   }, [slug, initialChapterId]);
 
   useEffect(() => {
-    loadData();
+    let ignore = false;
+    void (async () => {
+      if (!ignore) {
+        await loadData();
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
   }, [loadData]);
 
   // Handle Video File Selection / Upload

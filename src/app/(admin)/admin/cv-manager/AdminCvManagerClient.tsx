@@ -117,7 +117,6 @@ export function AdminCvManagerClient() {
   };
 
   const fetchCvs = useCallback(async () => {
-    setLoading(true);
     try {
       const data = await cvAdminApi.getCvs({
         search: searchQuery.trim() || undefined,
@@ -135,7 +134,15 @@ export function AdminCvManagerClient() {
   }, [searchQuery, templateFilter, page, pageSize]);
 
   useEffect(() => {
-    fetchCvs();
+    let ignore = false;
+    void (async () => {
+      if (!ignore) {
+        await fetchCvs();
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
   }, [fetchCvs]);
 
   const handleOpenDetail = async (cv: CvDocumentAdmin) => {
