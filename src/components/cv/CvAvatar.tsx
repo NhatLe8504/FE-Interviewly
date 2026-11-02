@@ -71,6 +71,7 @@ export const CvAvatar: React.FC<CvAvatarProps> = ({
       {/* ẨN KHI IN NẾU KHÔNG CÓ ẢNH */}
       {avatarUrl ? (
         <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-slate-200/80 shadow-sm">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={avatarUrl}
             alt="CV Avatar"

@@ -37,21 +37,31 @@ export const AiDraftModal: React.FC<AiDraftModalProps> = ({
   const [systemSkillsData, setSystemSkillsData] = useState<UserSkillsSummaryResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchingSkills, setFetchingSkills] = useState(false);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (prevIsOpen !== isOpen) {
+    setPrevIsOpen(isOpen);
+    if (isOpen) setFetchingSkills(true);
+  }
 
   useEffect(() => {
-    if (isOpen) {
-      setFetchingSkills(true);
-      cvApi
-        .getUserSkillsSummary()
-        .then((res) => {
-          setSystemSkillsData(res);
-          if (res.experience_level) setExperienceLevel(res.experience_level);
-        })
-        .catch((err) => {
-          console.warn("Could not fetch user skills:", err);
-        })
-        .finally(() => setFetchingSkills(false));
-    }
+    if (!isOpen) return;
+    let isSubscribed = true;
+    cvApi
+      .getUserSkillsSummary()
+      .then((res) => {
+        if (!isSubscribed) return;
+        setSystemSkillsData(res);
+        if (res.experience_level) setExperienceLevel(res.experience_level);
+      })
+      .catch((err) => {
+        console.warn("Could not fetch user skills:", err);
+      })
+      .finally(() => {
+        if (isSubscribed) setFetchingSkills(false);
+      });
+    return () => {
+      isSubscribed = false;
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
