@@ -68,8 +68,8 @@ export function AdminSettingsClient() {
     maintenance_mode: false,
   });
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
       const [s, h] = await Promise.all([
         settingsAdminApi.getSettings(),
@@ -86,8 +86,33 @@ export function AdminSettingsClient() {
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    let isSubscribed = true;
+    Promise.all([
+      settingsAdminApi.getSettings(),
+      settingsAdminApi.getSystemHealth(),
+    ]).then(([s, h]) => {
+      if (!isSubscribed) return;
+      setSettings(s);
+      setForm({
+        ai_model: s.ai_model || "gpt-4o-mini",
+        ai_temperature: s.ai_temperature ?? 0.7,
+        ai_max_tokens: s.ai_max_tokens ?? 2000,
+        ai_interviewer_persona: s.ai_interviewer_persona || "standard",
+        tts_provider: s.tts_provider || "browser",
+        stt_provider: s.stt_provider || "whisper",
+        require_email_verification: s.require_email_verification ?? false,
+        enable_registration: s.enable_registration ?? true,
+      });
+      setHealth(h);
+    }).catch((err: any) => {
+      if (isSubscribed) toast.error(err?.message || "Không thể tải cấu hình hệ thống");
+    }).finally(() => {
+      if (isSubscribed) setLoading(false);
+    });
+    return () => {
+      isSubscribed = false;
+    };
+  }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

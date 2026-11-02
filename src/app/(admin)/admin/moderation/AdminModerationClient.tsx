@@ -87,8 +87,8 @@ export function AdminModerationClient() {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchLogs = useCallback(async () => {
-    setLoading(true);
+  const fetchLogs = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
       const data = await moderationAdminApi.getLogs({
         target_type: targetTypeFilter !== "all" ? targetTypeFilter : undefined,
@@ -105,8 +105,24 @@ export function AdminModerationClient() {
   }, [targetTypeFilter, page, pageSize]);
 
   useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+    let isSubscribed = true;
+    moderationAdminApi.getLogs({
+      target_type: targetTypeFilter === "all" ? undefined : targetTypeFilter,
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+    }).then((data) => {
+      if (!isSubscribed) return;
+      setLogs(data.items);
+      setTotal(data.total);
+    }).catch((err: any) => {
+      if (isSubscribed) toast.error(err?.message || "Không thể tải nhật ký kiểm duyệt");
+    }).finally(() => {
+      if (isSubscribed) setLoading(false);
+    });
+    return () => {
+      isSubscribed = false;
+    };
+  }, [targetTypeFilter, page, pageSize]);
 
   const filteredLogs = logs.filter((log) => {
     if (!searchQuery.trim()) return true;

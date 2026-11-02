@@ -149,6 +149,7 @@ export function SingleQuestionForm({ initialQuestion, isEdit = false }: SingleQu
       }
     }
     loadMetadata();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialQuestion]);
 
   // Tải taxonomy nhãn kỹ năng (không chặn form nếu lỗi)
