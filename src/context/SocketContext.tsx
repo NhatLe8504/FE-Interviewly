@@ -53,6 +53,8 @@ function getBaseWsUrl(): string {
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const { user, token } = useAuth();
   const [status, setStatus] = useState<SocketStatus>("disconnected");
+  const [socketInstance, setSocketInstance] = useState<WebSocket | null>(null);
+  const connectRef = useRef<(url?: string) => void>(() => {});
   const [lastMessage, setLastMessage] = useState<any>(null);
   const [onlineCount, setOnlineCount] = useState<number>(1);
   const [onlineUserIds, setOnlineUserIds] = useState<number[]>([]);
@@ -111,6 +113,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         // Ignored
       }
       socketRef.current = null;
+      setSocketInstance(null);
     }
     setStatus("disconnected");
   }, []);
@@ -141,6 +144,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       try {
         const ws = new WebSocket(fullUrl);
         socketRef.current = ws;
+        setSocketInstance(ws);
 
         ws.onopen = () => {
           setStatus("connected");
@@ -194,6 +198,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
         ws.onclose = () => {
           socketRef.current = null;
+          setSocketInstance(null);
           setStatus("disconnected");
           if (pingIntervalRef.current) {
             clearInterval(pingIntervalRef.current);
@@ -205,7 +210,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
             reconnectAttemptsRef.current += 1;
             reconnectTimeoutRef.current = setTimeout(() => {
               if (!isManuallyClosedRef.current && currentUrlRef.current) {
-                connect(currentUrlRef.current);
+                connectRef.current(currentUrlRef.current);
               }
             }, delay);
           }
@@ -230,22 +235,31 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
+
   // Auto-connect to presence websocket only for authenticated admin users
   useEffect(() => {
+    let active = true;
     if (user && user.role === "admin" && token) {
-      connect();
-    } else {
+      const timer = setTimeout(() => {
+        if (active) connect();
+      }, 0);
+      return () => {
+        active = false;
+        clearTimeout(timer);
+        if (socketRef.current) disconnect();
+      };
+    } else if (socketRef.current) {
       disconnect();
     }
-    return () => {
-      disconnect();
-    };
   }, [user, token, connect, disconnect]);
 
   return (
     <SocketContext.Provider
       value={{
-        socket: socketRef.current,
+        socket: socketInstance,
         status,
         isConnected: status === "connected",
         onlineCount,

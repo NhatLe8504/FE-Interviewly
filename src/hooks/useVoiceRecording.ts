@@ -29,7 +29,14 @@ export function useVoiceRecording(): UseVoiceRecordingReturn {
   const [interimTranscript, setInterimTranscript] = useState("");
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = useState(false);
+  const [isSpeechRecognitionSupported] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      return Boolean(SpeechRecognition);
+    }
+    return false;
+  });
 
   // References to Web Audio & MediaRecorder objects
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -42,14 +49,7 @@ export function useVoiceRecording(): UseVoiceRecordingReturn {
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
 
-  // Check Web Speech API availability on mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      setIsSpeechRecognitionSupported(Boolean(SpeechRecognition));
-    }
-  }, []);
+  const updateVolumeRef = useRef<() => void>(() => {});
 
   // Continuous volume meter loop
   const updateVolume = useCallback(() => {
@@ -67,8 +67,14 @@ export function useVoiceRecording(): UseVoiceRecordingReturn {
     const calculatedVolume = Math.min(100, Math.round((average / 128) * 100));
     setVolume(calculatedVolume);
 
-    animationFrameRef.current = requestAnimationFrame(updateVolume);
+    animationFrameRef.current = requestAnimationFrame(() => {
+      updateVolumeRef.current();
+    });
   }, []);
+
+  useEffect(() => {
+    updateVolumeRef.current = updateVolume;
+  }, [updateVolume]);
 
   // Cleanup helper
   const stopAllAudioResources = useCallback(() => {

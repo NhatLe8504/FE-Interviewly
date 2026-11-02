@@ -45,14 +45,15 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
   const [error, setError] = useState<string | null>(null);
   const [sttSupported, setSttSupported] = useState(true);
   const [silenceRemaining, setSilenceRemaining] = useState<number | null>(null);
+  const [audioBlobState, setAudioBlobState] = useState<Blob | null>(null);
   const optionsRef = useRef(options);
-  optionsRef.current = options;
   const [autoSubmit, setAutoSubmit] = useState(options.autoListen ?? false);
-  useEffect(() => {
+  const [prevAutoListen, setPrevAutoListen] = useState(options.autoListen);
+  if (prevAutoListen !== options.autoListen) {
+    setPrevAutoListen(options.autoListen);
     setAutoSubmit(options.autoListen ?? false);
-  }, [options.autoListen]);
+  }
   const autoSubmitRef = useRef(autoSubmit);
-  autoSubmitRef.current = autoSubmit;
   const toggleAutoSubmit = useCallback(() => {
     setAutoSubmit((prev) => !prev);
   }, []);
@@ -63,7 +64,14 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
   const pendingSubmissionRef = useRef(false);
   const durationRef = useRef(0);
   const recentAiSpeechRef = useRef("");
-  if (options.aiSpeechText?.trim()) recentAiSpeechRef.current = options.aiSpeechText;
+
+  useEffect(() => {
+    optionsRef.current = options;
+    autoSubmitRef.current = autoSubmit;
+    if (options.aiSpeechText?.trim()) {
+      recentAiSpeechRef.current = options.aiSpeechText;
+    }
+  });
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recognitionRef = useRef<VoiceRecognition | null>(null);
@@ -94,6 +102,7 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
     if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
     audioUrlRef.current = null;
     audioBlobRef.current = null;
+    setAudioBlobState(null);
     setAudioUrl(null);
   }, []);
 
@@ -295,6 +304,7 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
         clearAudioUrl();
         if (blob.size > 0) {
           audioBlobRef.current = blob;
+          setAudioBlobState(blob);
           audioUrlRef.current = URL.createObjectURL(blob);
           setAudioUrl(audioUrlRef.current);
         }
@@ -396,7 +406,7 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
   }, [releaseAudio]);
 
   return {
-    state, transcript, interimTranscript, audioUrl, durationSeconds, volume, error, sttSupported, audioBlob: audioBlobRef.current,
+    state, transcript, interimTranscript, audioUrl, durationSeconds, volume, error, sttSupported, audioBlob: audioBlobState,
     autoSubmit, toggleAutoSubmit, silenceRemaining, startRecording, stopRecording: () => stopRef.current(true), cancelRecording, discard, submit,
     editTranscript: (text: string) => { transcriptRef.current = text; setTranscript(text); },
   };
