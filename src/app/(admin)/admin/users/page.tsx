@@ -73,6 +73,8 @@ import {
   useGetAdminStatsQuery,
 } from "@/redux/api/adminApi";
 import type { UserAdminOut, UserRole, UserStatus } from "@/types/admin";
+
+const EMPTY_USERS_LIST: UserAdminOut[] = [];
 import { useSocket } from "@/context/SocketContext";
 
 export default function AdminUsersPage() {
@@ -178,11 +180,14 @@ export default function AdminUsersPage() {
   const [updateUserStatus] = useUpdateUserStatusMutation();
   const [updateUserRole] = useUpdateUserRoleMutation();
 
-  useEffect(() => {
+  const [userFilterKey, setUserFilterKey] = useState("");
+  const currentUserFilterKey = `${searchTerm}|${selectedRole}|${selectedStatus}`;
+  if (userFilterKey !== currentUserFilterKey) {
+    setUserFilterKey(currentUserFilterKey);
     setPage(1);
-  }, [searchTerm, selectedRole, selectedStatus]);
+  }
 
-  const usersList: UserAdminOut[] = useMemo(() => usersData?.items || [], [usersData?.items]);
+  const usersList: UserAdminOut[] = usersData?.items ?? EMPTY_USERS_LIST;
   const totalUsersCount = usersData?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalUsersCount / limit));
 

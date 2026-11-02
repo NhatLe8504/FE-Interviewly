@@ -140,7 +140,6 @@ export default function AdminCoursesClient() {
 
   // Load Courses
   const loadCourses = useCallback(async () => {
-    setLoading(true);
     try {
       const data = await courseAdminApi.getCourses();
       setCourses(data);
@@ -152,7 +151,15 @@ export default function AdminCoursesClient() {
   }, []);
 
   useEffect(() => {
-    loadCourses();
+    let ignore = false;
+    void (async () => {
+      if (!ignore) {
+        await loadCourses();
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
   }, [loadCourses]);
 
   // KPI Calculations
@@ -188,10 +195,13 @@ export default function AdminCoursesClient() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Reset page when filters change
-  useEffect(() => {
+  // Adjust page when filters change (React render-phase pattern)
+  const [courseFilterKey, setCourseFilterKey] = useState("");
+  const currentCourseFilterKey = `${search}|${selectedCategory}|${selectedType}|${selectedLevel}`;
+  if (courseFilterKey !== currentCourseFilterKey) {
+    setCourseFilterKey(currentCourseFilterKey);
     setPage(1);
-  }, [search, selectedCategory, selectedType, selectedLevel]);
+  }
 
   const paginatedCourses = useMemo(() => {
     const start = (page - 1) * pageSize;

@@ -64,7 +64,6 @@ export function AdminStarTemplatesClient() {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
     try {
       const data = await starTemplateAdminApi.getStarTemplates(
         languageFilter !== "all" ? languageFilter : undefined,
@@ -78,7 +77,15 @@ export function AdminStarTemplatesClient() {
   }, [languageFilter]);
 
   useEffect(() => {
-    fetchData();
+    let ignore = false;
+    void (async () => {
+      if (!ignore) {
+        await fetchData();
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
   }, [fetchData]);
 
   const filteredTemplates = templates.filter((t) => {
@@ -95,9 +102,12 @@ export function AdminStarTemplatesClient() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
 
-  useEffect(() => {
+  const [starFilterKey, setStarFilterKey] = useState("");
+  const currentStarFilterKey = `${searchQuery}|${languageFilter}`;
+  if (starFilterKey !== currentStarFilterKey) {
+    setStarFilterKey(currentStarFilterKey);
     setPage(1);
-  }, [searchQuery, languageFilter]);
+  }
 
   const paginatedTemplates = useMemo(() => {
     const start = (page - 1) * pageSize;

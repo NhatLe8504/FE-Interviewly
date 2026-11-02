@@ -76,7 +76,6 @@ export function AdminRolesClient() {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
     try {
       const [domainRes, rolesRes] = await Promise.all([
         domainAdminApi.getDomains("all"),
@@ -95,7 +94,15 @@ export function AdminRolesClient() {
   }, [selectedDomainId, statusFilter]);
 
   useEffect(() => {
-    fetchData();
+    let ignore = false;
+    void (async () => {
+      if (!ignore) {
+        await fetchData();
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
   }, [fetchData]);
 
   // Map domain name by ID
@@ -113,9 +120,12 @@ export function AdminRolesClient() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  useEffect(() => {
+  const [roleFilterKey, setRoleFilterKey] = useState("");
+  const currentRoleFilterKey = `${searchQuery}|${selectedDomainId}|${statusFilter}`;
+  if (roleFilterKey !== currentRoleFilterKey) {
+    setRoleFilterKey(currentRoleFilterKey);
     setPage(1);
-  }, [searchQuery, selectedDomainId, statusFilter]);
+  }
 
   const paginatedRoles = useMemo(() => {
     const start = (page - 1) * pageSize;
