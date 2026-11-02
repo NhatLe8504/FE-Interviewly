@@ -203,7 +203,7 @@ export function PracticeSetupClient({ interviewId }: PracticeSetupClientProps) {
   const mode = "text";
   const questionBankLanguage = "vi";
   const [language, setLanguage] = useState<InterviewLanguage>(locale);
-  const [bargeInEnabled, setBargeInEnabled] = useState(false);
+  const [bargeInEnabled, setBargeInEnabled] = useState(true);
   const [totalDurationMinutes, setTotalDurationMinutes] = useState<number>(interview?.durationMinutes || 45);
   const [mockMode, setMockMode] = useState<"strict" | "guided">("guided");
   const [stageSourceModes, setStageSourceModes] = useState(DEFAULT_STAGE_SOURCE_MODES);

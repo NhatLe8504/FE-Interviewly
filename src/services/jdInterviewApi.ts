@@ -168,7 +168,7 @@ export const jdInterviewApi = {
   startSession: async (
     jobId: string,
     mode: "text" | "voice" = "text",
-    bargeInEnabled = false,
+    bargeInEnabled = true,
     selectedStages?: string[],
     stageConfigs?: any[]
   ): Promise<JDStartSessionResponse> => {

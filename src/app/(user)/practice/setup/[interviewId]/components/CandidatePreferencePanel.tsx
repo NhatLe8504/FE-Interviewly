@@ -116,9 +116,9 @@ export function CandidatePreferencePanel({
             onChange={(event) => onBargeInChange(event.target.checked)}
           />
           <span>
-            <strong>Hội thoại rảnh tay và ngắt lời AI</strong>
+            <strong>Tự động thu âm khi AI nói xong (Mặc định - Rảnh tay)</strong>
             <small>
-              Micro tự nghe khi AI nói, ngắt lời khi nhận diện giọng bạn và tự gửi sau khoảng lặng. Nên dùng tai nghe.
+              Micro tự động thu âm ngay khi AI dứt lời và tự động gửi sau khi bạn nói xong. Lúc AI đang nói, micro tắt để chống vọng âm. Bỏ chọn để chuyển sang chế độ bấm nút thủ công.
             </small>
           </span>
         </label>
