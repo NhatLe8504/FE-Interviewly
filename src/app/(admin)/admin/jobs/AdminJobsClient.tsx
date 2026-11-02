@@ -103,8 +103,8 @@ export function AdminJobsClient() {
   // Detail Modal State
   const [selectedJobForDetail, setSelectedJobForDetail] = useState<JobPostingAdmin | null>(null);
 
-  const fetchJobs = useCallback(async () => {
-    setLoadingJobs(true);
+  const fetchJobs = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoadingJobs(true);
     try {
       const data = await jobAdminApi.getJobs({
         search: searchQuery.trim() || undefined,
@@ -121,8 +121,8 @@ export function AdminJobsClient() {
     }
   }, [searchQuery, sourceFilter, page, pageSize]);
 
-  const fetchSources = useCallback(async () => {
-    setLoadingSources(true);
+  const fetchSources = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoadingSources(true);
     try {
       const data = await jobAdminApi.getSources();
       setSources(data);
@@ -134,9 +134,35 @@ export function AdminJobsClient() {
   }, []);
 
   useEffect(() => {
-    fetchJobs();
-    fetchSources();
-  }, [fetchJobs, fetchSources]);
+    let isSubscribed = true;
+    jobAdminApi.getJobs({
+      source_id: sourceFilter === "all" ? undefined : sourceFilter,
+      search: searchQuery.trim() || undefined,
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+    }).then((data) => {
+      if (!isSubscribed) return;
+      setJobs(data.items);
+      setTotalJobs(data.total);
+    }).catch((err: any) => {
+      if (isSubscribed) toast.error(err?.message || "Không thể tải danh sách việc làm");
+    }).finally(() => {
+      if (isSubscribed) setLoadingJobs(false);
+    });
+
+    jobAdminApi.getSources()
+      .then((data) => {
+        if (!isSubscribed) return;
+        setSources(data);
+      }).catch((err: any) => {
+        if (isSubscribed) toast.error(err?.message || "Không thể tải danh sách nguồn tuyển dụng");
+      }).finally(() => {
+        if (isSubscribed) setLoadingSources(false);
+      });
+    return () => {
+      isSubscribed = false;
+    };
+  }, [searchQuery, sourceFilter, page, pageSize]);
 
   const handleTriggerCrawl = async (sourceId?: string) => {
     setTriggering(true);

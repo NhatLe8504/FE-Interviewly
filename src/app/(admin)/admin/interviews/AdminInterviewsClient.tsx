@@ -93,8 +93,8 @@ export function AdminInterviewsClient() {
     }
   };
 
-  const fetchInterviews = useCallback(async () => {
-    setLoading(true);
+  const fetchInterviews = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
       const data = await interviewAdminApi.getInterviews({
         status: statusFilter,
@@ -112,8 +112,25 @@ export function AdminInterviewsClient() {
   }, [statusFilter, searchQuery, page, pageSize]);
 
   useEffect(() => {
-    fetchInterviews();
-  }, [fetchInterviews]);
+    let isSubscribed = true;
+    interviewAdminApi.getInterviews({
+      status: statusFilter,
+      search: searchQuery.trim() || undefined,
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+    }).then((data) => {
+      if (!isSubscribed) return;
+      setInterviews(data.items);
+      setTotal(data.total);
+    }).catch((err: any) => {
+      if (isSubscribed) toast.error(err?.message || "Không thể tải danh sách phiên phỏng vấn");
+    }).finally(() => {
+      if (isSubscribed) setLoading(false);
+    });
+    return () => {
+      isSubscribed = false;
+    };
+  }, [statusFilter, searchQuery, page, pageSize]);
 
   const completedSessions = interviews.filter((i) => i.status === "completed");
   const avgScore =
@@ -131,7 +148,7 @@ export function AdminInterviewsClient() {
         description="Xem toàn cảnh các phiên phỏng vấn thực tế của ứng viên, kiểm tra transcript hỏi đáp và điểm đánh giá STAR."
       >
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={fetchInterviews} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={() => fetchInterviews(true)} disabled={loading}>
             <RefreshCw className={`size-4 mr-2 ${loading ? "animate-spin" : ""}`} />
             Làm mới
           </Button>

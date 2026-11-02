@@ -38,9 +38,9 @@ export function AdminInterviewDetailClient() {
   const [loading, setLoading] = useState(true);
   const [reEvaluating, setReEvaluating] = useState(false);
 
-  const fetchDetail = useCallback(async () => {
+  const fetchDetail = useCallback(async (showLoading = false) => {
     if (!sessionId || isNaN(sessionId)) return;
-    setLoading(true);
+    if (showLoading) setLoading(true);
     try {
       const data = await interviewAdminApi.getInterviewDetail(sessionId);
       setDetail(data);
@@ -66,8 +66,22 @@ export function AdminInterviewDetailClient() {
   };
 
   useEffect(() => {
-    fetchDetail();
-  }, [fetchDetail]);
+    if (!sessionId || isNaN(sessionId)) return;
+    let isSubscribed = true;
+    interviewAdminApi.getInterviewDetail(sessionId)
+      .then((data) => {
+        if (isSubscribed) setDetail(data);
+      })
+      .catch((err: any) => {
+        if (isSubscribed) toast.error(err?.message || "Không thể tải chi tiết phiên phỏng vấn");
+      })
+      .finally(() => {
+        if (isSubscribed) setLoading(false);
+      });
+    return () => {
+      isSubscribed = false;
+    };
+  }, [sessionId]);
 
   if (loading) {
     return (
