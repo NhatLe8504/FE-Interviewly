@@ -78,11 +78,11 @@ export function UserOnboardingClient() {
   useEffect(() => {
     if (currentStep === 6) {
       const timer = setTimeout(() => {
-        window.location.href = "/";
+        router.push("/");
       }, 2200);
       return () => clearTimeout(timer);
     }
-  }, [currentStep]);
+  }, [currentStep, router]);
 
   const handleCopy = (key: string, text: string) => {
     if (navigator.clipboard) {

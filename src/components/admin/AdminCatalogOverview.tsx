@@ -128,6 +128,7 @@ export function AdminCatalogOverview() {
               <div key={course.id} className="flex items-start gap-3 border-b pb-4 last:border-0 last:pb-0">
                 <div className="relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted ring-1 ring-foreground/10">
                   <BookOpenIcon className="size-5 text-muted-foreground" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={course.image}
                     alt={course.title}

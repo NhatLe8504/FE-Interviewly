@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
@@ -83,7 +83,7 @@ export default function AuthPanel({
     }
   }, [otpCountdown]);
 
-  const handlePostAuthRedirect = (tokenRes?: any, userProfile?: any) => {
+  const handlePostAuthRedirect = useCallback((tokenRes?: any, userProfile?: any) => {
     // 1. Force password setup popup for first-time Google users (or users without password)
     if (tokenRes?.needs_password || userProfile?.needs_password) {
       setPendingAuthResponse({ tokenRes, userProfile });
@@ -95,24 +95,28 @@ export default function AuthPanel({
 
     // 2. Check if user hasn't completed onboarding -> redirect to /onboarding
     if (tokenRes?.is_onboarded === false || (userProfile && !userProfile.is_onboarded)) {
-      window.location.href = "/onboarding";
+      router.push("/onboarding");
+      router.refresh();
       return;
     }
 
     // 3. Otherwise redirect to admin or home
     if (userProfile?.role === "admin") {
-      window.location.href = "/admin";
+      router.push("/admin");
+      router.refresh();
       return;
     }
 
     const searchParams = new URLSearchParams(window.location.search);
     const redirectUrl = searchParams.get("redirect");
     if (redirectUrl && redirectUrl.startsWith("/")) {
-      window.location.href = redirectUrl;
+      router.push(redirectUrl);
+      router.refresh();
       return;
     }
-    window.location.href = "/";
-  };
+    router.push("/");
+    router.refresh();
+  }, [router]);
 
   // Initialize Google Identity Services (GSI)
   useEffect(() => {
@@ -182,7 +186,7 @@ export default function AuthPanel({
       }, 300);
       return () => clearInterval(interval);
     }
-  }, [googleLogin, router]);
+  }, [googleLogin, router, handlePostAuthRedirect]);
 
   const handleSetInitialPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -211,9 +215,11 @@ export default function AuthPanel({
       } catch {}
 
       if (profile && !profile.is_onboarded) {
-        window.location.href = "/onboarding";
+        router.push("/onboarding");
+        router.refresh();
       } else {
-        window.location.href = "/";
+        router.push("/");
+        router.refresh();
       }
     } catch (err: any) {
       setError(err?.data?.detail || err?.message || "Không thể thiết lập mật khẩu.");
@@ -374,7 +380,8 @@ export default function AuthPanel({
           title: "Đăng nhập thành công!",
           description: "Chào mừng bạn quay trở lại với Interviewly.",
         });
-        window.location.href = "/";
+        router.push("/");
+        router.refresh();
       } catch (err: any) {
         setError(err.message || "Tài khoản hoặc mật khẩu không chính xác.");
       } finally {
@@ -826,11 +833,14 @@ export default function AuthPanel({
               pendingAuthResponse?.userProfile?.is_onboarded === false ||
               user?.is_onboarded === false;
             if (isNotOnboarded) {
-              window.location.href = "/onboarding";
+              router.push("/onboarding");
+              router.refresh();
             } else if (user?.role === "admin" || pendingAuthResponse?.userProfile?.role === "admin") {
-              window.location.href = "/admin";
+              router.push("/admin");
+              router.refresh();
             } else {
-              window.location.href = "/";
+              router.push("/");
+              router.refresh();
             }
           }}
         />
