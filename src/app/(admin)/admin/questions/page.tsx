@@ -51,17 +51,10 @@ function AdminQuestionsContent() {
   const [roles, setRoles] = useState<RoleOut[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Sync active tab with URL query parameter
-  const [activeTab, setActiveTab] = useState<"sets" | "bank">(tabParam);
-
-  useEffect(() => {
-    if (tabParam !== activeTab) {
-      setActiveTab(tabParam);
-    }
-  }, [tabParam, activeTab]);
+  // Active tab derived directly from URL query parameter
+  const activeTab: "sets" | "bank" = tabParam;
 
   const loadData = useCallback(async () => {
-    setLoading(true);
     try {
       const [qRes, setsRes, domainsRes, rolesRes] = await Promise.all([
         questionAdminApi.getQuestions({ limit: 100 }),
@@ -82,7 +75,15 @@ function AdminQuestionsContent() {
   }, []);
 
   useEffect(() => {
-    loadData();
+    let ignore = false;
+    void (async () => {
+      if (!ignore) {
+        await loadData();
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
   }, [loadData, refreshKey]);
 
   // Active domain object if domain_id query parameter is present
@@ -152,7 +153,6 @@ function AdminQuestionsContent() {
 
   const handleTabChange = (val: string) => {
     const nextTab = val === "bank" ? "bank" : "sets";
-    setActiveTab(nextTab);
     updateQueryParams(domainIdParam, nextTab);
   };
 

@@ -103,15 +103,18 @@ export function QuestionDataTable({
   const [search, setSearch] = useState("");
   const [selectedDomain, setSelectedDomain] = useState<string>(initialDomainId || "all");
 
-  useEffect(() => {
+  // Adjust state when props change during render
+  const [prevQuestions, setPrevQuestions] = useState(initialQuestions);
+  if (prevQuestions !== initialQuestions) {
+    setPrevQuestions(initialQuestions);
     setQuestions(initialQuestions);
-  }, [initialQuestions]);
+  }
 
-  useEffect(() => {
-    if (initialDomainId !== undefined) {
-      setSelectedDomain(initialDomainId || "all");
-    }
-  }, [initialDomainId]);
+  const [prevDomainId, setPrevDomainId] = useState(initialDomainId);
+  if (prevDomainId !== initialDomainId) {
+    setPrevDomainId(initialDomainId);
+    setSelectedDomain(initialDomainId || "all");
+  }
 
   const effectiveDomains = useMemo(() => {
     return domainsList || [];
@@ -417,8 +420,11 @@ export function QuestionDataTable({
 
   React.useEffect(() => {
     if (triggerCreate) {
-      handleOpenCreate();
-      onTriggerCreateHandled?.();
+      const timer = setTimeout(() => {
+        handleOpenCreate();
+        onTriggerCreateHandled?.();
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [triggerCreate, onTriggerCreateHandled]);
 

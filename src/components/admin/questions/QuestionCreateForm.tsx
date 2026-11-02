@@ -472,7 +472,30 @@ export function QuestionCreateForm() {
     setSelectedBankQuestions([]);
   };
 
-  const pickAllVisibleBankQuestions = () => {
+  // Filtered bank questions for picker
+  const filteredBankQuestions = useMemo(() => {
+    return bankQuestions.filter((q) => {
+      if (bankSearch.trim()) {
+        const kw = bankSearch.trim().toLowerCase();
+        const inText = (q.question_text || "").toLowerCase().includes(kw);
+        const inRole = (q.role_name || "").toLowerCase().includes(kw);
+        const inDomain = (q.domain_name || "").toLowerCase().includes(kw);
+        if (!inText && !inRole && !inDomain) return false;
+      }
+      if (bankDomainFilter !== "all" && String(q.domain_id) !== bankDomainFilter) {
+        return false;
+      }
+      if (bankLevelFilter !== "all" && q.experience_level !== bankLevelFilter) {
+        return false;
+      }
+      if (bankTypeFilter !== "all" && q.question_type !== bankTypeFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [bankQuestions, bankSearch, bankDomainFilter, bankLevelFilter, bankTypeFilter]);
+
+    const pickAllVisibleBankQuestions = () => {
     const existingIds = new Set(selectedBankQuestions.map((q) => q.question_id));
     const newItems = filteredBankQuestions.filter((q) => !existingIds.has(q.question_id));
     setSelectedBankQuestions((prev) => [...prev, ...newItems]);
@@ -523,29 +546,6 @@ export function QuestionCreateForm() {
     },
   ]);
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  // Filtered bank questions for picker
-  const filteredBankQuestions = useMemo(() => {
-    return bankQuestions.filter((q) => {
-      if (bankSearch.trim()) {
-        const kw = bankSearch.trim().toLowerCase();
-        const inText = (q.question_text || "").toLowerCase().includes(kw);
-        const inRole = (q.role_name || "").toLowerCase().includes(kw);
-        const inDomain = (q.domain_name || "").toLowerCase().includes(kw);
-        if (!inText && !inRole && !inDomain) return false;
-      }
-      if (bankDomainFilter !== "all" && String(q.domain_id) !== bankDomainFilter) {
-        return false;
-      }
-      if (bankLevelFilter !== "all" && q.experience_level !== bankLevelFilter) {
-        return false;
-      }
-      if (bankTypeFilter !== "all" && q.question_type !== bankTypeFilter) {
-        return false;
-      }
-      return true;
-    });
-  }, [bankQuestions, bankSearch, bankDomainFilter, bankLevelFilter, bankTypeFilter]);
-
   const availableRoles = useMemo(() => {
     return roles.filter((r) => r.domain_id === domainId);
   }, [roles, domainId]);

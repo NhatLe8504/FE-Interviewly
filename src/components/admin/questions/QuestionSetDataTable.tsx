@@ -91,15 +91,18 @@ export function QuestionSetDataTable({
   const [search, setSearch] = useState("");
   const [selectedDomain, setSelectedDomain] = useState<string>(initialDomainId || "all");
 
-  React.useEffect(() => {
+  // Adjust state when props change during render
+  const [prevSets, setPrevSets] = useState(initialSets);
+  if (prevSets !== initialSets) {
+    setPrevSets(initialSets);
     setSets(initialSets);
-  }, [initialSets]);
+  }
 
-  React.useEffect(() => {
-    if (initialDomainId !== undefined) {
-      setSelectedDomain(initialDomainId || "all");
-    }
-  }, [initialDomainId]);
+  const [prevDomainId, setPrevDomainId] = useState(initialDomainId);
+  if (prevDomainId !== initialDomainId) {
+    setPrevDomainId(initialDomainId);
+    setSelectedDomain(initialDomainId || "all");
+  }
 
   const effectiveDomains = React.useMemo(() => {
     return domainsList || [];
