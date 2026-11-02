@@ -188,7 +188,7 @@ export function AdminModerationClient() {
         description="Giám sát và xử lý các nội dung câu hỏi, câu trả lời, tài khoản bị báo cáo vi phạm tiêu chuẩn cộng đồng."
       >
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={() => fetchLogs(true)} disabled={loading}>
             <RefreshCw className={`size-4 mr-2 ${loading ? "animate-spin" : ""}`} />
             Làm mới
           </Button>

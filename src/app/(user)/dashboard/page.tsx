@@ -72,7 +72,7 @@ export default function DashboardPage() {
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center">
         <div className="max-w-md w-full p-8 rounded-3xl border border-red-500/20 bg-slate-900/90 shadow-xl space-y-4">
           <p className="text-red-400 font-semibold">{error}</p>
-          <button onClick={fetchData} className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium transition-colors">
+          <button onClick={() => fetchData(true)} className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium transition-colors">
             Thử lại
           </button>
         </div>

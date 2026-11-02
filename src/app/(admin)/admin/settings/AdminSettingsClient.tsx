@@ -89,20 +89,11 @@ export function AdminSettingsClient() {
     let isSubscribed = true;
     Promise.all([
       settingsAdminApi.getSettings(),
-      settingsAdminApi.getSystemHealth(),
+      settingsAdminApi.getHealth().catch(() => null),
     ]).then(([s, h]) => {
       if (!isSubscribed) return;
       setSettings(s);
-      setForm({
-        ai_model: s.ai_model || "gpt-4o-mini",
-        ai_temperature: s.ai_temperature ?? 0.7,
-        ai_max_tokens: s.ai_max_tokens ?? 2000,
-        ai_interviewer_persona: s.ai_interviewer_persona || "standard",
-        tts_provider: s.tts_provider || "browser",
-        stt_provider: s.stt_provider || "whisper",
-        require_email_verification: s.require_email_verification ?? false,
-        enable_registration: s.enable_registration ?? true,
-      });
+      setForm(s);
       setHealth(h);
     }).catch((err: any) => {
       if (isSubscribed) toast.error(err?.message || "Không thể tải cấu hình hệ thống");
@@ -151,7 +142,7 @@ export function AdminSettingsClient() {
         description="Quản trị cấu hình LLM, Voice TTS/STT, hạ tầng email và theo dõi sức khỏe máy chủ."
       >
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={() => fetchData(true)} disabled={loading}>
             <RefreshCw className={`size-4 mr-2 ${loading ? "animate-spin" : ""}`} />
             Làm mới
           </Button>
