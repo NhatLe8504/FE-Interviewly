@@ -313,7 +313,6 @@ export function useRealtimeVoiceInterview({
   const [activeVoice, setActiveVoice] = useState<string>(voice || "vi-VN-HoaiMyNeural");
   const [activePitch, setActivePitch] = useState<string>(pitch || "+0Hz");
   const playbackSpeedRef = useRef(clampInterviewPlaybackSpeed(playbackSpeed));
-  playbackSpeedRef.current = clampInterviewPlaybackSpeed(playbackSpeed);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isStoppingSession, setIsStoppingSession] = useState(false);
   const isStoppingSessionRef = useRef(false);
@@ -360,7 +359,6 @@ export function useRealtimeVoiceInterview({
   const [spokenText, setSpokenText] = useState("");
   const spokenTextTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const responseModeRef = useRef(responseMode);
-  responseModeRef.current = responseMode;
   const revealSentence = useCallback((sentence: string, durationSeconds: number) => {
     if (spokenTextTimerRef.current) clearInterval(spokenTextTimerRef.current);
     const words = sentence.trim().split(/\s+/);
@@ -379,9 +377,11 @@ export function useRealtimeVoiceInterview({
 
   // Audio, Mic & Barge-in Controls
   const [bargeInEnabled, setBargeInEnabled] = useState(bargeInInitial);
-  useEffect(() => {
+  const [prevBargeInInitial, setPrevBargeInInitial] = useState(bargeInInitial);
+  if (prevBargeInInitial !== bargeInInitial) {
+    setPrevBargeInInitial(bargeInInitial);
     setBargeInEnabled(bargeInInitial);
-  }, [bargeInInitial]);
+  }
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [audioBlockedByAutoplay, setAudioBlockedByAutoplay] = useState(false);
@@ -397,7 +397,6 @@ export function useRealtimeVoiceInterview({
     return "browser";
   });
   const ttsEngineRef = useRef<"edge" | "elevenlabs" | "vieneu" | "browser">(ttsEngine);
-  ttsEngineRef.current = ttsEngine;
 
   const [selectedBrowserVoice, setSelectedBrowserVoiceState] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
@@ -408,7 +407,6 @@ export function useRealtimeVoiceInterview({
     return null;
   });
   const browserVoiceRef = useRef<string | null>(selectedBrowserVoice);
-  browserVoiceRef.current = selectedBrowserVoice;
 
   const setTtsEngine = useCallback((engine: "edge" | "elevenlabs" | "vieneu" | "browser") => {
     if (engine !== ttsEngineRef.current) {
@@ -444,7 +442,9 @@ export function useRealtimeVoiceInterview({
   const missingAudioSentencesRef = useRef<string[]>([]);
   const startMissingAudioRef = useRef<() => boolean>(() => false);
   const isAudioMutedRef = useRef(false);
-  isAudioMutedRef.current = isAudioMuted;
+  const serverHasFinishedTurnRef = useRef<boolean>(false);
+  const pendingCompletionRef = useRef(false);
+  const submissionPendingRef = useRef(false);
 
   const speakWithBrowserTTS = useCallback((text: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -456,7 +456,7 @@ export function useRealtimeVoiceInterview({
       const voices = window.speechSynthesis.getVoices();
 
       // Xác định chuẩn mã locale theo ngôn ngữ phỏng vấn (mặc định vi-VN)
-      const requestedLang = (optionsRef.current.language || "vi").toLowerCase();
+      const requestedLang = (language || "vi").toLowerCase();
       const targetLocale = requestedLang.startsWith("vi")
         ? "vi-VN"
         : requestedLang.startsWith("en")
@@ -566,27 +566,26 @@ export function useRealtimeVoiceInterview({
       browserTtsPendingCountRef.current = Math.max(0, browserTtsPendingCountRef.current - 1);
       setError("Giọng đọc dự phòng không phát được. Phần còn lại vẫn hiển thị bằng chữ.");
     }
-  }, [activePitch, revealSentence]);
+  }, [activePitch, revealSentence, language]);
 
-  startMissingAudioRef.current = () => {
-    const missing = missingAudioSentencesRef.current;
-    if (!missing.length) return false;
-    missingAudioSentencesRef.current = [];
-    if (typeof window === "undefined" || !window.speechSynthesis) {
-      setError("Không thể phát hết giọng AI. Phần còn lại vẫn hiển thị bằng chữ.");
-      return false;
-    }
-    missing.forEach((sentence) => speakWithBrowserTTS(sentence));
-    return browserTtsPendingCountRef.current > 0;
-  };
+  useEffect(() => {
+    startMissingAudioRef.current = () => {
+      const missing = missingAudioSentencesRef.current;
+      if (!missing.length) return false;
+      missingAudioSentencesRef.current = [];
+      if (typeof window === "undefined" || !window.speechSynthesis) {
+        setError("Không thể phát hết giọng AI. Phần còn lại vẫn hiển thị bằng chữ.");
+        return false;
+      }
+      missing.forEach((sentence) => speakWithBrowserTTS(sentence));
+      return browserTtsPendingCountRef.current > 0;
+    };
+  });
 
   // State References for safe async callbacks
   const aiStateRef = useRef<AiVoiceState>("idle");
-  aiStateRef.current = aiState;
   const isCompletedRef = useRef<boolean>(false);
-  isCompletedRef.current = isCompleted;
   const turnIdRef = useRef<number>(turnId);
-  turnIdRef.current = turnId;
 
   const wsRef = useRef<WebSocket | null>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -595,14 +594,9 @@ export function useRealtimeVoiceInterview({
   const isManuallyClosedRef = useRef(false);
   const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Xiaozhi VAD & Turn-taking references
-  const serverHasFinishedTurnRef = useRef<boolean>(false);
-
   // Audio subsystem references
   const playerRef = useRef<StreamingAudioPlayer | null>(null);
   const playbackReadyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingCompletionRef = useRef(false);
-  const submissionPendingRef = useRef(false);
   const activeGenerationRef = useRef<string | null>(null);
   const ignoredGenerationsRef = useRef(new Set<string>());
   const acknowledgedGenerationRef = useRef<string | null>(null);
@@ -634,6 +628,18 @@ export function useRealtimeVoiceInterview({
     companyName,
     mockMode,
     totalDurationMinutes,
+  });
+
+  useEffect(() => {
+    playbackSpeedRef.current = clampInterviewPlaybackSpeed(playbackSpeed);
+    responseModeRef.current = responseMode;
+    ttsEngineRef.current = ttsEngine;
+    browserVoiceRef.current = selectedBrowserVoice;
+    isAudioMutedRef.current = isAudioMuted;
+    aiStateRef.current = aiState;
+    isCompletedRef.current = isCompleted;
+    turnIdRef.current = turnId;
+    isStoppingSessionRef.current = isStoppingSession;
   });
 
   useEffect(() => {
@@ -706,15 +712,17 @@ export function useRealtimeVoiceInterview({
     if (isConnected) sendMessage({ type: "config", barge_in_enabled: bargeInEnabled });
   }, [bargeInEnabled, isConnected, sendMessage]);
 
-  playbackAckRef.current = () => {
-    const generationId = activeGenerationRef.current;
-    if (!generationId || !serverHasFinishedTurnRef.current ||
-        acknowledgedGenerationRef.current === generationId ||
-        playerRef.current?.isPlaying() || browserTtsPendingCountRef.current > 0) return;
-    if (sendMessage({ type: "playback_completed", generation_id: generationId })) {
-      acknowledgedGenerationRef.current = generationId;
-    }
-  };
+  useEffect(() => {
+    playbackAckRef.current = () => {
+      const generationId = activeGenerationRef.current;
+      if (!generationId || !serverHasFinishedTurnRef.current ||
+          acknowledgedGenerationRef.current === generationId ||
+          playerRef.current?.isPlaying() || browserTtsPendingCountRef.current > 0) return;
+      if (sendMessage({ type: "playback_completed", generation_id: generationId })) {
+        acknowledgedGenerationRef.current = generationId;
+      }
+    };
+  });
 
   useEffect(() => {
     if (enabled && isConnected) sendMessage({ type: "config", language, response_mode: responseMode });
@@ -1512,6 +1520,7 @@ export function useRealtimeVoiceInterview({
       cleanupSocket(wsRef.current);
       wsRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, enabled, getWsUrl, isCompleted]);
 
   return {
