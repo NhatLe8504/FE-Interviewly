@@ -47,11 +47,11 @@ export function useVoiceAnswerDraft(options: VoiceDraftOptions) {
   const [silenceRemaining, setSilenceRemaining] = useState<number | null>(null);
   const [audioBlobState, setAudioBlobState] = useState<Blob | null>(null);
   const optionsRef = useRef(options);
-  const [autoSubmit, setAutoSubmit] = useState(options.autoListen ?? false);
+  const [autoSubmit, setAutoSubmit] = useState(options.autoListen ?? true);
   const [prevAutoListen, setPrevAutoListen] = useState(options.autoListen);
   if (prevAutoListen !== options.autoListen) {
     setPrevAutoListen(options.autoListen);
-    setAutoSubmit(options.autoListen ?? false);
+    setAutoSubmit(options.autoListen ?? true);
   }
   const autoSubmitRef = useRef(autoSubmit);
   const toggleAutoSubmit = useCallback(() => {

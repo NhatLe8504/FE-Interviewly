@@ -303,7 +303,7 @@ export function useRealtimeVoiceInterview({
   companyName,
   mockMode: initialMockMode = "guided",
   totalDurationMinutes = 45,
-  bargeInInitial = false,
+  bargeInInitial = true,
 }: UseRealtimeVoiceInterviewOptions) {
   // Connection & Lifecycle State
   const [isConnected, setIsConnected] = useState(false);
@@ -376,11 +376,11 @@ export function useRealtimeVoiceInterview({
   const [turns, setTurns] = useState<ConversationTurn[]>([]);
 
   // Audio, Mic & Barge-in Controls
-  const [bargeInEnabled, setBargeInEnabled] = useState(bargeInInitial);
+  const [bargeInEnabled, setBargeInEnabled] = useState(bargeInInitial ?? true);
   const [prevBargeInInitial, setPrevBargeInInitial] = useState(bargeInInitial);
   if (prevBargeInInitial !== bargeInInitial) {
     setPrevBargeInInitial(bargeInInitial);
-    setBargeInEnabled(bargeInInitial);
+    setBargeInEnabled(bargeInInitial ?? true);
   }
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isAudioMuted, setIsAudioMuted] = useState(false);

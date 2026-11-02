@@ -304,7 +304,7 @@ export default function InterviewRoomPage({
     companyName: meta.companyName,
     mockMode: meta.mockMode || "guided",
     totalDurationMinutes: meta.totalDurationMinutes || 45,
-    bargeInInitial: meta.bargeInEnabled ?? false,
+    bargeInInitial: meta.bargeInEnabled ?? true,
   });
 
   useEffect(() => {
@@ -472,7 +472,7 @@ export default function InterviewRoomPage({
     enabled: isClientMounted && isConnected && isVoiceMode && !isCompleted,
     canRecord: canAnswer,
     autoListen: bargeInEnabled,
-    canInterrupt,
+    canInterrupt: false, // TUYỆT ĐỐI không ghi âm khi AI đang nói để chống mic thu lại loa ngoài và tự trả lời
     aiSpeechText: `${currentQuestion} ${currentSubtitle} ${spokenText}`,
     onSpeechStart: interruptAi,
     language,
@@ -1376,10 +1376,10 @@ function changeInterviewLanguage(code: string) {
                 ) : voiceDraft.state === "recording" ? (
                   <p className={styles.capsuleStatusText}>
                     <span className={styles.statusDotRecording}>
-                      {bargeInEnabled && !voiceDraftHasSpeech ? "● Mic đang nghe" : "● Đang thu âm"}
+                      {bargeInEnabled && !voiceDraftHasSpeech ? "● Đang chờ bạn nói" : "● Đang ghi âm"}
                     </span>{" "}
                     {bargeInEnabled && !voiceDraftHasSpeech
-                      ? "Bạn có thể nói để ngắt lời AI; mic sẽ tự gửi khi bạn ngừng nói."
+                      ? "Micro tự động bật sẵn. Hãy bắt đầu nói câu trả lời của bạn."
                       : bargeInEnabled
                         ? `Tự gửi sau khi bạn dừng nói${voiceDraft.silenceRemaining !== null ? ` (${voiceDraft.silenceRemaining}s)` : ""}.`
                         : "Bấm Dừng và gửi khi bạn nói xong."}
@@ -1391,7 +1391,9 @@ function changeInterviewLanguage(code: string) {
                 ) : (
                   <p className={styles.capsuleStatusText}>
                     {bargeInEnabled
-                      ? "Mic tự động sẽ nghe cả khi AI đang nói. Bạn có thể nói để ngắt lời."
+                      ? (isAudioPlaying || aiState === "speaking"
+                          ? "AI đang nói... Micro sẽ tự động bật ngay sau khi AI dứt lời."
+                          : "Micro đang sẵn sàng lắng nghe câu trả lời của bạn...")
                       : isAudioPlaying || aiState === "speaking"
                       ? "Lắng nghe câu hỏi từ AI trước khi trả lời..."
                       : canAnswer
@@ -1832,22 +1834,34 @@ function changeInterviewLanguage(code: string) {
               </div>}
 
               <div className={styles.settingsSection}>
-                <span className={styles.settingsSectionLabel}>Micro hội thoại</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={bargeInEnabled}
-                  className={`${styles.pitchQuickBtn} ${bargeInEnabled ? styles.pitchQuickBtnActive : ""}`}
-                  onClick={() => {
-                    if (voiceDraft.state === "recording" && !voiceDraftHasSpeech) voiceDraft.cancelRecording();
-                    toggleBargeIn();
-                  }}
-                >
-                  {bargeInEnabled ? "Đang bật: nghe liên tục và tự gửi" : "Đang tắt: bấm mic để nói"}
-                </button>
+                <label className={styles.settingsSectionLabel}>Chế độ Micro (Thu âm hội thoại)</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    className={`${styles.pitchQuickBtn} ${bargeInEnabled ? styles.pitchQuickBtnActive : ""}`}
+                    onClick={() => {
+                      if (!bargeInEnabled) toggleBargeIn();
+                    }}
+                  >
+                    Tự động thu âm (Mặc định)
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.pitchQuickBtn} ${!bargeInEnabled ? styles.pitchQuickBtnActive : ""}`}
+                    onClick={() => {
+                      if (bargeInEnabled) {
+                        if (voiceDraft.state === "recording" && !voiceDraftHasSpeech) voiceDraft.cancelRecording();
+                        toggleBargeIn();
+                      }
+                    }}
+                  >
+                    Bấm nút thủ công
+                  </button>
+                </div>
                 <p className={styles.settingsHelper}>
-                  Khi bật, micro tự nghe và có thể ngắt lời AI khi nhận diện tiếng nói của bạn.
-                  Nên dùng tai nghe để tránh loa AI lọt vào micro. Trình duyệt cần cấp quyền micro và hỗ trợ nhận diện giọng nói.
+                  {bargeInEnabled
+                    ? "Tự động thu âm ngay khi AI dứt lời và tự gửi khi bạn ngừng nói. Micro tắt khi AI đang nói để chống vọng âm."
+                    : "Chế độ thủ công: Bạn tự bấm nút micro trên màn hình khi bắt đầu nói và bấm nút gửi khi hoàn tất."}
                 </p>
               </div>
 
