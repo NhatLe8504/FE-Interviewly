@@ -90,7 +90,7 @@ export function useUserSubscription() {
       remaining: isSubscribed ? 300 : 15,
       allowed: true,
     };
-  }, [quotaData?.voice_minutes, isSubscribed]);
+  }, [quotaData, isSubscribed]);
 
   const cvGenerations = useMemo(() => {
     if (quotaData?.cv_generations) {
@@ -102,7 +102,7 @@ export function useUserSubscription() {
       remaining: isSubscribed ? 15 : 1,
       allowed: true,
     };
-  }, [quotaData?.cv_generations, isSubscribed]);
+  }, [quotaData, isSubscribed]);
 
   return {
     isSubscribed,

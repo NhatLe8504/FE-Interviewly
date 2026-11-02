@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -13,15 +13,14 @@ export interface UseTextToSpeechReturn {
 
 export function useTextToSpeech(): UseTextToSpeechReturn {
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isSupported, setIsSupported] = useState(false);
+  const [isSupported] = useState(() => typeof window !== "undefined" && "speechSynthesis" in window);
   const [isAutoSpeak, setIsAutoSpeak] = useState(true);
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      setIsSupported(true);
-
+      
       const updateVoices = () => {
         voicesRef.current = window.speechSynthesis.getVoices();
       };

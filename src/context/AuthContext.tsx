@@ -33,9 +33,9 @@ const getStoredUser = (): UserOut | null => {
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserOut | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<UserOut | null>(getStoredUser);
+  const [token, setToken] = useState<string | null>(getStoredToken);
+  const [isLoading, setIsLoading] = useState<boolean>(() => !getStoredUser() && !getStoredToken() ? false : true);
 
   const refreshUser = useCallback(async (): Promise<UserOut | null> => {
     const storedToken = getStoredToken();
@@ -88,8 +88,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refreshUser();
-  }, [refreshUser]);
+    let isSubscribed = true;
+    const storedToken = getStoredToken();
+    if (!storedToken) return;
+    authApi.getMe()
+      .then(async (profile) => {
+        if (!isSubscribed) return;
+        let avatarUrl = profile.avatar_url;
+        if (!avatarUrl) {
+          try {
+            const userProfile = await profileApi.getMyProfile();
+            avatarUrl = userProfile.avatar_url;
+          } catch {}
+        }
+        const combined: UserOut = {
+          ...profile,
+          avatar_url: avatarUrl || profile.avatar_url || null,
+        };
+        setUser(combined);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("interviewly_user", JSON.stringify(combined));
+        }
+      })
+      .catch((err: any) => {
+        const status = err?.status || err?.originalStatus || err?.response?.status;
+        if (status === 401 && isSubscribed) {
+          authApi.logout();
+          setUser(null);
+          setToken(null);
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("interviewly_user");
+          }
+        }
+      })
+      .finally(() => {
+        if (isSubscribed) setIsLoading(false);
+      });
+    return () => {
+      isSubscribed = false;
+    };
+  }, []);
 
   const login = async (payload: LoginIn): Promise<TokenOut> => {
     const res = await authApi.login(payload);
