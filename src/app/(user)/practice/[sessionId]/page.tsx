@@ -148,9 +148,10 @@ export default function InterviewRoomPage({
 
   // Load session meta from sessionStorage & restore cached voice preference
   useEffect(() => {
-    const initialLanguage = new URL(window.location.href).searchParams.get("language") ?? "vi";
-    try {
-      const raw = sessionStorage.getItem(`session_metadata_${sessionId}`);
+    const timer = setTimeout(() => {
+      const initialLanguage = new URL(window.location.href).searchParams.get("language") ?? "vi";
+      try {
+        const raw = sessionStorage.getItem(`session_metadata_${sessionId}`);
       let targetLang = getInterviewLanguage(initialLanguage).code;
       let targetVoice: string | null = null;
       if (raw) {
@@ -191,10 +192,12 @@ export default function InterviewRoomPage({
         const savedSpeed = localStorage.getItem(INTERVIEW_PLAYBACK_SPEED_STORAGE_KEY);
         if (savedSpeed !== null) setSelectedPlaybackSpeed(clampInterviewPlaybackSpeed(Number(savedSpeed)));
       } catch {}
-    } catch {
-      setLanguage(getInterviewLanguage(initialLanguage).code);
-    }
-    setIsClientMounted(true);
+      } catch {
+        setLanguage(getInterviewLanguage(initialLanguage).code);
+      }
+      setIsClientMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [sessionId]);
 
   // Browser Speech Synthesis voices cache
@@ -218,7 +221,20 @@ export default function InterviewRoomPage({
         }
         return l.startsWith(langPrefix);
       });
-      setBrowserVoices(filtered.length > 0 ? filtered : all.slice(0, 20));
+      const candidateList = filtered.length > 0 ? filtered : all.slice(0, 20);
+      const sortedVoices = [...candidateList].sort((a, b) => {
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+        const aIsHoaiMy = aName.includes("hoài my") || aName.includes("hoai my") || aName.includes("hoaimy");
+        const bIsHoaiMy = bName.includes("hoài my") || bName.includes("hoai my") || bName.includes("hoaimy");
+        if (aIsHoaiMy && !bIsHoaiMy) return -1;
+        if (!aIsHoaiMy && bIsHoaiMy) return 1;
+        return 0;
+      });
+      setBrowserVoices(sortedVoices);
+      if (!selectedBrowserVoice && sortedVoices.length > 0) {
+        setSelectedBrowserVoice(sortedVoices[0].name);
+      }
     };
     updateVoices();
     window.speechSynthesis.onvoiceschanged = updateVoices;
@@ -411,9 +427,10 @@ export default function InterviewRoomPage({
     };
   }, [isClientMounted, language, meta.voice, meta.preloadedVoiceOptions, changeVoice, setTtsEngine, setSelectedBrowserVoice]);
 
-  useEffect(() => {
-    if (isAudioPlaying) setHasPlayedOpeningAudio(true);
-  }, [isAudioPlaying]);
+  // Adjust opening audio state during render
+  if (isAudioPlaying && !hasPlayedOpeningAudio) {
+    setHasPlayedOpeningAudio(true);
+  }
 
   const canAnswer = isConnected && aiState === "listening" && !isAudioPlaying && !isCompleted;
   const canInterrupt = bargeInEnabled && isConnected && !isCompleted &&

@@ -490,6 +490,10 @@ export function useRealtimeVoiceInterview({
           voiceToUse =
             viVoices.find((v) => {
               const n = v.name.toLowerCase();
+              return n.includes("hoài my") || n.includes("hoai my") || n.includes("hoaimy");
+            }) ||
+            viVoices.find((v) => {
+              const n = v.name.toLowerCase();
               return n.includes("natural") || n.includes("online") || n.includes("google") || n.includes("neural");
             }) || viVoices[0];
         } else {

@@ -41,23 +41,27 @@ export function ResponseInputArea({
 
   const voice = useVoiceRecording();
 
-  // Keep text answer synced when voice transcript is recorded
-  useEffect(() => {
+  // Keep text answer synced when voice transcript is recorded (render-phase sync)
+  const [prevTranscript, setPrevTranscript] = useState(voice.transcript);
+  if (prevTranscript !== voice.transcript) {
+    setPrevTranscript(voice.transcript);
     if (voice.transcript) {
       setTextAnswer(voice.transcript);
     }
-  }, [voice.transcript]);
+  }
 
-  // Insert STAR starter template when candidate clicks from drawer
-  useEffect(() => {
+  // Insert STAR starter template when candidate clicks from drawer (render-phase sync)
+  const [prevStarter, setPrevStarter] = useState(insertedStarter);
+  if (prevStarter !== insertedStarter) {
+    setPrevStarter(insertedStarter);
     if (insertedStarter) {
       setTextAnswer((prev) => {
         if (!prev.trim()) return insertedStarter;
         return `${prev.trim()}\n\n${insertedStarter}`;
       });
-      setActiveTab("text"); // Switch to text tab so user can review and edit
+      setActiveTab("text");
     }
-  }, [insertedStarter]);
+  }
 
   const wordCount = textAnswer.trim() ? textAnswer.trim().split(/\s+/).length : 0;
   const charCount = textAnswer.length;
