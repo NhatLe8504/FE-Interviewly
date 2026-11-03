@@ -7,6 +7,10 @@ on:
     branches: [main, develop]
   workflow_dispatch:
 
+concurrency:
+  group: fe-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 
 env:
   IMAGE_NAME: interviewly-frontend
@@ -118,6 +122,10 @@ jobs:
 
             # Install dependencies
             npm install --legacy-peer-deps
+
+            # Clean up stale locks or processes if previous build was interrupted
+            pkill -f "next build" || true
+            rm -f .next/lock || true
 
             # Build Next.js
             echo '⚡ Building Next.js application...'
