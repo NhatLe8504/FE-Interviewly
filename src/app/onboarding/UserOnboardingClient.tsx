@@ -25,7 +25,6 @@ import {
   Shield,
   Zap,
   Copy,
-  RotateCcw,
 } from "lucide-react";
 import { useI18n } from "@/context/I18nContext";
 import { toast } from "@/components/user-component/toast";
@@ -52,7 +51,7 @@ type StepIndex = 1 | 2 | 3 | 4 | 5 | 6;
 export function UserOnboardingClient() {
   const router = useRouter();
   const { locale, setLocale } = useI18n();
-  const { user, updateUserLocal, refreshUser } = useAuth();
+  const { user, isLoading, isAuthenticated, updateUserLocal, refreshUser } = useAuth();
 
   const [currentStep, setCurrentStep] = useState<StepIndex>(1);
   const [selectedLanguage, setSelectedLanguage] = useState<"vi" | "en">(
@@ -65,9 +64,16 @@ export function UserOnboardingClient() {
   const [targetLevel, setTargetLevel] = useState<string>("junior");
   const [targetGoal, setTargetGoal] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const isVi = selectedLanguage === "vi";
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated) router.replace("/login?redirect=%2Fonboarding");
+    else if (user?.is_onboarded && currentStep !== 6) router.replace("/dashboard");
+  }, [isLoading, isAuthenticated, user?.is_onboarded, currentStep, router]);
 
   const handleSelectLanguage = (lang: "vi" | "en") => {
     setSelectedLanguage(lang);
@@ -78,7 +84,7 @@ export function UserOnboardingClient() {
   useEffect(() => {
     if (currentStep === 6) {
       const timer = setTimeout(() => {
-        router.push("/");
+        router.replace("/dashboard");
       }, 2200);
       return () => clearTimeout(timer);
     }
@@ -89,20 +95,6 @@ export function UserOnboardingClient() {
       navigator.clipboard.writeText(text);
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(null), 2000);
-    }
-  };
-
-  const handleResetOnboardingDebug = async () => {
-    try {
-      toast.info("Đang đặt lại trạng thái Onboarding...", "Vui lòng chờ trong giây lát");
-      await request("/api/v1/onboarding/reset", { method: "POST" });
-      updateUserLocal({ is_onboarded: false });
-      await refreshUser();
-      toast.success("Đã reset về Chưa Onboard!", "Bắt đầu lại luồng khảo sát từ bước 1.");
-      setCurrentStep(1);
-    } catch (err) {
-      updateUserLocal({ is_onboarded: false });
-      setCurrentStep(1);
     }
   };
 
@@ -188,7 +180,6 @@ export function UserOnboardingClient() {
     if (currentStep === 1) {
       setCurrentStep(2);
     } else if (currentStep === 2) {
-      if (!selectedChannel) return;
       setCurrentStep(3);
     } else if (currentStep === 3) {
       if (!selectedDomain) return;
@@ -203,8 +194,9 @@ export function UserOnboardingClient() {
       setTargetRoleFilterDomain(selectedDomain || "all");
       setCurrentStep(5);
     } else if (currentStep === 5) {
-      if (!targetRole.trim() || isSubmitting) return;
+      if (!targetRole.trim() || isSubmitting || !isAuthenticated) return;
       setIsSubmitting(true);
+      setSubmitError("");
       try {
         const domainObj = ONBOARDING_DOMAINS.find((d) => d.id === selectedDomain);
         await request("/api/v1/onboarding", {
@@ -219,14 +211,16 @@ export function UserOnboardingClient() {
             target_goal: targetGoal || (isVi ? "Chuẩn bị phỏng vấn tuyển dụng" : "Preparing for upcoming interviews"),
           }),
         });
+        const confirmedUser = await refreshUser();
+        if (!confirmedUser?.is_onboarded) throw new Error("Onboarding not confirmed");
         updateUserLocal({ is_onboarded: true });
-        await refreshUser();
-      } catch (err) {
-        updateUserLocal({ is_onboarded: true });
-        console.warn("Onboarding persist fallback:", err);
+        setCurrentStep(6);
+      } catch {
+        setSubmitError(isVi
+          ? "Chưa thể lưu hồ sơ. Kiểm tra kết nối và thử lại; lựa chọn của bạn vẫn được giữ."
+          : "We couldn't save your profile. Check your connection and retry; your selections are still here.");
       } finally {
         setIsSubmitting(false);
-        setCurrentStep(6);
       }
     }
   };
@@ -282,9 +276,9 @@ export function UserOnboardingClient() {
             <span>INTERVIEWLY</span>
           </Link>
 
-          <Link href="/" className={styles.backHomeLink} title="Về trang chủ">
+          <Link href="/" className={styles.backHomeLink} title={isVi ? "Về trang chủ" : "Back to home"}>
             <ArrowLeft size={14} />
-            <span>Trang chủ</span>
+            <span>{isVi ? "Trang chủ" : "Home"}</span>
           </Link>
         </div>
 
@@ -332,7 +326,7 @@ export function UserOnboardingClient() {
               type="button"
               className={styles.contactValue}
               onClick={() => handleCopy("general", "hello@interviewly.ai")}
-              title="Click to copy"
+              title={isVi ? "Nhấn để sao chép" : "Click to copy"}
             >
               <span>hello@interviewly.ai</span>
               {copiedKey === "general" ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
@@ -345,7 +339,7 @@ export function UserOnboardingClient() {
               type="button"
               className={styles.contactValue}
               onClick={() => handleCopy("support", "support@interviewly.ai")}
-              title="Click to copy"
+              title={isVi ? "Nhấn để sao chép" : "Click to copy"}
             >
               <span>support@interviewly.ai</span>
               {copiedKey === "support" ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
@@ -358,38 +352,14 @@ export function UserOnboardingClient() {
               type="button"
               className={styles.contactValue}
               onClick={() => handleCopy("hotline", "1900 6868")}
-              title="Click to copy"
+              title={isVi ? "Nhấn để sao chép" : "Click to copy"}
             >
               <span>1900 6868 (8:00 - 21:00)</span>
               {copiedKey === "hotline" ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
             </button>
           </div>
 
-          <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px dashed rgba(106, 72, 49, 0.15)" }}>
-            <button
-              type="button"
-              onClick={handleResetOnboardingDebug}
-              style={{
-                background: "none",
-                border: "none",
-                fontSize: "11px",
-                color: "#b35919",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-                padding: "2px 0",
-                opacity: 0.6,
-                fontWeight: 600,
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.6")}
-              title="Đặt lại trạng thái về Chưa Onboard để test lại luồng khảo sát"
-            >
-              <RotateCcw size={11} />
-              <span>Reset Chưa Onboard (Debug)</span>
-            </button>
-          </div>
+
         </div>
       </aside>
 
@@ -417,13 +387,10 @@ export function UserOnboardingClient() {
               </div>
 
               <h1 className={styles.heading}>
-                Chọn ngôn ngữ / Choose language
+                {isVi ? "Chọn ngôn ngữ" : "Choose your language"}
               </h1>
               <p className={styles.subheading}>
-                Ngôn ngữ bạn muốn sử dụng cho giao diện và các buổi phỏng vấn AI.
-                <span className={styles.bilingualSubEn}>
-                  Select your preferred language for the interface and AI practice sessions.
-                </span>
+                {isVi ? "Chọn ngôn ngữ cho giao diện và buổi luyện phỏng vấn." : "Choose the language for the interface and interview practice."}
               </p>
 
               <div className={styles.cardsGrid}>
@@ -438,7 +405,7 @@ export function UserOnboardingClient() {
                   </div>
                   <h3 className={styles.cardTitle}>Tiếng Việt</h3>
                   <p className={styles.cardDesc}>
-                    Giao diện tiếng Việt chuẩn, gợi ý cấu trúc STAR tự nhiên và nhận diện giọng nói mượt mà.
+                    {isVi ? "Giao diện và luyện tập bằng tiếng Việt." : "Interface and practice in Vietnamese."}
                   </p>
                 </div>
 
@@ -453,7 +420,7 @@ export function UserOnboardingClient() {
                   </div>
                   <h3 className={styles.cardTitle}>English</h3>
                   <p className={styles.cardDesc}>
-                    Standard international English interview experience with fluency and pacing metrics.
+                    {isVi ? "Giao diện và luyện tập bằng tiếng Anh." : "Interface and practice in English."}
                   </p>
                 </div>
               </div>
@@ -483,8 +450,8 @@ export function UserOnboardingClient() {
               </h2>
               <p className={styles.subheading}>
                 {isVi
-                  ? "Chia sẻ nguồn tiếp cận giúp chúng tôi nâng cấp trải nghiệm người dùng tốt hơn."
-                  : "Help us understand how you discovered our platform."}
+                  ? "Không bắt buộc; bạn có thể bỏ qua bước này."
+                  : "Optional; you can skip this step."}
               </p>
 
               <div className={styles.cardsGrid}>
@@ -522,7 +489,6 @@ export function UserOnboardingClient() {
                   type="button"
                   className={styles.btnContinue}
                   onClick={handleNext}
-                  disabled={!selectedChannel}
                 >
                   <span>{isVi ? "Tiếp tục" : "Continue"}</span>
                   <ArrowRight size={15} />
@@ -810,6 +776,8 @@ export function UserOnboardingClient() {
                 />
               </div>
 
+              {submitError && <p role="alert" className="mb-3 text-sm text-red-700">{submitError}</p>}
+
               <div className={styles.bottomBar}>
                 <button
                   type="button"
@@ -833,7 +801,7 @@ export function UserOnboardingClient() {
                         : "Saving..."
                       : isVi
                       ? "Hoàn tất khảo sát"
-                      : "Continue"}
+                      : "Finish setup"}
                   </span>
                   <ArrowRight size={15} />
                 </button>
@@ -856,8 +824,8 @@ export function UserOnboardingClient() {
 
               <p className={styles.successDesc}>
                 {isVi
-                  ? `Tuyệt vời! Lộ trình phỏng vấn hướng tới vị trí ${targetRole} của bạn đã được thiết lập hoàn tất. Hệ thống đang tự động đưa bạn về trang chủ để bắt đầu hành trình chinh phục kỳ phỏng vấn...`
-                  : `Awesome! Your personalized career roadmap for ${targetRole} has been calibrated. Redirecting you to the home page...`}
+                  ? `Tuyệt vời! Lộ trình phỏng vấn hướng tới vị trí ${targetRole} của bạn đã được thiết lập hoàn tất. Hệ thống đang đưa bạn đến bảng điều khiển để bắt đầu hành trình chinh phục kỳ phỏng vấn...`
+                  : `Awesome! Your personalized career roadmap for ${targetRole} has been calibrated. Redirecting you to your dashboard...`}
               </p>
 
               <div className={styles.redirectBarContainer}>
@@ -865,7 +833,7 @@ export function UserOnboardingClient() {
               </div>
 
               <span className={styles.redirectHint}>
-                {isVi ? "Tự động chuyển tiếp về trang chủ trong 2 giây..." : "Redirecting to home in 2 seconds..."}
+                {isVi ? "Chuyển đến bảng điều khiển trong 2 giây..." : "Redirecting to your dashboard in 2 seconds..."}
               </span>
             </div>
           )}
