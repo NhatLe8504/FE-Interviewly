@@ -72,7 +72,7 @@ export function UserOnboardingClient() {
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) router.replace("/login?redirect=%2Fonboarding");
-    else if (user?.is_onboarded && currentStep !== 6) router.replace("/dashboard");
+    else if (user?.is_onboarded && currentStep !== 6) router.replace("/");
   }, [isLoading, isAuthenticated, user?.is_onboarded, currentStep, router]);
 
   const handleSelectLanguage = (lang: "vi" | "en") => {
@@ -84,7 +84,7 @@ export function UserOnboardingClient() {
   useEffect(() => {
     if (currentStep === 6) {
       const timer = setTimeout(() => {
-        router.replace("/dashboard");
+        router.replace("/");
       }, 2200);
       return () => clearTimeout(timer);
     }
@@ -824,8 +824,8 @@ export function UserOnboardingClient() {
 
               <p className={styles.successDesc}>
                 {isVi
-                  ? `Tuyệt vời! Lộ trình phỏng vấn hướng tới vị trí ${targetRole} của bạn đã được thiết lập hoàn tất. Hệ thống đang đưa bạn đến bảng điều khiển để bắt đầu hành trình chinh phục kỳ phỏng vấn...`
-                  : `Awesome! Your personalized career roadmap for ${targetRole} has been calibrated. Redirecting you to your dashboard...`}
+                  ? `Tuyệt vời! Lộ trình phỏng vấn hướng tới vị trí ${targetRole} của bạn đã được thiết lập hoàn tất. Đang đưa bạn về trang chủ để bắt đầu luyện tập...`
+                  : `Awesome! Your personalized career roadmap for ${targetRole} has been calibrated. Redirecting you to the home page...`}
               </p>
 
               <div className={styles.redirectBarContainer}>
@@ -833,7 +833,7 @@ export function UserOnboardingClient() {
               </div>
 
               <span className={styles.redirectHint}>
-                {isVi ? "Chuyển đến bảng điều khiển trong 2 giây..." : "Redirecting to your dashboard in 2 seconds..."}
+                {isVi ? "Chuyển về trang chủ trong 2 giây..." : "Redirecting to the home page in 2 seconds..."}
               </span>
             </div>
           )}
