@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 
 export function isCandidateProtectedRoute(pathname: string): boolean {
   if (!pathname) return false;
-  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) return true;
   if (pathname === "/reports" || pathname.startsWith("/reports/")) return true;
   if (pathname === "/profile" || pathname.startsWith("/profile/")) return true;
   if (pathname === "/settings" || pathname.startsWith("/settings/")) return true;
