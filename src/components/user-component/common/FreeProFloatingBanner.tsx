@@ -39,7 +39,7 @@ export function FreeProFloatingBanner() {
       aria-label="Nâng cấp tài khoản Interviewly Pro"
     >
       <Link
-        href="/subscription/checkout"
+        href="/pricing"
         className={styles.bannerLink}
         title="Nâng cấp gói đăng ký để tăng trải nghiệm của bạn"
       >

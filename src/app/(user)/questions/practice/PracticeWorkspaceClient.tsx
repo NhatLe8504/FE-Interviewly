@@ -1088,7 +1088,7 @@ export default function PracticeWorkspaceClient() {
                     Tài khoản Free xem được tổng điểm và phân bổ 3 thành phần. Nâng cấp <strong>Pro Member</strong> để xem phân tích chuyên sâu theo loại câu hỏi, thang điểm Rubric và hướng dẫn cải thiện chi tiết.
                   </p>
                   <Link
-                    href="/subscription"
+                    href="/pricing"
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
