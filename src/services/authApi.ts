@@ -35,8 +35,8 @@ export const authApi = {
     return store.dispatch(authApiSlice.endpoints.googleAuth.initiate(payload)).unwrap();
   },
 
-  async getMe(): Promise<UserOut> {
-    return store.dispatch(authApiSlice.endpoints.getMe.initiate()).unwrap();
+  async getMe(forceRefetch = false): Promise<UserOut> {
+    return store.dispatch(authApiSlice.endpoints.getMe.initiate(undefined, { forceRefetch })).unwrap();
   },
 
   async setInitialPassword(payload: SetInitialPasswordIn): Promise<MessageOut> {

@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (cachedUser) {
         setUser(cachedUser);
       }
-      const profile = await authApi.getMe();
+      const profile = await authApi.getMe(true);
       let avatarUrl = profile.avatar_url;
       if (!avatarUrl) {
         try {
